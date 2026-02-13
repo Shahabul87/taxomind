@@ -263,6 +263,8 @@ export async function reactivateCourseCreation(
 
 /**
  * Mark the course creation as failed — goal paused, plan failed.
+ * IMPORTANT: Merges failure info into existing checkpoint data instead of
+ * overwriting it, so resume can reconstruct state from the preserved checkpoint.
  */
 export async function failCourseCreation(
   goalId: string,
@@ -274,20 +276,28 @@ export async function failCourseCreation(
   const { goal: goalStore, plan: planStore } = getGoalStores();
 
   try {
+    // Load existing checkpoint to preserve it
+    const existingPlan = await planStore.getById(planId);
+    const existingCheckpoint = (existingPlan?.checkpointData ?? {}) as Record<string, unknown>;
+
     await planStore.update(planId, {
       status: PlanStatus.FAILED,
       checkpointData: {
+        ...existingCheckpoint,
         failureReason: errorMessage,
         failedAt: new Date().toISOString(),
+        status: 'error',
+        errorMessage,
       },
     });
 
     await goalStore.pause(goalId);
 
-    logger.info('[CourseCreationController] Course creation failed', {
+    logger.info('[CourseCreationController] Course creation failed (checkpoint preserved)', {
       goalId,
       planId,
       errorMessage,
+      hadCheckpoint: Object.keys(existingCheckpoint).length > 0,
     });
   } catch (error) {
     logger.warn('[CourseCreationController] Failed to mark creation failed', {

@@ -446,7 +446,7 @@ export interface ContentAwareBloomsInput {
 // Checkpoint / Resume Types
 // ============================================================================
 
-/** Serializable checkpoint data saved after each completed chapter */
+/** Serializable checkpoint data saved after each completed chapter/section */
 export interface CheckpointData {
   /** Serialized ConceptTracker.concepts as array (Map not JSON-serializable) */
   conceptEntries: Array<[string, ConceptEntry]>;
@@ -461,6 +461,14 @@ export interface CheckpointData {
   planId: string;
   stepIds: string[];
   savedAt: string;
+
+  // === Mid-chapter recovery fields ===
+  /** The last completed stage within the current chapter (1=chapter, 2=sections, 3=details) */
+  lastCompletedStage?: 1 | 2 | 3;
+  /** For stage 2/3: index of the last completed section (0-based) within the partial chapter */
+  lastCompletedSectionIndex?: number;
+  /** Chapter number being worked on when checkpoint was saved (1-based) */
+  currentChapterNumber?: number;
 
   // === UI-visible progress fields (Phase 3: Progress Persistence) ===
   /** Course ID for cross-device resume */
@@ -477,4 +485,41 @@ export interface CheckpointData {
   status?: 'in_progress' | 'paused' | 'error' | 'completed';
   /** Last error message if status is 'error' */
   errorMessage?: string;
+  /** Failure reason (preserved from failCourseCreation — merged, not overwritten) */
+  failureReason?: string;
+  /** Timestamp when failure occurred */
+  failedAt?: string;
+}
+
+/**
+ * State threaded into the pipeline for resuming a failed course creation.
+ * Built by resumeCourseCreation() from checkpoint + DB data.
+ */
+export interface ResumeState {
+  /** Existing course ID to continue (skip db.course.create) */
+  courseId: string;
+  /** Existing SAM Goal ID */
+  goalId: string;
+  /** Existing SAM Plan ID */
+  planId: string;
+  /** Existing SAM step IDs */
+  stepIds: string[];
+  /** Chapters already fully completed (all 3 stages done) */
+  completedChapters: CompletedChapter[];
+  /** Reconstructed concept tracker from checkpoint */
+  conceptTracker: ConceptTracker;
+  /** Bloom's progression from completed chapters */
+  bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
+  /** All section titles generated so far (for uniqueness) */
+  allSectionTitles: string[];
+  /** Quality scores from completed work */
+  qualityScores: QualityScore[];
+  /** Number of fully completed chapters (start loop from this + 1) */
+  completedChapterCount: number;
+  /** Section IDs in the partial chapter that already have descriptions (skip Stage 3 for these) */
+  sectionsWithDetails: Set<string>;
+  /** DB chapter IDs that exist for the partial chapter (skip Stage 1+2 if present) */
+  partialChapterDbId?: string;
+  /** DB section records for the partial chapter (skip Stage 2 if all present) */
+  partialChapterSectionIds?: string[];
 }

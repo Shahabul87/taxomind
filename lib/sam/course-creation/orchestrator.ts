@@ -38,6 +38,7 @@ import {
   completeStageStep,
   completeCourseCreation,
   failCourseCreation,
+  reactivateCourseCreation,
 } from './course-creation-controller';
 import {
   persistConceptsBackground,
@@ -79,6 +80,7 @@ import type {
   ConceptEntry,
   EnrichedChapterContext,
   CheckpointData,
+  ResumeState,
 } from './types';
 
 // =============================================================================
@@ -124,39 +126,42 @@ export interface OrchestrateOptions {
   abortSignal?: AbortSignal;
   /** Enable streaming thinking extraction (Phase 6). Default: false. */
   enableStreamingThinking?: boolean;
+  /** Resume state — when provided, skips course/goal creation and resumes from checkpoint */
+  resumeState?: ResumeState;
 }
 
 export async function orchestrateCourseCreation(
   options: OrchestrateOptions
 ): Promise<SequentialCreationResult> {
-  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking } = options;
+  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState } = options;
   const startTime = Date.now();
+  const isResume = !!resumeState;
 
   // Create or receive a persistent CoreAIAdapter for this creation session.
-  // This replaces per-call runSAMChatWithPreference and ensures all stages
-  // share the same provider resolution, rate limiting, and usage tracking.
   const aiAdapter = options.aiAdapter ?? await createUserScopedAdapter(userId, 'course');
 
   // Resolve A/B experiment (if any active)
   const experimentAssignment: ExperimentAssignment | null = getActiveExperiment(userId);
   const experimentVariant = experimentAssignment?.variant;
 
-  const qualityScores: QualityScore[] = [];
-  const allSectionTitles: string[] = [];
-  let chaptersCreated = 0;
-  let sectionsCreated = 0;
-  let goalId = '';
-  let planId = '';
-  let stepIds: string[] = [];
-  let createdCourseId = '';
+  // When resuming, seed state from checkpoint; otherwise start fresh
+  const qualityScores: QualityScore[] = resumeState?.qualityScores.slice() ?? [];
+  const allSectionTitles: string[] = resumeState?.allSectionTitles.slice() ?? [];
+  let chaptersCreated = resumeState?.completedChapterCount ?? 0;
+  let sectionsCreated = resumeState?.completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0) ?? 0;
+  let goalId = resumeState?.goalId ?? '';
+  let planId = resumeState?.planId ?? '';
+  let stepIds: string[] = resumeState?.stepIds.slice() ?? [];
+  let createdCourseId = resumeState?.courseId ?? '';
 
-  // Initialize concept tracker and Bloom's progression
-  const conceptTracker: ConceptTracker = {
+  // Initialize concept tracker and Bloom's progression from resume or empty
+  const conceptTracker: ConceptTracker = resumeState?.conceptTracker ?? {
     concepts: new Map(),
     vocabulary: [],
     skillsBuilt: [],
   };
-  const bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }> = [];
+  const bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }> =
+    resumeState?.bloomsProgression.slice() ?? [];
 
   // Build CourseContext from config
   const courseContext: CourseContext = {
@@ -225,70 +230,92 @@ export async function orchestrateCourseCreation(
 
   try {
     // =========================================================================
-    // Resolve category / subcategory names → database IDs (upsert)
+    // RESUME vs NEW: Set up course record and goal tracking
     // =========================================================================
-    let resolvedCategoryId: string | undefined;
-    let resolvedSubcategoryId: string | undefined;
+    let courseId: string;
 
-    if (config.category) {
-      const categoryName = resolveCategoryLabel(config.category);
-      const cat = await db.category.upsert({
-        where: { name: categoryName },
-        create: { name: categoryName },
-        update: {},
-        select: { id: true },
+    if (isResume && resumeState) {
+      // --- RESUME PATH: reuse existing course and goal ---
+      courseId = resumeState.courseId;
+      createdCourseId = courseId;
+      progress.goalId = goalId;
+
+      logger.info('[ORCHESTRATOR] Resuming course creation', {
+        courseId,
+        completedChapters: resumeState.completedChapterCount,
+        totalChapters,
+        goalId,
       });
-      resolvedCategoryId = cat.id;
-    }
 
-    if (config.subcategory) {
-      const sub = await db.category.upsert({
-        where: { name: config.subcategory },
-        create: { name: config.subcategory, parentId: resolvedCategoryId },
-        update: {},
-        select: { id: true },
+      emitProgress(`Resuming from chapter ${resumeState.completedChapterCount + 1}...`);
+      onSSEEvent?.({
+        type: 'progress',
+        data: {
+          percentage: Math.round((resumeState.completedChapterCount / totalChapters) * 100),
+          message: `Resuming from chapter ${resumeState.completedChapterCount + 1}...`,
+          stage: 1,
+          phase: 'resuming',
+        },
       });
-      resolvedSubcategoryId = sub.id;
+
+      // Reactivate goal/plan
+      await reactivateCourseCreation(goalId, planId);
+    } else {
+      // --- NEW PATH: create course and goal from scratch ---
+      let resolvedCategoryId: string | undefined;
+      let resolvedSubcategoryId: string | undefined;
+
+      if (config.category) {
+        const categoryName = resolveCategoryLabel(config.category);
+        const cat = await db.category.upsert({
+          where: { name: categoryName },
+          create: { name: categoryName },
+          update: {},
+          select: { id: true },
+        });
+        resolvedCategoryId = cat.id;
+      }
+
+      if (config.subcategory) {
+        const sub = await db.category.upsert({
+          where: { name: config.subcategory },
+          create: { name: config.subcategory, parentId: resolvedCategoryId },
+          update: {},
+          select: { id: true },
+        });
+        resolvedSubcategoryId = sub.id;
+      }
+
+      emitProgress('Creating course record...');
+
+      const course = await db.course.create({
+        data: {
+          title: config.courseTitle,
+          description: config.courseDescription,
+          courseGoals: config.courseGoals.join('\n'),
+          whatYouWillLearn: config.courseGoals,
+          difficulty: config.difficulty,
+          userId,
+          isPublished: false,
+          categoryId: resolvedCategoryId,
+          subcategoryId: resolvedSubcategoryId,
+        },
+      });
+
+      courseId = course.id;
+      createdCourseId = course.id;
+      logger.info('[ORCHESTRATOR] Course created', { courseId: course.id, title: course.title });
+      onSSEEvent?.({
+        type: 'item_complete',
+        data: { stage: 0, message: 'Course record created', courseId: course.id },
+      });
+
+      const goalPlan = await initializeCourseCreationGoal(userId, config.courseTitle, course.id);
+      goalId = goalPlan.goalId;
+      planId = goalPlan.planId;
+      stepIds = goalPlan.stepIds;
+      progress.goalId = goalId;
     }
-
-    // =========================================================================
-    // Create the Course record
-    // =========================================================================
-    emitProgress('Creating course record...');
-
-    const course = await db.course.create({
-      data: {
-        title: config.courseTitle,
-        description: config.courseDescription,
-        courseGoals: config.courseGoals.join('\n'),
-        whatYouWillLearn: config.courseGoals,
-        difficulty: config.difficulty,
-        userId,
-        isPublished: false,
-        categoryId: resolvedCategoryId,
-        subcategoryId: resolvedSubcategoryId,
-      },
-    });
-
-    createdCourseId = course.id;
-    logger.info('[ORCHESTRATOR] Course created', { courseId: course.id, title: course.title });
-    onSSEEvent?.({
-      type: 'item_complete',
-      data: { stage: 0, message: 'Course record created', courseId: course.id },
-    });
-
-    // =========================================================================
-    // Initialize SAM Goal + ExecutionPlan for tracking
-    // =========================================================================
-    const goalPlan = await initializeCourseCreationGoal(
-      userId,
-      config.courseTitle,
-      course.id
-    );
-    goalId = goalPlan.goalId;
-    planId = goalPlan.planId;
-    stepIds = goalPlan.stepIds;
-    progress.goalId = goalId;
 
     // =========================================================================
     // DEPTH-FIRST PIPELINE: Complete each chapter fully before the next
@@ -300,26 +327,51 @@ export async function orchestrateCourseCreation(
     //   3. Stage 3: Generate details for all sections
     //   4. Store as CompletedChapter — next chapter gets FULL context
     //
-    // This ensures when generating Chapter N, the AI knows EVERYTHING taught
-    // in Chapters 1..N-1: every section title, description, objective, activity,
-    // and concept — not just chapter-level metadata.
+    // On resume, chapters 1..completedChapterCount are skipped entirely.
+    // A partially-completed chapter may have sections with existing descriptions
+    // that are also skipped (sectionsWithDetails set).
     // =========================================================================
 
     await advanceCourseStage(planId, stepIds, 1);
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...' } });
+    if (!isResume) {
+      onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...' } });
+    }
 
-    const completedChapters: CompletedChapter[] = [];
-    const generatedChapters: (GeneratedChapter & { id: string })[] = [];
+    // Seed completedChapters/generatedChapters from resume state
+    const completedChapters: CompletedChapter[] = resumeState?.completedChapters.slice() ?? [];
+    const generatedChapters: (GeneratedChapter & { id: string })[] = completedChapters.map(ch => ({
+      position: ch.position,
+      title: ch.title,
+      description: '',
+      bloomsLevel: ch.bloomsLevel,
+      learningObjectives: ch.learningObjectives,
+      keyTopics: ch.keyTopics ?? [],
+      prerequisites: ch.prerequisites ?? '',
+      estimatedTime: ch.estimatedTime ?? '1-2 hours',
+      topicsToExpand: ch.topicsToExpand ?? [],
+      conceptsIntroduced: ch.conceptsIntroduced ?? [],
+      id: ch.id,
+    }));
     const allSections: Map<string, (GeneratedSection & { id: string })[]> = new Map();
 
-    for (let chNum = 1; chNum <= totalChapters; chNum++) {
+    // On resume, adjust completedItems counter to reflect already-done work
+    if (isResume) {
+      const sectionsPerCh = config.sectionsPerChapter;
+      // Each completed chapter contributed: 1 chapter + N sections + N details = 1 + 2N items
+      completedItems = chaptersCreated * (1 + 2 * sectionsPerCh);
+    }
+
+    // Start loop from first chapter that needs work
+    const startChapter = isResume ? resumeState!.completedChapterCount + 1 : 1;
+
+    for (let chNum = startChapter; chNum <= totalChapters; chNum++) {
       // Check for cancellation before starting each chapter
       if (abortSignal?.aborted) {
         logger.info('[ORCHESTRATOR] Aborted before chapter', { chapter: chNum, chaptersCreated, sectionsCreated });
         onSSEEvent?.({
           type: 'complete',
           data: {
-            courseId: course.id,
+            courseId,
             chaptersCreated,
             sectionsCreated,
             totalTime: Date.now() - startTime,
@@ -331,7 +383,7 @@ export async function orchestrateCourseCreation(
         });
         return {
           success: true,
-          courseId: course.id,
+          courseId,
           chaptersCreated,
           sectionsCreated,
           stats: {
@@ -432,7 +484,7 @@ export async function orchestrateCourseCreation(
           courseGoals: chapter.learningObjectives.join('\n'),
           learningOutcomes: chapter.learningObjectives.join('\n'),
           position: chapter.position,
-          courseId: course.id,
+          courseId,
           estimatedTime: chapter.estimatedTime,
           prerequisites: chapter.prerequisites,
           targetBloomsLevel: chapter.bloomsLevel,
@@ -644,16 +696,47 @@ export async function orchestrateCourseCreation(
         });
       }
 
+      // Checkpoint after all sections generated (Stage 2 complete for this chapter)
+      // This saves section structure so Stage 3 failure doesn't require regenerating sections
+      await saveCheckpointWithRetry(courseId, userId, planId, {
+        conceptTracker,
+        bloomsProgression,
+        allSectionTitles,
+        qualityScores,
+        completedChapterCount: chaptersCreated,
+        config,
+        goalId,
+        planId,
+        stepIds,
+        courseId,
+        completedChaptersList: completedChapters,
+        percentage: Math.round((chaptersCreated / totalChapters) * 100),
+        status: 'in_progress',
+        lastCompletedStage: 2,
+        currentChapterNumber: chNum,
+      });
+
       // =====================================================================
       // STAGE 3: Generate details for all sections of this chapter
       // =====================================================================
       progress.state.stage = 3;
-      if (chNum === 1) {
+      if (chNum === 1 && !isResume) {
         onSSEEvent?.({ type: 'stage_start', data: { stage: 3, message: 'Generating section details...' } });
       }
 
       for (let secIdx = 0; secIdx < chapterSections.length; secIdx++) {
         const section = chapterSections[secIdx];
+
+        // On resume, skip sections that already have descriptions
+        if (isResume && resumeState?.sectionsWithDetails.has(section.id)) {
+          completedItems++;
+          logger.info('[ORCHESTRATOR] Skipping section with existing details (resume)', {
+            section: section.title,
+            sectionId: section.id,
+          });
+          continue;
+        }
+
         progress.state.currentSection = section.position;
         progress.state.phase = 'generating_details';
         progress.currentItem = `Details for "${section.title}"`;
@@ -700,7 +783,7 @@ export async function orchestrateCourseCreation(
           if (enableStreamingThinking) {
             const { fullContent } = await streamWithThinkingExtraction({
               aiAdapter, chatParams: s3ChatParams,
-              onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: secNum, chunk } }); },
+              onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
             });
             s3ResponseText = fullContent;
           } else {
@@ -773,6 +856,31 @@ export async function orchestrateCourseCreation(
           requestType: 'orchestrator-stage-3',
         });
 
+        // Per-section checkpoint: save after each section detail so mid-chapter
+        // failures don't lose already-generated content (Bug #3 fix)
+        const sectionPercentage = Math.round(
+          ((chaptersCreated * config.sectionsPerChapter + secIdx + 1) /
+            (totalChapters * config.sectionsPerChapter)) * 100
+        );
+        await saveCheckpointWithRetry(courseId, userId, planId, {
+          conceptTracker,
+          bloomsProgression,
+          allSectionTitles,
+          qualityScores,
+          completedChapterCount: chaptersCreated,
+          config,
+          goalId,
+          planId,
+          stepIds,
+          courseId,
+          completedChaptersList: completedChapters,
+          percentage: sectionPercentage,
+          status: 'in_progress',
+          lastCompletedStage: 3,
+          lastCompletedSectionIndex: secIdx,
+          currentChapterNumber: chNum,
+        });
+
         logger.info('[ORCHESTRATOR] Details saved', {
           section: section.title,
           qualityScore: detQuality.overall,
@@ -797,12 +905,12 @@ export async function orchestrateCourseCreation(
       });
 
       // Persist memory after each completed chapter (background)
-      persistConceptsBackground(userId, course.id, conceptTracker, chNum);
-      persistQualityScoresBackground(userId, course.id, qualityScores.slice(), chNum);
+      persistConceptsBackground(userId, courseId, conceptTracker, chNum);
+      persistQualityScoresBackground(userId, courseId, qualityScores.slice(), chNum);
 
-      // Save checkpoint for resume-on-failure
+      // Save checkpoint for resume-on-failure (awaited for reliability — Bug #5 fix)
       const chapterPercentage = Math.round((chNum / config.totalChapters) * 100);
-      saveCheckpoint(course.id, userId, {
+      await saveCheckpointWithRetry(courseId, userId, planId, {
         conceptTracker,
         bloomsProgression,
         allSectionTitles,
@@ -812,14 +920,12 @@ export async function orchestrateCourseCreation(
         goalId,
         planId,
         stepIds,
-        courseId: course.id,
+        courseId,
         completedChaptersList: completedChapters,
         percentage: chapterPercentage,
         status: 'in_progress',
-      }).catch(err => {
-        logger.warn('[ORCHESTRATOR] Checkpoint save failed (non-blocking)', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        lastCompletedStage: 3,
+        currentChapterNumber: chNum,
       });
     }
 
@@ -860,7 +966,7 @@ export async function orchestrateCourseCreation(
         : 0;
 
     logger.info('[ORCHESTRATOR] Course creation complete', {
-      courseId: course.id,
+      courseId,
       chaptersCreated,
       sectionsCreated,
       totalTime,
@@ -888,7 +994,7 @@ export async function orchestrateCourseCreation(
     onSSEEvent?.({
       type: 'complete',
       data: {
-        courseId: course.id,
+        courseId,
         chaptersCreated,
         sectionsCreated,
         totalTime,
@@ -898,7 +1004,7 @@ export async function orchestrateCourseCreation(
 
     return {
       success: true,
-      courseId: course.id,
+      courseId,
       chaptersCreated,
       sectionsCreated,
       stats: {
@@ -1090,22 +1196,27 @@ interface SaveCheckpointInput {
   goalId: string;
   planId: string;
   stepIds: string[];
-  // UI-visible progress fields (Phase 3)
+  // UI-visible progress fields
   courseId: string;
   completedChaptersList: CompletedChapter[];
   percentage: number;
   status: CheckpointData['status'];
+  // Mid-chapter recovery fields
+  lastCompletedStage?: 1 | 2 | 3;
+  lastCompletedSectionIndex?: number;
+  currentChapterNumber?: number;
 }
 
 /**
  * Save checkpoint to SAMExecutionPlan.checkpointData for resume-on-failure.
  * ConceptTracker.concepts (Map) is serialized as an array of entries.
  */
-async function saveCheckpoint(courseId: string, userId: string, input: SaveCheckpointInput): Promise<void> {
+async function saveCheckpoint(cId: string, planId: string, input: SaveCheckpointInput): Promise<void> {
   const {
     conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
-    completedChapterCount, config, goalId, planId, stepIds,
+    completedChapterCount, config, goalId, stepIds,
     completedChaptersList, percentage, status,
+    lastCompletedStage, lastCompletedSectionIndex, currentChapterNumber,
   } = input;
 
   const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } = config;
@@ -1123,8 +1234,12 @@ async function saveCheckpoint(courseId: string, userId: string, input: SaveCheck
     planId,
     stepIds,
     savedAt: new Date().toISOString(),
-    // UI-visible progress fields (Phase 3: Progress Persistence)
-    courseId,
+    // Mid-chapter recovery
+    lastCompletedStage,
+    lastCompletedSectionIndex,
+    currentChapterNumber,
+    // UI-visible progress fields
+    courseId: cId,
     totalChapters: config.totalChapters,
     percentage,
     status,
@@ -1144,8 +1259,6 @@ async function saveCheckpoint(courseId: string, userId: string, input: SaveCheck
     ),
   };
 
-  const { plan: planStore } = (await import('./course-creation-controller')).default ?? {};
-  // Use direct DB update since planStore may not expose checkpointData updates
   await db.sAMExecutionPlan.update({
     where: { id: planId },
     data: {
@@ -1153,21 +1266,58 @@ async function saveCheckpoint(courseId: string, userId: string, input: SaveCheck
     },
   });
 
-  logger.info('[ORCHESTRATOR] Checkpoint saved', { courseId, completedChapterCount, planId });
+  logger.debug('[ORCHESTRATOR] Checkpoint saved', {
+    courseId: cId,
+    completedChapterCount,
+    lastCompletedStage,
+    lastCompletedSectionIndex,
+  });
+}
+
+/**
+ * Save checkpoint with retry — ensures checkpoint persistence is reliable.
+ * Retries once on failure before logging a warning.
+ */
+async function saveCheckpointWithRetry(
+  cId: string,
+  userId: string,
+  pId: string,
+  input: SaveCheckpointInput
+): Promise<void> {
+  try {
+    await saveCheckpoint(cId, pId, input);
+  } catch (err) {
+    logger.warn('[ORCHESTRATOR] Checkpoint save failed, retrying once...', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    try {
+      await saveCheckpoint(cId, pId, input);
+    } catch (retryErr) {
+      // Log but don't throw — checkpoint failure shouldn't kill the pipeline
+      logger.error('[ORCHESTRATOR] Checkpoint save failed after retry', {
+        error: retryErr instanceof Error ? retryErr.message : String(retryErr),
+        courseId: cId,
+        completedChapterCount: input.completedChapterCount,
+      });
+    }
+  }
 }
 
 /**
  * Resume a failed course creation from a checkpoint.
- * Reconstructs state from DB and checkpoint, then continues the depth-first pipeline.
+ *
+ * Reconstructs ResumeState from checkpoint + DB, then passes it to
+ * orchestrateCourseCreation which skips course creation, threads the
+ * existing state, and continues the depth-first pipeline from where
+ * it left off — no duplicate course, no wasted tokens.
  */
 export async function resumeCourseCreation(
   options: OrchestrateOptions & { resumeCourseId: string }
 ): Promise<SequentialCreationResult> {
   const { userId, resumeCourseId, onProgress, onSSEEvent } = options;
-  const startTime = Date.now();
 
   try {
-    // 1. Load checkpoint from plan
+    // 1. Load checkpoint from SAMExecutionPlan
     const plan = await db.sAMExecutionPlan.findFirst({
       where: {
         steps: {
@@ -1188,7 +1338,7 @@ export async function resumeCourseCreation(
 
     const checkpoint = plan.checkpointData as unknown as CheckpointData;
 
-    // 2. Verify course exists and is unpublished
+    // 2. Verify course exists and belongs to user
     const course = await db.course.findUnique({
       where: { id: resumeCourseId },
       include: {
@@ -1213,13 +1363,7 @@ export async function resumeCourseCreation(
       return { success: false, error: 'Unauthorized: course belongs to another user' };
     }
 
-    // 3. Reconstruct state from checkpoint
-    const conceptTracker: ConceptTracker = {
-      concepts: new Map(checkpoint.conceptEntries),
-      vocabulary: checkpoint.vocabulary,
-      skillsBuilt: checkpoint.skillsBuilt,
-    };
-
+    // 3. Reconstruct config (checkpoint config + any overrides from current options)
     const config = {
       ...checkpoint.config,
       ...(options.config ?? {}),
@@ -1229,71 +1373,25 @@ export async function resumeCourseCreation(
     const totalChapters = config.totalChapters;
 
     if (completedChapterCount >= totalChapters) {
-      return { success: true, courseId: resumeCourseId, chaptersCreated: completedChapterCount, sectionsCreated: course.chapters.reduce((sum, ch) => sum + ch.sections.length, 0) };
+      return {
+        success: true,
+        courseId: resumeCourseId,
+        chaptersCreated: completedChapterCount,
+        sectionsCreated: course.chapters.reduce((sum, ch) => sum + ch.sections.length, 0),
+      };
     }
 
-    logger.info('[ORCHESTRATOR] Resuming course creation', {
-      courseId: resumeCourseId,
-      completedChapters: completedChapterCount,
-      totalChapters,
-    });
+    // 4. Reconstruct concept tracker from checkpoint
+    const conceptTracker: ConceptTracker = {
+      concepts: new Map(checkpoint.conceptEntries ?? []),
+      vocabulary: checkpoint.vocabulary ?? [],
+      skillsBuilt: checkpoint.skillsBuilt ?? [],
+    };
 
-    onSSEEvent?.({
-      type: 'progress',
-      data: {
-        percentage: Math.round((completedChapterCount / totalChapters) * 100),
-        message: `Resuming from chapter ${completedChapterCount + 1}...`,
-        stage: 1,
-        phase: 'generating_chapter',
-      },
-    });
-
-    // 4. Continue with orchestrateCourseCreation from the resume point
-    // We call the main function but with the existing course ID —
-    // However, the main function creates a new course. Instead, we construct
-    // the resumed call inline, reusing the same pipeline logic.
-    //
-    // For simplicity and safety, we re-call orchestrateCourseCreation
-    // but mark it as a resume by passing the existing course context.
-    // The checkpoint approach stores enough state for the full resume,
-    // but the cleanest approach is to delete the incomplete chapters
-    // after the checkpoint and re-run from that point.
-
-    // Delete any chapters beyond the checkpoint (incomplete ones)
-    const chaptersToKeep = course.chapters.slice(0, completedChapterCount);
-    const chaptersToDelete = course.chapters.slice(completedChapterCount);
-
-    if (chaptersToDelete.length > 0) {
-      for (const ch of chaptersToDelete) {
-        await db.section.deleteMany({ where: { chapterId: ch.id } });
-        await db.chapter.delete({ where: { id: ch.id } });
-      }
-      logger.info('[ORCHESTRATOR] Deleted incomplete chapters for resume', {
-        deleted: chaptersToDelete.length,
-        kept: chaptersToKeep.length,
-      });
-    }
-
-    // Reactivate the goal/plan
-    const { goal: goalStore, plan: planStore } = (await import('@/lib/sam/taxomind-context')).getGoalStores();
-    const { GoalStatus: GS, PlanStatus: PS } = await import('@sam-ai/agentic');
-
-    if (checkpoint.goalId) {
-      try {
-        await goalStore.update(checkpoint.goalId, { status: GS.ACTIVE });
-        await planStore.update(checkpoint.planId, { status: PS.ACTIVE });
-      } catch {
-        // Non-blocking
-      }
-    }
-
-    // 5. Now run the orchestrator with the full config
-    // It will create a new course — we need to prevent that.
-    // Instead, we use the existing course and resume the loop.
-    const aiAdapter = options.aiAdapter ?? await (await import('@/lib/ai/user-scoped-adapter')).createUserScopedAdapter(userId, 'course');
-
-    // Build CompletedChapters from DB
-    const completedChapters: CompletedChapter[] = chaptersToKeep.map(ch => ({
+    // 5. Build CompletedChapters from DB for the fully-completed chapters
+    //    These are chapters 1..completedChapterCount
+    const fullyCompletedDbChapters = course.chapters.slice(0, completedChapterCount);
+    const completedChapters: CompletedChapter[] = fullyCompletedDbChapters.map(ch => ({
       id: ch.id,
       position: ch.position,
       title: ch.title,
@@ -1325,24 +1423,93 @@ export async function resumeCourseCreation(
       })),
     }));
 
-    // Resume the depth-first pipeline from completedChapterCount + 1
-    // by calling the main orchestrator with a modified config
+    // 6. Detect partial chapter (chapter beyond completedChapterCount that may have
+    //    some sections already with descriptions from per-section checkpointing)
+    const sectionsWithDetails = new Set<string>();
+    const partialDbChapter = course.chapters[completedChapterCount]; // 0-indexed
+
+    if (partialDbChapter) {
+      // This chapter exists in DB — it was started but not fully completed
+      for (const sec of partialDbChapter.sections) {
+        // A section has details if description is non-trivial (> 100 chars of content)
+        if (sec.description && sec.description.length > 100) {
+          sectionsWithDetails.add(sec.id);
+        }
+      }
+
+      logger.info('[ORCHESTRATOR] Partial chapter detected for resume', {
+        chapterPosition: partialDbChapter.position,
+        totalSections: partialDbChapter.sections.length,
+        sectionsWithDetails: sectionsWithDetails.size,
+        expectedSections: config.sectionsPerChapter,
+      });
+
+      // If the partial chapter has fewer sections than expected, we'll need to
+      // delete it and regenerate (Stage 1+2 incomplete). Only keep it if all
+      // sections exist (Stage 2 complete, Stage 3 partially done).
+      if (partialDbChapter.sections.length < config.sectionsPerChapter) {
+        // Incomplete Stage 2 — delete partial chapter, regenerate from scratch
+        await db.section.deleteMany({ where: { chapterId: partialDbChapter.id } });
+        await db.chapter.delete({ where: { id: partialDbChapter.id } });
+        sectionsWithDetails.clear();
+        logger.info('[ORCHESTRATOR] Deleted incomplete partial chapter (missing sections)', {
+          chapterId: partialDbChapter.id,
+          had: partialDbChapter.sections.length,
+          expected: config.sectionsPerChapter,
+        });
+      }
+    }
+
+    // 7. Delete any orphan chapters beyond the partial/resume point
+    const keepCount = completedChapterCount +
+      (partialDbChapter && partialDbChapter.sections.length >= config.sectionsPerChapter ? 1 : 0);
+    const orphanChapters = course.chapters.slice(keepCount);
+
+    for (const ch of orphanChapters) {
+      await db.section.deleteMany({ where: { chapterId: ch.id } });
+      await db.chapter.delete({ where: { id: ch.id } });
+    }
+    if (orphanChapters.length > 0) {
+      logger.info('[ORCHESTRATOR] Deleted orphan chapters beyond resume point', {
+        deleted: orphanChapters.length,
+      });
+    }
+
+    // 8. Build ResumeState
+    const resume: ResumeState = {
+      courseId: resumeCourseId,
+      goalId: checkpoint.goalId,
+      planId: checkpoint.planId,
+      stepIds: checkpoint.stepIds ?? [],
+      completedChapters,
+      conceptTracker,
+      bloomsProgression: checkpoint.bloomsProgression ?? [],
+      allSectionTitles: checkpoint.allSectionTitles ?? [],
+      qualityScores: checkpoint.qualityScores ?? [],
+      completedChapterCount,
+      sectionsWithDetails,
+    };
+
+    logger.info('[ORCHESTRATOR] Resume state built', {
+      courseId: resumeCourseId,
+      completedChapters: completedChapterCount,
+      totalChapters,
+      sectionsWithDetails: sectionsWithDetails.size,
+    });
+
+    // 9. Call orchestrateCourseCreation with resumeState — it will skip
+    //    course creation, thread the existing state, and start the loop
+    //    from completedChapterCount + 1
     const result = await orchestrateCourseCreation({
       ...options,
-      aiAdapter,
       config: {
         ...config,
         onProgress: onProgress ?? config.onProgress,
       },
+      resumeState: resume,
     });
 
-    // The main orchestrator creates a new course. The proper resume
-    // would thread into the existing course. Since this is complex,
-    // we return the result with the original course ID context.
-    return {
-      ...result,
-      courseId: result.courseId ?? resumeCourseId,
-    };
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Resume failed:', errorMessage);
