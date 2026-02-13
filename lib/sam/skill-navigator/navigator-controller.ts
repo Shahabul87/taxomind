@@ -1,0 +1,155 @@
+/**
+ * NAVIGATOR Controller
+ *
+ * Manages SAM Goal + 6-step ExecutionPlan lifecycle for the
+ * skill navigator pipeline. Fire-and-forget pattern.
+ */
+
+import { logger } from '@/lib/logger';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
+import { NAVIGATOR_STAGES } from './agentic-types';
+
+// =============================================================================
+// GOAL LIFECYCLE
+// =============================================================================
+
+export async function initializeNavigatorGoal(
+  userId: string,
+  skillName: string,
+  goalOutcome: string,
+): Promise<{ goalId: string; planId: string } | null> {
+  try {
+    const { goal, plan } = getGoalStores();
+
+    // Create learning goal
+    const newGoal = await goal.create({
+      userId,
+      title: `Skill Navigator: ${skillName}`,
+      description: goalOutcome,
+      priority: 'HIGH',
+      status: 'IN_PROGRESS',
+      tags: ['skill-navigator', skillName.toLowerCase()],
+      metadata: { source: 'skill-navigator', skillName },
+    });
+
+    // Create execution plan with 6 steps (one per NAVIGATOR stage)
+    const newPlan = await plan.create({
+      goalId: newGoal.id,
+      userId,
+      status: 'ACTIVE',
+      schedule: {
+        stages: NAVIGATOR_STAGES.map((s) => ({
+          number: s.number,
+          name: s.name,
+          hasAI: s.hasAI,
+        })),
+      },
+    });
+
+    logger.info('[NavigatorController] Goal + plan initialized', {
+      goalId: newGoal.id,
+      planId: newPlan.id,
+      userId,
+      skillName,
+    });
+
+    return { goalId: newGoal.id, planId: newPlan.id };
+  } catch (error) {
+    logger.error('[NavigatorController] Failed to initialize goal', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId,
+      skillName,
+    });
+    return null;
+  }
+}
+
+export async function advanceStage(
+  planId: string,
+  stageNumber: number,
+  stageName: string,
+): Promise<void> {
+  try {
+    const { plan } = getGoalStores();
+    await plan.update(planId, {
+      currentStepId: `stage_${stageNumber}`,
+      overallProgress: (stageNumber / NAVIGATOR_STAGES.length) * 100,
+      checkpointData: {
+        lastCompletedStage: stageNumber,
+        lastStageName: stageName,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.warn('[NavigatorController] Failed to advance stage', {
+      planId,
+      stageNumber,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+export async function completeNavigation(
+  goalId: string,
+  planId: string,
+  roadmapId: string,
+): Promise<void> {
+  try {
+    const { goal, plan } = getGoalStores();
+
+    await Promise.all([
+      plan.update(planId, {
+        status: 'COMPLETED',
+        overallProgress: 100,
+        completedAt: new Date(),
+        checkpointData: {
+          roadmapId,
+          completedAt: new Date().toISOString(),
+        },
+      }),
+      goal.update(goalId, {
+        status: 'ACHIEVED',
+        completedAt: new Date(),
+        metadata: { roadmapId, completedVia: 'navigator-pipeline' },
+      }),
+    ]);
+
+    logger.info('[NavigatorController] Navigation complete', {
+      goalId,
+      planId,
+      roadmapId,
+    });
+  } catch (error) {
+    logger.warn('[NavigatorController] Failed to complete navigation', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+export async function failNavigation(
+  goalId: string,
+  planId: string,
+  errorMessage: string,
+): Promise<void> {
+  try {
+    const { goal, plan } = getGoalStores();
+
+    await Promise.all([
+      plan.update(planId, {
+        status: 'FAILED',
+        checkpointData: {
+          error: errorMessage,
+          failedAt: new Date().toISOString(),
+        },
+      }),
+      goal.update(goalId, {
+        status: 'ABANDONED',
+        metadata: { error: errorMessage, failedVia: 'navigator-pipeline' },
+      }),
+    ]);
+  } catch (error) {
+    logger.warn('[NavigatorController] Failed to record failure', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}

@@ -19,6 +19,8 @@ export { FloatingButton } from './FloatingButton';
 export { ConversationalOptions, InlineOptions } from './ConversationalOptions';
 export { RoadmapGenerationProgress, CompactProgress } from './RoadmapGenerationProgress';
 export { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
+export { NavigatorToolRenderer } from './NavigatorToolRenderer';
+export { NavigatorGenerationProgress } from './NavigatorGenerationProgress';
 export { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
 
 // Panels
@@ -41,6 +43,11 @@ export { useBehaviorTracking } from './hooks/use-behavior-tracking';
 export { useFormDetection } from './hooks/use-form-detection';
 export { useMessageActions } from './hooks/use-message-actions';
 export { useSkillRoadmapTool, extractToolOutput, hasSkillRoadmapOutput } from './hooks/useSkillRoadmapTool';
+export {
+  useSkillNavigatorTool,
+  extractNavigatorToolOutput,
+  hasSkillNavigatorOutput,
+} from './hooks/useSkillNavigatorTool';
 export {
   useLearningAnalyticsTool,
   extractToolOutput as extractAnalyticsToolOutput,
@@ -84,5 +91,10 @@ export type {
   LearningAnalyticsToolOutput,
   LearningAnalyticsResult,
 } from './hooks/useLearningAnalyticsTool';
+
+export type {
+  SkillNavigatorToolOutput,
+  NavigatorRoadmapResult,
+} from './hooks/useSkillNavigatorTool';
 
 export type { ConversationalOption } from './ConversationalOptions';

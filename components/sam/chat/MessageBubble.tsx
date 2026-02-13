@@ -13,6 +13,7 @@ import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 import { ToolResultCard } from './panels/ToolResultCard';
 import { EngineTransparencyPanel } from './panels/EngineTransparencyPanel';
 import { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
+import { NavigatorToolRenderer } from './NavigatorToolRenderer';
 import { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
 import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
@@ -115,6 +116,25 @@ export function MessageBubble({
                 return (
                   <SkillRoadmapToolRenderer
                     output={skillRoadmapOutput}
+                    onSendMessage={onSendMessage}
+                    onViewRoadmap={(roadmapId) => {
+                      onSendMessage(`Show me the roadmap ${roadmapId}`);
+                    }}
+                    isInteractive={isLastMessage && !isMessageStreaming}
+                  />
+                );
+              }
+            }
+
+            // Skill Navigator Tool
+            if (toolId === 'sam-skill-navigator') {
+              const navigatorOutput = toolOutput as Parameters<typeof NavigatorToolRenderer>[0]['output'] | null;
+              const hasValidOutput = navigatorOutput?.type === 'conversation' || navigatorOutput?.type === 'generate_roadmap';
+
+              if (hasValidOutput && onSendMessage) {
+                return (
+                  <NavigatorToolRenderer
+                    output={navigatorOutput}
                     onSendMessage={onSendMessage}
                     onViewRoadmap={(roadmapId) => {
                       onSendMessage(`Show me the roadmap ${roadmapId}`);

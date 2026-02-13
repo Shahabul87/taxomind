@@ -68,7 +68,8 @@ function normalizeText(value: string): string {
  * This ensures mode-specific tools are prioritized when the user is in that mode.
  */
 const MODE_TOOL_AFFINITY: Record<string, string[]> = {
-  'skill-roadmap-builder': ['sam-skill-roadmap-generator'],
+  'skill-roadmap-builder': ['sam-skill-roadmap-generator', 'sam-skill-navigator'],
+  'skill-navigator': ['sam-skill-navigator'],
   'exam-builder': ['sam-exam-builder', 'sam-quiz-grader', 'sam-exam-evaluator'],
   'learning-coach': ['sam-flashcard-generator', 'sam-study-timer'],
   'blooms-analyzer': ['sam-diagram-generator'],
@@ -148,6 +149,17 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
       /\b(bloom|cognitive|learning)\b.*\b(profile|map|level|growth)\b/i,
       /\b(study|learning)\b.*\b(recommendation|suggestion|advice|next)\b/i,
       /\b(fragile|weak|gap|struggle|stuck)\b.*\b(knowledge|concept|skill|area)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'skill-navigator': {
+    toolId: 'sam-skill-navigator',
+    intentPatterns: [
+      /\b(build|create|plan|design)\b.*\b(roadmap|learning path|skill plan|career path)\b/i,
+      /\b(want to learn|need to learn|how to learn|start learning)\b/i,
+      /\b(career switch|change career|new career|job transition)\b.*\b(plan|roadmap|path)\b/i,
+      /\b(skill)\b.*\b(build|develop|improve|grow|navigator|roadmap)\b/i,
+      /\b(from|go from)\b.*\b(beginner|novice)\b.*\b(to|toward)\b.*\b(expert|advanced|proficient)\b/i,
     ],
     defaultInput: { action: 'start' },
   },
@@ -258,6 +270,27 @@ function checkAutoInvoke(
             const attemptId = match[1].trim();
             if (attemptId.length >= 2 && attemptId.length <= 100) {
               input = { ...input, attemptId };
+              break;
+            }
+          }
+        }
+      }
+
+      if (config.toolId === 'sam-skill-navigator') {
+        // Try to extract the skill name from common patterns
+        const skillPatterns = [
+          /(?:learn|master|improve|study|get better at|start learning)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+          /(?:roadmap|path|plan)\s+for\s+([a-z][a-z0-9\s.#+\-]*)/i,
+          /^([a-z][a-z0-9\s.#+\-]*)\s+(?:roadmap|path|plan)/i,
+          /(?:career switch|career change)\s+(?:to|into)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        ];
+
+        for (const skillPattern of skillPatterns) {
+          const match = message.match(skillPattern);
+          if (match && match[1]) {
+            const skillName = match[1].trim().replace(/\s+/g, ' ');
+            if (skillName.length >= 2 && skillName.length <= 50) {
+              input = { ...input, skillName };
               break;
             }
           }
