@@ -77,11 +77,11 @@ ENV SKIP_ENV_VALIDATION=true
 # CRITICAL: These settings prevent OOM during "Collecting page data" phase
 # - max-old-space-size: 3GB heap (inherited by worker processes)
 #   Main (3GB) + 1 worker (3GB) = 6GB max, leaving ~2GB for OS/Docker/GC
-# - max-semi-space-size: 64MB per semi-space (128MB total young generation)
-#   Smaller young gen leaves more headroom for old space where page data lives
+# - Semi-space: left at V8 default (adaptive). Restricting it causes
+#   NewSpace::EnsureCurrentCapacity failures during page data collection.
 # - EXPERIMENTAL_CPUS=1: Single worker to minimize total memory
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
-ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=64"
+ENV NODE_OPTIONS="--max-old-space-size=3072"
 ENV EXPERIMENTAL_CPUS=1
 ENV UV_THREADPOOL_SIZE=4
 
@@ -95,9 +95,9 @@ RUN npx prisma generate
 #   1. next.config.js disables webpack cache → frees memory before page data collection
 #   2. next.config.js enables webpackMemoryOptimizations → reduces webpack peak memory
 #   3. --max-old-space-size=3072: 3GB heap per process (main + 1 worker = 6GB max)
-#   4. --max-semi-space-size=64: 64MB per semi-space, leaves more for old space
+#   4. Semi-space: V8 default (adaptive) — restricting it causes NewSpace OOM
 #   Total: ~6.5GB Node.js + ~1.5GB for OS/Docker/GC overhead = fits in 8GB container
-RUN NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=64" \
+RUN NODE_OPTIONS="--max-old-space-size=3072" \
     EXPERIMENTAL_CPUS=1 \
     NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm run build:railway
