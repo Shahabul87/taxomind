@@ -44,6 +44,8 @@ import { createLearningAnalyticsTool } from '@/lib/sam/tools/learning-analytics-
 import { createCourseCreatorTool } from '@/lib/sam/tools/course-creator';
 import { createExamBuilderTool } from '@/lib/sam/tools/exam-builder';
 import { createExamEvaluatorTool } from '@/lib/sam/tools/exam-evaluator';
+import { createStudentAnalyticsTool } from '@/lib/sam/tools/student-analytics';
+import { createCreatorAnalyticsTool } from '@/lib/sam/tools/creator-analytics';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -273,6 +275,8 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createCourseCreatorTool(),
     createExamBuilderTool(),
     createExamEvaluatorTool(),
+    createStudentAnalyticsTool(),
+    createCreatorAnalyticsTool(),
   ];
 
   let standaloneRegistered = 0;

@@ -73,6 +73,8 @@ const MODE_TOOL_AFFINITY: Record<string, string[]> = {
   'learning-coach': ['sam-flashcard-generator', 'sam-study-timer'],
   'blooms-analyzer': ['sam-diagram-generator'],
   'course-architect': ['sam-course-creator'],
+  'student-analytics': ['sam-student-analytics'],
+  'creator-analytics': ['sam-creator-analytics'],
 };
 
 const MODE_TOOL_BOOST = 5; // Bonus score for mode-affiliated tools
@@ -135,6 +137,29 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
       /\bdiagnose\b.*\b(gaps?|understanding|knowledge|thinking|learning)\b/i,
       /\bcognitive\b.*\b(profile|map|diagnosis|assessment)\b/i,
       /\bhow did i do\b.*\b(exam|quiz|test)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'student-analytics': {
+    toolId: 'sam-student-analytics',
+    intentPatterns: [
+      /\b(my|show|view)\b.*\b(analytics|insights|performance|progress)\b/i,
+      /\b(how)\b.*\b(am i|doing|performing|progressing)\b/i,
+      /\b(bloom|cognitive|learning)\b.*\b(profile|map|level|growth)\b/i,
+      /\b(study|learning)\b.*\b(recommendation|suggestion|advice|next)\b/i,
+      /\b(fragile|weak|gap|struggle|stuck)\b.*\b(knowledge|concept|skill|area)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'creator-analytics': {
+    toolId: 'sam-creator-analytics',
+    intentPatterns: [
+      /\b(course|student|cohort|class)\b.*\b(analytics|insights|performance|health)\b/i,
+      /\b(how)\b.*\b(students?|learners?|cohort|class)\b.*\b(doing|performing|progressing)\b/i,
+      /\b(dropout|retention|engagement|completion)\b.*\b(rate|risk|analysis|report)\b/i,
+      /\b(content|assessment|module)\b.*\b(effectiveness|quality|improvement)\b/i,
+      /\b(who|which)\b.*\b(struggling|failing|behind|at risk)\b/i,
+      /\b(course)\b.*\b(creator|instructor|teacher)\b.*\b(dashboard|report|overview)\b/i,
     ],
     defaultInput: { action: 'start' },
   },

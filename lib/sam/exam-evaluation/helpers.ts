@@ -678,12 +678,6 @@ function normalizeReasoningDistribution(
   return base;
 }
 
-const VALID_REASONING_PATHS_SET = new Set<ReasoningPath>([
-  'expert', 'valid_alternative', 'fragile', 'partial', 'wrong_model', 'guessing',
-]);
-// Alias for use in normalizeReasoningDistribution
-const VALID_REASONING_PATHS = VALID_REASONING_PATHS_SET;
-
 function getDominantStyle(distribution: Record<ReasoningPath, number>): string {
   let maxPath: ReasoningPath = 'guessing';
   let maxPct = 0;
