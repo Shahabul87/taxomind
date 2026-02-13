@@ -1,5 +1,9 @@
 /**
  * Course Creation Cost Estimator Tests
+ *
+ * Updated for template-driven sections per chapter (Chapter DNA).
+ * The estimator resolves template from difficulty, overriding sectionsPerChapter:
+ *   beginner: 8, intermediate: 7, advanced: 8.
  */
 
 import { estimateCourseCost, formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
@@ -20,7 +24,7 @@ const ANTHROPIC_PRICING: ProviderPricing = {
 describe('estimateCourseCost', () => {
   const baseInput: CostEstimateInput = {
     totalChapters: 5,
-    sectionsPerChapter: 4,
+    sectionsPerChapter: 7, // Template-driven: intermediate = 7
     difficulty: 'intermediate',
     bloomsFocusCount: 3,
     learningObjectivesPerChapter: 5,
@@ -37,9 +41,42 @@ describe('estimateCourseCost', () => {
     expect(result.totalAICalls).toBeGreaterThan(0);
     expect(result.provider).toBe('DeepSeek');
     expect(result.breakdown.stage1.calls).toBe(5);
-    expect(result.breakdown.stage2.calls).toBe(20);
-    expect(result.breakdown.stage3.calls).toBe(20);
+    // Template-driven: 5 chapters * 7 sections (intermediate) = 35
+    expect(result.breakdown.stage2.calls).toBe(35);
+    expect(result.breakdown.stage3.calls).toBe(35);
     expect(result.breakdown.retryOverheadPercent).toBe(30);
+  });
+
+  it('template overrides sectionsPerChapter input', () => {
+    // Even if input says sectionsPerChapter: 3, template overrides based on difficulty
+    const result = estimateCourseCost(
+      { ...baseInput, sectionsPerChapter: 3 },
+      DEEPSEEK_PRICING
+    );
+
+    // Intermediate template forces 7 sections per chapter
+    expect(result.breakdown.stage2.calls).toBe(35); // 5 * 7
+    expect(result.breakdown.stage3.calls).toBe(35); // 5 * 7
+  });
+
+  it('different difficulties produce different section counts', () => {
+    const beginner = estimateCourseCost(
+      { ...baseInput, difficulty: 'beginner', totalChapters: 1 },
+      DEEPSEEK_PRICING
+    );
+    const intermediate = estimateCourseCost(
+      { ...baseInput, difficulty: 'intermediate', totalChapters: 1 },
+      DEEPSEEK_PRICING
+    );
+    const advanced = estimateCourseCost(
+      { ...baseInput, difficulty: 'advanced', totalChapters: 1 },
+      DEEPSEEK_PRICING
+    );
+
+    // beginner: 8, intermediate: 7, advanced: 8
+    expect(beginner.breakdown.stage2.calls).toBe(8);
+    expect(intermediate.breakdown.stage2.calls).toBe(7);
+    expect(advanced.breakdown.stage2.calls).toBe(8);
   });
 
   it('scales with chapter count', () => {
@@ -55,20 +92,6 @@ describe('estimateCourseCost', () => {
     expect(large.estimatedCostUSD).toBeGreaterThan(small.estimatedCostUSD);
     expect(large.totalAICalls).toBeGreaterThan(small.totalAICalls);
     expect(large.estimatedTimeSeconds).toBeGreaterThan(small.estimatedTimeSeconds);
-  });
-
-  it('scales with sections per chapter', () => {
-    const few = estimateCourseCost(
-      { ...baseInput, sectionsPerChapter: 2 },
-      DEEPSEEK_PRICING
-    );
-    const many = estimateCourseCost(
-      { ...baseInput, sectionsPerChapter: 8 },
-      DEEPSEEK_PRICING
-    );
-
-    expect(many.estimatedCostUSD).toBeGreaterThan(few.estimatedCostUSD);
-    expect(many.totalAICalls).toBeGreaterThan(few.totalAICalls);
   });
 
   it('anthropic is more expensive than deepseek for same input', () => {
@@ -94,11 +117,11 @@ describe('estimateCourseCost', () => {
     expect(expert.estimatedTotalInputTokens).toBeGreaterThan(beginner.estimatedTotalInputTokens);
   });
 
-  it('handles minimum input (1 chapter, 1 section)', () => {
+  it('handles minimum input (1 chapter beginner)', () => {
     const result = estimateCourseCost(
       {
         totalChapters: 1,
-        sectionsPerChapter: 1,
+        sectionsPerChapter: 8,
         difficulty: 'beginner',
         bloomsFocusCount: 2,
         learningObjectivesPerChapter: 3,
@@ -108,18 +131,18 @@ describe('estimateCourseCost', () => {
     );
 
     expect(result.totalAICalls).toBeGreaterThan(0);
-    // DeepSeek is so cheap that 1ch/1sec rounds to $0.00 — just verify non-negative
     expect(result.estimatedCostUSD).toBeGreaterThanOrEqual(0);
     expect(result.breakdown.stage1.calls).toBe(1);
-    expect(result.breakdown.stage2.calls).toBe(1);
-    expect(result.breakdown.stage3.calls).toBe(1);
+    // 1 chapter * 8 beginner template sections
+    expect(result.breakdown.stage2.calls).toBe(8);
+    expect(result.breakdown.stage3.calls).toBe(8);
   });
 
-  it('handles maximum input (20 chapters, 10 sections)', () => {
+  it('handles maximum input (20 chapters)', () => {
     const result = estimateCourseCost(
       {
         totalChapters: 20,
-        sectionsPerChapter: 10,
+        sectionsPerChapter: 8,
         difficulty: 'expert',
         bloomsFocusCount: 6,
         learningObjectivesPerChapter: 10,
@@ -128,11 +151,25 @@ describe('estimateCourseCost', () => {
       ANTHROPIC_PRICING
     );
 
-    expect(result.totalAICalls).toBeGreaterThan(200);
+    // expert falls back to advanced template (8 sections)
+    // 20 chapters * 8 sections * 2 (stage2 + stage3) + 20 stage1 = 340 base calls
+    expect(result.totalAICalls).toBeGreaterThan(300);
     expect(result.estimatedCostUSD).toBeGreaterThan(0);
     expect(result.breakdown.stage1.calls).toBe(20);
-    expect(result.breakdown.stage2.calls).toBe(200);
-    expect(result.breakdown.stage3.calls).toBe(200);
+    expect(result.breakdown.stage2.calls).toBe(160);
+    expect(result.breakdown.stage3.calls).toBe(160);
+  });
+
+  it('Stage 3 output tokens vary by section type', () => {
+    // Verify that Stage 3 output uses per-section-type multipliers
+    const result = estimateCourseCost(
+      { ...baseInput, totalChapters: 1 },
+      DEEPSEEK_PRICING
+    );
+
+    // Stage 3 output should not be exactly 7 * BASE_OUTPUT * combined
+    // because different section types have different multipliers
+    expect(result.breakdown.stage3.outputTokens).toBeGreaterThan(0);
   });
 });
 

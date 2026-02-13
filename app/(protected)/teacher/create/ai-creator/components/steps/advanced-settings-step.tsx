@@ -7,10 +7,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StepComponentProps } from '../../types/sam-creator.types';
-import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap } from 'lucide-react';
+import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
 import { formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
+import { getTemplateForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 
 export function AdvancedSettingsStep({ formData, setFormData }: StepComponentProps) {
   // Format difficulty for display (capitalize properly)
@@ -22,6 +23,11 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
     };
     return displayMap[difficulty] || difficulty;
   };
+
+  // Resolve Chapter DNA template based on difficulty
+  const chapterTemplate = getTemplateForDifficulty(formData.difficulty.toLowerCase());
+  const templateSections = chapterTemplate.sections;
+  const effectiveSectionsPerChapter = chapterTemplate.totalSections;
 
   const isFormComplete =
     formData.courseTitle.length >= 10 &&
@@ -75,7 +81,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
   useEffect(() => {
     const params = {
       totalChapters: formData.chapterCount,
-      sectionsPerChapter: formData.sectionsPerChapter,
+      sectionsPerChapter: effectiveSectionsPerChapter,
       difficulty: formData.difficulty.toLowerCase(),
       bloomsFocusCount: formData.bloomsFocus.length,
       learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
@@ -98,11 +104,11 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
     };
   }, [
     formData.chapterCount,
-    formData.sectionsPerChapter,
     formData.difficulty,
     formData.bloomsFocus.length,
     formData.learningObjectivesPerChapter,
     formData.learningObjectivesPerSection,
+    effectiveSectionsPerChapter,
     fetchCostEstimate,
   ]);
 
@@ -154,7 +160,7 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
                 <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                {formData.chapterCount * formData.sectionsPerChapter}
+                {formData.chapterCount * effectiveSectionsPerChapter}
               </div>
               <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Sections
@@ -338,9 +344,15 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
 
             {/* Course Structure Summary */}
             <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
-              <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-3 block">
-                Course Structure
-              </Label>
+              <div className="flex items-center justify-between mb-3">
+                <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Course Structure
+                </Label>
+                <Badge className="bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 text-[10px] xs:text-xs px-2 py-0.5">
+                  <Layers className="h-3 w-3 mr-1 inline" />
+                  Chapter DNA
+                </Badge>
+              </div>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Chapters:</span>
@@ -348,11 +360,31 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Sections per Chapter:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.sectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{effectiveSectionsPerChapter}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Total Sections:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount * formData.sectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount * effectiveSectionsPerChapter}</span>
+                </div>
+              </div>
+
+              {/* Chapter DNA Section Roles */}
+              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2 block">
+                  {effectiveSectionsPerChapter}-Section Chapter DNA ({chapterTemplate.displayName})
+                </Label>
+                <div className={`grid grid-cols-2 ${effectiveSectionsPerChapter <= 8 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'} gap-1.5`}>
+                  {templateSections.map((sec, i) => (
+                    <div
+                      key={sec.role}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                    >
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 w-3 text-center">{i + 1}</span>
+                      <span className="text-[10px] xs:text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
+                        {sec.displayName.replace('THE ', '')}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

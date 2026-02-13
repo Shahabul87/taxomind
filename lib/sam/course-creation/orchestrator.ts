@@ -23,6 +23,12 @@ import {
   buildStage3Prompt,
 } from './prompts';
 import {
+  getTemplateForDifficulty,
+  getTemplateSectionDef,
+  composeTemplatePromptBlocks,
+  type TemplateSectionDef,
+} from './chapter-templates';
+import {
   getActiveExperiment,
   recordExperimentOutcome,
   type ExperimentAssignment,
@@ -192,9 +198,18 @@ export async function orchestrateCourseCreation(
     courseCategory: courseContext.courseCategory,
   });
 
+  // Resolve chapter template from difficulty level
+  const chapterTemplate = getTemplateForDifficulty(config.difficulty);
+  const effectiveSectionsPerChapter = chapterTemplate.totalSections;
+  logger.info('[ORCHESTRATOR] Chapter DNA template resolved', {
+    difficulty: config.difficulty,
+    template: chapterTemplate.displayName,
+    sectionsPerChapter: effectiveSectionsPerChapter,
+  });
+
   // Calculate total items for percentage tracking
   const totalChapters = config.totalChapters;
-  const totalSections = totalChapters * config.sectionsPerChapter;
+  const totalSections = totalChapters * effectiveSectionsPerChapter;
   const totalItems = totalChapters + totalSections + totalSections; // chapters + sections + details
   let completedItems = 0;
 
@@ -205,7 +220,7 @@ export async function orchestrateCourseCreation(
       currentChapter: 0,
       totalChapters,
       currentSection: 0,
-      totalSections: config.sectionsPerChapter,
+      totalSections: effectiveSectionsPerChapter,
     },
     percentage: 0,
     message: 'Creating course...',
@@ -356,9 +371,8 @@ export async function orchestrateCourseCreation(
 
     // On resume, adjust completedItems counter to reflect already-done work
     if (isResume) {
-      const sectionsPerCh = config.sectionsPerChapter;
       // Each completed chapter contributed: 1 chapter + N sections + N details = 1 + 2N items
-      completedItems = chaptersCreated * (1 + 2 * sectionsPerCh);
+      completedItems = chaptersCreated * (1 + 2 * effectiveSectionsPerChapter);
     }
 
     // Start loop from first chapter that needs work
@@ -419,9 +433,12 @@ export async function orchestrateCourseCreation(
       let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         // Pass completedChapters for rich section-level context from prior chapters
+        // Template prompt for Stage 1 uses position 1 (chapter-level awareness)
+        const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
         const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
           courseContext, chNum, previousPlain, conceptTracker,
-          composedCategoryPrompt, completedChapters, experimentVariant
+          composedCategoryPrompt, completedChapters, experimentVariant,
+          s1TemplatePrompt
         );
         const chatParams = { messages: [{ role: 'user' as const, content: s1User }], systemPrompt: s1System, maxTokens: AI_MAX_TOKENS_CHAPTER, temperature: 0.7 };
         let responseText: string;
@@ -488,7 +505,7 @@ export async function orchestrateCourseCreation(
           estimatedTime: chapter.estimatedTime,
           prerequisites: chapter.prerequisites,
           targetBloomsLevel: chapter.bloomsLevel,
-          sectionCount: config.sectionsPerChapter,
+          sectionCount: effectiveSectionsPerChapter,
           isPublished: false,
         },
       });
@@ -551,12 +568,16 @@ export async function orchestrateCourseCreation(
         conceptsIntroduced: chapterWithId.conceptsIntroduced,
       };
 
-      for (let secNum = 1; secNum <= config.sectionsPerChapter; secNum++) {
+      for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
+        // Get template section def for progress messages
+        const templateSectionDef = chapterTemplate.sections[secNum - 1];
+        const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+
         progress.state.currentSection = secNum;
         progress.state.phase = 'generating_section';
-        progress.currentItem = `Chapter ${chNum}, Section ${secNum}`;
+        progress.currentItem = `Chapter ${chNum}, ${sectionRoleName}`;
         emitProgress(
-          `Generating section ${secNum} of ${config.sectionsPerChapter} for "${chapter.title}"...`
+          `Generating ${sectionRoleName} (${secNum}/${effectiveSectionsPerChapter}) for "${chapter.title}"...`
         );
 
         onSSEEvent?.({
@@ -565,7 +586,7 @@ export async function orchestrateCourseCreation(
             stage: 2,
             chapter: chNum,
             section: secNum,
-            message: `Generating section ${secNum}...`,
+            message: `Generating ${sectionRoleName}...`,
           },
         });
 
@@ -578,9 +599,10 @@ export async function orchestrateCourseCreation(
         const previousPlainSections = chapterSections.map((s) => stripId(s));
 
         // Quality gate: retry up to MAX_RETRIES if score is below threshold
-        let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles), thinking: '', qualityScore: buildDefaultQualityScore(50) };
+        const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
+        let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt, experimentVariant);
+          const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt, experimentVariant, s2TemplatePrompt);
           const s2ChatParams = { messages: [{ role: 'user' as const, content: s2User }], systemPrompt: s2System, maxTokens: AI_MAX_TOKENS_SECTION, temperature: 0.7 };
           let s2ResponseText: string;
           if (enableStreamingThinking) {
@@ -592,7 +614,7 @@ export async function orchestrateCourseCreation(
           } else {
             s2ResponseText = (await aiAdapter.chat(s2ChatParams)).content;
           }
-          const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles);
+          const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
 
           if (result.qualityScore.overall > bestSec.qualityScore.overall) {
             bestSec = result;
@@ -605,6 +627,8 @@ export async function orchestrateCourseCreation(
         }
 
         const { section, thinking: secThinking, qualityScore: secQuality } = bestSec;
+        // Set template role from Chapter DNA
+        section.templateRole = templateSectionDef?.role;
         qualityScores.push(secQuality);
         allSectionTitles.push(section.title);
 
@@ -737,10 +761,11 @@ export async function orchestrateCourseCreation(
           continue;
         }
 
+        const s3SectionRoleName = chapterTemplate.sections[section.position - 1]?.displayName ?? section.title;
         progress.state.currentSection = section.position;
         progress.state.phase = 'generating_details';
-        progress.currentItem = `Details for "${section.title}"`;
-        emitProgress(`Generating details for "${section.title}"...`);
+        progress.currentItem = `Details for ${s3SectionRoleName}`;
+        emitProgress(`Generating content for ${s3SectionRoleName}: "${section.title}"...`);
 
         onSSEEvent?.({
           type: 'item_generating',
@@ -748,7 +773,7 @@ export async function orchestrateCourseCreation(
             stage: 3,
             chapter: chNum,
             section: section.position,
-            message: `Generating details for "${section.title}"...`,
+            message: `Generating content for ${s3SectionRoleName}...`,
           },
         });
 
@@ -767,17 +792,20 @@ export async function orchestrateCourseCreation(
           parentChapterContext: section.parentChapterContext,
           conceptsIntroduced: section.conceptsIntroduced,
           conceptsReferenced: section.conceptsReferenced,
+          templateRole: section.templateRole,
         };
         const allChapterSectionsPlain = chapterSections.map((s) => stripId(s));
 
         // Quality gate: retry up to MAX_RETRIES if score is below threshold
+        const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
+        const s3TemplateDef = chapterTemplate.sections[section.position - 1];
         let bestDet = {
-          details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext),
+          details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef),
           thinking: '',
           qualityScore: buildDefaultQualityScore(50),
         };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt, experimentVariant);
+          const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt, experimentVariant, s3TemplatePrompt);
           const s3ChatParams = { messages: [{ role: 'user' as const, content: s3User }], systemPrompt: s3System, maxTokens: AI_MAX_TOKENS_DETAILS, temperature: 0.7 };
           let s3ResponseText: string;
           if (enableStreamingThinking) {
@@ -789,7 +817,7 @@ export async function orchestrateCourseCreation(
           } else {
             s3ResponseText = (await aiAdapter.chat(s3ChatParams)).content;
           }
-          const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext);
+          const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
 
           if (result.qualityScore.overall > bestDet.qualityScore.overall) {
             bestDet = result;
@@ -859,8 +887,8 @@ export async function orchestrateCourseCreation(
         // Per-section checkpoint: save after each section detail so mid-chapter
         // failures don't lose already-generated content (Bug #3 fix)
         const sectionPercentage = Math.round(
-          ((chaptersCreated * config.sectionsPerChapter + secIdx + 1) /
-            (totalChapters * config.sectionsPerChapter)) * 100
+          ((chaptersCreated * effectiveSectionsPerChapter + secIdx + 1) /
+            (totalChapters * effectiveSectionsPerChapter)) * 100
         );
         await saveCheckpointWithRetry(courseId, userId, planId, {
           conceptTracker,
@@ -1101,7 +1129,8 @@ function parseSectionResponse(
   responseText: string,
   sectionNumber: number,
   chapter: GeneratedChapter,
-  existingTitles: string[]
+  existingTitles: string[],
+  templateDef?: TemplateSectionDef
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -1134,12 +1163,12 @@ function parseSectionResponse(
       conceptsReferenced: ensureOptionalArray(sec.conceptsReferenced),
     };
 
-    const qualityScore = scoreSection(section, existingTitles);
+    const qualityScore = scoreSection(section, existingTitles, templateDef);
     return { section, thinking, qualityScore };
   } catch {
     logger.warn('[ORCHESTRATOR] Failed to parse section response, using fallback');
     return {
-      section: buildFallbackSection(sectionNumber, chapter, existingTitles),
+      section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
       thinking: 'Used fallback generation due to parsing error.',
       qualityScore: buildDefaultQualityScore(50),
     };
@@ -1153,7 +1182,8 @@ function parseDetailsResponse(
   responseText: string,
   chapter: GeneratedChapter,
   section: GeneratedSection,
-  courseContext: CourseContext
+  courseContext: CourseContext,
+  templateDef?: TemplateSectionDef
 ): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -1170,12 +1200,12 @@ function parseDetailsResponse(
       resources: det.resources,
     };
 
-    const qualityScore = scoreDetails(details, section, chapter.bloomsLevel);
+    const qualityScore = scoreDetails(details, section, chapter.bloomsLevel, templateDef);
     return { details, thinking, qualityScore };
   } catch {
     logger.warn('[ORCHESTRATOR] Failed to parse details response, using fallback');
     return {
-      details: buildFallbackDetails(chapter, section, courseContext),
+      details: buildFallbackDetails(chapter, section, courseContext, templateDef),
       thinking: 'Used fallback generation due to parsing error.',
       qualityScore: buildDefaultQualityScore(50),
     };
@@ -1372,6 +1402,10 @@ export async function resumeCourseCreation(
     const completedChapterCount = checkpoint.completedChapterCount;
     const totalChapters = config.totalChapters;
 
+    // Resolve template-driven section count for resume validation
+    const resumeTemplate = getTemplateForDifficulty(config.difficulty);
+    const resumeEffectiveSections = resumeTemplate.totalSections;
+
     if (completedChapterCount >= totalChapters) {
       return {
         success: true,
@@ -1441,13 +1475,13 @@ export async function resumeCourseCreation(
         chapterPosition: partialDbChapter.position,
         totalSections: partialDbChapter.sections.length,
         sectionsWithDetails: sectionsWithDetails.size,
-        expectedSections: config.sectionsPerChapter,
+        expectedSections: resumeEffectiveSections,
       });
 
       // If the partial chapter has fewer sections than expected, we'll need to
       // delete it and regenerate (Stage 1+2 incomplete). Only keep it if all
       // sections exist (Stage 2 complete, Stage 3 partially done).
-      if (partialDbChapter.sections.length < config.sectionsPerChapter) {
+      if (partialDbChapter.sections.length < resumeEffectiveSections) {
         // Incomplete Stage 2 — delete partial chapter, regenerate from scratch
         await db.section.deleteMany({ where: { chapterId: partialDbChapter.id } });
         await db.chapter.delete({ where: { id: partialDbChapter.id } });
@@ -1455,14 +1489,14 @@ export async function resumeCourseCreation(
         logger.info('[ORCHESTRATOR] Deleted incomplete partial chapter (missing sections)', {
           chapterId: partialDbChapter.id,
           had: partialDbChapter.sections.length,
-          expected: config.sectionsPerChapter,
+          expected: resumeEffectiveSections,
         });
       }
     }
 
     // 7. Delete any orphan chapters beyond the partial/resume point
     const keepCount = completedChapterCount +
-      (partialDbChapter && partialDbChapter.sections.length >= config.sectionsPerChapter ? 1 : 0);
+      (partialDbChapter && partialDbChapter.sections.length >= resumeEffectiveSections ? 1 : 0);
     const orphanChapters = course.chapters.slice(keepCount);
 
     for (const ch of orphanChapters) {
@@ -1649,6 +1683,9 @@ export async function regenerateChapter(
     );
     const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
 
+    // Resolve chapter template for regeneration
+    const regenTemplate = getTemplateForDifficulty(courseContext.difficulty);
+
     // Concept tracker from existing chapters
     const conceptTracker: ConceptTracker = {
       concepts: new Map(),
@@ -1802,16 +1839,19 @@ export async function regenerateChapter(
 
       const previousSections: GeneratedSection[] = [];
 
+      const regenSecTemplateDef = regenTemplate.sections[secNum - 1];
+
       let bestSec = {
-        section: buildFallbackSection(secNum, newChapter, currentSectionTitles),
+        section: buildFallbackSection(secNum, newChapter, currentSectionTitles, regenSecTemplateDef),
         thinking: '',
         qualityScore: buildDefaultQualityScore(50),
       };
 
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const regenS2TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, secNum);
         const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
           courseContext, newChapter, secNum, previousSections, currentSectionTitles,
-          enrichedContext, composedCategoryPrompt
+          enrichedContext, composedCategoryPrompt, undefined, regenS2TemplatePrompt
         );
         const aiResponse = await aiAdapter.chat({
           messages: [{ role: 'user', content: s2User }],
@@ -1819,7 +1859,7 @@ export async function regenerateChapter(
           maxTokens: AI_MAX_TOKENS_SECTION,
           temperature: 0.7,
         });
-        const result = parseSectionResponse(aiResponse.content, secNum, newChapter, currentSectionTitles);
+        const result = parseSectionResponse(aiResponse.content, secNum, newChapter, currentSectionTitles, regenSecTemplateDef);
 
         if (result.qualityScore.overall > bestSec.qualityScore.overall) {
           bestSec = result;
@@ -1863,16 +1903,19 @@ export async function regenerateChapter(
         data: { stage: 3, chapter: chapterPosition, section: secNum, message: `Generating details for "${section.title}"...` },
       });
 
+      const regenDetTemplateDef = regenTemplate.sections[section.position - 1];
+
       let bestDet = {
-        details: buildFallbackDetails(newChapter, section, courseContext),
+        details: buildFallbackDetails(newChapter, section, courseContext, regenDetTemplateDef),
         thinking: '',
         qualityScore: buildDefaultQualityScore(50),
       };
 
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
         const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
           courseContext, newChapter, section, previousSections,
-          enrichedContext, composedCategoryPrompt
+          enrichedContext, composedCategoryPrompt, undefined, regenS3TemplatePrompt
         );
         const aiResponse = await aiAdapter.chat({
           messages: [{ role: 'user', content: s3User }],
@@ -1880,7 +1923,7 @@ export async function regenerateChapter(
           maxTokens: AI_MAX_TOKENS_DETAILS,
           temperature: 0.7,
         });
-        const result = parseDetailsResponse(aiResponse.content, newChapter, section, courseContext);
+        const result = parseDetailsResponse(aiResponse.content, newChapter, section, courseContext, regenDetTemplateDef);
 
         if (result.qualityScore.overall > bestDet.qualityScore.overall) {
           bestDet = result;

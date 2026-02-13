@@ -4,7 +4,13 @@
  * Pure estimation logic — no DB access.
  * Calculates expected tokens, cost, and time based on course structure
  * and the 3-stage depth-first pipeline (chapters → sections → details).
+ *
+ * When a Chapter DNA template is active (always, since difficulty determines
+ * the template), sectionsPerChapter is overridden to the template value
+ * (beginner: 8, intermediate: 7, advanced: 8).
  */
+
+import { getTemplateForDifficulty } from './chapter-templates';
 
 // ============================================================================
 // Types
@@ -84,18 +90,55 @@ const SECONDS_PER_AI_CALL = 20;
  * @param pricing - Provider pricing (per 1M tokens, USD)
  * @returns Cost estimate with breakdown
  */
+/**
+ * Stage 3 output token multipliers per template section role.
+ * Sections with more complex content (FORMALIZATION, WALKTHROUGH, PRACTICE)
+ * produce more output tokens; simpler sections (SUMMARY, CHECKPOINT) produce fewer.
+ */
+const STAGE3_SECTION_TOKEN_MULTIPLIERS: Record<string, number> = {
+  // Beginner roles
+  HOOK: 0.7,
+  INTUITION: 0.8,
+  FORMALIZATION: 1.2,
+  WALKTHROUGH: 1.2,
+  PLAYGROUND: 1.1,
+  PITFALLS: 0.9,
+  SUMMARY: 0.6,
+  CHECKPOINT: 0.7,
+  // Intermediate roles
+  PROVOCATION: 0.8,
+  INTUITION_ENGINE: 1.0,
+  DERIVATION: 1.4,
+  LABORATORY: 1.3,
+  DEPTH_DIVE: 1.0,
+  SYNTHESIS: 0.7,
+  // Advanced roles
+  OPEN_QUESTION: 0.8,
+  FIRST_PRINCIPLES: 1.4,
+  ANALYSIS: 1.2,
+  DESIGN_STUDIO: 1.5,
+  FRONTIER: 0.9,
+  // Legacy roles (backward compatibility)
+  VISUALIZATION: 0.7,
+  PRACTICE: 1.3,
+  CONNECTION: 0.7,
+};
+
 export function estimateCourseCost(
   input: CostEstimateInput,
   pricing: ProviderPricing
 ): CostEstimate {
   const {
     totalChapters,
-    sectionsPerChapter,
     difficulty,
     bloomsFocusCount,
     learningObjectivesPerChapter,
     learningObjectivesPerSection,
   } = input;
+
+  // Resolve template — difficulty determines the template and section count
+  const template = getTemplateForDifficulty(difficulty);
+  const effectiveSectionsPerChapter = template.totalSections;
 
   const diffMultiplier = DIFFICULTY_MULTIPLIERS[difficulty.toLowerCase()] ?? 1.1;
 
@@ -117,26 +160,28 @@ export function estimateCourseCost(
     stage1Output += Math.round(STAGE1_BASE_OUTPUT * combined);
   }
 
-  // Stage 2: sectionsPerChapter calls per chapter
-  const totalSections = totalChapters * sectionsPerChapter;
+  // Stage 2: effectiveSectionsPerChapter calls per chapter
+  const totalSections = totalChapters * effectiveSectionsPerChapter;
   let stage2Input = 0;
   let stage2Output = 0;
   for (let ch = 0; ch < totalChapters; ch++) {
     const contextScale = 1 + CONTEXT_GROWTH_RATE * ch;
-    for (let sec = 0; sec < sectionsPerChapter; sec++) {
+    for (let sec = 0; sec < effectiveSectionsPerChapter; sec++) {
       stage2Input += Math.round(STAGE2_BASE_INPUT * contextScale * combined);
       stage2Output += Math.round(STAGE2_BASE_OUTPUT * combined);
     }
   }
 
-  // Stage 3: One call per section (detail generation)
+  // Stage 3: One call per section — token output varies by section type
   let stage3Input = 0;
   let stage3Output = 0;
   for (let ch = 0; ch < totalChapters; ch++) {
     const contextScale = 1 + CONTEXT_GROWTH_RATE * ch;
-    for (let sec = 0; sec < sectionsPerChapter; sec++) {
+    for (let sec = 0; sec < effectiveSectionsPerChapter; sec++) {
+      const sectionRole = template.sections[sec]?.role ?? 'HOOK';
+      const tokenMultiplier = STAGE3_SECTION_TOKEN_MULTIPLIERS[sectionRole] ?? 1.0;
       stage3Input += Math.round(STAGE3_BASE_INPUT * contextScale * combined);
-      stage3Output += Math.round(STAGE3_BASE_OUTPUT * combined);
+      stage3Output += Math.round(STAGE3_BASE_OUTPUT * tokenMultiplier * combined);
     }
   }
 
@@ -154,8 +199,8 @@ export function estimateCourseCost(
   const outputCost = (totalOutputTokens / 1_000_000) * pricing.outputPricePerMillion;
   const totalCost = Math.round((inputCost + outputCost) * 100) / 100;
 
-  // Time calculation
-  const baseCalls = totalChapters + totalSections + totalSections; // stage1 + stage2 + stage3
+  // Time calculation: stage1 + stage2 + stage3
+  const baseCalls = totalChapters + totalSections + totalSections;
   const totalCalls = Math.round(baseCalls * retryFactor);
   const totalTimeSeconds = totalCalls * SECONDS_PER_AI_CALL;
 

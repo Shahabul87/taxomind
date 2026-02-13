@@ -145,16 +145,17 @@ function setupDBMocks() {
 
 function setupAIMocks() {
   // Alternate responses for chapter, section, details calls
+  // With template-driven sections per chapter (intermediate = 7):
+  // 1 = chapter, 2..8 = 7 sections, 9..15 = 7 details
+  // Total per chapter = 15 calls
+  const CALLS_PER_CHAPTER = 15; // 1 chapter + 7 sections + 7 details
   let callCount = 0;
   mockAIChat.mockImplementation(() => {
     callCount++;
-    // For a 2-chapter x 2-section config, call order per chapter:
-    // 1 = chapter, 2 = section1, 3 = section2, 4 = details1, 5 = details2
-    // Then repeat for chapter 2
-    const cyclePosition = ((callCount - 1) % 5) + 1;
+    const cyclePosition = ((callCount - 1) % CALLS_PER_CHAPTER) + 1;
     if (cyclePosition === 1) {
-      return Promise.resolve({ content: createMockChapterAIResponse(Math.ceil(callCount / 5)) });
-    } else if (cyclePosition <= 3) {
+      return Promise.resolve({ content: createMockChapterAIResponse(Math.ceil(callCount / CALLS_PER_CHAPTER)) });
+    } else if (cyclePosition <= 8) {
       return Promise.resolve({ content: createMockSectionAIResponse(cyclePosition - 1) });
     } else {
       return Promise.resolve({ content: createMockDetailsAIResponse() });
@@ -173,7 +174,7 @@ describe('orchestrateCourseCreation', () => {
     setupAIMocks();
   });
 
-  it('completes a full pipeline (2 chapters x 2 sections)', async () => {
+  it('completes a full pipeline (2 chapters x 7 template sections)', async () => {
     const config = createBaseConfig();
     const sseEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
 
@@ -188,7 +189,8 @@ describe('orchestrateCourseCreation', () => {
     expect(result.success).toBe(true);
     expect(result.courseId).toBeDefined();
     expect(result.chaptersCreated).toBe(2);
-    expect(result.sectionsCreated).toBe(4);
+    // Template-driven: 2 chapters * 7 sections (intermediate) = 14
+    expect(result.sectionsCreated).toBe(14);
     expect(result.stats).toBeDefined();
     expect(result.stats!.averageQualityScore).toBeGreaterThan(0);
   });

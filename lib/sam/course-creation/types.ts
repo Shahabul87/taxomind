@@ -66,6 +66,25 @@ export const CONTENT_TYPES = ['video', 'reading', 'assignment', 'quiz', 'project
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
 // ============================================================================
+// Chapter DNA Template Types
+// ============================================================================
+
+export type TemplateSectionRole =
+  | 'HOOK' | 'INTUITION' | 'FORMALIZATION' | 'WALKTHROUGH' | 'VISUALIZATION'
+  | 'PITFALLS' | 'PRACTICE' | 'CONNECTION' | 'SUMMARY' | 'CHECKPOINT'
+  | 'PLAYGROUND' | 'PROVOCATION' | 'INTUITION_ENGINE' | 'DERIVATION'
+  | 'LABORATORY' | 'DEPTH_DIVE' | 'SYNTHESIS' | 'OPEN_QUESTION'
+  | 'FIRST_PRINCIPLES' | 'ANALYSIS' | 'DESIGN_STUDIO' | 'FRONTIER';
+
+/** Composed prompt blocks for template injection into Stage 1/2/3 prompts */
+export interface ComposedTemplatePrompt {
+  stage1Block: string;
+  stage2Block: string;
+  stage3Block: string;
+  totalSections: number;
+}
+
+// ============================================================================
 // Stage 1: Course Context (Input to Chapter Generation)
 // ============================================================================
 
@@ -149,6 +168,7 @@ export interface GeneratedSection {
   };
   conceptsIntroduced?: string[]; // New concepts this section introduces
   conceptsReferenced?: string[]; // Existing concepts this section builds on
+  templateRole?: TemplateSectionRole; // Chapter DNA role this section fills
 }
 
 export interface Stage2Output {

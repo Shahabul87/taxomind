@@ -16,6 +16,7 @@ import {
   type EnrichedChapterContext,
   type ContentAwareBloomsInput,
   type StagePrompt,
+  type ComposedTemplatePrompt,
 } from './types';
 import {
   CHAPTER_THINKING_FRAMEWORK,
@@ -295,7 +296,8 @@ export function buildStage1Prompt(
   conceptTracker?: ConceptTracker,
   categoryPrompt?: ComposedCategoryPrompt,
   completedChapters?: CompletedChapter[],
-  variant?: string
+  variant?: string,
+  templatePrompt?: ComposedTemplatePrompt
 ): StagePrompt {
   const bloomsLevel = getContentAwareBloomsLevel({
     chapterNumber: currentChapterNumber,
@@ -439,6 +441,7 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   // Compose domain-specific blocks (empty strings if no enhancer)
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
+  const templateBlock = templatePrompt?.stage1Block ?? '';
 
   const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
@@ -462,6 +465,7 @@ ${courseContext.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).j
 ${previousChaptersSummary}
 ${conceptFlowSection}
 ${domainChapterGuidance}
+${templateBlock}
 ${positionGuidance}
 
 ## BLOOM'S LEVEL ASSIGNMENT
@@ -565,7 +569,8 @@ export function buildStage2Prompt(
   allExistingSectionTitles: string[],
   enrichedContext?: EnrichedChapterContext,
   categoryPrompt?: ComposedCategoryPrompt,
-  variant?: string
+  variant?: string,
+  templatePrompt?: ComposedTemplatePrompt
 ): StagePrompt {
   const previousSectionsSummary = previousSections.length > 0
     ? previousSections.map(s => `- Section ${s.position}: "${s.title}" (${s.contentType}) - Focus: ${s.topicFocus}`).join('\n')
@@ -640,6 +645,7 @@ This is a MIDDLE section (${currentSectionNumber} of ${courseContext.sectionsPer
   // Compose domain-specific blocks
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
+  const templateBlock = templatePrompt?.stage2Block ?? '';
 
   const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
@@ -648,7 +654,9 @@ ${SECTION_DESIGN_PRINCIPLES}
 
 ${SECTION_THINKING_FRAMEWORK}`;
 
-  const userPrompt = `You are creating Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
+  const effectiveSectionsPerChapter = templatePrompt?.totalSections ?? courseContext.sectionsPerChapter;
+
+  const userPrompt = `You are creating Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
 
 ## COURSE CONTEXT
 - **Course**: "${courseContext.courseTitle}"
@@ -674,15 +682,16 @@ ${remainingTopics.length > 0 ? remainingTopics.map((t, i) => `${i + 1}. ${t}`).j
 ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${t}"`).join('\n') : 'None yet'}
 
 ${domainSectionGuidance}
+${templateBlock}
 ${scaffoldingGuidance}
 
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: ARROW SECTION FLOW — Where in the ARROW arc does this section sit?
-- Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter} in Chapter ${chapter.position}
+- Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} in Chapter ${chapter.position}
 - ${currentSectionNumber === 1 ? 'FIRST section → ARROW Phases 1-2: Show the real-world application hook, reverse-engineer it into components. Create curiosity and establish the chapter problem.' : ''}
-- ${currentSectionNumber > 1 && currentSectionNumber < courseContext.sectionsPerChapter ? `MIDDLE section → ARROW Phases 3-5: Build intuition (analogies, prediction questions), formalize with theory, show failure cases. Build on Section ${currentSectionNumber - 1} and deepen understanding.` : ''}
-- ${currentSectionNumber === courseContext.sectionsPerChapter ? 'FINAL section → ARROW Phases 6-8+: Design challenge, micro-project, or reflection. Synthesize chapter concepts through building, defending choices, or connecting to the knowledge graph.' : ''}
+- ${currentSectionNumber > 1 && currentSectionNumber < effectiveSectionsPerChapter ? `MIDDLE section → ARROW Phases 3-5: Build intuition (analogies, prediction questions), formalize with theory, show failure cases. Build on Section ${currentSectionNumber - 1} and deepen understanding.` : ''}
+- ${currentSectionNumber === effectiveSectionsPerChapter ? 'FINAL section → ARROW Phases 6-8+: Design challenge, micro-project, or reflection. Synthesize chapter concepts through building, defending choices, or connecting to the knowledge graph.' : ''}
 - Use Cognitive Load Theory: limit new concepts to max 3 per section regardless of position.
 
 ### Step 2: TOPIC SELECTION — What single topic does this section own?
@@ -766,7 +775,8 @@ export function buildStage3Prompt(
   chapterSections: GeneratedSection[],
   enrichedContext?: EnrichedChapterContext,
   categoryPrompt?: ComposedCategoryPrompt,
-  variant?: string
+  variant?: string,
+  templatePrompt?: ComposedTemplatePrompt
 ): StagePrompt {
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
@@ -866,6 +876,7 @@ Design this as a collaborative sense-making experience:
   // Compose domain-specific blocks
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
+  const templateBlock = templatePrompt?.stage3Block ?? '';
 
   const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
@@ -901,16 +912,17 @@ ${section.conceptsIntroduced && section.conceptsIntroduced.length > 0 ? `- **New
 ${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}
 
 ${domainDetailGuidance}
+${templateBlock}
 
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
-Write a rich, structured HTML lesson (600-1000 words) with exactly 5 sections:
+${templateBlock ? `Follow the section-type-specific HTML structure and format rules defined in the Chapter DNA template block above. Do NOT use the generic 5-h2 structure — use the role-specific structure for this section type.` : `Write a rich, structured HTML lesson (600-1000 words) with exactly 5 sections:
 1. **<h2>Why This Matters</h2>**: Open with a real-world story or scenario about "${section.topicFocus}". Why does this concept exist? What problem does it solve? Use a concrete analogy to build intuition.
 2. **<h2>The Big Picture</h2>**: Where does "${section.topicFocus}" fit in the broader field? How does it connect to what students learned in prior sections? What breaks if you skip this?
 3. **<h2>What You Will Learn</h2>**: List 3-5 key ideas with analogies. Use <ul>/<li> for each concept. Explain each in plain language before using technical terms.
 4. **<h2>Problems You Can Solve</h2>**: Give specific, concrete problems (not vague). Use <ol>/<li> to number them. Name actual datasets, scenarios, or challenges.
-5. **<h2>Real-World Applications</h2>**: Name real companies, products, or systems. Show professional value. Connect to what students will build in the practical activity.
+5. **<h2>Real-World Applications</h2>**: Name real companies, products, or systems. Show professional value. Connect to what students will build in the practical activity.`}
 
 ### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
 For each of the ${courseContext.learningObjectivesPerSection} objectives:
@@ -940,7 +952,7 @@ Return a JSON object with this EXACT structure:
 {
   "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "600-1000 words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.",
+    "description": "${templateBlock ? `Structured HTML lesson content following the section-type-specific format from the Chapter DNA template. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote, table, tr, th, td. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.` : `600-1000 words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.`}",
     "learningObjectives": [
       // Exactly ${courseContext.learningObjectivesPerSection} objectives
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
@@ -956,7 +968,7 @@ Return a JSON object with this EXACT structure:
 }
 
 QUALITY GATES — Your output will be scored on:
-1. **Lesson Structure**: Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it 600-1000 words? Does it mention "${section.topicFocus}" at least 3 times?
+1. **Lesson Structure**: ${templateBlock ? `Does the description follow the section-type-specific HTML structure from the Chapter DNA template? Does it mention "${section.topicFocus}" at least 3 times?` : `Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it 600-1000 words? Does it mention "${section.topicFocus}" at least 3 times?`}
 2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?

@@ -488,12 +488,14 @@ describe('buildFallbackSection', () => {
   it('avoids duplicate titles', () => {
     const existingTitle = `${chapter.title} - Part 1`;
     const section = buildFallbackSection(1, chapter, [existingTitle]);
-    expect(section.title).toContain('Subsection');
+    // When duplicate detected, title is appended with chapter prefix
+    expect(section.title).not.toBe(existingTitle);
+    expect(section.title).toContain(chapter.title);
   });
 });
 
 describe('buildFallbackDetails', () => {
-  it('generates valid details', () => {
+  it('generates valid details without template', () => {
     const ctx = createMockCourseContext();
     const chapter = createMockChapter();
     const section = createMockSection();
@@ -502,6 +504,182 @@ describe('buildFallbackDetails', () => {
     expect(details.learningObjectives).toHaveLength(ctx.learningObjectivesPerSection);
     expect(details.keyConceptsCovered).toHaveLength(3);
     expect(details.practicalActivity).toContain(section.contentType);
+  });
+
+  // Helper to create a minimal valid TemplateSectionDef for testing
+  function makeTemplateDef(role: string, pos = 1) {
+    return {
+      position: pos,
+      role,
+      displayName: role,
+      purpose: '',
+      contentType: 'reading',
+      bloomsLevels: ['UNDERSTAND'],
+      wordCountRange: { min: 200, max: 400 },
+      formatRules: [],
+      htmlStructure: '',
+      tone: '',
+      consistencyRules: [],
+    } as unknown as Parameters<typeof buildFallbackDetails>[3];
+  }
+
+  it('generates HOOK fallback with template', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('HOOK'));
+    expect(details.description).toContain('Real-World Challenge');
+    expect(details.description).toContain(section.topicFocus);
+  });
+
+  it('generates INTUITION fallback with analogy mapping table', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('INTUITION'));
+    expect(details.description).toContain('<table>');
+    expect(details.description).toContain('Aha:');
+  });
+
+  it('generates PLAYGROUND fallback with 3 progressive exercises', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('PLAYGROUND'));
+    expect(details.description).toContain('Guided');
+    expect(details.description).toContain('Semi-Guided');
+    expect(details.description).toContain('Independent');
+  });
+
+  it('generates PROVOCATION fallback', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('PROVOCATION'));
+    expect(details.description).toContain('Provocation');
+    expect(details.description).toContain('Counterintuitive');
+  });
+
+  it('generates INTUITION_ENGINE fallback with multiple mental models', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('INTUITION_ENGINE'));
+    expect(details.description).toContain('Mental Model 1');
+    expect(details.description).toContain('Mental Model 2');
+    expect(details.description).toContain('Unifying Insight');
+  });
+
+  it('generates DERIVATION fallback with step-by-step', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('DERIVATION'));
+    expect(details.description).toContain('Deriving');
+    expect(details.description).toContain('Step 1');
+    expect(details.description).toContain('Intuition Check');
+  });
+
+  it('generates LABORATORY fallback with 5 exercise types', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('LABORATORY'));
+    expect(details.description).toContain('Compute');
+    expect(details.description).toContain('Predict-Verify');
+    expect(details.description).toContain('Diagnose');
+    expect(details.description).toContain('Compare');
+    expect(details.description).toContain('Design');
+  });
+
+  it('generates DEPTH_DIVE fallback', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('DEPTH_DIVE'));
+    expect(details.description).toContain('Edge Cases');
+    expect(details.description).toContain('Breaking Conditions');
+  });
+
+  it('generates SYNTHESIS fallback with concept map', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('SYNTHESIS'));
+    expect(details.description).toContain('Synthesis');
+    expect(details.description).toContain('Concept Map');
+  });
+
+  it('generates OPEN_QUESTION fallback', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('OPEN_QUESTION'));
+    expect(details.description).toContain('Open Question');
+    expect(details.description).toContain('fundamental limit');
+  });
+
+  it('generates FIRST_PRINCIPLES fallback', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('FIRST_PRINCIPLES'));
+    expect(details.description).toContain('First Principles');
+    expect(details.description).toContain('Simplest Case');
+  });
+
+  it('generates ANALYSIS fallback', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('ANALYSIS'));
+    expect(details.description).toContain('Formal Analysis');
+    expect(details.description).toContain('Complexity');
+  });
+
+  it('generates DESIGN_STUDIO fallback with challenges', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('DESIGN_STUDIO'));
+    expect(details.description).toContain('Design Studio');
+    expect(details.description).toContain('Challenge 1');
+  });
+
+  it('generates FRONTIER fallback with research direction', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('FRONTIER'));
+    expect(details.description).toContain('Frontier');
+    expect(details.description).toContain('Open Questions');
+  });
+
+  it('generates CHECKPOINT fallback with self-assessment', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('CHECKPOINT'));
+    expect(details.description).toContain('Self-Assessment');
+    expect(details.description).toContain('Confidence Check');
+  });
+
+  it('generates PITFALLS fallback with common mistakes', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('PITFALLS'));
+    expect(details.description).toContain('Common Pitfalls');
+    expect(details.description).toContain('Misconception Buster');
+  });
+
+  it('generates SUMMARY fallback with connections', () => {
+    const ctx = createMockCourseContext();
+    const chapter = createMockChapter();
+    const section = createMockSection();
+    const details = buildFallbackDetails(chapter, section, ctx, makeTemplateDef('SUMMARY'));
+    expect(details.description).toContain('Chapter Summary');
+    expect(details.description).toContain('Connections');
   });
 });
 
