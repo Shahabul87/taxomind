@@ -147,6 +147,9 @@ function samReducer(state: SAMProviderState, action: SAMAction_Internal): SAMPro
       return {
         ...state,
         messages: [],
+        isProcessing: false,
+        isStreaming: false,
+        error: null,
         context: {
           ...state.context,
           conversation: {
@@ -656,6 +659,26 @@ export function SAMProvider({
                 if (typeof replacementText === 'string') {
                   assistantContent = replacementText;
                   updateAssistantContent();
+                }
+                break;
+              }
+              case 'tool-execution': {
+                // Conversational tool result — store in insights for immediate availability
+                const toolData = toRecord(payload);
+                if (toolData?.toolId) {
+                  const existingAgentic = (insights ? toRecord(insights)?.agentic : undefined) as Record<string, unknown> | undefined;
+                  insights = {
+                    ...(insights ?? {}),
+                    agentic: {
+                      ...(existingAgentic ?? {}),
+                      toolExecution: {
+                        toolId: toolData.toolId,
+                        toolName: toolData.toolName,
+                        status: toolData.status,
+                        result: toolData.result,
+                      },
+                    },
+                  };
                 }
                 break;
               }

@@ -77,6 +77,43 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
     ],
     defaultInput: { action: 'start' },
   },
+  'exam-builder': {
+    toolId: 'sam-exam-builder',
+    intentPatterns: [
+      /\b(create|build|make|generate|design)\b.*\b(exam|quiz|test|assessment)\b/i,
+      /\bnew (exam|quiz|test)\b/i,
+      /\b(exam|quiz|test)\b.*\b(creation|builder|generator)\b/i,
+      /\bbloom'?s?\b.*\b(exam|quiz|test|assessment)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'evaluation': {
+    toolId: 'sam-exam-evaluator',
+    intentPatterns: [
+      /\b(evaluate|assess|diagnose|analyze)\b.*\b(exam|quiz|test|attempt|submission|answer)\b/i,
+      /\b(exam|quiz|test)\b.*\b(evaluation|assessment|diagnosis|analysis|review)\b/i,
+      /\b(student|learner)\b.*\b(performance|attempt|submission)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'student-analytics': {
+    toolId: 'sam-student-analytics',
+    intentPatterns: [
+      /\b(show|view|see|get|check)\b.*\b(student|learner)\b.*\b(analytics|stats|data|metrics|insights)\b/i,
+      /\bstudent\b.*\b(performance|progress|engagement)\b/i,
+      /\bprism\b.*\b(analytics|student)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'creator-analytics': {
+    toolId: 'sam-creator-analytics',
+    intentPatterns: [
+      /\b(show|view|see|get|check)\b.*\b(creator|course|content)\b.*\b(analytics|stats|data|metrics|insights)\b/i,
+      /\b(my courses?|my content)\b.*\b(performance|analytics|stats)\b/i,
+      /\bcreator\b.*\b(dashboard|analytics|insights)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
 };
 
 // =============================================================================
@@ -308,6 +345,25 @@ export async function checkConversationalToolInvoke(
           const skillName = match[1].trim().replace(/\s+/g, ' ');
           if (skillName.length >= 2 && skillName.length <= 50) {
             input = { ...input, skillName };
+            break;
+          }
+        }
+      }
+    }
+
+    if (config.toolId === 'sam-exam-builder') {
+      const examPatterns = [
+        /(?:exam|quiz|test|assessment)\s+(?:about|on|for|covering)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        /(?:create|build|make|generate)\s+(?:a\s+)?(?:exam|quiz|test)\s+(?:about|on|for)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        /(?:create|build|make)\s+(?:a\s+)?([a-z][a-z0-9\s.#+\-]*?)\s+(?:exam|quiz|test)/i,
+      ];
+
+      for (const examPattern of examPatterns) {
+        const match = message.match(examPattern);
+        if (match && match[1]) {
+          const topic = match[1].trim().replace(/\s+/g, ' ');
+          if (topic.length >= 2 && topic.length <= 100) {
+            input = { ...input, topic };
             break;
           }
         }

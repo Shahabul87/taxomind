@@ -914,6 +914,50 @@ function ChatWindowInner({
         clearActiveToolConversation();
       }
     }
+
+    // Check if this is an exam builder tool result
+    if (apiToolExecution.toolId === 'sam-exam-builder') {
+      const toolResult = apiToolExecution.result as { output?: {
+        type?: string;
+        conversationId?: string;
+        step?: string;
+        collected?: Record<string, unknown>;
+      }} | undefined;
+      const output = toolResult?.output;
+
+      if (output?.type === 'conversation' && output.conversationId) {
+        setActiveToolConversation({
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+      } else if (output?.type === 'generate_exam') {
+        clearActiveToolConversation();
+      }
+    }
+
+    // Check if this is an exam evaluator tool result
+    if (apiToolExecution.toolId === 'sam-exam-evaluator') {
+      const toolResult = apiToolExecution.result as { output?: {
+        type?: string;
+        conversationId?: string;
+        step?: string;
+        collected?: Record<string, unknown>;
+      }} | undefined;
+      const output = toolResult?.output;
+
+      if (output?.type === 'conversation' && output.conversationId) {
+        setActiveToolConversation({
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+      } else if (output?.type === 'evaluate_exam') {
+        clearActiveToolConversation();
+      }
+    }
   }, [apiToolExecution]);
 
   // Enrich messages with tool result data, engine insights, and merge local mode greeting messages

@@ -20,7 +20,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
     greeting: "I'm your General Assistant. How can I help you?",
     enginePreset: ['response'],
     systemPromptAddition: '',
-    allowedToolCategories: ['external', 'content', 'system', 'communication'],
+    allowedToolCategories: ['external', 'content', 'system', 'communication', 'assessment', 'analytics'],
     engineConfig: { adaptationStrategy: 'auto', outputFormat: 'conversational', contentFocus: 'general' },
   },
 
@@ -256,7 +256,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
     systemPromptAddition:
       'You are in Exam Builder mode. Create well-structured assessments with questions targeting ' +
       'specific Bloom\'s levels. Include rubrics, answer keys, and difficulty distribution.',
-    allowedToolCategories: ['content'],
+    allowedToolCategories: ['content', 'assessment'],
     engineConfig: { rubricGeneration: true, bloomsAlignment: true, difficultySpread: true },
   },
   'practice-problems': {
@@ -268,7 +268,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
     systemPromptAddition:
       'You are in Practice Problems mode. Generate progressive practice problems that build ' +
       'from basic recall to higher-order thinking. Include worked examples and hints.',
-    allowedToolCategories: ['content'],
+    allowedToolCategories: ['content', 'assessment'],
     engineConfig: { adaptiveDifficulty: true, hintSystem: true, stepByStep: true },
   },
   'evaluation': {
@@ -280,7 +280,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
     systemPromptAddition:
       'You are in Answer Evaluator mode. Assess student responses against rubrics and learning objectives. ' +
       'Provide constructive feedback with specific improvement suggestions.',
-    allowedToolCategories: ['external'],
+    allowedToolCategories: ['external', 'assessment'],
     engineConfig: { detailedFeedback: true, rubricBased: true, improvementSuggestions: true },
   },
   'integrity-checker': {
@@ -428,7 +428,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       "Present the tool's options in a friendly, conversational way. " +
       'When the tool returns triggerGeneration: true, inform the user that analytics generation is starting. ' +
       'Provide actionable insights and explain trends in an encouraging, supportive manner.',
-    allowedToolCategories: ['external', 'content'],
+    allowedToolCategories: ['external', 'content', 'assessment'],
     engineConfig: { showCharts: true, comparativeAnalysis: true, trendDetection: true },
   },
   'predictive': {

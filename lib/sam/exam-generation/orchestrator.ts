@@ -695,9 +695,9 @@ async function getOrCreateStandaloneSection(
       title: 'AI-Generated Exams',
     },
     include: {
-      Chapter: {
+      chapters: {
         include: {
-          Section: true,
+          sections: true,
         },
         take: 1,
       },
@@ -711,11 +711,11 @@ async function getOrCreateStandaloneSection(
         description: 'Auto-generated exams from the Bloom&apos;s Exam Builder',
         userId,
         categoryId: null,
-        Chapter: {
+        chapters: {
           create: {
             title: 'Exam Collection',
             position: 0,
-            Section: {
+            sections: {
               create: {
                 title: topic,
                 position: 0,
@@ -725,15 +725,15 @@ async function getOrCreateStandaloneSection(
         },
       },
       include: {
-        Chapter: {
-          include: { Section: true },
+        chapters: {
+          include: { sections: true },
           take: 1,
         },
       },
     });
   }
 
-  const chapter = course.Chapter[0];
+  const chapter = course.chapters[0];
   if (!chapter) {
     throw new Error('Failed to create exam course structure');
   }
@@ -743,7 +743,7 @@ async function getOrCreateStandaloneSection(
     data: {
       title: topic,
       chapterId: chapter.id,
-      position: (chapter.Section?.length ?? 0),
+      position: (chapter.sections?.length ?? 0),
     },
   });
 

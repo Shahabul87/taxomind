@@ -22,6 +22,8 @@ export { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
 export { NavigatorToolRenderer } from './NavigatorToolRenderer';
 export { NavigatorGenerationProgress } from './NavigatorGenerationProgress';
 export { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
+export { ExamBuilderToolRenderer } from './ExamBuilderToolRenderer';
+export { ExamEvaluatorToolRenderer } from './ExamEvaluatorToolRenderer';
 
 // Panels
 export { ProgressPanel } from './panels/ProgressPanel';
@@ -98,3 +100,6 @@ export type {
 } from './hooks/useSkillNavigatorTool';
 
 export type { ConversationalOption } from './ConversationalOptions';
+
+export type { ExamBuilderToolOutput, ExamBuilderResult } from './ExamBuilderToolRenderer';
+export type { ExamEvaluatorToolOutput, EvalResult } from './ExamEvaluatorToolRenderer';

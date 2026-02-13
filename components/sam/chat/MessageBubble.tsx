@@ -15,6 +15,8 @@ import { EngineTransparencyPanel } from './panels/EngineTransparencyPanel';
 import { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
 import { NavigatorToolRenderer } from './NavigatorToolRenderer';
 import { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
+import { ExamBuilderToolRenderer } from './ExamBuilderToolRenderer';
+import { ExamEvaluatorToolRenderer } from './ExamEvaluatorToolRenderer';
 import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
 
@@ -154,6 +156,38 @@ export function MessageBubble({
                 return (
                   <LearningAnalyticsToolRenderer
                     output={analyticsOutput}
+                    onSendMessage={onSendMessage}
+                    isInteractive={isLastMessage && !isMessageStreaming}
+                  />
+                );
+              }
+            }
+
+            // Exam Builder Tool
+            if (toolId === 'sam-exam-builder') {
+              const examOutput = toolOutput as Parameters<typeof ExamBuilderToolRenderer>[0]['output'] | null;
+              const hasValidOutput = examOutput?.type === 'conversation' || examOutput?.type === 'generate_exam';
+
+              if (hasValidOutput && onSendMessage) {
+                return (
+                  <ExamBuilderToolRenderer
+                    output={examOutput}
+                    onSendMessage={onSendMessage}
+                    isInteractive={isLastMessage && !isMessageStreaming}
+                  />
+                );
+              }
+            }
+
+            // Exam Evaluator Tool
+            if (toolId === 'sam-exam-evaluator') {
+              const evalOutput = toolOutput as Parameters<typeof ExamEvaluatorToolRenderer>[0]['output'] | null;
+              const hasValidOutput = evalOutput?.type === 'conversation' || evalOutput?.type === 'evaluate_exam';
+
+              if (hasValidOutput && onSendMessage) {
+                return (
+                  <ExamEvaluatorToolRenderer
+                    output={evalOutput}
                     onSendMessage={onSendMessage}
                     isInteractive={isLastMessage && !isMessageStreaming}
                   />

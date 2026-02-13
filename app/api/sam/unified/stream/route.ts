@@ -220,43 +220,47 @@ export async function POST(request: NextRequest) {
           ctx = { ...ctx, responseText };
 
           // PHASE 2: Run deferred pipeline stages with incremental SSE events
-          const deferredStages: Array<{
-            name: string;
-            run: () => Promise<typeof ctx>;
-          }> = [
-            { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems) },
-            { name: 'tutoring', run: () => runTutoringStage(ctx) },
-            { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems) },
-            { name: 'agentic', run: () => runAgenticStage(ctx) },
-            { name: 'intervention', run: () => runInterventionStage(ctx) },
-            { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx) },
-            { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx) },
-          ];
+          // Skip heavy stages for conversational tools — they're just collection steps,
+          // not full responses needing blooms analysis, quality gates, or orchestration.
+          if (!conversationalToolResult?.success) {
+            const deferredStages: Array<{
+              name: string;
+              run: () => Promise<typeof ctx>;
+            }> = [
+              { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems) },
+              { name: 'tutoring', run: () => runTutoringStage(ctx) },
+              { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems) },
+              { name: 'agentic', run: () => runAgenticStage(ctx) },
+              { name: 'intervention', run: () => runInterventionStage(ctx) },
+              { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx) },
+              { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx) },
+            ];
 
-          for (const stage of deferredStages) {
-            try {
-              ctx = await stage.run();
-              // Emit incremental stage-complete event
-              controller.enqueue(
-                sseEvent('stage-complete', {
-                  stage: stage.name,
-                  timestamp: Date.now(),
-                }),
-              );
-            } catch (stageError: unknown) {
-              const errorMsg =
-                stageError instanceof Error ? stageError.message : 'Unknown error';
-              logger.error(`[SAM_STREAM] Deferred stage '${stage.name}' failed:`, errorMsg);
-              ctx.stageErrors = [
-                ...(ctx.stageErrors || []),
-                { stage: stage.name, error: errorMsg, timestamp: Date.now() },
-              ];
+            for (const stage of deferredStages) {
+              try {
+                ctx = await stage.run();
+                // Emit incremental stage-complete event
+                controller.enqueue(
+                  sseEvent('stage-complete', {
+                    stage: stage.name,
+                    timestamp: Date.now(),
+                  }),
+                );
+              } catch (stageError: unknown) {
+                const errorMsg =
+                  stageError instanceof Error ? stageError.message : 'Unknown error';
+                logger.error(`[SAM_STREAM] Deferred stage '${stage.name}' failed:`, errorMsg);
+                ctx.stageErrors = [
+                  ...(ctx.stageErrors || []),
+                  { stage: stage.name, error: errorMsg, timestamp: Date.now() },
+                ];
+              }
             }
-          }
 
-          // Preserve the streamed responseText (orchestration may overwrite it)
-          if (responseText.length > 0) {
-            ctx = { ...ctx, responseText };
+            // Preserve the streamed responseText (orchestration may overwrite it)
+            if (responseText.length > 0) {
+              ctx = { ...ctx, responseText };
+            }
           }
 
           // PHASE 3: Emit SSE insights, suggestions, actions, done
