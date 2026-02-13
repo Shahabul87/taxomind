@@ -77,6 +77,9 @@ export async function createUserScopedAdapter(
     // Use registry default model
   }
 
+  // Capabilities that generate large content need extended timeout (180s vs 60s)
+  const useExtendedTimeout = capability === 'course';
+
   const adapter: CoreAIAdapter = {
     name: 'enterprise-user-scoped',
     version: '1.0.0',
@@ -89,6 +92,7 @@ export async function createUserScopedAdapter(
         systemPrompt: params.systemPrompt,
         maxTokens: params.maxTokens,
         temperature: params.temperature,
+        extended: useExtendedTimeout,
       });
 
       // Update resolved provider/model so getModel() returns the actual model used.
@@ -120,6 +124,7 @@ export async function createUserScopedAdapter(
         systemPrompt: params.systemPrompt,
         maxTokens: params.maxTokens,
         temperature: params.temperature,
+        extended: useExtendedTimeout,
       })) {
         yield chunk;
       }

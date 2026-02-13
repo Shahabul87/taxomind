@@ -1192,10 +1192,10 @@ export async function resumeCourseCreation(
     const course = await db.course.findUnique({
       where: { id: resumeCourseId },
       include: {
-        Chapter: {
+        chapters: {
           orderBy: { position: 'asc' },
           include: {
-            Section: {
+            sections: {
               orderBy: { position: 'asc' },
             },
           },
@@ -1229,7 +1229,7 @@ export async function resumeCourseCreation(
     const totalChapters = config.totalChapters;
 
     if (completedChapterCount >= totalChapters) {
-      return { success: true, courseId: resumeCourseId, chaptersCreated: completedChapterCount, sectionsCreated: course.Chapter.reduce((sum, ch) => sum + ch.Section.length, 0) };
+      return { success: true, courseId: resumeCourseId, chaptersCreated: completedChapterCount, sectionsCreated: course.chapters.reduce((sum, ch) => sum + ch.sections.length, 0) };
     }
 
     logger.info('[ORCHESTRATOR] Resuming course creation', {
@@ -1260,8 +1260,8 @@ export async function resumeCourseCreation(
     // after the checkpoint and re-run from that point.
 
     // Delete any chapters beyond the checkpoint (incomplete ones)
-    const chaptersToKeep = course.Chapter.slice(0, completedChapterCount);
-    const chaptersToDelete = course.Chapter.slice(completedChapterCount);
+    const chaptersToKeep = course.chapters.slice(0, completedChapterCount);
+    const chaptersToDelete = course.chapters.slice(completedChapterCount);
 
     if (chaptersToDelete.length > 0) {
       for (const ch of chaptersToDelete) {
@@ -1304,7 +1304,7 @@ export async function resumeCourseCreation(
       prerequisites: '',
       estimatedTime: ch.estimatedTime ?? '1-2 hours',
       topicsToExpand: [],
-      sections: ch.Section.map(sec => ({
+      sections: ch.sections.map(sec => ({
         id: sec.id,
         position: sec.position,
         title: sec.title,
@@ -1397,10 +1397,10 @@ export async function regenerateChapter(
     const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
-        Chapter: {
+        chapters: {
           orderBy: { position: 'asc' },
           include: {
-            Section: {
+            sections: {
               orderBy: { position: 'asc' },
             },
           },
@@ -1412,7 +1412,7 @@ export async function regenerateChapter(
     if (!course) return { success: false, error: 'Course not found' };
     if (course.userId !== userId) return { success: false, error: 'Unauthorized' };
 
-    const targetChapter = course.Chapter.find(ch => ch.id === chapterId);
+    const targetChapter = course.chapters.find(ch => ch.id === chapterId);
     if (!targetChapter) return { success: false, error: 'Chapter not found' };
 
     // Check for user-added content (videos, exams attached to sections)
@@ -1443,15 +1443,15 @@ export async function regenerateChapter(
       targetAudience: 'learners',
       difficulty: (course.difficulty ?? 'intermediate') as CourseContext['difficulty'],
       courseLearningObjectives: courseGoals,
-      totalChapters: course.Chapter.length,
-      sectionsPerChapter: targetChapter.Section.length || 3,
+      totalChapters: course.chapters.length,
+      sectionsPerChapter: targetChapter.sections.length || 3,
       bloomsFocus: ['UNDERSTAND', 'APPLY', 'ANALYZE'] as BloomsLevel[],
       learningObjectivesPerChapter: 5,
       learningObjectivesPerSection: 3,
     };
 
     // 3. Build context from surrounding chapters (excluding target)
-    const otherChapters = course.Chapter
+    const otherChapters = course.chapters
       .filter(ch => ch.id !== chapterId)
       .map(ch => ({
         position: ch.position,
@@ -1466,11 +1466,11 @@ export async function regenerateChapter(
       }));
 
     // Collect all section titles (excluding target chapter's sections)
-    const allSectionTitles = course.Chapter
+    const allSectionTitles = course.chapters
       .filter(ch => ch.id !== chapterId)
-      .flatMap(ch => ch.Section.map(s => s.title));
+      .flatMap(ch => ch.sections.map(s => s.title));
 
-    const sectionCount = targetChapter.Section.length || courseContext.sectionsPerChapter;
+    const sectionCount = targetChapter.sections.length || courseContext.sectionsPerChapter;
 
     // 4. Get AI adapter
     const aiAdapter = options.aiAdapter ?? await createUserScopedAdapter(userId, 'course');
@@ -1499,7 +1499,7 @@ export async function regenerateChapter(
     }
 
     // Build CompletedChapter array for context
-    const completedChapters: CompletedChapter[] = course.Chapter
+    const completedChapters: CompletedChapter[] = course.chapters
       .filter(ch => ch.id !== chapterId && ch.position < chapterPosition)
       .map(ch => ({
         id: ch.id,
@@ -1512,7 +1512,7 @@ export async function regenerateChapter(
         prerequisites: '',
         estimatedTime: ch.estimatedTime ?? '1-2 hours',
         topicsToExpand: [],
-        sections: ch.Section.map(sec => ({
+        sections: ch.sections.map(sec => ({
           id: sec.id,
           position: sec.position,
           title: sec.title,
@@ -1541,7 +1541,7 @@ export async function regenerateChapter(
     await db.section.deleteMany({ where: { chapterId } });
     logger.info('[ORCHESTRATOR] Deleted sections for chapter regeneration', {
       chapterId,
-      deletedCount: targetChapter.Section.length,
+      deletedCount: targetChapter.sections.length,
     });
 
     // 6. Regenerate chapter (Stage 1) with quality gates

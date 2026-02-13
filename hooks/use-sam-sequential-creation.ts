@@ -131,14 +131,7 @@ function parseSSEChunk(chunk: string): ParsedSSEEvent[] {
 export function useSequentialCreation(): UseSequentialCreationReturn {
   const [progress, setProgress] = useState<CreationProgress>(INITIAL_PROGRESS);
   const [error, setError] = useState<string | null>(null);
-  const [resumableCourseId, setResumableCourseId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      return localStorage.getItem(PARTIAL_COURSE_KEY);
-    } catch {
-      return null;
-    }
-  });
+  const [resumableCourseId, setResumableCourseId] = useState<string | null>(null);
 
   const [dbProgress, setDbProgress] = useState<DbProgress | null>(null);
   const [regeneratingChapterId, setRegeneratingChapterId] = useState<string | null>(null);
@@ -153,6 +146,18 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
   // Keep ref in sync so SSE handler can read latest progress
   progressRef.current = progress;
+
+  // Hydrate resumable course ID from localStorage after mount (avoids SSR mismatch)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PARTIAL_COURSE_KEY);
+      if (stored) {
+        setResumableCourseId(stored);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
 
   // Check DB for active/resumable creation on mount (cross-device resume)
   useEffect(() => {
