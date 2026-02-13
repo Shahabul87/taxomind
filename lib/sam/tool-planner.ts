@@ -69,7 +69,7 @@ function normalizeText(value: string): string {
  */
 const MODE_TOOL_AFFINITY: Record<string, string[]> = {
   'skill-roadmap-builder': ['sam-skill-roadmap-generator'],
-  'exam-builder': ['sam-quiz-grader'],
+  'exam-builder': ['sam-exam-builder', 'sam-quiz-grader', 'sam-exam-evaluator'],
   'learning-coach': ['sam-flashcard-generator', 'sam-study-timer'],
   'blooms-analyzer': ['sam-diagram-generator'],
   'course-architect': ['sam-course-creator'],
@@ -113,6 +113,28 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
       /\bcourse\b.*\b(creation|builder|designer|generator)\b/i,
       /\b(want to|need to|help me)\b.*\b(create|build|make)\b.*\bcourse\b/i,
       /\bteach\b.*\b(course|class)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'exam-builder': {
+    toolId: 'sam-exam-builder',
+    intentPatterns: [
+      /\b(create|build|make|generate|design)\b.*\b(exam|quiz|test|assessment)\b/i,
+      /\bnew (exam|quiz|test)\b/i,
+      /\b(exam|quiz|test)\b.*\b(creation|builder|generator)\b/i,
+      /\bbloom'?s?\b.*\b(exam|quiz|test|assessment)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
+  'exam-evaluator': {
+    toolId: 'sam-exam-evaluator',
+    intentPatterns: [
+      /\b(evaluate|grade|assess|diagnose|review)\b.*\b(exam|quiz|test|attempt|answers?)\b/i,
+      /\b(exam|quiz|test)\b.*\b(evaluation|grading|feedback|results?|diagnosis)\b/i,
+      /\b(check|analyze)\b.*\b(my|student)\b.*\b(answers?|performance|results?)\b/i,
+      /\bdiagnose\b.*\b(gaps?|understanding|knowledge|thinking|learning)\b/i,
+      /\bcognitive\b.*\b(profile|map|diagnosis|assessment)\b/i,
+      /\bhow did i do\b.*\b(exam|quiz|test)\b/i,
     ],
     defaultInput: { action: 'start' },
   },
@@ -172,6 +194,45 @@ function checkAutoInvoke(
             const courseName = match[1].trim().replace(/\s+/g, ' ');
             if (courseName.length >= 2 && courseName.length <= 100) {
               input = { ...input, courseName };
+              break;
+            }
+          }
+        }
+      }
+
+      if (config.toolId === 'sam-exam-builder') {
+        // Try to extract the exam topic from common patterns
+        const examPatterns = [
+          /(?:exam|quiz|test|assessment)\s+(?:about|on|for|covering)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+          /(?:create|build|make|generate)\s+(?:a\s+)?(?:exam|quiz|test)\s+(?:about|on|for)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+          /(?:create|build|make)\s+(?:a\s+)?([a-z][a-z0-9\s.#+\-]*?)\s+(?:exam|quiz|test)/i,
+        ];
+
+        for (const examPattern of examPatterns) {
+          const match = message.match(examPattern);
+          if (match && match[1]) {
+            const topic = match[1].trim().replace(/\s+/g, ' ');
+            if (topic.length >= 2 && topic.length <= 100) {
+              input = { ...input, topic };
+              break;
+            }
+          }
+        }
+      }
+
+      if (config.toolId === 'sam-exam-evaluator') {
+        // Try to extract the attempt ID from common patterns
+        const attemptPatterns = [
+          /attempt[_\s-]?(?:id)?[:\s]+([a-z0-9_-]+)/i,
+          /evaluate\s+(?:attempt\s+)?([a-z0-9_-]+)/i,
+        ];
+
+        for (const attemptPattern of attemptPatterns) {
+          const match = message.match(attemptPattern);
+          if (match && match[1]) {
+            const attemptId = match[1].trim();
+            if (attemptId.length >= 2 && attemptId.length <= 100) {
+              input = { ...input, attemptId };
               break;
             }
           }
