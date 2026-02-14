@@ -211,6 +211,7 @@ export type CreationStage = 1 | 2 | 3;
 export type CreationPhase =
   | 'idle'
   | 'creating_course'
+  | 'resuming'
   | 'generating_chapter'
   | 'saving_chapter'
   | 'generating_section'

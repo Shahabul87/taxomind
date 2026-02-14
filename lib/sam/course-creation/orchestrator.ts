@@ -273,6 +273,37 @@ export async function orchestrateCourseCreation(
         },
       });
 
+      // Emit resume-replay events for all previously-completed items so the
+      // client can hydrate its completedItems list even if dbProgress was stale.
+      // The client deduplicates by id, so overlaps are safe.
+      for (const ch of resumeState.completedChapters) {
+        onSSEEvent?.({
+          type: 'item_complete',
+          data: {
+            stage: 1,
+            chapter: ch.position,
+            title: ch.title,
+            id: ch.id,
+            courseId,
+            isResumeReplay: true,
+          },
+        });
+
+        for (const sec of ch.sections) {
+          onSSEEvent?.({
+            type: 'item_complete',
+            data: {
+              stage: 2,
+              chapter: ch.position,
+              section: sec.position,
+              title: sec.title,
+              id: sec.id,
+              isResumeReplay: true,
+            },
+          });
+        }
+      }
+
       // Reactivate goal/plan
       await reactivateCourseCreation(goalId, planId);
     } else {

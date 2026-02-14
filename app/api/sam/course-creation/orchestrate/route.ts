@@ -23,7 +23,7 @@ import { z } from 'zod';
 import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes max for full course generation
+export const maxDuration = 900; // 15 min per SSE segment; auto-reconnection handles longer courses
 
 // =============================================================================
 // VALIDATION

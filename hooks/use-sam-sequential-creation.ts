@@ -7,6 +7,12 @@
  *
  * The hook maps SSE events to CreationProgress state consumed by
  * SequentialCreationModal.
+ *
+ * Supports transparent auto-reconnection: when the SSE stream ends due to
+ * a timeout (without a `complete` or `error` event), the hook automatically
+ * reconnects as a resume — the modal continues showing progress seamlessly.
+ * This enables courses that take 30-60+ minutes to generate across multiple
+ * 15-minute SSE segments.
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -58,7 +64,44 @@ interface UseSequentialCreationReturn {
   reset: () => void;
 }
 
+/** Config callbacks extracted from SequentialCreationConfig */
+interface SSECallbacks {
+  onProgress?: (progress: CreationProgress) => void;
+  onThinking?: (thinking: string) => void;
+  onStageComplete?: (stage: CreationStage, items: unknown[]) => void;
+  onError?: (error: string, canRetry: boolean) => void;
+}
+
+/** Context refs passed to the shared SSE event handler */
+interface SSEHandlerContext {
+  setProgress: React.Dispatch<React.SetStateAction<CreationProgress>>;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  setResumableCourseId: React.Dispatch<React.SetStateAction<string | null>>;
+  startTimeRef: React.MutableRefObject<number>;
+  itemTimestampsRef: React.MutableRefObject<number[]>;
+  totalItemsRef: React.MutableRefObject<number>;
+  progressRef: React.MutableRefObject<CreationProgress>;
+  lastCourseIdRef: React.MutableRefObject<string | null>;
+  callbacks: SSECallbacks;
+}
+
+/** Result from processing a single SSE event */
+interface SSEEventResult {
+  /** If a terminal event was received, the final result */
+  result?: SequentialCreationResult;
+  /** Whether a 'complete' event was received */
+  gotComplete?: boolean;
+  /** Whether an 'error' event was received */
+  gotError?: boolean;
+}
+
 const PARTIAL_COURSE_KEY = 'taxomind_partial_course';
+
+/** Max auto-reconnections before giving up (~150 min at 15 min per segment) */
+const MAX_RECONNECTIONS = 10;
+
+/** Delay before auto-reconnecting (ms) — lets server checkpoint save complete */
+const RECONNECT_DELAY_MS = 2000;
 
 // ============================================================================
 // Initial State
@@ -125,6 +168,340 @@ function parseSSEChunk(chunk: string): ParsedSSEEvent[] {
 }
 
 // ============================================================================
+// Shared SSE Event Handler
+// ============================================================================
+
+/**
+ * Process a single SSE event and update React state accordingly.
+ * Used by both startCreation and resumeCreation for identical UI behavior.
+ *
+ * Returns an SSEEventResult if a terminal event (complete/error) was received,
+ * or an empty object for non-terminal events.
+ */
+function handleSSEEvent(
+  sseEvent: ParsedSSEEvent,
+  ctx: SSEHandlerContext,
+): SSEEventResult {
+  const { event, data } = sseEvent;
+  const {
+    setProgress, setError, setResumableCourseId,
+    startTimeRef, itemTimestampsRef, totalItemsRef,
+    progressRef, lastCourseIdRef, callbacks,
+  } = ctx;
+
+  switch (event) {
+    case 'progress': {
+      const stage = (data.stage as number) ?? 1;
+      const phase = (data.phase as string) ?? 'generating_chapter';
+      const percentage = (data.percentage as number) ?? 0;
+      const message = (data.message as string) ?? '';
+
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
+          phase: phase as CreationProgress['state']['phase'],
+        },
+        percentage: Math.min(100, percentage),
+        message,
+      }));
+
+      if (callbacks.onProgress) {
+        callbacks.onProgress(progressRef.current);
+      }
+      return {};
+    }
+
+    case 'stage_start': {
+      const stage = data.stage as number;
+      const message = data.message as string;
+      // Track courseId if present for auto-reconnect
+      if (data.courseId) {
+        lastCourseIdRef.current = data.courseId as string;
+      }
+
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
+          phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
+        },
+        message: message || `Starting stage ${stage}...`,
+      }));
+      return {};
+    }
+
+    case 'item_generating': {
+      const stage = data.stage as number;
+      const chapter = data.chapter as number | undefined;
+      const section = data.section as number | undefined;
+      const message = data.message as string;
+
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
+          phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
+          currentChapter: chapter ?? prev.state.currentChapter,
+          currentSection: section ?? prev.state.currentSection,
+        },
+        currentItem: message,
+      }));
+      return {};
+    }
+
+    case 'thinking': {
+      const thinking = data.thinking as string;
+      if (thinking) {
+        setProgress(prev => ({ ...prev, thinking }));
+        if (callbacks.onThinking) callbacks.onThinking(thinking);
+      }
+      return {};
+    }
+
+    case 'thinking_chunk': {
+      const chunk = data.chunk as string;
+      if (chunk) {
+        setProgress(prev => ({ ...prev, thinking: (prev.thinking ?? '') + chunk }));
+      }
+      return {};
+    }
+
+    case 'item_complete': {
+      const stage = data.stage as number;
+      const title = data.title as string;
+      const id = data.id as string | undefined;
+      const qualityScore = data.qualityScore as number | undefined;
+      const chapter = data.chapter as number | undefined;
+      const section = data.section as number | undefined;
+
+      // Track courseId for auto-reconnect (stage 0 events include courseId)
+      if (data.courseId) {
+        lastCourseIdRef.current = data.courseId as string;
+      }
+
+      // Skip timestamp recording for resume-replay items (already completed)
+      const isResumeReplay = data.isResumeReplay as boolean | undefined;
+      if (!isResumeReplay) {
+        // Record timestamp for ETA calculation
+        itemTimestampsRef.current.push(Date.now());
+      }
+      const timestamps = itemTimestampsRef.current;
+      const itemsCompleted = timestamps.length;
+      const elapsedMs = Date.now() - startTimeRef.current;
+      const totalItemCount = totalItemsRef.current;
+
+      // Compute sliding-window average (last 5 items) for ETA
+      let averageItemMs: number | null = null;
+      let estimatedRemainingMs: number | null = null;
+      if (itemsCompleted >= 2) {
+        const windowSize = Math.min(5, itemsCompleted);
+        const recentTimes: number[] = [];
+        for (let i = itemsCompleted - windowSize; i < itemsCompleted; i++) {
+          const prev = i === 0 ? startTimeRef.current : timestamps[i - 1];
+          recentTimes.push(timestamps[i] - prev);
+        }
+        averageItemMs = Math.round(recentTimes.reduce((a, b) => a + b, 0) / recentTimes.length);
+        const remaining = totalItemCount - itemsCompleted;
+        estimatedRemainingMs = remaining > 0 ? averageItemMs * remaining : 0;
+      }
+
+      const timing = {
+        elapsedMs,
+        estimatedRemainingMs,
+        averageItemMs,
+        itemsCompleted,
+        totalItems: totalItemCount,
+      };
+
+      if (stage === 1 && chapter && title) {
+        // Deduplicate: skip if chapter with same id already exists
+        setProgress(prev => {
+          if (id && prev.completedItems.chapters.some(ch => ch.id === id)) {
+            return { ...prev, timing };
+          }
+          return {
+            ...prev,
+            timing,
+            completedItems: {
+              ...prev.completedItems,
+              chapters: [
+                ...prev.completedItems.chapters,
+                { position: chapter, title, id, qualityScore },
+              ],
+            },
+          };
+        });
+      } else if ((stage === 2 || stage === 3) && chapter && section && title) {
+        // Deduplicate: skip if section with same id already exists
+        setProgress(prev => {
+          if (id && prev.completedItems.sections.some(s => s.id === id)) {
+            return { ...prev, timing };
+          }
+          return {
+            ...prev,
+            timing,
+            completedItems: {
+              ...prev.completedItems,
+              sections: [
+                ...prev.completedItems.sections,
+                { chapterPosition: chapter, position: section, title, id, qualityScore },
+              ],
+            },
+          };
+        });
+      }
+      return {};
+    }
+
+    case 'stage_complete': {
+      const stage = data.stage as number;
+      if (callbacks.onStageComplete) {
+        callbacks.onStageComplete(stage as CreationStage, []);
+      }
+      return {};
+    }
+
+    case 'complete': {
+      const courseId = data.courseId as string;
+      const chaptersCreated = (data.chaptersCreated as number) ?? 0;
+      const sectionsCreated = (data.sectionsCreated as number) ?? 0;
+      const totalTime = (data.totalTime as number) ?? (Date.now() - startTimeRef.current);
+      const averageQualityScore = (data.averageQualityScore as number) ?? 0;
+
+      // Clear partial course from localStorage on success
+      try {
+        localStorage.removeItem(PARTIAL_COURSE_KEY);
+        setResumableCourseId(null);
+      } catch {
+        // localStorage not available
+      }
+
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'complete' },
+        percentage: 100,
+        message: 'Course creation complete!',
+      }));
+
+      return {
+        gotComplete: true,
+        result: {
+          success: true,
+          courseId,
+          chaptersCreated,
+          sectionsCreated,
+          stats: {
+            totalChapters: chaptersCreated,
+            totalSections: sectionsCreated,
+            totalTime,
+            averageQualityScore,
+          },
+        },
+      };
+    }
+
+    case 'error': {
+      const errorMessage = (data.message as string) ?? 'Unknown error';
+      const chaptersCreated = (data.chaptersCreated as number) ?? 0;
+      const sectionsCreated = (data.sectionsCreated as number) ?? 0;
+      const errorCourseId = data.courseId as string | undefined;
+
+      // Store partial course ID for resume
+      if (errorCourseId && chaptersCreated > 0) {
+        try {
+          localStorage.setItem(PARTIAL_COURSE_KEY, errorCourseId);
+          setResumableCourseId(errorCourseId);
+        } catch {
+          // localStorage not available
+        }
+      }
+
+      setError(errorMessage);
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'error', error: errorMessage },
+        message: errorMessage,
+      }));
+
+      if (callbacks.onError) {
+        callbacks.onError(errorMessage, true);
+      }
+
+      return {
+        gotError: true,
+        result: {
+          success: false,
+          courseId: errorCourseId,
+          chaptersCreated,
+          sectionsCreated,
+          stats: {
+            totalChapters: chaptersCreated,
+            totalSections: sectionsCreated,
+            totalTime: Date.now() - startTimeRef.current,
+            averageQualityScore: 0,
+          },
+          error: errorMessage,
+        },
+      };
+    }
+
+    default:
+      return {};
+  }
+}
+
+/**
+ * Read an SSE stream and process events through the shared handler.
+ * Returns the final result and flags for whether complete/error events were received.
+ */
+async function readSSEStream(
+  response: Response,
+  ctx: SSEHandlerContext,
+): Promise<{ result: SequentialCreationResult; gotComplete: boolean; gotError: boolean }> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+
+  let finalResult: SequentialCreationResult = {
+    success: false,
+    error: 'Stream ended without completion event',
+  };
+  let gotComplete = false;
+  let gotError = false;
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Process complete events from the buffer
+    const lastDoubleNewline = buffer.lastIndexOf('\n\n');
+    if (lastDoubleNewline === -1) continue;
+
+    const completePart = buffer.substring(0, lastDoubleNewline + 2);
+    buffer = buffer.substring(lastDoubleNewline + 2);
+
+    const events = parseSSEChunk(completePart);
+
+    for (const sseEvent of events) {
+      const eventResult = handleSSEEvent(sseEvent, ctx);
+      if (eventResult.result) {
+        finalResult = eventResult.result;
+      }
+      if (eventResult.gotComplete) gotComplete = true;
+      if (eventResult.gotError) gotError = true;
+    }
+  }
+
+  return { result: finalResult, gotComplete, gotError };
+}
+
+// ============================================================================
 // Main Hook
 // ============================================================================
 
@@ -143,6 +520,10 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
   const totalItemsRef = useRef<number>(0);
   const resumableCourseIdRef = useRef(resumableCourseId);
   resumableCourseIdRef.current = resumableCourseId;
+
+  // Auto-reconnection tracking
+  const reconnectCountRef = useRef<number>(0);
+  const lastCourseIdRef = useRef<string | null>(null);
 
   // Keep ref in sync so SSE handler can read latest progress
   progressRef.current = progress;
@@ -204,6 +585,183 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     return () => { cancelled = true; };
   }, []); // Run once on mount
 
+  /**
+   * Fetch fresh DB progress for a specific course (used before auto-reconnect).
+   */
+  const fetchDbProgressForCourse = useCallback(async (courseId: string): Promise<DbProgress | null> => {
+    try {
+      const res = await fetch('/api/sam/course-creation/progress');
+      if (!res.ok) return null;
+
+      const data = await res.json();
+      if (data.success && data.hasActiveCreation && data.progress?.courseId === courseId) {
+        return {
+          hasActiveCreation: true,
+          courseId: data.progress.courseId,
+          courseTitle: data.progress.courseTitle,
+          completedChapters: data.progress.completedChapters,
+          totalChapters: data.progress.totalChapters,
+          percentage: data.progress.percentage,
+          lastSaved: data.progress.lastSaved,
+          completedItems: data.progress.completedItems,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // ========================================
+  // Resume Creation
+  // ========================================
+
+  const resumeCreation = useCallback(async (
+    courseId: string,
+    config: SequentialCreationConfig
+  ): Promise<SequentialCreationResult> => {
+    const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
+    const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
+
+    // Only reset timing on first call (not auto-reconnect)
+    if (reconnectCountRef.current === 0) {
+      startTimeRef.current = Date.now();
+      itemTimestampsRef.current = [];
+    }
+    setError(null);
+
+    const totalChapters = courseData.totalChapters;
+    const sectionsPerChapter = courseData.sectionsPerChapter;
+    const totalSections = totalChapters * sectionsPerChapter;
+    totalItemsRef.current = totalChapters + totalSections + totalSections;
+
+    // Pre-populate completed items from dbProgress (Fix 2)
+    const currentDbProgress = await fetchDbProgressForCourse(courseId);
+    const prePopulatedItems = currentDbProgress?.completedItems ?? {
+      chapters: [],
+      sections: [],
+    };
+    const initialPercentage = currentDbProgress?.percentage ?? 0;
+
+    // Only set initial state if this is NOT an auto-reconnect
+    // (auto-reconnects preserve existing React state)
+    if (reconnectCountRef.current === 0) {
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          stage: 1,
+          phase: 'resuming',
+          currentChapter: currentDbProgress?.completedChapters ?? 0,
+          totalChapters,
+          currentSection: 0,
+          totalSections: sectionsPerChapter,
+        },
+        percentage: initialPercentage,
+        message: 'Resuming course creation...',
+        completedItems: prePopulatedItems,
+      }));
+    }
+
+    // Track this course for auto-reconnect
+    lastCourseIdRef.current = courseId;
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const ctx: SSEHandlerContext = {
+      setProgress,
+      setError,
+      setResumableCourseId,
+      startTimeRef,
+      itemTimestampsRef,
+      totalItemsRef,
+      progressRef,
+      lastCourseIdRef,
+      callbacks,
+    };
+
+    try {
+      const response = await fetch('/api/sam/course-creation/orchestrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...courseData,
+          resumeCourseId: courseId,
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      // Read SSE stream using shared handler
+      const { result, gotComplete, gotError } = await readSSEStream(response, ctx);
+
+      // Auto-reconnect if stream ended without terminal event (timeout/disconnect)
+      if (!gotComplete && !gotError && lastCourseIdRef.current) {
+        if (reconnectCountRef.current < MAX_RECONNECTIONS) {
+          reconnectCountRef.current++;
+          logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after stream timeout', {
+            reconnectCount: reconnectCountRef.current,
+            courseId: lastCourseIdRef.current,
+          });
+
+          // Brief pause to let server-side checkpoint save complete
+          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+
+          // Recursively resume — React state persists across calls
+          return resumeCreation(lastCourseIdRef.current, config);
+        }
+
+        logger.warn('[SEQUENTIAL_SSE] Max reconnections reached', {
+          maxReconnections: MAX_RECONNECTIONS,
+          courseId: lastCourseIdRef.current,
+        });
+      }
+
+      return result;
+    } catch (err) {
+      // Handle abort (cancellation) — don't auto-reconnect
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        const cancelMessage = 'Course creation cancelled';
+        setError(cancelMessage);
+        setProgress(prev => ({
+          ...prev,
+          state: { ...prev.state, phase: 'error', error: cancelMessage },
+          message: cancelMessage,
+        }));
+        return { success: false, error: cancelMessage };
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+      // Network errors during creation should trigger auto-reconnect
+      if (lastCourseIdRef.current && reconnectCountRef.current < MAX_RECONNECTIONS) {
+        reconnectCountRef.current++;
+        logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after network error', {
+          reconnectCount: reconnectCountRef.current,
+          courseId: lastCourseIdRef.current,
+          error: errorMessage,
+        });
+
+        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        return resumeCreation(lastCourseIdRef.current, config);
+      }
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      abortControllerRef.current = null;
+    }
+  }, [fetchDbProgressForCourse]);
+
   // ========================================
   // Main Creation Flow (SSE-based)
   // ========================================
@@ -212,9 +770,12 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     config: SequentialCreationConfig
   ): Promise<SequentialCreationResult> => {
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
+    const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 
     startTimeRef.current = Date.now();
     itemTimestampsRef.current = [];
+    reconnectCountRef.current = 0;
+    lastCourseIdRef.current = null;
     setError(null);
 
     const totalChapters = courseData.totalChapters;
@@ -241,6 +802,18 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     // Create an AbortController for cancellation
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+
+    const ctx: SSEHandlerContext = {
+      setProgress,
+      setError,
+      setResumableCourseId,
+      startTimeRef,
+      itemTimestampsRef,
+      totalItemsRef,
+      progressRef,
+      lastCourseIdRef,
+      callbacks,
+    };
 
     try {
       // POST to the SSE orchestrate endpoint
@@ -275,266 +848,23 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         throw new Error('No response body (SSE stream not available)');
       }
 
-      // Read the SSE stream
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      // Read SSE stream using shared handler
+      const { result, gotComplete, gotError } = await readSSEStream(response, ctx);
 
-      let result: SequentialCreationResult = {
-        success: false,
-        error: 'Stream ended without completion event',
-      };
+      // Auto-reconnect if stream ended without terminal event (timeout/disconnect)
+      if (!gotComplete && !gotError && lastCourseIdRef.current) {
+        if (reconnectCountRef.current < MAX_RECONNECTIONS) {
+          reconnectCountRef.current++;
+          logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after initial stream timeout', {
+            reconnectCount: reconnectCountRef.current,
+            courseId: lastCourseIdRef.current,
+          });
 
-      let buffer = '';
+          // Brief pause to let server-side checkpoint save complete
+          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Process complete events from the buffer
-        const lastDoubleNewline = buffer.lastIndexOf('\n\n');
-        if (lastDoubleNewline === -1) continue;
-
-        const completePart = buffer.substring(0, lastDoubleNewline + 2);
-        buffer = buffer.substring(lastDoubleNewline + 2);
-
-        const events = parseSSEChunk(completePart);
-
-        for (const sseEvent of events) {
-          const { event, data } = sseEvent;
-
-          switch (event) {
-            case 'progress': {
-              const stage = (data.stage as number) ?? 1;
-              const phase = (data.phase as string) ?? 'generating_chapter';
-              const percentage = (data.percentage as number) ?? 0;
-              const message = (data.message as string) ?? '';
-
-              setProgress(prev => ({
-                ...prev,
-                state: {
-                  ...prev.state,
-                  stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
-                  phase: phase as CreationProgress['state']['phase'],
-                },
-                percentage: Math.min(100, percentage),
-                message,
-              }));
-
-              if (onProgress) {
-                onProgress(progressRef.current);
-              }
-              break;
-            }
-
-            case 'stage_start': {
-              const stage = data.stage as number;
-              const message = data.message as string;
-
-              setProgress(prev => ({
-                ...prev,
-                state: {
-                  ...prev.state,
-                  stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
-                  phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
-                },
-                message: message || `Starting stage ${stage}...`,
-              }));
-              break;
-            }
-
-            case 'item_generating': {
-              const stage = data.stage as number;
-              const chapter = data.chapter as number | undefined;
-              const section = data.section as number | undefined;
-              const message = data.message as string;
-
-              setProgress(prev => ({
-                ...prev,
-                state: {
-                  ...prev.state,
-                  stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
-                  phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
-                  currentChapter: chapter ?? prev.state.currentChapter,
-                  currentSection: section ?? prev.state.currentSection,
-                },
-                currentItem: message,
-              }));
-              break;
-            }
-
-            case 'thinking': {
-              const thinking = data.thinking as string;
-              if (thinking) {
-                setProgress(prev => ({ ...prev, thinking }));
-                if (onThinking) onThinking(thinking);
-              }
-              break;
-            }
-
-            case 'thinking_chunk': {
-              const chunk = data.chunk as string;
-              if (chunk) {
-                setProgress(prev => ({ ...prev, thinking: (prev.thinking ?? '') + chunk }));
-              }
-              break;
-            }
-
-            case 'item_complete': {
-              const stage = data.stage as number;
-              const title = data.title as string;
-              const id = data.id as string | undefined;
-              const qualityScore = data.qualityScore as number | undefined;
-              const chapter = data.chapter as number | undefined;
-              const section = data.section as number | undefined;
-
-              // Record timestamp for ETA calculation
-              itemTimestampsRef.current.push(Date.now());
-              const timestamps = itemTimestampsRef.current;
-              const itemsCompleted = timestamps.length;
-              const elapsedMs = Date.now() - startTimeRef.current;
-              const totalItemCount = totalItemsRef.current;
-
-              // Compute sliding-window average (last 5 items) for ETA
-              let averageItemMs: number | null = null;
-              let estimatedRemainingMs: number | null = null;
-              if (itemsCompleted >= 2) {
-                const windowSize = Math.min(5, itemsCompleted);
-                const recentTimes: number[] = [];
-                for (let i = itemsCompleted - windowSize; i < itemsCompleted; i++) {
-                  const prev = i === 0 ? startTimeRef.current : timestamps[i - 1];
-                  recentTimes.push(timestamps[i] - prev);
-                }
-                averageItemMs = Math.round(recentTimes.reduce((a, b) => a + b, 0) / recentTimes.length);
-                const remaining = totalItemCount - itemsCompleted;
-                estimatedRemainingMs = remaining > 0 ? averageItemMs * remaining : 0;
-              }
-
-              const timing = {
-                elapsedMs,
-                estimatedRemainingMs,
-                averageItemMs,
-                itemsCompleted,
-                totalItems: totalItemCount,
-              };
-
-              if (stage === 1 && chapter && title) {
-                setProgress(prev => ({
-                  ...prev,
-                  timing,
-                  completedItems: {
-                    ...prev.completedItems,
-                    chapters: [
-                      ...prev.completedItems.chapters,
-                      { position: chapter, title, id, qualityScore },
-                    ],
-                  },
-                }));
-              } else if ((stage === 2 || stage === 3) && chapter && section && title) {
-                setProgress(prev => ({
-                  ...prev,
-                  timing,
-                  completedItems: {
-                    ...prev.completedItems,
-                    sections: [
-                      ...prev.completedItems.sections,
-                      { chapterPosition: chapter, position: section, title, id, qualityScore },
-                    ],
-                  },
-                }));
-              }
-              break;
-            }
-
-            case 'stage_complete': {
-              const stage = data.stage as number;
-              if (onStageComplete) {
-                onStageComplete(stage as CreationStage, []);
-              }
-              break;
-            }
-
-            case 'complete': {
-              const courseId = data.courseId as string;
-              const chaptersCreated = (data.chaptersCreated as number) ?? 0;
-              const sectionsCreated = (data.sectionsCreated as number) ?? 0;
-              const totalTime = (data.totalTime as number) ?? (Date.now() - startTimeRef.current);
-              const averageQualityScore = (data.averageQualityScore as number) ?? 0;
-
-              // Clear partial course from localStorage on success
-              try {
-                localStorage.removeItem(PARTIAL_COURSE_KEY);
-                setResumableCourseId(null);
-              } catch {
-                // localStorage not available
-              }
-
-              setProgress(prev => ({
-                ...prev,
-                state: { ...prev.state, phase: 'complete' },
-                percentage: 100,
-                message: 'Course creation complete!',
-              }));
-
-              result = {
-                success: true,
-                courseId,
-                chaptersCreated,
-                sectionsCreated,
-                stats: {
-                  totalChapters: chaptersCreated,
-                  totalSections: sectionsCreated,
-                  totalTime,
-                  averageQualityScore,
-                },
-              };
-              break;
-            }
-
-            case 'error': {
-              const errorMessage = (data.message as string) ?? 'Unknown error';
-              const chaptersCreated = (data.chaptersCreated as number) ?? 0;
-              const sectionsCreated = (data.sectionsCreated as number) ?? 0;
-              const errorCourseId = data.courseId as string | undefined;
-
-              // Store partial course ID for resume
-              if (errorCourseId && chaptersCreated > 0) {
-                try {
-                  localStorage.setItem(PARTIAL_COURSE_KEY, errorCourseId);
-                  setResumableCourseId(errorCourseId);
-                } catch {
-                  // localStorage not available
-                }
-              }
-
-              setError(errorMessage);
-              setProgress(prev => ({
-                ...prev,
-                state: { ...prev.state, phase: 'error', error: errorMessage },
-                message: errorMessage,
-              }));
-
-              if (onError) {
-                onError(errorMessage, true);
-              }
-
-              result = {
-                success: false,
-                courseId: errorCourseId,
-                chaptersCreated,
-                sectionsCreated,
-                stats: {
-                  totalChapters: chaptersCreated,
-                  totalSections: sectionsCreated,
-                  totalTime: Date.now() - startTimeRef.current,
-                  averageQualityScore: 0,
-                },
-                error: errorMessage,
-              };
-              break;
-            }
-          }
+          // Switch to resumeCreation for subsequent segments
+          return resumeCreation(lastCourseIdRef.current, config);
         }
       }
 
@@ -562,8 +892,21 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         };
       }
 
-      // Handle other errors
+      // Handle network errors — try auto-reconnect if we have a course ID
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+      if (lastCourseIdRef.current && reconnectCountRef.current < MAX_RECONNECTIONS) {
+        reconnectCountRef.current++;
+        logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after network error (start)', {
+          reconnectCount: reconnectCountRef.current,
+          courseId: lastCourseIdRef.current,
+          error: errorMessage,
+        });
+
+        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        return resumeCreation(lastCourseIdRef.current, config);
+      }
+
       logger.error('[SEQUENTIAL_SSE] Creation failed:', err);
 
       setError(errorMessage);
@@ -590,125 +933,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     } finally {
       abortControllerRef.current = null;
     }
-  }, []);
-
-  // ========================================
-  // Resume Creation
-  // ========================================
-
-  const resumeCreation = useCallback(async (
-    courseId: string,
-    config: SequentialCreationConfig
-  ): Promise<SequentialCreationResult> => {
-    const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
-
-    startTimeRef.current = Date.now();
-    itemTimestampsRef.current = [];
-    setError(null);
-
-    const totalChapters = courseData.totalChapters;
-    const sectionsPerChapter = courseData.sectionsPerChapter;
-    const totalSections = totalChapters * sectionsPerChapter;
-    totalItemsRef.current = totalChapters + totalSections + totalSections;
-
-    setProgress({
-      state: {
-        stage: 1,
-        phase: 'creating_course',
-        currentChapter: 0,
-        totalChapters,
-        currentSection: 0,
-        totalSections: sectionsPerChapter,
-      },
-      percentage: 0,
-      message: 'Resuming course creation...',
-      completedItems: { chapters: [], sections: [] },
-    });
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    try {
-      const response = await fetch('/api/sam/course-creation/orchestrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...courseData,
-          resumeCourseId: courseId,
-        }),
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      if (!response.body) {
-        throw new Error('No response body');
-      }
-
-      // Reuse the same SSE parsing as startCreation
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let result: SequentialCreationResult = { success: false, error: 'Stream ended without completion' };
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lastDoubleNewline = buffer.lastIndexOf('\n\n');
-        if (lastDoubleNewline === -1) continue;
-
-        const completePart = buffer.substring(0, lastDoubleNewline + 2);
-        buffer = buffer.substring(lastDoubleNewline + 2);
-
-        const events = parseSSEChunk(completePart);
-        for (const sseEvent of events) {
-          if (sseEvent.event === 'complete') {
-            try {
-              localStorage.removeItem(PARTIAL_COURSE_KEY);
-              setResumableCourseId(null);
-            } catch { /* */ }
-
-            result = {
-              success: true,
-              courseId: (sseEvent.data.courseId as string) ?? courseId,
-              chaptersCreated: (sseEvent.data.chaptersCreated as number) ?? 0,
-              sectionsCreated: (sseEvent.data.sectionsCreated as number) ?? 0,
-            };
-
-            setProgress(prev => ({
-              ...prev,
-              state: { ...prev.state, phase: 'complete' },
-              percentage: 100,
-              message: 'Course creation complete!',
-            }));
-          } else if (sseEvent.event === 'error') {
-            const errorMsg = (sseEvent.data.message as string) ?? 'Unknown error';
-            setError(errorMsg);
-            result = { success: false, error: errorMsg };
-          } else if (sseEvent.event === 'progress') {
-            setProgress(prev => ({
-              ...prev,
-              percentage: Math.min(100, (sseEvent.data.percentage as number) ?? prev.percentage),
-              message: (sseEvent.data.message as string) ?? prev.message,
-            }));
-          }
-        }
-      }
-
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      abortControllerRef.current = null;
-    }
-  }, []);
+  }, [resumeCreation]);
 
   // ========================================
   // Regenerate Chapter (Post-creation)
@@ -772,6 +997,8 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     setError(null);
     setDbProgress(null);
     setRegeneratingChapterId(null);
+    reconnectCountRef.current = 0;
+    lastCourseIdRef.current = null;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
