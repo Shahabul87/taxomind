@@ -263,6 +263,7 @@ model Section {
   title                String
   description          String?
   learningObjectives   String?
+  creatorGuidelines    String?               @db.Text
   videoUrl             String?
   position             Int
   isPublished          Boolean               @default(false)

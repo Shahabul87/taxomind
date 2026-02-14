@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Info,
   BarChart3,
-  Activity
+  Activity,
+  Clapperboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconBadge } from "@/components/icon-badge";
@@ -26,10 +27,12 @@ import { SectionTitleForm } from "./section-title-form";
 import { SectionAccessForm } from "./section-access-form";
 import { SectionLearningObjectivesForm } from "./section-learning-objectives-form";
 import { SectionDescriptionForm } from "./section-description-form";
+import { SectionCreatorGuidelinesForm } from "./section-creator-guidelines-form";
 import { SectionYoutubeVideoForm } from "./section-video-form";
 import { SectionActions } from "./sections-actions";
 import { TabsContainer } from "./TabsContainer";
 import { ExamTab } from "./tabs";
+import { useIntelligentSAMSync } from "@/hooks/use-sam-intelligent-sync";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +143,21 @@ export const EnterpriseSectionPageClient = ({
     existingDescription: section.description ?? null,
     existingObjectives: section.learningObjectives ?? null,
   }), [section.position, section.description, section.learningObjectives]);
+
+  // SAM context sync for AI awareness of current editing context
+  const sectionFormData = useMemo(() => ({
+    title: section.title,
+    description: section.description,
+    isPublished: section.isPublished,
+    courseTitle: chapter.course.title,
+    chapterTitle: chapter.title,
+  }), [section.title, section.description, section.isPublished, chapter.course.title, chapter.title]);
+
+  useIntelligentSAMSync('section-editor', sectionFormData, {
+    formName: 'Section Editor',
+    metadata: { courseId: params.courseId, chapterId: params.chapterId, sectionId: params.sectionId },
+    formType: 'section-editor',
+  });
 
   // Calculate comprehensive content statistics
   const contentStats: ContentStatistics = useMemo(() => {
@@ -681,6 +699,46 @@ export const EnterpriseSectionPageClient = ({
                   <CardContent className="p-3 sm:p-4 md:p-6">
                     <SectionLearningObjectivesForm
                       initialData={{ learningObjectives: section.learningObjectives ?? null, title: section.title }}
+                      courseId={params.courseId}
+                      chapterId={params.chapterId}
+                      sectionId={params.sectionId}
+                      chapterTitle={chapter.title}
+                      courseContext={courseContext}
+                      chapterContext={chapterContext}
+                      sectionContext={sectionContext}
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Creator Guidelines Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 rounded-xl border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md overflow-hidden">
+                  <CardHeader className="p-3 sm:p-4 md:p-6 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-teal-50/50 to-cyan-50/30 dark:from-teal-950/20 dark:to-cyan-950/10">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 shadow-lg shadow-teal-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
+                        <Clapperboard className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
+                          Creator Guidelines
+                        </CardTitle>
+                        <CardDescription className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 hidden sm:block">AI-powered video production guide for this section</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-4 md:p-6">
+                    <SectionCreatorGuidelinesForm
+                      initialData={{
+                        creatorGuidelines: section.creatorGuidelines ?? null,
+                        title: section.title,
+                        description: section.description ?? null,
+                        learningObjectives: section.learningObjectives ?? null,
+                      }}
                       courseId={params.courseId}
                       chapterId={params.chapterId}
                       sectionId={params.sectionId}

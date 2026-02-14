@@ -51,6 +51,7 @@ async function SectionContent(props: {
         title: true,
         description: true,
         learningObjectives: true,
+        creatorGuidelines: true,
         position: true,
         isPublished: true,
         isFree: true,

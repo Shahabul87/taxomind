@@ -105,6 +105,7 @@ export interface Section {
   title: string;
   description?: string | null;
   learningObjectives?: string | null;
+  creatorGuidelines?: string | null;
   position: number;
   isPublished: boolean;
   isFree: boolean;

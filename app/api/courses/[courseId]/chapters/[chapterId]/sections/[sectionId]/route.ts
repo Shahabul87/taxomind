@@ -15,6 +15,7 @@ const SectionUpdateSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title must be 200 characters or less").optional(),
   description: z.string().max(30000, "Description must be 30000 characters or less").optional().nullable(),
   learningObjectives: z.string().max(2000, "Learning objectives must be 2000 characters or less").optional().nullable(),
+  creatorGuidelines: z.string().max(50000, "Creator guidelines must be 50000 characters or less").optional().nullable(),
 
   // Video content
   videoUrl: z.string().url("Invalid URL format").optional().nullable().or(z.literal("")),
@@ -84,6 +85,7 @@ export async function PATCH(
     if (values.title !== undefined) updateData.title = values.title;
     if (values.description !== undefined) updateData.description = values.description;
     if (values.learningObjectives !== undefined) updateData.learningObjectives = values.learningObjectives;
+    if (values.creatorGuidelines !== undefined) updateData.creatorGuidelines = values.creatorGuidelines;
     if (values.videoUrl !== undefined) updateData.videoUrl = values.videoUrl === "" ? null : values.videoUrl;
     if (values.position !== undefined) updateData.position = values.position;
 
