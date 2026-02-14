@@ -51,6 +51,9 @@ import {
   Info,
   Zap,
   Settings,
+  CheckCircle2,
+  AlertTriangle,
+  Clapperboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -205,6 +208,20 @@ const CONTENT_TYPE_CONFIG: Record<ContentType, {
     promptPlaceholder: 'e.g., "Include proofs", "Add visualizations", "Explain intuition"',
     focusPlaceholder: "e.g., calculus, linear algebra, statistics",
   },
+  creatorGuidelines: {
+    title: "AI Creator Guidelines Generator",
+    description: "Generate a video production guide for course creators",
+    icon: Clapperboard,
+    color: "teal",
+    previewItems: [
+      "Video structure with time allocation",
+      "Topics, examples, and analogies to use",
+      "Teaching approach and engagement tips",
+      "Visual aids and slides to prepare",
+    ],
+    promptPlaceholder: 'e.g., "Focus on hands-on demos", "Include whiteboard drawings", "Keep it under 15 minutes"',
+    focusPlaceholder: "e.g., practical demonstration, theory explanation, code walkthrough",
+  },
 };
 
 // ============================================================================
@@ -281,6 +298,10 @@ export function UnifiedAIGenerator({
     sectionCount: sectionOptions.defaultCount || 5,
   });
 
+  // Quality feedback from SAM agentic pipeline
+  const [lastQualityScore, setLastQualityScore] = useState<number | null>(null);
+  const [lastQualityFeedback, setLastQualityFeedback] = useState<string | null>(null);
+
   const config = CONTENT_TYPE_CONFIG[contentType];
 
   // Reset form when dialog closes
@@ -320,6 +341,8 @@ export function UnifiedAIGenerator({
       sectionCount: sectionOptions.defaultCount || 5,
     });
     setActiveTab("basics");
+    setLastQualityScore(null);
+    setLastQualityFeedback(null);
   }, [bloomsTaxonomy.defaultLevels, chapterOptions.defaultCount, sectionOptions.defaultCount]);
 
   // Generate content
@@ -366,8 +389,25 @@ export function UnifiedAIGenerator({
       const data = await response.json();
 
       if (data.success && data.content) {
+        // Capture quality metadata from SAM agentic pipeline
+        const qualityScore = data.metadata?.qualityScore as number | undefined;
+        const qualityFeedback = data.metadata?.qualityFeedback as string | undefined;
+        if (qualityScore !== undefined) {
+          setLastQualityScore(qualityScore);
+          setLastQualityFeedback(qualityFeedback ?? null);
+        }
+
         onGenerate(data.content);
-        toast.success(`${config.title.replace("AI ", "").replace(" Generator", "")} generated successfully!`);
+
+        // Show quality-aware success toast
+        if (qualityScore !== undefined && qualityScore >= 70) {
+          toast.success(`${config.title.replace("AI ", "").replace(" Generator", "")} generated successfully! Quality: ${qualityScore}/100`);
+        } else if (qualityScore !== undefined) {
+          toast.warning(`Content generated with quality score ${qualityScore}/100. You may want to review and refine.`);
+        } else {
+          toast.success(`${config.title.replace("AI ", "").replace(" Generator", "")} generated successfully!`);
+        }
+
         setOpen(false);
         handleReset();
       } else {

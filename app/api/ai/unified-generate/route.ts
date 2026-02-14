@@ -5,6 +5,9 @@ import * as z from "zod";
 import { logger } from "@/lib/logger";
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { db } from '@/lib/db';
+import { validateContentQuality } from '@/lib/sam/tools/content-generator';
+import { AIGenerationRequest, GenerationStatus } from '@prisma/client';
 
 
 // Force Node.js runtime
@@ -68,6 +71,7 @@ const UnifiedGenerateRequestSchema = z.object({
     "questions",
     "codeExplanation",
     "mathExplanation",
+    "creatorGuidelines",
   ]),
   entityLevel: z.enum(["course", "chapter", "section"]),
   entityTitle: z.string().min(1, "Entity title is required"),
@@ -106,6 +110,120 @@ const UnifiedGenerateRequestSchema = z.object({
 });
 
 type UnifiedGenerateRequest = z.infer<typeof UnifiedGenerateRequestSchema>;
+
+// ============================================================================
+// Agentic Pipeline Helpers
+// ============================================================================
+
+function mapContentTypeToRequestType(contentType: string): AIGenerationRequest {
+  switch (contentType) {
+    case 'description':
+    case 'learningObjectives':
+    case 'content':
+    case 'creatorGuidelines':
+      return AIGenerationRequest.CONTENT_CREATION;
+    case 'chapters':
+    case 'sections':
+      return AIGenerationRequest.CURRICULUM_DESIGN;
+    case 'questions':
+      return AIGenerationRequest.ASSESSMENT_DESIGN;
+    case 'codeExplanation':
+    case 'mathExplanation':
+      return AIGenerationRequest.EXPLANATION_CREATION;
+    default:
+      return AIGenerationRequest.CONTENT_CREATION;
+  }
+}
+
+/**
+ * Record tool invocation (fire-and-forget).
+ * Wraps the DB write in a catch to avoid blocking the response.
+ */
+function recordToolInvocation(params: {
+  userId: string;
+  contentType: string;
+  entityLevel: string;
+  entityTitle: string;
+  status: 'success' | 'failed';
+  durationMs: number;
+  errorMessage?: string;
+}): void {
+  const id = `inv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  db.agentToolInvocation.create({
+    data: {
+      id,
+      toolId: 'sam-content-generator',
+      userId: params.userId,
+      input: {
+        contentType: params.contentType,
+        entityLevel: params.entityLevel,
+        entityTitle: params.entityTitle,
+      },
+      status: params.status,
+      duration: params.durationMs,
+      error: params.errorMessage ? { message: params.errorMessage } : undefined,
+      createdAt: new Date(),
+    },
+  }).catch((err) => {
+    logger.warn('[UnifiedGenerate] Failed to record tool invocation', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
+}
+
+/**
+ * Record generation history (fire-and-forget).
+ * Uses the dormant AIContentGeneration Prisma model.
+ */
+function recordGenerationHistory(params: {
+  userId: string;
+  contentType: string;
+  entityLevel: string;
+  entityTitle: string;
+  courseId?: string;
+  chapterId?: string;
+  sectionId?: string;
+  bloomsEnabled: boolean;
+  bloomsLevels?: Record<string, boolean>;
+  advancedSettings?: Record<string, unknown>;
+  userPrompt?: string;
+  output: string;
+  generationTimeMs: number;
+  status: GenerationStatus;
+  errorMessage?: string;
+}): void {
+  const id = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  db.aIContentGeneration.create({
+    data: {
+      id,
+      requestType: mapContentTypeToRequestType(params.contentType),
+      status: params.status,
+      input: {
+        contentType: params.contentType,
+        entityLevel: params.entityLevel,
+        entityTitle: params.entityTitle,
+        courseId: params.courseId,
+        chapterId: params.chapterId,
+        sectionId: params.sectionId,
+      },
+      parameters: {
+        bloomsEnabled: params.bloomsEnabled,
+        bloomsLevels: params.bloomsLevels,
+        advancedSettings: params.advancedSettings,
+        userPrompt: params.userPrompt,
+      },
+      output: params.status === GenerationStatus.COMPLETED ? params.output : null,
+      errorMessage: params.errorMessage,
+      generationTime: Math.round(params.generationTimeMs),
+      userId: params.userId,
+      updatedAt: new Date(),
+    },
+  }).catch((err) => {
+    logger.warn('[UnifiedGenerate] Failed to record generation history', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
+}
 
 // ============================================================================
 // Bloom's Taxonomy Configuration
@@ -261,6 +379,9 @@ function buildPrompt(request: UnifiedGenerateRequest): string {
       break;
     case "sections":
       typeSpecificPrompt = buildSectionsPrompt(request);
+      break;
+    case "creatorGuidelines":
+      typeSpecificPrompt = buildCreatorGuidelinesPrompt(request);
       break;
     default:
       typeSpecificPrompt = buildGenericPrompt(request);
@@ -444,6 +565,73 @@ Example: ["Introduction to X", "Understanding Y", "Building Z"]
 Generate ${settings.sectionCount} section titles for chapter "${chapterTitle}" now:`;
 }
 
+function buildCreatorGuidelinesPrompt(request: UnifiedGenerateRequest): string {
+  const sectionTitle = request.entityTitle;
+  const sectionDesc = request.context.section?.description || '';
+  const sectionObjectives = request.context.section?.learningObjectives || '';
+  const chapterTitle = request.context.chapter?.title || '';
+  const chapterDesc = request.context.chapter?.description || '';
+  const courseTitle = request.context.course?.title || '';
+  const courseDesc = request.context.course?.description || '';
+  const difficulty = request.context.course?.difficulty || 'intermediate';
+  const category = request.context.course?.category || '';
+
+  return `You are an expert instructional designer and video production consultant. Create a comprehensive **Video Production Guide** for the course creator/instructor who needs to record a video lesson for this section.
+
+## COURSE HIERARCHY:
+${courseTitle ? `- **Course**: ${courseTitle}` : ''}
+${courseDesc ? `- **Course Description**: ${courseDesc}` : ''}
+${category ? `- **Category**: ${category}` : ''}
+${difficulty ? `- **Difficulty Level**: ${difficulty}` : ''}
+${chapterTitle ? `- **Chapter**: ${chapterTitle}` : ''}
+${chapterDesc ? `- **Chapter Description**: ${chapterDesc}` : ''}
+- **Section Title**: ${sectionTitle}
+${sectionDesc ? `- **Section Description**: ${sectionDesc}` : ''}
+${sectionObjectives ? `- **Learning Objectives**: ${sectionObjectives}` : ''}
+
+## CREATE A DETAILED VIDEO PRODUCTION GUIDE COVERING:
+
+### 1. Video Structure & Flow
+- Recommended video duration
+- Opening hook (first 30 seconds)
+- Main content segments with time allocation
+- Closing summary and call-to-action
+
+### 2. Topics to Cover
+- Core concepts to explain (in order of presentation)
+- Key terminology to define
+- Prerequisites to briefly recap
+
+### 3. Examples & Analogies
+- Real-world examples that make concepts relatable
+- Analogies that simplify complex ideas
+- Practical demonstrations or walkthroughs
+
+### 4. Teaching Approach
+- Recommended teaching style for this difficulty level (${difficulty})
+- How to pace explanations
+- When to pause for student reflection
+- Engagement checkpoints (questions to ask the viewer)
+
+### 5. Visual Aids & Screen Content
+- Slides or visuals to prepare
+- Diagrams or flowcharts to draw
+- Code demos or live examples to show (if applicable)
+- Screen recording segments needed
+
+### 6. Common Misconceptions
+- What students typically get wrong
+- How to proactively address these in the video
+
+### 7. Assessment Tie-in
+- How to connect content to upcoming quizzes or exercises
+- Practice problems to mention or demonstrate
+
+**Format**: Write as structured HTML with clear headings (h3, h4), bullet lists, and bold emphasis for key points. Make it actionable and specific to this exact section topic.
+
+Generate the video production guide for "${sectionTitle}":`;
+}
+
 function buildGenericPrompt(request: UnifiedGenerateRequest): string {
   return `Create ${request.contentType} for: "${request.entityTitle}"
 
@@ -498,6 +686,33 @@ function generateMockContent(request: UnifiedGenerateRequest): string {
     // Return exactly the requested number of chapters
     const chapters = chapterTemplates.slice(0, chapterCount);
     return JSON.stringify(chapters);
+  }
+
+  if (contentType === "creatorGuidelines") {
+    return `<h3>Video Production Guide: ${entityTitle}</h3>
+<h4>1. Video Structure</h4>
+<ul>
+<li><strong>Duration:</strong> 10-15 minutes</li>
+<li><strong>Opening:</strong> Start with a brief overview of what students will learn</li>
+<li><strong>Main Content:</strong> Cover core concepts with practical examples</li>
+<li><strong>Closing:</strong> Summarize key takeaways and preview next section</li>
+</ul>
+<h4>2. Topics to Cover</h4>
+<ul>
+<li>Define key terminology related to ${entityTitle}</li>
+<li>Explain core concepts with step-by-step breakdown</li>
+<li>Demonstrate practical applications</li>
+</ul>
+<h4>3. Examples &amp; Analogies</h4>
+<ul>
+<li>Use real-world scenarios students can relate to</li>
+<li>Include at least one hands-on demonstration</li>
+</ul>
+<h4>4. Visual Aids</h4>
+<ul>
+<li>Prepare slides with key definitions and diagrams</li>
+<li>Include screen recordings for any practical demos</li>
+</ul>`;
   }
 
   if (contentType === "sections") {
@@ -568,7 +783,8 @@ export async function POST(request: NextRequest) {
       advancedMode: contentRequest.advancedMode,
     });
 
-    // Generate content using AI
+    // Generate content using AI with agentic pipeline
+    const startTime = Date.now();
     try {
       const prompt = buildPrompt(contentRequest);
 
@@ -659,17 +875,89 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const durationMs = Date.now() - startTime;
+      const finalContent = cleanedResponse.trim();
+
+      // Quality validation
+      const quality = validateContentQuality(
+        finalContent,
+        contentRequest.contentType,
+        contentRequest.entityLevel
+      );
+
+      // Fire-and-forget: record tool invocation
+      recordToolInvocation({
+        userId: session.userId!,
+        contentType: contentRequest.contentType,
+        entityLevel: contentRequest.entityLevel,
+        entityTitle: contentRequest.entityTitle,
+        status: 'success',
+        durationMs,
+      });
+
+      // Fire-and-forget: record generation history
+      recordGenerationHistory({
+        userId: session.userId!,
+        contentType: contentRequest.contentType,
+        entityLevel: contentRequest.entityLevel,
+        entityTitle: contentRequest.entityTitle,
+        courseId: contentRequest.courseId,
+        chapterId: contentRequest.chapterId,
+        sectionId: contentRequest.sectionId,
+        bloomsEnabled: contentRequest.bloomsEnabled,
+        bloomsLevels: contentRequest.bloomsLevels,
+        advancedSettings: contentRequest.advancedSettings as Record<string, unknown> | undefined,
+        userPrompt: contentRequest.userPrompt,
+        output: finalContent,
+        generationTimeMs: durationMs,
+        status: GenerationStatus.COMPLETED,
+      });
+
       return NextResponse.json({
         success: true,
-        content: cleanedResponse.trim(),
+        content: finalContent,
         metadata: {
           provider: completion.provider,
           model: completion.model,
           generatedAt: new Date().toISOString(),
           bloomsLevels: contentRequest.bloomsEnabled ? contentRequest.bloomsLevels : undefined,
+          qualityScore: quality.score,
+          qualityFeedback: quality.feedback,
+          generationTime: durationMs,
         },
       });
     } catch (apiError) {
+      const durationMs = Date.now() - startTime;
+
+      // Record failed invocation (fire-and-forget)
+      recordToolInvocation({
+        userId: session.userId!,
+        contentType: contentRequest.contentType,
+        entityLevel: contentRequest.entityLevel,
+        entityTitle: contentRequest.entityTitle,
+        status: 'failed',
+        durationMs,
+        errorMessage: apiError instanceof Error ? apiError.message : 'Unknown error',
+      });
+
+      // Record failed generation history (fire-and-forget)
+      recordGenerationHistory({
+        userId: session.userId!,
+        contentType: contentRequest.contentType,
+        entityLevel: contentRequest.entityLevel,
+        entityTitle: contentRequest.entityTitle,
+        courseId: contentRequest.courseId,
+        chapterId: contentRequest.chapterId,
+        sectionId: contentRequest.sectionId,
+        bloomsEnabled: contentRequest.bloomsEnabled,
+        bloomsLevels: contentRequest.bloomsLevels,
+        userPrompt: contentRequest.userPrompt,
+        output: '',
+        generationTimeMs: durationMs,
+        status: GenerationStatus.FAILED,
+        errorMessage: apiError instanceof Error ? apiError.message : 'Unknown error',
+      });
+
       if (apiError instanceof OperationTimeoutError) {
         logger.error("Unified generate timed out:", { operation: apiError.operationName, timeoutMs: apiError.timeoutMs });
         return NextResponse.json({ error: "Operation timed out. Please try again." }, { status: 504 });

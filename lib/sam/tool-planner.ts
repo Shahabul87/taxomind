@@ -76,6 +76,7 @@ const MODE_TOOL_AFFINITY: Record<string, string[]> = {
   'course-architect': ['sam-course-creator'],
   'student-analytics': ['sam-student-analytics'],
   'creator-analytics': ['sam-creator-analytics'],
+  'content-generator': ['sam-content-generator'],
 };
 
 const MODE_TOOL_BOOST = 5; // Bonus score for mode-affiliated tools
@@ -174,6 +175,14 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
       /\b(course)\b.*\b(creator|instructor|teacher)\b.*\b(dashboard|report|overview)\b/i,
     ],
     defaultInput: { action: 'start' },
+  },
+  'content-generator': {
+    toolId: 'sam-content-generator',
+    intentPatterns: [
+      /\b(generate|create|write)\b.*\b(description|learning objectives|objectives|chapters?|sections?)\b/i,
+      /\b(generate|create|write)\b.*\b(course|chapter|section)\b.*\b(description|content|objectives)\b/i,
+    ],
+    defaultInput: { action: 'generate' },
   },
 };
 

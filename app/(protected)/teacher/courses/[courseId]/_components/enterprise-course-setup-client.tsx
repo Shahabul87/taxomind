@@ -47,6 +47,7 @@ import { CourseLearningOutcomeForm } from "./course-learning-outcome-form";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 import { BlueprintIntegration } from "./blueprint-integration";
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
+import { useIntelligentSAMSync } from "@/hooks/use-sam-intelligent-sync";
 
 interface Section {
   id: string;
@@ -261,6 +262,23 @@ export const EnterpriseCourseSetupClient = ({
       totalAttachments,
     };
   }, [course]);
+
+  // SAM context sync for AI awareness of current editing context
+  const courseFormData = useMemo(() => ({
+    title: course.title,
+    description: course.description,
+    category: course.category?.name ?? null,
+    difficulty: course.difficulty,
+    chaptersCount: course.chapters.length,
+    objectivesCount: course.whatYouWillLearn?.length ?? 0,
+    isPublished: course.isPublished,
+  }), [course.title, course.description, course.category?.name, course.difficulty, course.chapters.length, course.whatYouWillLearn?.length, course.isPublished]);
+
+  useIntelligentSAMSync('course-editor', courseFormData, {
+    formName: 'Course Editor',
+    metadata: { courseId: course.id },
+    formType: 'course-editor',
+  });
 
   // Calculate completion
   const sectionValues = Object.values(completionStatus);

@@ -114,6 +114,14 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
     ],
     defaultInput: { action: 'start' },
   },
+  'content-generator': {
+    toolId: 'sam-content-generator',
+    intentPatterns: [
+      /\b(generate|create|write)\b.*\b(description|learning objectives|objectives|chapters?|sections?)\b/i,
+      /\b(generate|create|write)\b.*\b(course|chapter|section)\b.*\b(description|content|objectives)\b/i,
+    ],
+    defaultInput: { action: 'generate' },
+  },
 };
 
 // =============================================================================

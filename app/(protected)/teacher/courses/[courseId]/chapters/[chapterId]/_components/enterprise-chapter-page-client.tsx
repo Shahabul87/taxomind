@@ -27,6 +27,7 @@ import { ChapterActions } from "./chapter-actions";
 import { ChapterLearningOutcomeForm } from "./chapter-learning-outcome-form";
 import { ChaptersSectionForm } from "./chapter-section-form";
 // SAM Integration removed - using global SAM assistant instead
+import { useIntelligentSAMSync } from "@/hooks/use-sam-intelligent-sync";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +79,21 @@ export const EnterpriseChapterPageClient = ({ chapter, params }: ChapterPageClie
     difficulty: chapter.course.difficulty,
     category: chapter.course.category?.name ?? null,
   }), [chapter.course]);
+
+  // SAM context sync for AI awareness of current editing context
+  const chapterFormData = useMemo(() => ({
+    title: chapter.title,
+    description: chapter.description,
+    sectionsCount: chapter.sections.length,
+    isPublished: chapter.isPublished,
+    courseTitle: chapter.course.title,
+  }), [chapter.title, chapter.description, chapter.sections.length, chapter.isPublished, chapter.course.title]);
+
+  useIntelligentSAMSync('chapter-editor', chapterFormData, {
+    formName: 'Chapter Editor',
+    metadata: { courseId: params.courseId, chapterId: params.chapterId },
+    formType: 'chapter-editor',
+  });
 
   // Calculate comprehensive content statistics
   const contentStats: ContentStatistics = useMemo(() => {

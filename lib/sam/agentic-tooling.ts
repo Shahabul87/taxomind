@@ -47,6 +47,7 @@ import { createExamEvaluatorTool } from '@/lib/sam/tools/exam-evaluator';
 import { createStudentAnalyticsTool } from '@/lib/sam/tools/student-analytics';
 import { createCreatorAnalyticsTool } from '@/lib/sam/tools/creator-analytics';
 import { createSkillNavigatorTool } from '@/lib/sam/tools/skill-navigator';
+import { createContentGeneratorTool } from '@/lib/sam/tools/content-generator';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -279,6 +280,7 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createStudentAnalyticsTool(),
     createCreatorAnalyticsTool(),
     createSkillNavigatorTool(),
+    createContentGeneratorTool(),
   ];
 
   let standaloneRegistered = 0;

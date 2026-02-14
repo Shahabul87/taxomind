@@ -103,7 +103,8 @@ export type ContentType =
   | 'sections'
   | 'questions'
   | 'codeExplanation'
-  | 'mathExplanation';
+  | 'mathExplanation'
+  | 'creatorGuidelines';
 
 export type EntityLevel = 'course' | 'chapter' | 'section';
 
@@ -349,6 +350,10 @@ export interface UnifiedGenerateResponse {
     tokensUsed: number;
     generationTime: number;
     model: string;
+    provider?: string;
+    qualityScore?: number;
+    qualityFeedback?: string;
+    generationId?: string;
   };
   error?: string;
 }
