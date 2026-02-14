@@ -995,6 +995,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
   const reset = useCallback(() => {
     setProgress(INITIAL_PROGRESS);
     setError(null);
+    setResumableCourseId(null);
     setDbProgress(null);
     setRegeneratingChapterId(null);
     reconnectCountRef.current = 0;
