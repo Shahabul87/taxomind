@@ -222,7 +222,11 @@ export const {
           return false;
         }
 
-        // MANDATORY MFA enforcement for all admins
+        // MFA enforcement check — log status but DO NOT block sign-in here.
+        // Blocking sign-in creates a chicken-and-egg problem: admins can't
+        // log in to set up MFA if login itself is blocked.
+        // Route-level middleware (shouldBlockAdminAccess) handles redirecting
+        // to /admin/mfa-setup after login for admins without MFA configured.
         const mfaEnforcement = shouldEnforceMFAOnSignIn({
           role: existingAdmin.role,
           isTwoFactorEnabled: existingAdmin.isTwoFactorEnabled,
@@ -232,15 +236,8 @@ export const {
         });
 
         if (mfaEnforcement.enforce) {
-          console.log("[admin-auth] MFA enforcement blocking admin sign-in:", mfaEnforcement.reason);
-
-          await logMFAEnforcementAction(existingAdmin.id, "FORCED_SETUP", {
-            reason: mfaEnforcement.reason,
-            userAgent: "unknown",
-            ipAddress: "unknown",
-          }).catch(console.error);
-
-          return false;
+          console.log("[admin-auth] MFA setup required after login:", mfaEnforcement.reason);
+          // Don't block — let them sign in so they can reach the MFA setup page
         }
 
         if (existingAdmin.isTwoFactorEnabled) {

@@ -68,9 +68,13 @@ export async function register() {
           ensureSuperadminExists(adminEmail, adminPassword, process.env.SUPERADMIN_NAME)
             .then((result) => {
               if (result.created) {
-                console.log(`[Admin] Superadmin initialized: ${adminEmail}`);
+                console.log(`[Admin] Superadmin created: ${adminEmail}`);
               } else if (result.exists) {
-                console.log('[Admin] Superadmin already exists');
+                const details = [
+                  result.fixed && 'emailVerified/gracePeriod fixed',
+                  result.passwordUpdated && 'password synced from env',
+                ].filter(Boolean).join(', ');
+                console.log(`[Admin] Superadmin verified${details ? ` (${details})` : ''}`);
               }
             })
             .catch((error) => {

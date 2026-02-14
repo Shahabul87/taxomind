@@ -251,18 +251,17 @@ export const login = async (
     userRole: existingAdmin.role
   });
 
-  // PHASE 2: Call adminSignIn to establish admin session
+  // Call adminSignIn to establish admin session
   // NextAuth v5 signIn throws NEXT_REDIRECT on success - let it propagate
   try {
     await adminSignIn("credentials", {
       email,
       password,
-      redirectTo: callbackUrl || "/dashboard/admin",  // Let NextAuth handle redirect
+      redirectTo: callbackUrl || "/dashboard/admin",
     });
 
     console.log('[admin-login] Admin session established successfully');
 
-    // This line should not be reached if redirect is successful
     return {
       success: "Admin authenticated!",
       redirectTo: callbackUrl || "/dashboard/admin",
@@ -271,24 +270,29 @@ export const login = async (
         reset: rateLimitResult.reset
       }
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Re-throw NEXT_REDIRECT errors - they should bubble up to Next.js
-    if (error?.message?.includes("NEXT_REDIRECT") || error?.digest?.includes("NEXT_REDIRECT")) {
+    const errorObj = error as { message?: string; digest?: string; type?: string };
+    if (errorObj?.message?.includes("NEXT_REDIRECT") || errorObj?.digest?.includes("NEXT_REDIRECT")) {
       console.log('[admin-login] Admin signin successful (redirect thrown)');
-      throw error;  // Let Next.js handle the redirect
+      throw error;
     }
 
     console.error('[admin-login] Failed to establish admin session:', error);
+
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return { error: "Invalid admin credentials!" };
+          // Password was already verified above, so this is a session/callback issue
+          console.error('[admin-login] CredentialsSignin error despite valid password - check signIn callback, emailVerified, or 2FA confirmation');
+          return { error: "Admin session could not be established. Check server logs for details." };
+        case "AccessDenied":
+          return { error: "Admin access denied. Your account may need verification." };
         default:
-          return { error: "Failed to sign in as admin!" };
+          return { error: `Admin sign-in failed: ${error.type}` };
       }
     }
 
-    // Other unexpected errors
-    return { error: "An unexpected error occurred during admin login" };
+    return { error: "An unexpected error occurred during admin login." };
   }
 };
