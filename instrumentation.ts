@@ -58,32 +58,30 @@ export async function register() {
   // ========================================
   // Creates the superadmin in AdminAccount table from env vars on startup
   // Idempotent — skips if admin already exists
+  // CRITICAL: Awaited to ensure admin exists before server accepts requests
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const adminEmail = process.env.SUPERADMIN_EMAIL;
     const adminPassword = process.env.SUPERADMIN_PASSWORD;
 
     if (adminEmail && adminPassword) {
-      import('./lib/auth/admin-initializer')
-        .then(({ ensureSuperadminExists }) => {
-          ensureSuperadminExists(adminEmail, adminPassword, process.env.SUPERADMIN_NAME)
-            .then((result) => {
-              if (result.created) {
-                console.log(`[Admin] Superadmin created: ${adminEmail}`);
-              } else if (result.exists) {
-                const details = [
-                  result.fixed && 'emailVerified/gracePeriod fixed',
-                  result.passwordUpdated && 'password synced from env',
-                ].filter(Boolean).join(', ');
-                console.log(`[Admin] Superadmin verified${details ? ` (${details})` : ''}`);
-              }
-            })
-            .catch((error) => {
-              console.warn('[Admin] Failed to initialize superadmin:', error instanceof Error ? error.message : String(error));
-            });
-        })
-        .catch((error) => {
-          console.warn('[Admin] Failed to load admin-initializer:', error instanceof Error ? error.message : String(error));
-        });
+      try {
+        const { ensureSuperadminExists } = await import('./lib/auth/admin-initializer');
+        const result = await ensureSuperadminExists(adminEmail, adminPassword, process.env.SUPERADMIN_NAME);
+
+        if (result.created) {
+          console.log(`[Admin] Superadmin created: ${adminEmail}`);
+        } else if (result.exists) {
+          const details = [
+            result.fixed && 'emailVerified/gracePeriod fixed',
+            result.passwordUpdated && 'password synced from env',
+            result.hashMigrated && 'hash migrated to noble/scrypt',
+          ].filter(Boolean).join(', ');
+          console.log(`[Admin] Superadmin verified${details ? ` (${details})` : ''}: ${adminEmail}`);
+        }
+      } catch (error) {
+        // Log but don't crash — admin can still be created via seed script
+        console.error('[Admin] Failed to initialize superadmin:', error instanceof Error ? error.message : String(error));
+      }
     } else if (process.env.NODE_ENV === 'production') {
       console.warn('[Admin] SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD env vars not set — superadmin auto-init skipped');
     }

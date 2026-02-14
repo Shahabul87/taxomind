@@ -40,7 +40,7 @@ export default {
 
           // Use dynamic import to avoid Edge Runtime issues
           try {
-            const { verifyPassword } = await import("@/lib/passwordUtils");
+            const { verifyPassword, needsRehashing, hashPassword } = await import("@/lib/passwordUtils");
             const passwordsMatch = await verifyPassword(
               password,
               admin.password,
@@ -48,6 +48,21 @@ export default {
 
             if (passwordsMatch) {
               console.log('[admin-auth-config] Admin authenticated successfully');
+
+              // Auto-migrate legacy bcrypt hash to noble/scrypt (non-blocking)
+              if (needsRehashing(admin.password)) {
+                hashPassword(password).then(async (newHash) => {
+                  const { db } = await import("@/lib/db");
+                  await db.adminAccount.update({
+                    where: { id: admin.id },
+                    data: { password: newHash },
+                  });
+                  console.log('[admin-auth-config] Password hash auto-migrated to noble/scrypt');
+                }).catch((err: unknown) => {
+                  console.warn('[admin-auth-config] Hash migration failed (non-fatal):', err instanceof Error ? err.message : String(err));
+                });
+              }
+
               return admin;
             }
           } catch (error) {

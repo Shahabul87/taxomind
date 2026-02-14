@@ -235,13 +235,28 @@ export const login = async (
   }
 
   // Verify password using passwordUtils (supports both bcrypt and noble/hashes)
-  const { verifyPassword } = await import("@/lib/passwordUtils");
+  const { verifyPassword, needsRehashing, hashPassword } = await import("@/lib/passwordUtils");
   const passwordMatches = await verifyPassword(password, existingAdmin.password);
 
   if (!passwordMatches) {
-    console.log('[admin-login] Invalid credentials - wrong password');
+    console.log('[admin-login] Invalid credentials - wrong password. Hash format:', existingAdmin.password.substring(0, 10) + '...');
     await authAuditHelpers.logSignInFailed(email, 'Admin login - Invalid password', 'credentials');
     return { error: "Invalid admin credentials!" };
+  }
+
+  // Auto-migrate legacy bcrypt hashes to noble/scrypt on successful login
+  if (needsRehashing(existingAdmin.password)) {
+    try {
+      const newHash = await hashPassword(password);
+      await db.adminAccount.update({
+        where: { id: existingAdmin.id },
+        data: { password: newHash },
+      });
+      console.log('[admin-login] Password hash migrated from bcrypt to noble/scrypt');
+    } catch (migrationError) {
+      // Non-fatal — login still succeeds, migration will retry on next login
+      console.warn('[admin-login] Password hash migration failed (non-fatal):', migrationError instanceof Error ? migrationError.message : String(migrationError));
+    }
   }
 
   console.log('[admin-login] Admin credentials validated, calling adminSignIn');

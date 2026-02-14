@@ -11,16 +11,22 @@
  *   - Only creates the account if one doesn't exist
  *   - Ensures emailVerified is set for existing accounts
  *   - Re-hashes the password if the env var password has changed
+ *   - Migrates legacy bcrypt hashes to noble/scrypt format
  *   - Resets createdAt for accounts without MFA (refreshes grace period)
+ *
+ * IMPORTANT: Uses hashPassword/verifyPassword from passwordUtils.ts
+ * to ensure consistent noble/scrypt hash format across the entire system.
  */
 
 import { db } from "@/lib/db";
+import { hashPassword, verifyPassword, needsRehashing } from "@/lib/passwordUtils";
 
 interface InitResult {
   created: boolean;
   exists: boolean;
   fixed?: boolean;
   passwordUpdated?: boolean;
+  hashMigrated?: boolean;
 }
 
 export async function ensureSuperadminExists(
@@ -28,8 +34,6 @@ export async function ensureSuperadminExists(
   password: string,
   name?: string,
 ): Promise<InitResult> {
-  const { hash, compare } = await import("bcryptjs");
-
   // Check if superadmin already exists
   const existingAdmin = await db.adminAccount.findUnique({
     where: { email },
@@ -48,25 +52,35 @@ export async function ensureSuperadminExists(
     const updates: Record<string, unknown> = {};
     let fixed = false;
     let passwordUpdated = false;
+    let hashMigrated = false;
 
     // Fix emailVerified if missing
     if (!existingAdmin.emailVerified) {
       updates.emailVerified = new Date();
       fixed = true;
+      console.log('[Admin] Fixing missing emailVerified for superadmin');
     }
 
     // Check if password from env var matches stored hash
-    // If not, re-hash (supports password rotation via env vars)
+    // Uses verifyPassword which handles both noble/scrypt and bcrypt formats
     if (existingAdmin.password) {
-      const passwordMatches = await compare(password, existingAdmin.password);
+      const passwordMatches = await verifyPassword(password, existingAdmin.password);
       if (!passwordMatches) {
-        updates.password = await hash(password, 12);
+        // Password changed in env vars — re-hash with noble/scrypt
+        updates.password = await hashPassword(password);
         passwordUpdated = true;
+        console.log('[Admin] Password changed in env vars — re-hashing');
+      } else if (needsRehashing(existingAdmin.password)) {
+        // Password matches but stored in legacy bcrypt format — migrate to noble/scrypt
+        updates.password = await hashPassword(password);
+        hashMigrated = true;
+        console.log('[Admin] Migrating password hash from bcrypt to noble/scrypt');
       }
     } else {
       // No password set — hash and store
-      updates.password = await hash(password, 12);
+      updates.password = await hashPassword(password);
       passwordUpdated = true;
+      console.log('[Admin] No password set — storing hashed password');
     }
 
     // Reset createdAt for accounts without MFA to refresh the grace period
@@ -86,13 +100,18 @@ export async function ensureSuperadminExists(
         where: { email },
         data: updates,
       });
+      console.log('[Admin] Superadmin account updated:', {
+        emailVerifiedFixed: !existingAdmin.emailVerified,
+        passwordUpdated,
+        hashMigrated,
+      });
     }
 
-    return { created: false, exists: true, fixed, passwordUpdated };
+    return { created: false, exists: true, fixed, passwordUpdated, hashMigrated };
   }
 
-  // Create new superadmin account
-  const hashedPassword = await hash(password, 12);
+  // Create new superadmin account with noble/scrypt hash
+  const hashedPassword = await hashPassword(password);
 
   await db.adminAccount.create({
     data: {
@@ -105,5 +124,6 @@ export async function ensureSuperadminExists(
     },
   });
 
+  console.log('[Admin] Superadmin account created:', email);
   return { created: true, exists: false };
 }

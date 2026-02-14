@@ -29,8 +29,9 @@ export const hashPassword = async (password: string): Promise<string> => {
     
     // Format: noble:salt:hash (both base64 encoded)
     return `noble:${encodeBase64(salt)}:${encodeBase64(hash)}`;
-  } catch (error: any) {
-    logger.error('Password hashing failed:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Password hashing failed:', errorMessage);
     throw new Error('Password hashing failed');
   }
 };
@@ -56,8 +57,9 @@ export const verifyPassword = async (plainPassword: string, hashedPassword: stri
     } catch {
       return await verifyBcryptHash(plainPassword, hashedPassword);
     }
-  } catch (error: any) {
-    logger.error('Password verification failed:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Password verification failed:', errorMessage);
     return false;
   }
 };
@@ -90,50 +92,59 @@ const verifyNobleHash = (plainPassword: string, hashedPassword: string): boolean
     }
     
     return result === 0;
-  } catch (error: any) {
-    logger.error('Noble hash verification failed:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Noble hash verification failed:', errorMessage);
     return false;
   }
 };
 
 /**
  * Legacy bcrypt format verification (backwards compatibility)
- * We'll temporarily allow bcrypt passwords while users migrate
+ * Supports bcrypt passwords during migration to noble/scrypt format.
+ * Handles CJS/ESM module interop for bcryptjs dynamic imports.
  */
 const verifyBcryptHash = async (plainPassword: string, hashedPassword: string): Promise<boolean> => {
   try {
     // Check if we're in a Node.js environment (not Edge Runtime)
     const isNodejs = typeof process !== 'undefined' && process.versions && process.versions.node;
-    
+
     if (!isNodejs) {
       logger.warn('Bcrypt verification skipped - Edge Runtime detected. Password migration required.');
       return false;
     }
 
-    // Try to import bcryptjs only if available
     try {
-      // Use dynamic import instead of require to avoid exports error
-      const bcrypt = await import('bcryptjs');
-      const isValid = await bcrypt.compare(plainPassword, hashedPassword);
+      // Dynamic import with CJS/ESM interop handling
+      // bcryptjs is a CommonJS module — when imported via dynamic import(),
+      // the compare function may be on .default (CJS default export) or
+      // directly on the module namespace (ESM named export analysis).
+      const bcryptModule = await import('bcryptjs');
+      const bcryptCompare = typeof bcryptModule.compare === 'function'
+        ? bcryptModule.compare
+        : typeof bcryptModule.default?.compare === 'function'
+          ? bcryptModule.default.compare
+          : null;
+
+      if (!bcryptCompare) {
+        logger.error('bcryptjs compare function not found after import. Module keys:', Object.keys(bcryptModule));
+        return false;
+      }
+
+      const isValid = await bcryptCompare(plainPassword, hashedPassword);
 
       if (isValid) {
-        logger.info('Legacy bcrypt password verified successfully. Consider migrating to noble/hashes format.');
+        logger.info('Legacy bcrypt password verified. Will auto-migrate to noble/scrypt on next opportunity.');
       }
 
       return isValid;
     } catch (importError) {
-      logger.warn('bcryptjs not available. Installing it temporarily for migration...');
-      
-      // For production compatibility, we'll use a fallback verification
-      // This is a temporary measure - users should migrate their passwords
-      logger.warn(
-        'Legacy password detected. Please reset your password to use the new secure format.',
-        { hashPreview: hashedPassword.substring(0, 10) + '...' }
-      );
+      logger.error('bcryptjs import failed:', importError instanceof Error ? importError.message : String(importError));
       return false;
     }
-  } catch (error: any) {
-    logger.error('Bcrypt verification failed:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Bcrypt verification failed:', errorMessage);
     return false;
   }
 };
