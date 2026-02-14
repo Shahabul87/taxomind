@@ -2,19 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-
-// Import all hero components
-import { ProgrammingHero } from './category-heroes/programming-hero';
-import { AIMLHero } from './category-heroes/ai-ml-hero';
-import { DesignHero } from './category-heroes/design-hero';
-import { MathHero } from './category-heroes/math-hero';
-import { DefaultHero } from './category-heroes/default-hero';
-
-type CategoryLayoutVariant = 'programming' | 'ai-ml' | 'design' | 'business' | 'marketing' | 'data-science' | 'math' | 'default';
+import { BaseHero } from './category-heroes/base-hero';
+import { HERO_THEMES } from '../_config/hero-themes';
+import type { CategoryLayoutVariant } from '../_config/category-layouts';
+import type { BaseCourse } from '../_types/course.types';
 
 interface HeroWrapperProps {
   variant: CategoryLayoutVariant;
-  course: any;
+  course: BaseCourse & { isFree?: boolean };
   isEnrolled: boolean;
   userId?: string;
   categorySpecificProps?: {
@@ -30,7 +25,7 @@ export function HeroWrapper({
   course,
   isEnrolled,
   userId,
-  categorySpecificProps = {}
+  categorySpecificProps = {},
 }: HeroWrapperProps) {
   const router = useRouter();
 
@@ -41,19 +36,15 @@ export function HeroWrapper({
       return;
     }
 
-    // Check if course is free
     const isFree = course.isFree === true || (course.price ?? 0) === 0;
 
     if (isFree) {
-      // Free course - enroll directly via API
       try {
         toast.loading('Enrolling you in the course...');
 
         const response = await fetch(`/api/courses/${course.id}/enroll`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         });
 
@@ -76,25 +67,19 @@ export function HeroWrapper({
         console.error('[ENROLL_ERROR]', error);
       }
     } else {
-      // Paid course - create Stripe checkout session
       try {
         toast.loading('Redirecting to checkout...');
 
         const response = await fetch(`/api/courses/${course.id}/checkout`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
         });
 
         const result = await response.json();
-
-        // API returns { success: true, data: { url: ... } }
         const checkoutUrl = result.data?.url || result.url;
 
         if (response.ok && checkoutUrl) {
           toast.dismiss();
-          // Redirect to Stripe checkout
           window.location.href = checkoutUrl;
         } else {
           toast.dismiss();
@@ -108,52 +93,24 @@ export function HeroWrapper({
     }
   };
 
-  const commonProps = {
-    course,
-    isEnrolled,
-    onEnroll: handleEnroll,
-  };
+  const theme = HERO_THEMES[variant] ?? HERO_THEMES.default;
 
-  // Render hero based on variant
-  const renderHero = () => {
-    switch (variant) {
-      case 'programming':
-        return (
-          <ProgrammingHero
-            {...commonProps}
-            techStack={categorySpecificProps.techStack}
-          />
-        );
-      case 'ai-ml':
-      case 'data-science':
-        return (
-          <AIMLHero
-            {...commonProps}
-            models={categorySpecificProps.models}
-          />
-        );
-      case 'design':
-        return (
-          <DesignHero
-            {...commonProps}
-            tools={categorySpecificProps.tools}
-          />
-        );
-      case 'math':
-        return (
-          <MathHero
-            {...commonProps}
-            topics={categorySpecificProps.topics}
-          />
-        );
-      default:
-        return <DefaultHero {...commonProps} />;
-    }
-  };
+  const badges =
+    categorySpecificProps.techStack ??
+    categorySpecificProps.models ??
+    categorySpecificProps.tools ??
+    categorySpecificProps.topics ??
+    [];
 
   return (
     <div className="relative">
-      {renderHero()}
+      <BaseHero
+        course={course}
+        theme={theme}
+        badges={badges}
+        isEnrolled={isEnrolled}
+        onEnroll={handleEnroll}
+      />
     </div>
   );
 }
