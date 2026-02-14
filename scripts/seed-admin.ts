@@ -4,6 +4,11 @@
  * This script creates the initial superadmin account.
  * It can be run safely on production without affecting other data.
  *
+ * Reads credentials from environment variables:
+ *   SUPERADMIN_EMAIL    - Superadmin email address
+ *   SUPERADMIN_PASSWORD - Superadmin password
+ *   SUPERADMIN_NAME     - Superadmin display name (optional)
+ *
  * Usage:
  *   Local: npx tsx scripts/seed-admin.ts
  *   Railway: railway run npx tsx scripts/seed-admin.ts
@@ -14,14 +19,23 @@ import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-// Default superadmin credentials
-const SUPERADMIN_EMAIL = "sham251087@gmail.com";
-const SUPERADMIN_PASSWORD = "ShaM2510*##&*";
-const SUPERADMIN_NAME = "Super Admin";
+// Read superadmin credentials from environment variables
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL;
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
+const SUPERADMIN_NAME = process.env.SUPERADMIN_NAME || "Super Admin";
 
 async function main() {
   console.log("🔐 Admin Account Seed Script");
   console.log("============================\n");
+
+  if (!SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD) {
+    console.error("❌ Missing required environment variables:");
+    if (!SUPERADMIN_EMAIL) console.error("   - SUPERADMIN_EMAIL is not set");
+    if (!SUPERADMIN_PASSWORD) console.error("   - SUPERADMIN_PASSWORD is not set");
+    console.error("\nSet these env vars and try again:");
+    console.error("  SUPERADMIN_EMAIL=admin@example.com SUPERADMIN_PASSWORD=your-password npx tsx scripts/seed-admin.ts");
+    process.exit(1);
+  }
 
   try {
     // Check if superadmin already exists

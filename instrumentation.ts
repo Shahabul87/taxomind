@@ -53,6 +53,38 @@ export async function register() {
   //     });
   // }
 
+  // ========================================
+  // PART 3: Superadmin Auto-Initialization
+  // ========================================
+  // Creates the superadmin in AdminAccount table from env vars on startup
+  // Idempotent — skips if admin already exists
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const adminEmail = process.env.SUPERADMIN_EMAIL;
+    const adminPassword = process.env.SUPERADMIN_PASSWORD;
+
+    if (adminEmail && adminPassword) {
+      import('./lib/auth/admin-initializer')
+        .then(({ ensureSuperadminExists }) => {
+          ensureSuperadminExists(adminEmail, adminPassword, process.env.SUPERADMIN_NAME)
+            .then((result) => {
+              if (result.created) {
+                console.log(`[Admin] Superadmin initialized: ${adminEmail}`);
+              } else if (result.exists) {
+                console.log('[Admin] Superadmin already exists');
+              }
+            })
+            .catch((error) => {
+              console.warn('[Admin] Failed to initialize superadmin:', error instanceof Error ? error.message : String(error));
+            });
+        })
+        .catch((error) => {
+          console.warn('[Admin] Failed to load admin-initializer:', error instanceof Error ? error.message : String(error));
+        });
+    } else if (process.env.NODE_ENV === 'production') {
+      console.warn('[Admin] SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD env vars not set — superadmin auto-init skipped');
+    }
+  }
+
   // Initialize SAM Memory Lifecycle Manager (background jobs for memory reindexing)
   // Gated by SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED feature flag
   if (process.env.NEXT_RUNTIME === 'nodejs') {
