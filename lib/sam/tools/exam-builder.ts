@@ -509,6 +509,11 @@ function createExamBuilderHandler(): ToolHandler {
         ? { topic: directParams.topic }
         : {};
 
+      // Carry entity context IDs through the collection flow
+      if (directParams.sectionId) initialCollected.sectionId = directParams.sectionId;
+      if (directParams.courseId) initialCollected.courseId = directParams.courseId;
+      if (directParams.chapterId) initialCollected.chapterId = directParams.chapterId;
+
       const initialState: ExamCollectionState = {
         step: initialStep,
         collected: initialCollected,

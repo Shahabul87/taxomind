@@ -368,6 +368,18 @@ export async function checkConversationalToolInvoke(
           }
         }
       }
+
+      // Pass entity context IDs so the exam is created under the current section
+      if (ctx.entityContext?.section) {
+        input = {
+          ...input,
+          sectionId: ctx.entityContext.section.id,
+          courseId: ctx.entityContext.section.courseId,
+          chapterId: ctx.entityContext.section.chapterId,
+        };
+      } else if (ctx.entityContext?.course) {
+        input = { ...input, courseId: ctx.entityContext.course.id };
+      }
     }
 
     logger.info('[ConversationalTool] Ready to invoke', {

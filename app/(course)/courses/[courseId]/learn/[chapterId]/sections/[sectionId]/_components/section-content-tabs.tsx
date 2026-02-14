@@ -15,6 +15,7 @@ import { ExamFeedbackPanel } from "./exam-feedback-panel";
 import { ResourceDownloads } from "./resource-downloads";
 import { CompletionCertificate } from "./completion-certificate";
 import { SafeHtmlRenderer } from "./safe-html-renderer";
+import { MathAwareHtmlRenderer } from "./math-aware-html-renderer";
 import { PersistentPracticeHub } from "./persistent-practice-hub";
 import { SAMSocraticDialogue } from "@/components/learning/sam-socratic-dialogue";
 import { InteractiveCodeViewer } from "../../../../_components/interactive-code-viewer";
@@ -327,7 +328,7 @@ export function SectionContentTabs({
               {/* Section Description */}
               {section.description && (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <SafeHtmlRenderer
+                  <MathAwareHtmlRenderer
                     html={section.description}
                     className="text-slate-600 dark:text-slate-400"
                   />

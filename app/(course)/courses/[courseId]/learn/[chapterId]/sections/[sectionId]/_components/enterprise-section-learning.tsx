@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { useKeyboardNavigation } from "./keyboard-navigation";
 import { useAnalytics, ANALYTICS_EVENTS } from "./learning-analytics-tracker";
 import { SafeHtmlRenderer } from "./safe-html-renderer";
+import { MathAwareHtmlRenderer } from "./math-aware-html-renderer";
 import { DiscussionForum } from "@/components/learning/discussion-forum";
 import {
   Sheet,
@@ -410,7 +411,7 @@ export function EnterpriseSectionLearning({
                       {currentSection.title}
                     </CardTitle>
                     {currentSection.description && (
-                      <SafeHtmlRenderer
+                      <MathAwareHtmlRenderer
                         html={currentSection.description}
                         className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none"
                       />
@@ -439,9 +440,19 @@ export function EnterpriseSectionLearning({
                       <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
                       Learning Objectives
                     </h3>
-                    <SafeHtmlRenderer
-                      html={currentSection.learningObjectives}
-                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm"
+                    <MathAwareHtmlRenderer
+                      html={
+                        // Convert newline-separated plain text into a bullet list
+                        currentSection.learningObjectives.includes("<li>")
+                          ? currentSection.learningObjectives
+                          : `<ul>${currentSection.learningObjectives
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter(Boolean)
+                              .map((line) => `<li>${line}</li>`)
+                              .join("")}</ul>`
+                      }
+                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm [&>ul>li]:leading-relaxed"
                     />
                   </div>
                 )}

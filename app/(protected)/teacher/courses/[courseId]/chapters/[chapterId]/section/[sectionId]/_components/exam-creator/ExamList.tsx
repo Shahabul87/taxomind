@@ -1,10 +1,153 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Edit2, Trash2, EyeOff, Loader2 } from "lucide-react";
-import { Exam } from "./types";
+import {
+  Eye,
+  Edit2,
+  Trash2,
+  EyeOff,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Check,
+} from "lucide-react";
+import { Exam, ExamQuestion } from "./types";
 import { cn } from "@/lib/utils";
+
+const BLOOMS_COLORS: Record<string, string> = {
+  REMEMBER: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+  UNDERSTAND: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+  APPLY: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  ANALYZE: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+  EVALUATE: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+  CREATE: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+};
+
+const DIFFICULTY_COLORS: Record<string, string> = {
+  EASY: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+  MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  HARD: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+};
+
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+function QuestionItem({
+  question,
+  index,
+  showAnswers,
+}: {
+  question: ExamQuestion;
+  index: number;
+  showAnswers: boolean;
+}) {
+  const bloomsKey = (question.bloomsLevel ?? "").toUpperCase();
+  const difficultyKey = (question.difficulty ?? "").toUpperCase();
+  const isMCQ =
+    question.questionType === "MULTIPLE_CHOICE" ||
+    question.questionType === "multiple-choice";
+  const isTrueFalse =
+    question.questionType === "TRUE_FALSE" ||
+    question.questionType === "true-false";
+
+  return (
+    <div className="py-2.5 sm:py-3 first:pt-0 last:pb-0">
+      {/* Question header */}
+      <div className="flex items-start gap-2 sm:gap-3">
+        <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-0.5 shrink-0">
+          Q{index + 1}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm text-gray-800 dark:text-gray-200 line-clamp-2 leading-relaxed">
+            {question.question}
+          </p>
+
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {bloomsKey && BLOOMS_COLORS[bloomsKey] && (
+              <span
+                className={cn(
+                  "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-medium",
+                  BLOOMS_COLORS[bloomsKey]
+                )}
+              >
+                {bloomsKey}
+              </span>
+            )}
+            {difficultyKey && DIFFICULTY_COLORS[difficultyKey] && (
+              <span
+                className={cn(
+                  "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-medium",
+                  DIFFICULTY_COLORS[difficultyKey]
+                )}
+              >
+                {difficultyKey}
+              </span>
+            )}
+            <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">
+              {question.points} pt{question.points !== 1 ? "s" : ""}
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 capitalize">
+              {question.questionType.replace(/_/g, " ").replace(/-/g, " ").toLowerCase()}
+            </span>
+          </div>
+
+          {/* Options for MCQ / True-False */}
+          {(isMCQ || isTrueFalse) &&
+            question.options &&
+            question.options.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {question.options.map((option, optIdx) => {
+                  const isCorrect =
+                    showAnswers &&
+                    (option === question.correctAnswer ||
+                      OPTION_LETTERS[optIdx] === question.correctAnswer ||
+                      String(optIdx) === question.correctAnswer);
+
+                  return (
+                    <div
+                      key={optIdx}
+                      className={cn(
+                        "flex items-start gap-1.5 px-2 py-1 rounded text-xs sm:text-sm",
+                        isCorrect
+                          ? "bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                          : "text-gray-600 dark:text-gray-400"
+                      )}
+                    >
+                      <span className="font-medium shrink-0 text-[10px] sm:text-xs mt-px">
+                        {OPTION_LETTERS[optIdx]}.
+                      </span>
+                      <span className="flex-1 min-w-0">{option}</span>
+                      {isCorrect && (
+                        <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          {/* Short answer correct answer */}
+          {!isMCQ && !isTrueFalse && showAnswers && question.correctAnswer && (
+            <div className="mt-2 flex items-start gap-1.5 px-2 py-1 rounded bg-green-50 dark:bg-green-900/30 text-xs sm:text-sm text-green-800 dark:text-green-300">
+              <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span>{question.correctAnswer}</span>
+            </div>
+          )}
+
+          {/* Explanation */}
+          {showAnswers && question.explanation && (
+            <div className="mt-1.5 px-2 py-1.5 rounded bg-blue-50 dark:bg-blue-900/20 text-[10px] sm:text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+              <span className="font-medium">Explanation:</span>{" "}
+              {question.explanation}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface ExamListProps {
   exams: Exam[];
@@ -23,9 +166,38 @@ export function ExamList({
   onDelete,
   onPublishToggle,
 }: ExamListProps) {
+  const [expandedExamIds, setExpandedExamIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [showAnswersMap, setShowAnswersMap] = useState<Set<string>>(new Set());
+
   if (exams.length === 0) {
     return null;
   }
+
+  const toggleExpand = (examId: string) => {
+    setExpandedExamIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(examId)) {
+        next.delete(examId);
+      } else {
+        next.add(examId);
+      }
+      return next;
+    });
+  };
+
+  const toggleAnswers = (examId: string) => {
+    setShowAnswersMap((prev) => {
+      const next = new Set(prev);
+      if (next.has(examId)) {
+        next.delete(examId);
+      } else {
+        next.add(examId);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -33,7 +205,11 @@ export function ExamList({
         Existing Exams ({exams.length})
       </h3>
       <div className="grid gap-3 sm:gap-4">
-        {exams.map((exam) => (
+        {exams.map((exam) => {
+          const isExpanded = expandedExamIds.has(exam.id);
+          const showAnswers = showAnswersMap.has(exam.id);
+
+          return (
           <div
             key={exam.id}
             className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
@@ -46,9 +222,26 @@ export function ExamList({
                 <Badge variant={exam.isPublished ? "default" : "secondary"} className="text-[10px] sm:text-xs">
                   {exam.isPublished ? "Published" : "Draft"}
                 </Badge>
-                <Badge variant="outline" className="text-[10px] sm:text-xs">
-                  {exam.questions.length} questions
-                </Badge>
+                {exam.questions.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(exam.id)}
+                    className="inline-flex items-center gap-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    <Badge variant="outline" className="text-[10px] sm:text-xs">
+                      {exam.questions.length} questions
+                    </Badge>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />
+                    )}
+                  </button>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] sm:text-xs">
+                    {exam.questions.length} questions
+                  </Badge>
+                )}
                 <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-[10px] sm:text-xs">
                   {exam.totalPoints} pts
                 </Badge>
@@ -138,8 +331,55 @@ export function ExamList({
                 </div>
               )}
             </div>
+
+            {/* Inline Question List */}
+            {isExpanded && exam.questions.length > 0 && (
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Questions ({exam.questions.length})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleAnswers(exam.id)}
+                    className="h-7 px-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  >
+                    {showAnswers ? (
+                      <>
+                        <EyeOff className="h-3 w-3 mr-1" />
+                        Hide Answers
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3 w-3 mr-1" />
+                        Show Answers
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div
+                  className={cn(
+                    "divide-y divide-gray-100 dark:divide-gray-700/50",
+                    exam.questions.length > 10 &&
+                      "max-h-[600px] overflow-y-auto pr-1"
+                  )}
+                >
+                  {exam.questions.map((q, idx) => (
+                    <QuestionItem
+                      key={q.id}
+                      question={q}
+                      index={idx}
+                      showAnswers={showAnswers}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

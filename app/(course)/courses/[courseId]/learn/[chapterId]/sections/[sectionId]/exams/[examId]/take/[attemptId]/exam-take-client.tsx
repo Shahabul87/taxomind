@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { MathText } from "../../../../_components/math-aware-html-renderer";
 
 interface ExamTakeClientProps {
   params: {
@@ -454,7 +455,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem value={option} id={`${question.id}-${index}`} />
                 <Label htmlFor={`${question.id}-${index}`} className="flex-1 cursor-pointer">
-                  {option}
+                  <MathText text={option} />
                 </Label>
               </div>
             ))}
@@ -721,7 +722,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                           )}
                         </div>
                         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                          {currentQuestion.question}
+                          <MathText text={currentQuestion.question} />
                         </h2>
                       </div>
                       <Button

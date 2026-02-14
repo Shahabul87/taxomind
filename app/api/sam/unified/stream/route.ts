@@ -17,16 +17,6 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 
-import * as fs from 'fs';
-
-// Debug log file
-const DEBUG_LOG_FILE = '/tmp/sam-stream-debug.log';
-function debugLog(label: string, data: unknown) {
-  const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data, null, 2)}\n`;
-  fs.appendFileSync(DEBUG_LOG_FILE, line);
-  console.log(label, JSON.stringify(data, null, 2));
-}
-
 import {
   initializeSubsystems,
   runAuthStage,
@@ -74,27 +64,12 @@ export async function POST(request: NextRequest) {
     // 2. Validate request body, classify intent, create agentic bridge (shared stage)
     const body = await request.json();
 
-    // DEBUG: Log full request data
-    debugLog('=== REQUEST RECEIVED ===', {
-      mode: body.mode,
-      hasToolConversation: !!body.toolConversation,
-      toolConversation: body.toolConversation,
-      message: body.message?.slice(0, 50),
-    });
-
     const valid = await runValidationStage(body, auth.ctx, startTime);
     if ('response' in valid) return valid.response;
 
     // Mark context as SSE output
     let ctx = { ...valid.ctx, outputMode: 'sse' as const };
     ctx.stageErrors = [];
-
-    // DEBUG: Log context after validation
-    debugLog('=== CONTEXT AFTER VALIDATION ===', {
-      modeId: ctx.modeId,
-      hasToolConversation: !!ctx.toolConversation,
-      toolConversation: ctx.toolConversation,
-    });
 
     // 3-4. Run pre-streaming stages (context gathering + memory)
     const preStreamStages: Array<{
@@ -124,32 +99,12 @@ export async function POST(request: NextRequest) {
     try {
       const toolCheck = await checkConversationalToolInvoke(ctx);
 
-      // DEBUG: Log tool check result
-      debugLog('=== TOOL CHECK RESULT ===', {
-        shouldInvoke: toolCheck.shouldInvoke,
-        toolId: toolCheck.toolId,
-        input: toolCheck.input,
-      });
-
       if (toolCheck.shouldInvoke) {
         logger.info('[SAM_STREAM] Conversational tool matched, executing before stream', {
           toolId: toolCheck.toolId,
           modeId: ctx.modeId,
         });
         conversationalToolResult = await executeConversationalTool(ctx, toolCheck);
-
-        // DEBUG: Log tool execution result (tool returns 'output', not 'result')
-        const toolOutput = conversationalToolResult?.result as Record<string, unknown> | undefined;
-        debugLog('=== TOOL EXECUTION RESULT ===', {
-          success: conversationalToolResult?.success,
-          toolId: conversationalToolResult?.toolId,
-          status: conversationalToolResult?.status,
-          resultKeys: toolOutput ? Object.keys(toolOutput) : [],
-          resultType: toolOutput?.type,
-          resultStep: toolOutput?.step,
-          resultCollected: toolOutput?.collected,
-          fullResult: toolOutput,
-        });
 
         if (conversationalToolResult) {
           // Set tool execution in context so it's included in insights

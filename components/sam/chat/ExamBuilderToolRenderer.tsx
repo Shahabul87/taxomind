@@ -328,8 +328,12 @@ function ConversationRenderer({
 // COLLECTED DATA SUMMARY
 // =============================================================================
 
+const HIDDEN_COLLECTED_KEYS = new Set(['sectionId', 'courseId', 'chapterId']);
+
 function CollectedDataSummary({ collected }: { collected: Record<string, unknown> }) {
-  const entries = Object.entries(collected).filter(([, value]) => value !== undefined);
+  const entries = Object.entries(collected).filter(
+    ([key, value]) => value !== undefined && !HIDDEN_COLLECTED_KEYS.has(key),
+  );
   if (entries.length === 0) return null;
 
   const formatValue = (key: string, value: unknown): string => {
