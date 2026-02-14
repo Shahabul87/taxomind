@@ -197,7 +197,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
         {/* Instructor Row with Enroll Button */}
         {course.user && (
           <motion.div
-            className={`grid lg:grid-cols-2 gap-12 items-center mt-6 pt-4 mb-12 border-t border-${colors.borderColor}`}
+            className={`grid lg:grid-cols-2 gap-4 lg:gap-12 items-center mt-6 pt-4 pb-20 md:pb-0 mb-12 border-t border-${colors.borderColor}`}
             {...fadeInUp}
             {...stagger(6)}
           >
@@ -249,9 +249,9 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
               </div>
             </div>
 
-            {/* Right: Enroll Button */}
+            {/* Right: Enroll Button — hidden on mobile where MobileEnrollBar handles enrollment */}
             {onEnroll && (
-              <div className="flex justify-end">
+              <div className="hidden md:flex justify-end">
                 <Button
                   onClick={onEnroll}
                   disabled={isEnrolled}
