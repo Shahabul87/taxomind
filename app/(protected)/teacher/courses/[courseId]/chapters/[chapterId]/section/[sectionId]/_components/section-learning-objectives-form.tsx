@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";
+import { MathAwareHtmlRenderer, extractItemsPreservingHtml } from "@/components/shared/math-aware-html-renderer";
 
 interface CourseContext {
   title: string;
@@ -114,21 +115,10 @@ export const SectionLearningObjectivesForm = ({
     toast.success("Learning objectives generated! You can edit them before saving.");
   };
 
-  // Derive learning objectives array from HTML content (no side effects needed)
-  const learningObjectivesArray = useMemo(() => {
+  // Derive learning objectives array from HTML content, preserving math notation
+  const learningObjectivesHtmlArray = useMemo(() => {
     if (!isMounted || !initialData.learningObjectives) return [];
-    if (typeof window === 'undefined') return [];
-    const div = document.createElement('div');
-    div.innerHTML = initialData.learningObjectives;
-    const listItems = div.querySelectorAll('li');
-    const paragraphs = div.querySelectorAll('p');
-    if (listItems.length > 0) {
-      return Array.from(listItems).map(li => li.textContent?.trim() || '').filter(Boolean);
-    }
-    if (paragraphs.length > 0) {
-      return Array.from(paragraphs).map(p => p.textContent?.trim() || '').filter(Boolean);
-    }
-    return (div.textContent || '').split('\n').map(line => line.trim()).filter(Boolean);
+    return extractItemsPreservingHtml(initialData.learningObjectives);
   }, [initialData.learningObjectives, isMounted]);
 
   if (!isMounted) {
@@ -158,7 +148,7 @@ export const SectionLearningObjectivesForm = ({
           <div className="flex flex-col gap-3 sm:gap-4">
             {/* Learning objectives content - full width with nice bullet points */}
             <div className="flex-1 min-w-0 w-full">
-              {learningObjectivesArray.length === 0 ? (
+              {learningObjectivesHtmlArray.length === 0 ? (
                 <div className="space-y-2 sm:space-y-2.5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-dashed border-purple-300/60 dark:border-purple-700/50 bg-purple-50/40 dark:bg-purple-950/20">
                   <div className="flex items-center gap-2 px-2.5 sm:px-3">
                     <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
@@ -174,24 +164,24 @@ export const SectionLearningObjectivesForm = ({
                 <div className="space-y-2.5 sm:space-y-3 w-full">
                   {/* Display learning objectives as numbered list with nice formatting */}
                   <ul className="space-y-2 sm:space-y-3">
-                    {learningObjectivesArray.slice(0, isExpanded ? learningObjectivesArray.length : 3).map((objective, index) => (
-                      <li key={`obj-${objective.slice(0, 40)}-${index}`} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {learningObjectivesHtmlArray.slice(0, isExpanded ? learningObjectivesHtmlArray.length : 3).map((objective, index) => (
+                      <li key={`obj-${index}`} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                         <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] sm:text-xs">
                           {index + 1}
                         </span>
-                        <span className="flex-1 pt-0.5 break-words">{objective}</span>
+                        <MathAwareHtmlRenderer html={objective} as="span" className="flex-1 pt-0.5 break-words" />
                       </li>
                     ))}
                   </ul>
                   {/* Show More/Less button if more than 3 objectives */}
-                  {learningObjectivesArray.length > 3 && (
+                  {learningObjectivesHtmlArray.length > 3 && (
                     <Button
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
                       size="sm"
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-0 h-auto text-[10px] sm:text-xs font-medium"
                     >
-                      {isExpanded ? "Show Less" : `Show More (${learningObjectivesArray.length - 3} more)`}
+                      {isExpanded ? "Show Less" : `Show More (${learningObjectivesHtmlArray.length - 3} more)`}
                     </Button>
                   )}
                 </div>

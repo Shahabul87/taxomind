@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";
+import { MathAwareHtmlRenderer, truncateHtmlWithMath } from "@/components/shared/math-aware-html-renderer";
 
 interface CourseContext {
   title: string;
@@ -96,14 +97,10 @@ export const SectionDescriptionForm = ({
   }, []);
 
   // Derive truncated content from props (no side effects needed)
-  const truncatedContent = useMemo(() => {
-    if (!isMounted || !initialData.description) return "";
-    if (isExpanded) return initialData.description;
-    if (typeof window === 'undefined') return initialData.description;
-    const div = document.createElement('div');
-    div.innerHTML = initialData.description;
-    const text = div.textContent || div.innerText;
-    return text.length <= 300 ? initialData.description : text.substring(0, 300).trim() + '...';
+  const { html: truncatedHtml, isTruncated } = useMemo(() => {
+    if (!isMounted || !initialData.description) return { html: "", isTruncated: false };
+    if (isExpanded) return { html: initialData.description, isTruncated: false };
+    return truncateHtmlWithMath(initialData.description, 300);
   }, [isExpanded, initialData.description, isMounted]);
 
   const handleAIGenerate = (content: string | string[] | object) => {
@@ -153,7 +150,8 @@ export const SectionDescriptionForm = ({
                 </div>
               ) : (
                 <div className="space-y-2 sm:space-y-2.5 w-full">
-                  <div
+                  <MathAwareHtmlRenderer
+                    html={truncatedHtml || initialData.description}
                     className={cn(
                       "prose prose-sm max-w-none w-full",
                       "text-slate-700 dark:text-slate-300",
@@ -168,9 +166,8 @@ export const SectionDescriptionForm = ({
                       "[&_a]:text-xs sm:[&_a]:text-sm [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline",
                       "[&>*:last-child]:mb-0"
                     )}
-                    dangerouslySetInnerHTML={{ __html: truncatedContent || initialData.description }}
                   />
-                  {initialData.description && initialData.description.length > 300 && (
+                  {(isTruncated || (!isExpanded && initialData.description && initialData.description.length > 300)) && (
                     <Button
                       onClick={() => setIsExpanded(!isExpanded)}
                       variant="ghost"
