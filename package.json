@@ -35,7 +35,7 @@
     "socket:dev": "NODE_OPTIONS='--max-old-space-size=4096' npx tsx server/index.ts",
     "socket:start": "NODE_OPTIONS='--max-old-space-size=4096' npx tsx server/index.ts",
     "build": "SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true NODE_OPTIONS='--max-old-space-size=8192' next build",
-    "build:railway": "SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true node scripts/load-env.js && SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true next build",
+    "build:railway": "SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true node scripts/load-env.js && SKIP_ENV_VALIDATION=true SKIP_TYPE_CHECK=true next build --experimental-build-mode compile",
     "build:strict": "SKIP_ENV_VALIDATION=true NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && SKIP_ENV_VALIDATION=true NODE_OPTIONS='--max-old-space-size=8192' next build",
     "build:clean:basic": "./scripts/clean-before-build.sh && npm run build",
     "build:turbo": "SKIP_ENV_VALIDATION=true NODE_OPTIONS='--max-old-space-size=8192' node scripts/load-env.js && SKIP_ENV_VALIDATION=true NODE_OPTIONS='--max-old-space-size=8192' next build --turbopack",

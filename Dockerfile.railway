@@ -74,13 +74,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=true
 
 # Memory optimization for large Next.js builds
-# CRITICAL: These settings prevent OOM during "Collecting page data" phase
-# - max-old-space-size: 3GB heap per process. During page data collection,
-#   the main process + 1 worker both inherit NODE_OPTIONS and run simultaneously.
-#   3GB × 2 = 6GB max heap + ~1.5GB V8/OS overhead = ~7.5GB, fits in 8GB container.
-#   (4GB was too aggressive: 4GB × 2 = 8GB, leaving nothing for OS → semi-space OOM)
-# - Semi-space: left at V8 default (adaptive). Restricting it causes
-#   NewSpace::EnsureCurrentCapacity failures during page data collection.
+# PERMANENT FIX: build:railway uses --experimental-build-mode compile which
+# completely SKIPS the "Collecting page data" phase (the OOM source).
+# Pages are generated on first request instead (fine since all pages are
+# force-dynamic anyway via root layout.tsx).
+#
+# The heap limit below only applies to webpack compilation, which runs
+# as a single process. 3GB is more than sufficient for compilation alone.
 # - EXPERIMENTAL_CPUS=1: Single worker to minimize total memory
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
 ENV NODE_OPTIONS="--max-old-space-size=3072"
@@ -92,13 +92,15 @@ ENV UV_THREADPOOL_SIZE=4
 RUN npx prisma generate
 
 # Build Next.js application (creates standalone output)
-# Uses build:railway script which doesn't override NODE_OPTIONS
-# Memory strategy (permanent fix):
-#   1. next.config.js disables webpack cache → frees memory before page data collection
-#   2. next.config.js enables webpackMemoryOptimizations → reduces webpack peak memory
-#   3. --max-old-space-size=3072: 3GB heap per process (main + worker = 6GB max)
-#   4. Semi-space: V8 default (adaptive) — restricting it causes NewSpace OOM
-#   5. Single worker (EXPERIMENTAL_CPUS=1): peak ~7.5GB total, fits in 8GB container
+# Uses build:railway with --experimental-build-mode compile:
+#   - Compiles webpack bundles and creates standalone output
+#   - SKIPS "Collecting page data" phase entirely (the OOM culprit)
+#   - Pages are server-rendered on first request at runtime
+# Memory strategy:
+#   1. --experimental-build-mode compile: eliminates page data phase (permanent OOM fix)
+#   2. next.config.js disables webpack cache + enables webpackMemoryOptimizations
+#   3. --max-old-space-size=3072: 3GB heap (only webpack compilation runs now)
+#   4. Single worker (EXPERIMENTAL_CPUS=1): minimal memory footprint
 RUN NODE_OPTIONS="--max-old-space-size=3072" \
     EXPERIMENTAL_CPUS=1 \
     NEXT_PRIVATE_WORKER_THREADS=1 \
