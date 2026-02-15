@@ -24,6 +24,44 @@ import type {
 import type { TemplateSectionDef } from './chapter-templates';
 
 // =============================================================================
+// PROMPT SANITIZATION
+// =============================================================================
+
+/**
+ * Sanitize user-provided text before interpolation into AI prompts.
+ * Strips prompt injection patterns, markdown structure markers, and
+ * excessive whitespace. Does NOT strip normal punctuation.
+ */
+export function sanitizeForPrompt(input: string, maxLength = 500): string {
+  return input
+    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|context)/gi, '')
+    .replace(/\b(system|assistant|user)\s*:/gi, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^#{1,6}\s/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\s{3,}/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+/**
+ * Sanitize all user-controlled fields in a CourseContext before prompt interpolation.
+ * Returns a shallow copy with sanitized string fields; other fields are passed through.
+ */
+export function sanitizeCourseContext(ctx: CourseContext): CourseContext {
+  return {
+    ...ctx,
+    courseTitle: sanitizeForPrompt(ctx.courseTitle, 200),
+    courseDescription: sanitizeForPrompt(ctx.courseDescription, 2000),
+    targetAudience: sanitizeForPrompt(ctx.targetAudience, 200),
+    courseLearningObjectives: ctx.courseLearningObjectives.map(
+      (obj) => sanitizeForPrompt(obj, 300)
+    ),
+    courseIntent: ctx.courseIntent ? sanitizeForPrompt(ctx.courseIntent, 500) : undefined,
+  };
+}
+
+// =============================================================================
 // PARSING & NORMALIZATION
 // =============================================================================
 

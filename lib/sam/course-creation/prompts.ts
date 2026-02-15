@@ -5,6 +5,14 @@
  * with deep thinking, concept flow tracking, and context awareness at each step.
  */
 
+/**
+ * Semantic version for the prompt templates in this file.
+ * Bump MAJOR for breaking output schema changes, MINOR for pedagogical
+ * strategy changes, PATCH for wording/formatting tweaks.
+ * Included in SSE events and checkpoints for quality correlation.
+ */
+export const PROMPT_VERSION = '2.0.0' as const;
+
 import {
   type CourseContext,
   type GeneratedChapter,
@@ -25,6 +33,7 @@ import {
   LEARNING_OBJECTIVES_FRAMEWORK,
 } from '@/lib/sam/prompts/content-generation-criteria';
 import type { ComposedCategoryPrompt } from './category-prompts';
+import { sanitizeCourseContext } from './helpers';
 import type { RecalledMemory } from './memory-recall';
 import { buildMemoryRecallBlock } from './memory-recall';
 
@@ -373,6 +382,7 @@ export function buildStage1Prompt(
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
 ): StagePrompt {
+  const ctx = sanitizeCourseContext(courseContext);
   const bloomsLevel = getContentAwareBloomsLevel({
     chapterNumber: currentChapterNumber,
     totalChapters: courseContext.totalChapters,
@@ -527,16 +537,16 @@ ${CHAPTER_DESIGN_PRINCIPLES}
 
 ${CHAPTER_THINKING_FRAMEWORK}`;
 
-  const userPrompt = `You are creating Chapter ${currentChapterNumber} of ${courseContext.totalChapters} for this course.
+  const userPrompt = `You are creating Chapter ${currentChapterNumber} of ${ctx.totalChapters} for this course.
 
 ## COURSE CONTEXT
-- **Title**: "${courseContext.courseTitle}"
-- **Description**: ${courseContext.courseDescription}
-- **Category**: ${courseContext.courseCategory}${courseContext.courseSubcategory ? ` > ${courseContext.courseSubcategory}` : ''}
-- **Target Audience**: ${courseContext.targetAudience}
-- **Difficulty**: ${courseContext.difficulty}
+- **Title**: "${ctx.courseTitle}"
+- **Description**: ${ctx.courseDescription}
+- **Category**: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+- **Target Audience**: ${ctx.targetAudience}
+- **Difficulty**: ${ctx.difficulty}
 - **Course Learning Objectives**:
-${courseContext.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
+${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 
 ## PREVIOUS CHAPTERS
 ${previousChaptersSummary}
@@ -567,7 +577,7 @@ This chapter's Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
 - How does this chapter&apos;s knowledge enable future chapters?
 
 ### Step 3: TOPIC SELECTION — What specific domain does this chapter own?
-- Given the course "${courseContext.courseTitle}", what specific topic fits this position?
+- Given the course "${ctx.courseTitle}", what specific topic fits this position?
 - The topic must NOT overlap with: ${previousChapters.map(c => `"${c.title}"`).join(', ') || 'N/A'}
 - Apply Spiral Curriculum: if revisiting a concept, it MUST be at a deeper ARROW phase than before
 
@@ -599,7 +609,7 @@ Return a JSON object with this EXACT structure:
     "description": "150-300 word description structured as: (1) The Problem — what real-world challenge this chapter addresses, (2) The Journey — what students will learn and do, (3) The Outcome — what students can accomplish after this chapter, (4) The Connection — how this links to the broader course arc",
     "bloomsLevel": "${bloomsLevel}",
     "learningObjectives": [
-      // Exactly ${courseContext.learningObjectivesPerChapter} objectives
+      // Exactly ${ctx.learningObjectivesPerChapter} objectives
       // Each MUST start with a ${bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
       // Each must follow ABCD: Verb + specific content + condition + standard
       // Example: "Design a normalized database schema given business requirements, following third normal form"
@@ -651,6 +661,7 @@ export function buildStage2Prompt(
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
 ): StagePrompt {
+  const ctx = sanitizeCourseContext(courseContext);
   const previousSectionsSummary = previousSections.length > 0
     ? previousSections.map(s => `- Section ${s.position}: "${s.title}" (${s.contentType}) - Focus: ${s.topicFocus}`).join('\n')
     : 'This is the first section of this chapter.';
@@ -701,7 +712,7 @@ This is the FIRST section of the chapter. Your role:
 - Use concrete examples and analogies to ground abstract ideas
 - Connect to what students learned in previous chapters
 - Set up the vocabulary and mental models for subsequent sections`;
-  } else if (currentSectionNumber === courseContext.sectionsPerChapter) {
+  } else if (currentSectionNumber === ctx.sectionsPerChapter) {
     scaffoldingGuidance = `
 ## SCAFFOLDING GUIDANCE
 This is the FINAL section of the chapter. Your role:
@@ -712,7 +723,7 @@ This is the FINAL section of the chapter. Your role:
   } else {
     scaffoldingGuidance = `
 ## SCAFFOLDING GUIDANCE
-This is a MIDDLE section (${currentSectionNumber} of ${courseContext.sectionsPerChapter}). Your role:
+This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}). Your role:
 - Build on concepts from previous sections in this chapter
 - Increase complexity gradually from the previous section
 - Introduce new sub-concepts that deepen understanding
@@ -733,14 +744,14 @@ ${SECTION_DESIGN_PRINCIPLES}
 
 ${SECTION_THINKING_FRAMEWORK}`;
 
-  const effectiveSectionsPerChapter = templatePrompt?.totalSections ?? courseContext.sectionsPerChapter;
+  const effectiveSectionsPerChapter = templatePrompt?.totalSections ?? ctx.sectionsPerChapter;
 
   const userPrompt = `You are creating Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
 
 ## COURSE CONTEXT
-- **Course**: "${courseContext.courseTitle}"
-- **Target Audience**: ${courseContext.targetAudience}
-- **Difficulty**: ${courseContext.difficulty}
+- **Course**: "${ctx.courseTitle}"
+- **Target Audience**: ${ctx.targetAudience}
+- **Difficulty**: ${ctx.difficulty}
 
 ## CHAPTER CONTEXT
 - **Title**: "${chapter.title}"
@@ -881,6 +892,7 @@ export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
     bridgeContent,
   } = options;
 
+  const ctx = sanitizeCourseContext(courseContext);
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
   // ── Prior sections context (replaces simple OTHER SECTIONS block) ──
@@ -1046,9 +1058,9 @@ ${activityGuidance}`;
   const userPrompt = `You are filling in the detailed content for Section ${section.position}: "${section.title}".
 
 ## COURSE CONTEXT
-- **Course**: "${courseContext.courseTitle}"
-- **Target Audience**: ${courseContext.targetAudience}
-- **Difficulty**: ${courseContext.difficulty}
+- **Course**: "${ctx.courseTitle}"
+- **Target Audience**: ${ctx.targetAudience}
+- **Difficulty**: ${ctx.difficulty}
 
 ## CHAPTER CONTEXT
 - **Chapter ${chapter.position}**: "${chapter.title}"
@@ -1082,7 +1094,7 @@ ${templateBlock ? `Follow the section-type-specific HTML structure and format ru
 5. **<h2>Real-World Applications</h2>**: Name real companies, products, or systems. Show professional value. Connect to what students will build in the practical activity.`}
 
 ### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
-For each of the ${courseContext.learningObjectivesPerSection} objectives:
+For each of the ${ctx.learningObjectivesPerSection} objectives:
 - **B (Behavior)**: Start with a ${chapter.bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
 - **C (Condition)**: Specify the context: "Given a...", "Using...", "After completing..."
 - **D (Degree)**: Specify the standard: "following best practices", "with correct syntax", "within X minutes"
@@ -1111,7 +1123,7 @@ Return a JSON object with this EXACT structure:
   "details": {
     "description": "${templateBlock ? `Structured HTML lesson content following the section-type-specific format from the Chapter DNA template. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote, table, tr, th, td. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.` : `600-1000 words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.`}",
     "learningObjectives": [
-      // Exactly ${courseContext.learningObjectivesPerSection} objectives
+      // Exactly ${ctx.learningObjectivesPerSection} objectives
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
       // Each follows ABCD: Verb + specific content + condition + standard
       // Example: "Implement a RESTful API endpoint using Express.js middleware, following the route-controller-service pattern"

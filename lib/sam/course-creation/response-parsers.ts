@@ -11,6 +11,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import type { z } from 'zod';
 import type { TemplateSectionDef } from './chapter-templates';
 import {
   cleanTitle,
@@ -27,6 +28,11 @@ import {
   buildFallbackDetails,
   buildFallbackDescription,
 } from './helpers';
+import {
+  AIChapterResponseSchema,
+  AISectionResponseSchema,
+  AIDetailsResponseSchema,
+} from './response-schemas';
 import type {
   CourseContext,
   GeneratedChapter,
@@ -34,6 +40,77 @@ import type {
   SectionDetails,
   QualityScore,
 } from './types';
+
+// =============================================================================
+// Schema Validation Helper (soft — warns but never rejects)
+// =============================================================================
+
+function validateWithSchema<T>(
+  parsed: unknown,
+  schema: z.ZodType<T>,
+  stage: string,
+): { valid: boolean; issues: string[] } {
+  const result = schema.safeParse(parsed);
+  if (result.success) return { valid: true, issues: [] };
+  const issues = result.error.issues.map(
+    (i) => `${i.path.join('.')}: ${i.message}`
+  );
+  logger.warn(`[ResponseParser] Schema validation issues in ${stage}`, { issues });
+  return { valid: false, issues };
+}
+
+// =============================================================================
+// Critical Field Validation (hard — throws on empty/invalid required fields)
+// =============================================================================
+
+/**
+ * Validates that critical AI-generated fields are present and non-trivial.
+ * Throws on failures so the caller falls through to its existing fallback.
+ * This prevents empty titles, zero objectives, or stub descriptions from
+ * reaching the database.
+ */
+function validateCriticalFields(
+  parsed: Record<string, unknown>,
+  stage: 'chapter' | 'section' | 'details',
+): void {
+  switch (stage) {
+    case 'chapter': {
+      const ch = parsed.chapter as Record<string, unknown> | undefined;
+      if (!ch) return; // handled by existing !ch check downstream
+      const title = typeof ch.title === 'string' ? ch.title.trim() : '';
+      if (title.length < 3) {
+        throw new Error(`[CriticalValidation] Chapter title too short or missing: "${title}"`);
+      }
+      const objectives = Array.isArray(ch.learningObjectives) ? ch.learningObjectives : [];
+      if (objectives.length === 0) {
+        throw new Error('[CriticalValidation] Chapter has zero learning objectives');
+      }
+      break;
+    }
+    case 'section': {
+      const sec = parsed.section as Record<string, unknown> | undefined;
+      if (!sec) return;
+      const title = typeof sec.title === 'string' ? sec.title.trim() : '';
+      if (title.length < 2) {
+        throw new Error(`[CriticalValidation] Section title too short or missing: "${title}"`);
+      }
+      break;
+    }
+    case 'details': {
+      const det = parsed.details as Record<string, unknown> | undefined;
+      if (!det) return;
+      const description = typeof det.description === 'string' ? det.description.trim() : '';
+      if (description.length < 30) {
+        throw new Error(`[CriticalValidation] Detail description too short (${description.length} chars, need ≥30)`);
+      }
+      const objectives = Array.isArray(det.learningObjectives) ? det.learningObjectives : [];
+      if (objectives.length === 0) {
+        throw new Error('[CriticalValidation] Details have zero learning objectives');
+      }
+      break;
+    }
+  }
+}
 
 // =============================================================================
 // Stage 1: Chapter Response Parser
@@ -50,6 +127,8 @@ export function parseChapterResponse(
 ): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
+    validateCriticalFields(parsed, 'chapter');
+    validateWithSchema(parsed, AIChapterResponseSchema, 'Stage 1 (chapter)');
     const thinking = parsed.thinking ?? 'Generated chapter based on course context.';
     const ch = parsed.chapter;
 
@@ -96,6 +175,8 @@ export function parseSectionResponse(
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
+    validateCriticalFields(parsed, 'section');
+    validateWithSchema(parsed, AISectionResponseSchema, 'Stage 2 (section)');
     const thinking = parsed.thinking ?? 'Generated section based on chapter context.';
     const sec = parsed.section;
 
@@ -153,6 +234,8 @@ export function parseDetailsResponse(
 ): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
+    validateCriticalFields(parsed, 'details');
+    validateWithSchema(parsed, AIDetailsResponseSchema, 'Stage 3 (details)');
     const thinking = parsed.thinking ?? 'Generated section details based on context.';
     const det = parsed.details;
 
