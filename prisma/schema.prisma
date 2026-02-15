@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-15T06:05:00.379Z
+// Generated: 2026-02-15T09:42:04.948Z
 // Source: 27 domain files
 // ==========================================
 
@@ -2517,6 +2517,8 @@ model Section {
   isPreview            Boolean?
   completionStatus     String?
   resourceUrls         String?
+  practicalActivity    String?               @db.Text
+  keyConceptsCovered   String?               @db.Text
   AIGeneratedContent   AIGeneratedContent[]
   articles             Article[]
   blogs                Blog[]
