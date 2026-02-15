@@ -208,10 +208,10 @@ function buildBeginnerSections(): TemplateSectionDef[] {
         '"Remember the pattern you noticed? That pattern has a name:..."',
         'Definition → Formula/Syntax → Map back to the analogy from THE INTUITION.',
         'Every formula line MUST have a plain-English translation below it.',
-        'Use <code> tags for code/formulas.',
+        'Use $...$ for inline math and $$...$$ for display equations. Reserve <code> tags for programming code only.',
         'After each definition, show how it matches the worked example numbers.',
       ],
-      htmlStructure: '<h2>Formal Definition</h2><p>Remember the pattern? It has a name: ...</p><h3>The Formula</h3><code>formula</code><p><em>In plain English:</em> ...</p><h3>Mapping to Our Example</h3><p>When we calculated [WALKTHROUGH value], we were doing: ...</p>',
+      htmlStructure: '<h2>Formal Definition</h2><p>Remember the pattern? It has a name: ...</p><h3>The Formula</h3><p>$$formula$$</p><p><em>In plain English:</em> ...</p><h3>Mapping to Our Example</h3><p>When we calculated [WALKTHROUGH value], we were doing: ...</p>',
       tone: 'Precise, structured, authoritative but accessible. "You already know this — now we give it a name."',
       consistencyRules: [
         'Every formula MUST have plain-English translation.',

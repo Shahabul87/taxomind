@@ -184,7 +184,8 @@ const STAGE3_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. Yo
 - ALWAYS ask prediction questions before revealing answers
 - ALWAYS present trade-offs, not single "right answers"
 - ALWAYS include failure cases and edge cases in every major topic
-- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"`;
+- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"
+- When writing equations: use $...$ for inline math and $$...$$ for display equations — NEVER use <code> tags for math`;
 
 /**
  * Returns the appropriate design expertise for Stage 3.
@@ -295,11 +296,33 @@ A section description is a FULL LESSON — the text version of what a great prof
 
 **HTML Rules:**
 - Use ONLY these tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote
+- Use <code> ONLY for programming code (e.g., variable names, function calls). For math equations, use $...$ or $$...$$ notation instead.
 - NO &lt;h1&gt; tags (the section title serves as h1)
 - NO &lt;br&gt;, &lt;div&gt;, &lt;span&gt;, or inline styles
 - Address the learner directly ("you", "your")
 - Mention the section&apos;s topicFocus by name at least 3 times
 - Include at least one analogy to make an abstract concept concrete
+
+### Mathematical Notation Formatting
+When the course topic involves math, science, or any quantitative content:
+
+1. **Inline equations** (within a sentence): Wrap in single dollar signs $...$
+   Example: "The derivative is $f'(x) = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$"
+
+2. **Display equations** (standalone, centered): Wrap in double dollar signs $$...$$
+   Example: "$$\\int_0^1 f(x) \\, dx = F(1) - F(0)$$"
+
+3. **LaTeX syntax**:
+   - Fractions: \\frac{numerator}{denominator}
+   - Limits: \\lim_{x \\to a}
+   - Subscripts: x_{n}, Superscripts: x^{2}
+   - Summation: \\sum_{i=1}^{n}, Integral: \\int_a^b
+   - Greek letters: \\alpha, \\beta, \\pi, \\theta
+   - Operators: \\times, \\div, \\approx, \\neq, \\leq, \\geq
+
+4. **NEVER use <code> tags for math equations** — <code> is reserved for programming code only (JavaScript, Python, SQL, etc.)
+
+5. **Every equation MUST have a plain-English translation** immediately before or after it
 
 ### Writing Learning Objectives (ABCD Method)
 Every objective must contain these elements:
