@@ -521,10 +521,25 @@ export async function withRateLimit(
 
     return null; // Request allowed
   } catch (error) {
-    // On error, allow the request (fail open)
     logger.error('[RateLimiter] Error checking rate limit', {
+      category,
       error: error instanceof Error ? error.message : String(error),
     });
+
+    // Expensive categories fail-closed: deny on auth/infra errors to prevent
+    // rate limit bypass on costly AI operations. Standard/readonly fail-open.
+    const failClosedCategories: RateLimitCategory[] = ['ai', 'tools', 'heavy'];
+    if (failClosedCategories.includes(category)) {
+      return NextResponse.json(
+        {
+          error: 'Service temporarily unavailable',
+          message: 'Rate limit check failed. Please try again.',
+          code: 'RATE_LIMIT_CHECK_UNAVAILABLE',
+        },
+        { status: 503 },
+      );
+    }
+
     return null;
   }
 }

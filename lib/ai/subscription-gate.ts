@@ -293,7 +293,26 @@ export async function withSubscriptionGate(
       category,
       error: error instanceof Error ? error.message : String(error),
     });
-    // On error, allow the request (fail-open) — enterprise-client will also check
+
+    // High-cost categories fail-closed: deny on infra/DB errors to prevent
+    // subscription bypass. Low-cost categories fail-open since enterprise-client
+    // provides a downstream check.
+    const highCostCategories: SubscriptionCategory[] = ['generation', 'analysis', 'premium-feature'];
+    if (highCostCategories.includes(category)) {
+      return {
+        allowed: false,
+        response: NextResponse.json(
+          {
+            success: false,
+            error: 'Service temporarily unavailable. Please try again.',
+            code: 'SUBSCRIPTION_CHECK_UNAVAILABLE',
+          },
+          { status: 503 },
+        ),
+      };
+    }
+
+    // Low-cost categories (chat, tool-execution, read-only): fail-open
     return { allowed: true };
   }
 }
