@@ -92,11 +92,11 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
 
     // Skip if params haven't changed
     if (key === costParamsRef.current) return;
-    costParamsRef.current = key;
 
     // Debounce 500ms
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      costParamsRef.current = key;
       fetchCostEstimate(params);
     }, 500);
 
