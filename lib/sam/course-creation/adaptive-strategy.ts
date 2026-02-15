@@ -118,9 +118,16 @@ export class AdaptiveStrategyMonitor {
     }
   }
 
+  /** Maximum history entries to retain (sliding window) */
+  private static readonly MAX_HISTORY_SIZE = 100;
+
   /** Record a generation performance result */
   record(perf: GenerationPerformance): void {
     this.history.push(perf);
+    // Sliding window: discard oldest entries beyond cap
+    if (this.history.length > AdaptiveStrategyMonitor.MAX_HISTORY_SIZE) {
+      this.history = this.history.slice(-AdaptiveStrategyMonitor.MAX_HISTORY_SIZE);
+    }
     this.adapt();
   }
 

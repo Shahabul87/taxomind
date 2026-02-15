@@ -102,6 +102,8 @@ export interface SharedPipelineState {
   hasSkipped?: boolean;
   /** Flag: skip the next chapter (set by skip_next_chapter decision) */
   skipNextChapter?: boolean;
+  /** Counter: number of re-plans executed (max 2 per course) */
+  replanCount?: number;
 }
 
 // ============================================================================
@@ -289,23 +291,32 @@ export class CourseCreationStateMachine {
           }
         }
 
-        // 11. Handle replan_remaining
+        // 11. Handle replan_remaining (max 2 per course)
         if (state.lastAgenticDecision.action === 'replan_remaining') {
-          this.config.onSSEEvent?.({ type: 'replan_start', data: { reason: state.lastAgenticDecision.reasoning } });
-          try {
-            state.blueprintPlan = await replanRemainingChapters(
-              this.config.userId,
-              this.config.courseContext,
-              state.completedChapters,
-              state.conceptTracker,
-              state.blueprintPlan,
-            );
-            this.config.onSSEEvent?.({
-              type: 'replan_complete',
-              data: { remainingChapters: state.blueprintPlan?.chapterPlan.length ?? 0 },
+          const MAX_REPLANS_PER_COURSE = 2;
+          const currentReplanCount = state.replanCount ?? 0;
+          if (currentReplanCount >= MAX_REPLANS_PER_COURSE) {
+            logger.info('[CourseStateMachine] Replan blocked — max replans reached', {
+              replanCount: currentReplanCount, chapter: chapterNumber,
             });
-          } catch {
-            logger.warn('[CourseStateMachine] Re-planning failed, continuing with existing blueprint');
+          } else {
+            state.replanCount = currentReplanCount + 1;
+            this.config.onSSEEvent?.({ type: 'replan_start', data: { reason: state.lastAgenticDecision.reasoning } });
+            try {
+              state.blueprintPlan = await replanRemainingChapters(
+                this.config.userId,
+                this.config.courseContext,
+                state.completedChapters,
+                state.conceptTracker,
+                state.blueprintPlan,
+              );
+              this.config.onSSEEvent?.({
+                type: 'replan_complete',
+                data: { remainingChapters: state.blueprintPlan?.chapterPlan.length ?? 0 },
+              });
+            } catch {
+              logger.warn('[CourseStateMachine] Re-planning failed, continuing with existing blueprint');
+            }
           }
         }
         // 11b. Handle skip_next_chapter
@@ -327,9 +338,10 @@ export class CourseCreationStateMachine {
         state.lastAgenticDecision = chapterResult.agenticDecision;
       }
 
-      // 12. Inline healing — drain healing queue
+      // 12. Inline healing — process up to 2 chapters from healing queue per step
       if (state.healingQueue.length > 0) {
-        const chaptersToHeal = state.healingQueue.splice(0, state.healingQueue.length);
+        const MAX_INLINE_HEALS_PER_STEP = 2;
+        const chaptersToHeal = state.healingQueue.splice(0, MAX_INLINE_HEALS_PER_STEP);
         for (const healChapterNum of chaptersToHeal) {
           const healTarget = state.completedChapters.find(ch => ch.position === healChapterNum);
           if (!healTarget) continue;

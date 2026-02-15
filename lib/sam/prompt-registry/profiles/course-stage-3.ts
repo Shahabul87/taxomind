@@ -60,13 +60,13 @@ const courseStage3Profile: PromptProfile<CourseStage3Input, Stage3Output> = {
   knowledgeModules: [],
 
   buildUserPrompt: (input: CourseStage3Input): string => {
-    const { userPrompt } = buildStage3Prompt(
-      input.courseContext,
-      input.chapter,
-      input.section,
-      input.chapterSections,
-      input.enrichedContext,
-    );
+    const { userPrompt } = buildStage3Prompt({
+      courseContext: input.courseContext,
+      chapter: input.chapter,
+      section: input.section,
+      chapterSections: input.chapterSections,
+      enrichedContext: input.enrichedContext,
+    });
     return userPrompt;
   },
 

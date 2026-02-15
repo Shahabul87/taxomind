@@ -225,6 +225,7 @@ export async function generateSingleChapter(
   let s1QualityFeedback: QualityFeedback | null = null;
   const s1StartTime = Date.now();
 
+  let s1ConsecutiveDeclines = 0;
   for (let attempt = 0; attempt <= s1Strategy.maxRetries; attempt++) {
     const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
     const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
@@ -264,10 +265,19 @@ export async function generateSingleChapter(
     const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
     const blended = blendScores(result.qualityScore, samResult);
 
-    if (blended.overall > bestResult.qualityScore.overall) {
+    const previousBest = bestResult.qualityScore.overall;
+    if (blended.overall > previousBest) {
       bestResult = { ...result, qualityScore: blended };
+      s1ConsecutiveDeclines = 0;
+    } else {
+      s1ConsecutiveDeclines++;
     }
     if (blended.overall >= s1Strategy.retryThreshold || attempt === s1Strategy.maxRetries) break;
+    // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
+    if (s1ConsecutiveDeclines >= 2) {
+      logger.info('[ORCHESTRATOR] S1 retry convergence — stopping after 2 consecutive non-improvements', { chapter: chNum, bestScore: bestResult.qualityScore.overall });
+      break;
+    }
 
     if (s1Strategy.enableSelfCritique) {
       const critique = critiqueGeneration({
@@ -537,6 +547,7 @@ export async function generateSingleChapter(
     let s2QualityFeedback: QualityFeedback | null = null;
     const s2StartTime = Date.now();
 
+    let s2ConsecutiveDeclines = 0;
     for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
       const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
 
@@ -560,10 +571,19 @@ export async function generateSingleChapter(
       const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
       const blendedSec = blendScores(result.qualityScore, samSecResult);
 
-      if (blendedSec.overall > bestSec.qualityScore.overall) {
+      const previousBestSec = bestSec.qualityScore.overall;
+      if (blendedSec.overall > previousBestSec) {
         bestSec = { ...result, qualityScore: blendedSec };
+        s2ConsecutiveDeclines = 0;
+      } else {
+        s2ConsecutiveDeclines++;
       }
       if (blendedSec.overall >= s2Strategy.retryThreshold || attempt === s2Strategy.maxRetries) break;
+      // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
+      if (s2ConsecutiveDeclines >= 2) {
+        logger.info('[ORCHESTRATOR] S2 retry convergence — stopping', { chapter: chNum, section: secNum, bestScore: bestSec.qualityScore.overall });
+        break;
+      }
 
       s2QualityFeedback = extractQualityFeedback(samSecResult, result.qualityScore, attempt + 2);
 
@@ -681,8 +701,21 @@ export async function generateSingleChapter(
     let s3QualityFeedback: QualityFeedback | null = null;
     const s3StartTime = Date.now();
 
+    let s3ConsecutiveDeclines = 0;
     for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
-      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, chapterCategoryPrompt, experimentVariant, s3TemplatePrompt);
+      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
+        courseContext,
+        chapter: chapterPlain,
+        section: sectionPlain,
+        chapterSections: allChapterSectionsPlain,
+        enrichedContext,
+        categoryPrompt: chapterCategoryPrompt,
+        variant: experimentVariant,
+        templatePrompt: s3TemplatePrompt,
+        completedSections: completedSections.slice(0, secIdx),
+        recalledMemory: recalledMemory ?? undefined,
+        bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
+      });
 
       const augmentedS3User = s3QualityFeedback
         ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
@@ -706,10 +739,19 @@ export async function generateSingleChapter(
       );
       const blendedDet = blendScores(result.qualityScore, samDetResult);
 
-      if (blendedDet.overall > bestDet.qualityScore.overall) {
+      const previousBestDet = bestDet.qualityScore.overall;
+      if (blendedDet.overall > previousBestDet) {
         bestDet = { ...result, qualityScore: blendedDet };
+        s3ConsecutiveDeclines = 0;
+      } else {
+        s3ConsecutiveDeclines++;
       }
       if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
+      // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
+      if (s3ConsecutiveDeclines >= 2) {
+        logger.info('[ORCHESTRATOR] S3 retry convergence — stopping', { chapter: chNum, section: section.position, bestScore: bestDet.qualityScore.overall });
+        break;
+      }
 
       s3QualityFeedback = extractQualityFeedback(samDetResult, result.qualityScore, attempt + 2);
 
@@ -750,6 +792,8 @@ export async function generateSingleChapter(
         description: details.description,
         learningObjectives: details.learningObjectives.join('\n'),
         resourceUrls: details.resources?.join('\n') ?? null,
+        practicalActivity: details.practicalActivity || null,
+        keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
       },
     });
 
@@ -962,11 +1006,7 @@ export async function orchestrateCourseCreation(
       totalChapters = resolvedTotal;
       courseContext.totalChapters = resolvedTotal;
 
-      // Update DB course record
-      await db.course.update({
-        where: { id: courseId },
-        data: { chapterCount: resolvedTotal },
-      });
+      // NOTE: DB course record is updated after courseId is assigned (inside try block)
 
       onSSEEvent?.({
         type: 'chapter_count_adjusted',
@@ -979,6 +1019,12 @@ export async function orchestrateCourseCreation(
   const totalSections = totalChapters * effectiveSectionsPerChapter;
   const totalItems = totalChapters + totalSections + totalSections; // chapters + sections + details
   let completedItems = 0;
+
+  // Sync accurate total items to frontend (server uses template-based section counts)
+  onSSEEvent?.({
+    type: 'total_items',
+    data: { totalItems, totalChapters, sectionsPerChapter: effectiveSectionsPerChapter },
+  });
 
   const progress: CreationProgress = {
     state: {
@@ -995,7 +1041,7 @@ export async function orchestrateCourseCreation(
   };
 
   function emitProgress(message: string, thinking?: string) {
-    progress.percentage = Math.round((completedItems / totalItems) * 100);
+    progress.percentage = Math.min(100, Math.round((completedItems / totalItems) * 100));
     progress.message = message;
     if (thinking) progress.thinking = thinking;
     onProgress?.(progress);
@@ -1118,6 +1164,14 @@ export async function orchestrateCourseCreation(
       courseId = course.id;
       createdCourseId = course.id;
       logger.info('[ORCHESTRATOR] Course created', { courseId: course.id, title: course.title });
+
+      // If blueprint adjusted chapter count, update the new course record
+      if (totalChapters !== config.totalChapters) {
+        await db.course.update({
+          where: { id: courseId },
+          data: { chapterCount: totalChapters },
+        });
+      }
       onSSEEvent?.({
         type: 'item_complete',
         data: { stage: 0, message: 'Course record created', courseId: course.id },
@@ -1185,6 +1239,10 @@ export async function orchestrateCourseCreation(
 
     // Persistent healing queue — tracks chapters flagged for inline regeneration
     const healingQueue: number[] = [];
+
+    // Replan frequency limit — max 2 re-plans per course to prevent token burn
+    const MAX_REPLANS_PER_COURSE = 2;
+    let replanCount = 0;
 
     // Bridge content — generated between chapters when concept gaps are detected
     let bridgeContent = '';
@@ -1482,23 +1540,31 @@ export async function orchestrateCourseCreation(
             }
           }
 
-          // Dynamic re-planning when triggered
+          // Dynamic re-planning when triggered (max 2 per course)
           if (lastAgenticDecision.action === 'replan_remaining' && chNum < totalChapters) {
-            onSSEEvent?.({ type: 'replan_start', data: { reason: lastAgenticDecision.reasoning } });
-            try {
-              blueprintPlan = await replanRemainingChapters(userId, courseContext, completedChapters, conceptTracker, blueprintPlan);
-              onSSEEvent?.({ type: 'replan_complete', data: { remainingChapters: blueprintPlan?.chapterPlan.length ?? 0 } });
-            } catch {
-              logger.warn('[ORCHESTRATOR] Re-planning failed, continuing with existing blueprint');
+            if (replanCount >= MAX_REPLANS_PER_COURSE) {
+              logger.info('[ORCHESTRATOR] Replan blocked — max replans reached', {
+                replanCount, maxReplans: MAX_REPLANS_PER_COURSE, chapter: chNum,
+              });
+            } else {
+              replanCount++;
+              onSSEEvent?.({ type: 'replan_start', data: { reason: lastAgenticDecision.reasoning } });
+              try {
+                blueprintPlan = await replanRemainingChapters(userId, courseContext, completedChapters, conceptTracker, blueprintPlan);
+                onSSEEvent?.({ type: 'replan_complete', data: { remainingChapters: blueprintPlan?.chapterPlan.length ?? 0 } });
+              } catch {
+                logger.warn('[ORCHESTRATOR] Re-planning failed, continuing with existing blueprint');
+              }
             }
           }
         } else if (chapterResult.agenticDecision) {
           lastAgenticDecision = chapterResult.agenticDecision;
         }
 
-        // Inline healing: drain healing queue before next chapter
+        // Inline healing: process up to 2 chapters from healing queue per step
         if (healingQueue.length > 0) {
-          const chaptersToHeal = healingQueue.splice(0, healingQueue.length);
+          const MAX_INLINE_HEALS_PER_STEP = 2;
+          const chaptersToHeal = healingQueue.splice(0, MAX_INLINE_HEALS_PER_STEP);
           for (const healChapterNum of chaptersToHeal) {
             const healTarget = completedChapters.find(ch => ch.position === healChapterNum);
             if (!healTarget) continue;

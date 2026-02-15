@@ -10,6 +10,7 @@ import {
   type GeneratedChapter,
   type GeneratedSection,
   type CompletedChapter,
+  type CompletedSection,
   type BloomsLevel,
   BLOOMS_TAXONOMY,
   type ConceptTracker,
@@ -146,6 +147,53 @@ You follow a systematic, objectives-first approach based on established instruct
 export function getCourseDesignExpertise(variant?: string): string {
   if (variant === 'treatment-a') return TRADITIONAL_DESIGN_EXPERTISE;
   return COURSE_DESIGN_EXPERTISE;
+}
+
+/**
+ * Condensed ARROW expertise for Stage 3 (detail generation).
+ * ~500 tokens instead of ~1000. Keeps SAM identity, 1-line ARROW phase summaries,
+ * personality, and non-negotiable rules. Removes full phase descriptions,
+ * ADAPTIVE BEHAVIOR, and SUPPORTING FRAMEWORKS (already covered by DETAIL_DESIGN_PRINCIPLES).
+ *
+ * Saves ~500 tokens × 56 calls = ~28,000 tokens per course.
+ */
+const STAGE3_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. You do NOT teach like a textbook. You teach like the world&apos;s best professor — someone who has built real systems, failed, learned, and can make anyone understand anything by showing them WHY it matters first.
+
+## ARROW FRAMEWORK (Condensed — Your Core Teaching Approach)
+
+1. **APPLICATION FIRST** — Show a stunning real-world use case. Make students curious. NEVER start with definitions.
+2. **INTUITION BUILDING** — Build gut-level understanding using analogies, thought experiments, and prediction questions before any formalization.
+3. **THEORY & FORMALIZATION** — Every equation earns its place by mapping to something the student already intuitively understands.
+4. **FAILURE ANALYSIS** — Show what breaks and why. Present broken systems and ask students to diagnose before revealing answers.
+5. **BUILD & ITERATE** — Guide students through building a minimal working version. Build → Measure → Learn → Iterate.
+6. **META-COGNITION** — Pause to reflect on the thinking PROCESS, not just content. Help students build transferable reasoning strategies.
+
+## YOUR PERSONALITY
+
+- Confident but never arrogant
+- Celebrate creative thinking, even when the answer is wrong
+- Use stories from real engineering and science history — the messy, non-linear truth
+- Use vivid language and concrete examples — NEVER dry academic prose
+- Challenge strong students harder — never plateau or go easy
+
+## RULES — NON-NEGOTIABLE
+
+- NEVER start a chapter with definitions, history, or "In this chapter we will learn..."
+- NEVER present theory without first building intuition
+- ALWAYS connect new concepts to what students already know
+- ALWAYS ask prediction questions before revealing answers
+- ALWAYS present trade-offs, not single "right answers"
+- ALWAYS include failure cases and edge cases in every major topic
+- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"`;
+
+/**
+ * Returns the appropriate design expertise for Stage 3.
+ * Default → condensed ARROW (~500 tokens).
+ * treatment-a → full Traditional expertise (unchanged).
+ */
+export function getStage3DesignExpertise(variant?: string): string {
+  if (variant === 'treatment-a') return TRADITIONAL_DESIGN_EXPERTISE;
+  return STAGE3_DESIGN_EXPERTISE;
 }
 
 /**
@@ -777,33 +825,102 @@ Return ONLY valid JSON, no markdown formatting`;
 // Stage 3: Detail Generation Prompt
 // ============================================================================
 
-export function buildStage3Prompt(
-  courseContext: CourseContext,
-  chapter: GeneratedChapter,
-  section: GeneratedSection,
-  chapterSections: GeneratedSection[],
-  enrichedContext?: EnrichedChapterContext,
-  categoryPrompt?: ComposedCategoryPrompt,
-  variant?: string,
-  templatePrompt?: ComposedTemplatePrompt
-): StagePrompt {
+/** Options for buildStage3Prompt — replaces positional args for clarity */
+export interface Stage3PromptOptions {
+  courseContext: CourseContext;
+  chapter: GeneratedChapter;
+  section: GeneratedSection;
+  chapterSections: GeneratedSection[];
+  enrichedContext?: EnrichedChapterContext;
+  categoryPrompt?: ComposedCategoryPrompt;
+  variant?: string;
+  templatePrompt?: ComposedTemplatePrompt;
+  /** Completed sections (with details) BEFORE the current section in this chapter */
+  completedSections?: CompletedSection[];
+  /** Memory recall from prior courses */
+  recalledMemory?: RecalledMemory;
+  /** Bridge content from prior chapter concept gap analysis */
+  bridgeContent?: string;
+}
+
+export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
+  const {
+    courseContext,
+    chapter,
+    section,
+    chapterSections,
+    enrichedContext,
+    categoryPrompt,
+    variant,
+    templatePrompt,
+    completedSections,
+    recalledMemory,
+    bridgeContent,
+  } = options;
+
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
-  const otherSectionsSummary = chapterSections
-    .filter(s => s.position !== section.position)
-    .map(s => `- Section ${s.position}: "${s.title}" (${s.contentType})`)
-    .join('\n');
+  // ── Prior sections context (replaces simple OTHER SECTIONS block) ──
+  let priorSectionsBlock = '';
+  const completedPrior = (completedSections ?? []).filter(
+    cs => cs.position < section.position && cs.details
+  );
+  const upcomingSections = chapterSections.filter(
+    s => s.position !== section.position && !completedPrior.some(cp => cp.position === s.position)
+  );
 
-  // Build cumulative knowledge state
+  if (completedPrior.length > 0 || upcomingSections.length > 0) {
+    const completedLines = completedPrior.map(cs => {
+      const d = cs.details;
+      let line = `- Section ${cs.position}: "${cs.title}" (${cs.contentType}${cs.templateRole ? `, ${cs.templateRole}` : ''})`;
+      if (d) {
+        const objs = d.learningObjectives.slice(0, 3).map(o => o.slice(0, 80)).join('; ');
+        line += `\n    Objectives: ${objs}`;
+        if (d.keyConceptsCovered?.length) {
+          line += `\n    Key Concepts: ${d.keyConceptsCovered.join(', ')}`;
+        }
+        if (d.practicalActivity) {
+          line += `\n    Activity: ${d.practicalActivity.slice(0, 120)}`;
+        }
+      }
+      return line;
+    }).join('\n');
+
+    const upcomingLines = upcomingSections
+      .map(s => `- Section ${s.position}: "${s.title}" (${s.contentType})`)
+      .join('\n');
+
+    priorSectionsBlock = `
+## SECTIONS IN THIS CHAPTER
+
+### Completed Sections (students have already experienced these):
+${completedLines || 'None — this is the first section.'}
+
+### Upcoming Sections (metadata only — not yet written):
+${upcomingLines || 'None — this is the last section.'}
+
+**Instructions**: Build on completed sections. Do NOT repeat the same concepts, examples, or activities. Reference what students already learned and advance the chapter arc.
+`;
+  } else {
+    // Fallback: simple list (backward compatible for regenerator calls without completedSections)
+    const otherSectionsSummary = chapterSections
+      .filter(s => s.position !== section.position)
+      .map(s => `- Section ${s.position}: "${s.title}" (${s.contentType})`)
+      .join('\n');
+    priorSectionsBlock = `
+## OTHER SECTIONS IN THIS CHAPTER
+${otherSectionsSummary || 'This is the only section'}
+`;
+  }
+
+  // ── Cumulative knowledge state ──
   let cumulativeKnowledgeSection = '';
   if (enrichedContext) {
     const knownConcepts: string[] = [];
     for (const [name, entry] of enrichedContext.conceptTracker.concepts) {
-      // All concepts from prior chapters
       if (entry.introducedInChapter < chapter.position) {
         knownConcepts.push(name);
       }
-      // Concepts from earlier sections in this chapter
       if (entry.introducedInChapter === chapter.position && entry.introducedInSection !== undefined && entry.introducedInSection < section.position) {
         knownConcepts.push(name);
       }
@@ -822,6 +939,14 @@ Build descriptions and objectives that reference and extend this knowledge.
 - Each objective should be achievable within ${section.estimatedDuration}
 `;
   }
+
+  // ── Memory recall (bidirectional memory from prior courses) ──
+  const memoryRecallSection = recalledMemory ? buildMemoryRecallBlock(recalledMemory) : '';
+
+  // ── Bridge content (only for section position 1 — the chapter opener) ──
+  const bridgeBlock = (bridgeContent && section.position === 1)
+    ? `\n## CONCEPT BRIDGE (From Prior Chapter)\n${bridgeContent}\n`
+    : '';
 
   // Build content-type-specific activity guidance
   let activityGuidance = '';
@@ -887,7 +1012,7 @@ Design this as a collaborative sense-making experience:
   const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage3Block ?? '';
 
-  const systemPrompt = `${getCourseDesignExpertise(variant)}
+  const systemPrompt = `${getStage3DesignExpertise(variant)}
 ${domainExpertise}
 
 ${DETAIL_DESIGN_PRINCIPLES}
@@ -908,10 +1033,10 @@ ${activityGuidance}`;
 - **Chapter Description**: ${chapter.description}
 - **Chapter Objectives**:
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
-
-## OTHER SECTIONS IN THIS CHAPTER
-${otherSectionsSummary || 'This is the only section'}
+${priorSectionsBlock}
 ${cumulativeKnowledgeSection}
+${memoryRecallSection}
+${bridgeBlock}
 ## CURRENT SECTION TO FILL
 - **Title**: "${section.title}"
 - **Content Type**: ${section.contentType}

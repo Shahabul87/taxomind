@@ -270,6 +270,38 @@ function handleSSEEvent(
       return {};
     }
 
+    case 'total_items': {
+      // Server sends authoritative total items count (using template-based section counts)
+      const serverTotalItems = data.totalItems as number;
+      if (serverTotalItems > 0) {
+        totalItemsRef.current = serverTotalItems;
+      }
+      const serverTotalChapters = data.totalChapters as number | undefined;
+      if (serverTotalChapters) {
+        setProgress(prev => ({
+          ...prev,
+          state: {
+            ...prev.state,
+            totalChapters: serverTotalChapters,
+          },
+        }));
+      }
+      return {};
+    }
+
+    case 'chapter_count_adjusted': {
+      // Blueprint AI adjusted chapter count — update frontend state
+      const resolved = data.resolved as number;
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          totalChapters: resolved,
+        },
+      }));
+      return {};
+    }
+
     case 'item_complete': {
       const stage = data.stage as number;
       const title = data.title as string;
@@ -305,7 +337,7 @@ function handleSSEEvent(
           recentTimes.push(timestamps[i] - prev);
         }
         averageItemMs = Math.round(recentTimes.reduce((a, b) => a + b, 0) / recentTimes.length);
-        const remaining = totalItemCount - itemsCompleted;
+        const remaining = Math.max(0, totalItemCount - itemsCompleted);
         estimatedRemainingMs = remaining > 0 ? averageItemMs * remaining : 0;
       }
 
@@ -447,6 +479,115 @@ function handleSSEEvent(
           error: errorMessage,
         },
       };
+    }
+
+    // --- Informational events: update message so UI doesn't appear stuck ---
+
+    case 'planning_start': {
+      setProgress(prev => ({
+        ...prev,
+        message: (data.message as string) ?? 'Planning course blueprint...',
+      }));
+      return {};
+    }
+
+    case 'planning_complete': {
+      setProgress(prev => ({
+        ...prev,
+        message: (data.message as string) ?? 'Course blueprint ready',
+      }));
+      return {};
+    }
+
+    case 'quality_retry': {
+      const stage = data.stage as number;
+      const attempt = data.attempt as number;
+      setProgress(prev => ({
+        ...prev,
+        message: `Improving quality (attempt ${attempt}, stage ${stage})...`,
+      }));
+      return {};
+    }
+
+    case 'critic_review': {
+      const verdict = data.verdict as string;
+      setProgress(prev => ({
+        ...prev,
+        message: verdict === 'revise'
+          ? 'Reviewer requested improvements, refining...'
+          : 'Quality review passed',
+      }));
+      return {};
+    }
+
+    case 'replan_start': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Re-planning remaining chapters...',
+      }));
+      return {};
+    }
+
+    case 'replan_complete': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Re-planning complete, continuing...',
+      }));
+      return {};
+    }
+
+    case 'inline_healing': {
+      const healChapter = data.chapter as number;
+      setProgress(prev => ({
+        ...prev,
+        message: `Improving chapter ${healChapter} quality...`,
+      }));
+      return {};
+    }
+
+    case 'inline_healing_complete': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Quality improvement complete, continuing...',
+      }));
+      return {};
+    }
+
+    case 'course_reflection':
+    case 'ai_reflection': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Analyzing course coherence...',
+      }));
+      return {};
+    }
+
+    case 'healing_start': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Running autonomous quality improvement...',
+      }));
+      return {};
+    }
+
+    case 'healing_complete': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Quality improvement complete',
+      }));
+      return {};
+    }
+
+    case 'agentic_decision':
+    case 'bridge_content':
+    case 'chapter_skipped':
+    case 'critic_revision_accepted':
+    case 'self_critique':
+    case 'healing_chapter':
+    case 'healing_diagnosis':
+    case 'state_change': {
+      // Acknowledged but no UI state change needed
+      return {};
     }
 
     default:
@@ -633,7 +774,8 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     const totalChapters = courseData.totalChapters;
     const sectionsPerChapter = courseData.sectionsPerChapter;
     const totalSections = totalChapters * sectionsPerChapter;
-    totalItemsRef.current = totalChapters + totalSections + totalSections;
+    // Initial estimate — will be corrected by server's total_items event
+    totalItemsRef.current = Math.max(1, totalChapters + totalSections + totalSections);
 
     // Pre-populate completed items from dbProgress (Fix 2)
     const currentDbProgress = await fetchDbProgressForCourse(courseId);
@@ -781,8 +923,8 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     const totalChapters = courseData.totalChapters;
     const sectionsPerChapter = courseData.sectionsPerChapter;
     const totalSections = totalChapters * sectionsPerChapter;
-    // Total items = chapters + sections + section details
-    totalItemsRef.current = totalChapters + totalSections + totalSections;
+    // Initial estimate — will be corrected by server's total_items event
+    totalItemsRef.current = Math.max(1, totalChapters + totalSections + totalSections);
 
     // Set initial creating state
     setProgress({

@@ -16,7 +16,9 @@ export {
   getBloomsLevelForChapter,
   getContentAwareBloomsLevel,
   suggestContentType,
+  getStage3DesignExpertise,
 } from './prompts';
+export type { Stage3PromptOptions } from './prompts';
 
 // Orchestrator (coordinator)
 export { orchestrateCourseCreation, generateSingleChapter } from './orchestrator';

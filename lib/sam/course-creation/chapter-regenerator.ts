@@ -538,10 +538,15 @@ export async function regenerateChapter(
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
-        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
-          courseContext, newChapter, section, previousSections,
-          enrichedContext, chapterCategoryPrompt, undefined, regenS3TemplatePrompt
-        );
+        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
+          courseContext,
+          chapter: newChapter,
+          section,
+          chapterSections: previousSections,
+          enrichedContext,
+          categoryPrompt: chapterCategoryPrompt,
+          templatePrompt: regenS3TemplatePrompt,
+        });
         const augmentedS3User = s3QualityFeedback
           ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
           : s3User;
@@ -595,6 +600,8 @@ export async function regenerateChapter(
           description: details.description,
           learningObjectives: details.learningObjectives.join('\n'),
           resourceUrls: details.resources?.join('\n') ?? null,
+          practicalActivity: details.practicalActivity || null,
+          keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
         },
       });
 
@@ -855,10 +862,15 @@ export async function regenerateSectionsOnly(
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
-        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
-          courseContext, existingChapter, section, previousSections,
-          enrichedContext, composedCategoryPrompt, undefined, regenS3TemplatePrompt,
-        );
+        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
+          courseContext,
+          chapter: existingChapter,
+          section,
+          chapterSections: previousSections,
+          enrichedContext,
+          categoryPrompt: composedCategoryPrompt,
+          templatePrompt: regenS3TemplatePrompt,
+        });
         const augmentedS3User = s3QualityFeedback
           ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
           : s3User;
@@ -897,7 +909,13 @@ export async function regenerateSectionsOnly(
 
       await db.section.update({
         where: { id: dbSection.id },
-        data: { description: details.description, learningObjectives: details.learningObjectives.join('\n'), resourceUrls: details.resources?.join('\n') ?? null },
+        data: {
+          description: details.description,
+          learningObjectives: details.learningObjectives.join('\n'),
+          resourceUrls: details.resources?.join('\n') ?? null,
+          practicalActivity: details.practicalActivity || null,
+          keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
+        },
       });
 
       onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall } });
@@ -1056,10 +1074,15 @@ export async function regenerateDetailsOnly(
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
-        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
-          courseContext, existingChapter, section, existingSections,
-          enrichedContext, composedCategoryPrompt, undefined, regenS3TemplatePrompt,
-        );
+        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
+          courseContext,
+          chapter: existingChapter,
+          section,
+          chapterSections: existingSections,
+          enrichedContext,
+          categoryPrompt: composedCategoryPrompt,
+          templatePrompt: regenS3TemplatePrompt,
+        });
         const augmentedS3User = s3QualityFeedback
           ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
           : s3User;
@@ -1098,7 +1121,13 @@ export async function regenerateDetailsOnly(
 
       await db.section.update({
         where: { id: dbSec.id },
-        data: { description: details.description, learningObjectives: details.learningObjectives.join('\n'), resourceUrls: details.resources?.join('\n') ?? null },
+        data: {
+          description: details.description,
+          learningObjectives: details.learningObjectives.join('\n'),
+          resourceUrls: details.resources?.join('\n') ?? null,
+          practicalActivity: details.practicalActivity || null,
+          keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
+        },
       });
 
       onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall } });

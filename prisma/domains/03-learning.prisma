@@ -276,6 +276,8 @@ model Section {
   isPreview            Boolean?
   completionStatus     String?
   resourceUrls         String?
+  practicalActivity    String?               @db.Text
+  keyConceptsCovered   String?               @db.Text
   AIGeneratedContent   AIGeneratedContent[]
   articles             Article[]
   blogs                Blog[]

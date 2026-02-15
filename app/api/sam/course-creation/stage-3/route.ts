@@ -63,12 +63,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage3Res
     });
 
     // Build the prompt with full context
-    const { systemPrompt, userPrompt } = buildStage3Prompt(
+    const { systemPrompt, userPrompt } = buildStage3Prompt({
       courseContext,
       chapter,
-      currentSection,
-      chapterSections
-    );
+      section: currentSection,
+      chapterSections,
+    });
 
     // Create a user-scoped CoreAIAdapter for this request
     const aiAdapter = await createUserScopedAdapter(user.id, 'course');

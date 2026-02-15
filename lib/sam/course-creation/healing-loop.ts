@@ -93,8 +93,9 @@ export async function runHealingLoop(
     };
   }
 
-  const allRegeneratedChapters: number[] = [];
+  const allRegeneratedChapters = new Set<number>();
   let iterationsRun = 0;
+  let previousCoherence = reflection.coherenceScore;
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
     iterationsRun++;
@@ -134,8 +135,8 @@ export async function runHealingLoop(
       const chapter = completedChapters.find(ch => ch.position === flag.position);
       if (!chapter) continue;
 
-      // Skip if already regenerated in a prior iteration
-      if (allRegeneratedChapters.includes(flag.position)) continue;
+      // Skip if already regenerated in any prior iteration
+      if (allRegeneratedChapters.has(flag.position)) continue;
 
       logger.info('[HealingLoop] Regenerating chapter', {
         position: flag.position,
@@ -215,7 +216,7 @@ export async function runHealingLoop(
         }
 
         if (result.success) {
-          allRegeneratedChapters.push(flag.position);
+          allRegeneratedChapters.add(flag.position);
           logger.info('[HealingLoop] Chapter healed successfully', {
             position: flag.position,
             strategy: strategy.type,
@@ -249,7 +250,8 @@ export async function runHealingLoop(
     logger.info('[HealingLoop] Iteration complete', {
       iteration: iteration + 1,
       newCoherenceScore: reflection.coherenceScore,
-      chaptersRegenerated: allRegeneratedChapters.length,
+      previousCoherence,
+      chaptersRegenerated: allRegeneratedChapters.size,
     });
 
     // Stop if coherence is now above threshold
@@ -260,12 +262,24 @@ export async function runHealingLoop(
       });
       break;
     }
+
+    // Coherence regression guard: stop if healing made quality worse
+    if (reflection.coherenceScore < previousCoherence) {
+      logger.warn('[HealingLoop] Coherence regressed after healing — stopping to prevent further degradation', {
+        previousCoherence,
+        newCoherence: reflection.coherenceScore,
+        iteration: iteration + 1,
+      });
+      break;
+    }
+
+    previousCoherence = reflection.coherenceScore;
   }
 
   const result: HealingResult = {
-    healed: allRegeneratedChapters.length > 0,
+    healed: allRegeneratedChapters.size > 0,
     iterationsRun,
-    chaptersRegenerated: allRegeneratedChapters,
+    chaptersRegenerated: [...allRegeneratedChapters],
     finalCoherenceScore: reflection.coherenceScore,
     improvementDelta: reflection.coherenceScore - initialCoherence,
   };
