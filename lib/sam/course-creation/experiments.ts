@@ -132,6 +132,8 @@ export async function recordExperimentOutcome(
   assignment: ExperimentAssignment,
   outcome: ExperimentOutcome
 ): Promise<void> {
+  if (!planId) return;
+
   try {
     const plan = await db.sAMExecutionPlan.findUnique({
       where: { id: planId },

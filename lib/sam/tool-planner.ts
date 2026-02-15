@@ -73,7 +73,7 @@ const MODE_TOOL_AFFINITY: Record<string, string[]> = {
   'exam-builder': ['sam-exam-builder', 'sam-quiz-grader', 'sam-exam-evaluator'],
   'learning-coach': ['sam-flashcard-generator', 'sam-study-timer'],
   'blooms-analyzer': ['sam-diagram-generator'],
-  'course-architect': ['sam-course-creator'],
+  'course-architect': ['sam-course-creator', 'sam-course-chapter-generator', 'sam-course-healer'],
   'student-analytics': ['sam-student-analytics'],
   'creator-analytics': ['sam-creator-analytics'],
   'content-generator': ['sam-content-generator'],

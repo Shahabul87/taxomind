@@ -24,6 +24,8 @@ import {
   LEARNING_OBJECTIVES_FRAMEWORK,
 } from '@/lib/sam/prompts/content-generation-criteria';
 import type { ComposedCategoryPrompt } from './category-prompts';
+import type { RecalledMemory } from './memory-recall';
+import { buildMemoryRecallBlock } from './memory-recall';
 
 // ============================================================================
 // SAM's Pedagogical Expertise — Research-Backed Course Design Knowledge
@@ -297,7 +299,8 @@ export function buildStage1Prompt(
   categoryPrompt?: ComposedCategoryPrompt,
   completedChapters?: CompletedChapter[],
   variant?: string,
-  templatePrompt?: ComposedTemplatePrompt
+  templatePrompt?: ComposedTemplatePrompt,
+  recalledMemory?: RecalledMemory,
 ): StagePrompt {
   const bloomsLevel = getContentAwareBloomsLevel({
     chapterNumber: currentChapterNumber,
@@ -386,6 +389,9 @@ This chapter's suggested level is ${bloomsLevel}. If the content demands a diffe
 `;
   }
 
+  // Build memory recall section (Phase 2: bidirectional memory)
+  const memoryRecallSection = recalledMemory ? buildMemoryRecallBlock(recalledMemory) : '';
+
   // Build position-aware narrative guidance
   let positionGuidance = '';
   if (currentChapterNumber === 1) {
@@ -464,6 +470,7 @@ ${courseContext.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).j
 ## PREVIOUS CHAPTERS
 ${previousChaptersSummary}
 ${conceptFlowSection}
+${memoryRecallSection}
 ${domainChapterGuidance}
 ${templateBlock}
 ${positionGuidance}
@@ -570,7 +577,8 @@ export function buildStage2Prompt(
   enrichedContext?: EnrichedChapterContext,
   categoryPrompt?: ComposedCategoryPrompt,
   variant?: string,
-  templatePrompt?: ComposedTemplatePrompt
+  templatePrompt?: ComposedTemplatePrompt,
+  recalledMemory?: RecalledMemory,
 ): StagePrompt {
   const previousSectionsSummary = previousSections.length > 0
     ? previousSections.map(s => `- Section ${s.position}: "${s.title}" (${s.contentType}) - Focus: ${s.topicFocus}`).join('\n')
@@ -672,6 +680,7 @@ ${SECTION_THINKING_FRAMEWORK}`;
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 - **Chapter's Learning Arc (Topics)**: ${chapter.keyTopics.map((t, i) => `${i + 1}. ${t}`).join(' → ')}
 ${courseWideSection}
+${recalledMemory ? buildMemoryRecallBlock(recalledMemory) : ''}
 ## PREVIOUS SECTIONS IN THIS CHAPTER
 ${previousSectionsSummary}
 

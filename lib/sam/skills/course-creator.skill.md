@@ -1,22 +1,31 @@
-# Course Creator Skill
+# AI Course Creator
 
 ## What It Does
-Creates complete courses with AI-generated chapters, sections, and learning objectives.
-Each course is pedagogically aligned to Bloom's taxonomy with progressive cognitive complexity.
+Creates complete, pedagogically-structured courses using the ARROW framework
+with Bloom's taxonomy alignment, Chapter DNA Templates, and domain-specific
+expertise across 15 subject categories. Operates as a fully agentic pipeline
+with intelligent quality feedback, memory recall, self-critique, and adaptive
+strategy optimization.
 
 ## When to Use
-- User wants to create a new course or curriculum
-- User asks to build educational content
-- User needs a course outline or structure
-- User mentions creating lessons, modules, or learning paths for a subject
+- User asks to create/build/generate a course
+- User is in course-architect mode
+- User says "make me a course about X"
+- User wants to create educational content or curriculum
+- User needs a course outline or learning path for a subject
 
 ## Capabilities
-- Generate 3-15 chapters with learning objectives
-- Generate sections per chapter with content types (video, reading, quiz, etc.)
-- Enrich sections with detailed descriptions, activities, and resources
-- Quality scoring with retry on low scores (<60)
-- Bloom's taxonomy progression (REMEMBER through CREATE)
-- Concept tracking for curriculum coherence
+- 3-15 chapters with learning objectives and Bloom's progression
+- Depth-first pipeline (complete each chapter fully before next)
+- Chapter DNA Templates (beginner/intermediate/advanced)
+- 15 domain-specific category enhancers
+- Quality gates with intelligent feedback-driven retry (not blind retry)
+- Self-critique analyzes reasoning quality without extra AI calls
+- Memory recall from prior courses for cross-referencing and consistency
+- Adaptive strategy adjusts temperature, tokens, retries based on performance
+- Checkpoint/resume on failure with mid-chapter recovery
+- Cross-chapter concept consistency tracking (ConceptTracker)
+- SSE streaming with real-time thinking extraction
 
 ## Required Information
 1. Course name
@@ -28,8 +37,6 @@ Each course is pedagogically aligned to Bloom's taxonomy with progressive cognit
 7. Preferred content types (video, reading, assignment, quiz, project, discussion)
 
 ## Output
-- Course record with chapters and sections saved to database
-- Each chapter: title, description, Bloom's level, learning objectives, key topics
-- Each section: title, content type, learning objectives, activity, resources
-- Quality scores for every generated item
-- SAM Goal and ExecutionPlan tracking the creation process
+Course record with chapters, sections, and details in database.
+SAM Goal + ExecutionPlan for progress tracking.
+Quality scores with feedback-driven improvement on every generated item.

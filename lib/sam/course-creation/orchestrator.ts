@@ -13,8 +13,7 @@
  */
 
 import { db } from '@/lib/db';
-import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
-import type { AIAdapter as CoreAIAdapter } from '@sam-ai/core';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
 import {
@@ -24,9 +23,8 @@ import {
 } from './prompts';
 import {
   getTemplateForDifficulty,
-  getTemplateSectionDef,
   composeTemplatePromptBlocks,
-  type TemplateSectionDef,
+  selectTemplateSections,
 } from './chapter-templates';
 import {
   getActiveExperiment,
@@ -45,29 +43,49 @@ import {
   completeCourseCreation,
   failCourseCreation,
   reactivateCourseCreation,
+  initializeChapterSubGoal,
+  completeChapterSubGoal,
+  storeBlueprintInGoal,
+  storeDecisionInPlan,
+  storeReflectionInGoal,
 } from './course-creation-controller';
 import {
   persistConceptsBackground,
   persistQualityScoresBackground,
 } from './memory-persistence';
+import {
+  validateChapterWithSAM,
+  validateSectionWithSAM,
+  validateDetailsWithSAM,
+  blendScores,
+} from './quality-integration';
+import { runPostCreationEnrichmentBackground } from './post-creation-enrichment';
+import { extractQualityFeedback, buildQualityFeedbackBlock } from './quality-feedback';
+import type { QualityFeedback } from './quality-feedback';
+import { recallCourseCreationMemory, recallChapterContext } from './memory-recall';
+import type { RecalledMemory } from './memory-recall';
+import { planCourseBlueprint, buildBlueprintBlock, replanRemainingChapters } from './course-planner';
+import { evaluateChapterOutcome, buildAdaptiveGuidance, applyAgenticDecision, evaluateChapterOutcomeWithAI, generateBridgeContent } from './agentic-decisions';
+import { reflectOnCourse, reflectOnCourseWithAI } from './course-reflector';
+import { runHealingLoop } from './healing-loop';
+import type { ChapterTemplate } from './chapter-templates';
+import type { ComposedCategoryPrompt } from './category-prompts';
+import { regenerateChapter } from './chapter-regenerator';
+import { reviewChapterWithCritic } from './chapter-critic';
+import type { CourseBlueprintPlan, AgenticDecision, ChapterStepContext, ChapterStepResult } from './types';
+import { critiqueGeneration } from './self-critique';
+import { AdaptiveStrategyMonitor } from './adaptive-strategy';
+import { parseChapterResponse, parseSectionResponse, parseDetailsResponse } from './response-parsers';
+import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { COURSE_CATEGORIES } from '@/app/(protected)/teacher/create/ai-creator/types/sam-creator.types';
 import {
-  cleanTitle,
-  ensureArray,
   ensureOptionalArray,
-  normalizeContentType,
   parseDuration,
-  cleanAIResponse,
-  jaccardSimilarity,
   buildDefaultQualityScore,
-  scoreChapter,
-  scoreSection,
-  scoreDetails,
   validateChapterSectionCoverage,
   buildFallbackChapter,
   buildFallbackSection,
   buildFallbackDetails,
-  buildFallbackDescription,
 } from './helpers';
 import type {
   SequentialCreationConfig,
@@ -76,7 +94,6 @@ import type {
   CourseContext,
   GeneratedChapter,
   GeneratedSection,
-  SectionDetails,
   CompletedSection,
   CompletedChapter,
   BloomsLevel,
@@ -85,7 +102,6 @@ import type {
   ConceptTracker,
   ConceptEntry,
   EnrichedChapterContext,
-  CheckpointData,
   ResumeState,
 } from './types';
 
@@ -109,13 +125,668 @@ function resolveCategoryLabel(value: string): string {
   return match ? match.label : value;
 }
 
-const AI_MAX_TOKENS_CHAPTER = 4000;
-const AI_MAX_TOKENS_SECTION = 3000;
-const AI_MAX_TOKENS_DETAILS = 6000;
+/**
+ * Resolve the effective chapter count, comparing user's requested count
+ * with the AI blueprint's recommendation.
+ *
+ * Guardrails:
+ * - If no recommendation, use user's count
+ * - If recommendation differs by ≤2, use the recommendation
+ * - If recommendation differs by >2, clamp to ±2 from user's count
+ * - Hard bounds: min=3, max=15
+ */
+function resolveChapterCount(
+  userRequested: number,
+  blueprintRecommended: number | undefined,
+): number {
+  if (blueprintRecommended === undefined) return userRequested;
 
-// Quality gate thresholds
-const QUALITY_RETRY_THRESHOLD = 60; // Retry if score < 60
-const MAX_RETRIES = 2; // Up to 2 retries per item (3 total attempts)
+  // Clamp to ±2 from user's count
+  const clamped = Math.max(
+    userRequested - 2,
+    Math.min(userRequested + 2, blueprintRecommended),
+  );
+
+  // Hard bounds
+  return Math.max(3, Math.min(15, clamped));
+}
+
+// =============================================================================
+// SINGLE CHAPTER GENERATOR (extracted for AgentStateMachine step execution)
+// =============================================================================
+
+/** Callbacks for generateSingleChapter */
+interface ChapterGenerationCallbacks {
+  onSSEEvent?: OrchestrateOptions['onSSEEvent'];
+  onProgress?: OrchestrateOptions['onProgress'];
+  enableStreamingThinking?: boolean;
+}
+
+/**
+ * Generate a single chapter with all stages (depth-first).
+ * Extracted from the main loop for AgentStateMachine step execution.
+ *
+ * Stages:
+ *   1. Generate chapter structure
+ *   2. Generate all sections for the chapter
+ *   3. Generate details for all sections
+ *   4. Run between-chapter agentic decision
+ *
+ * Returns structured result with completed chapter and quality data.
+ */
+export async function generateSingleChapter(
+  userId: string,
+  context: ChapterStepContext,
+  callbacks: ChapterGenerationCallbacks,
+): Promise<ChapterStepResult> {
+  const {
+    chapterNumber: chNum,
+    courseId,
+    courseContext,
+    conceptTracker,
+    bloomsProgression,
+    allSectionTitles,
+    qualityScores,
+    completedChapters,
+    generatedChapters,
+    blueprintPlan,
+    lastAgenticDecision,
+    recalledMemory,
+    strategyMonitor,
+    chapterTemplate,
+    categoryPrompt: composedCategoryPrompt,
+    experimentVariant,
+  } = context;
+  const { onSSEEvent, enableStreamingThinking } = callbacks;
+
+  const totalChapters = courseContext.totalChapters;
+  // Dynamic section count — will be resolved after Stage 1 using blueprint recommendation
+  let effectiveSectionsPerChapter = chapterTemplate.totalSections;
+  const localQualityScores: QualityScore[] = [];
+  let chaptersCreated = 0;
+  let sectionsCreated = 0;
+
+  // =====================================================================
+  // STAGE 1: Generate this chapter
+  // =====================================================================
+  onSSEEvent?.({
+    type: 'item_generating',
+    data: { stage: 1, chapter: chNum, message: `Generating chapter ${chNum}...` },
+  });
+
+  const previousPlain = generatedChapters.map((ch) => stripId(ch));
+
+  // Quality gate: retry with feedback-driven improvement
+  const s1Strategy = strategyMonitor.getStrategy(1, chNum);
+  let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
+  let s1QualityFeedback: QualityFeedback | null = null;
+  const s1StartTime = Date.now();
+
+  for (let attempt = 0; attempt <= s1Strategy.maxRetries; attempt++) {
+    const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
+    const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
+      courseContext, chNum, previousPlain, conceptTracker,
+      composedCategoryPrompt, completedChapters, experimentVariant,
+      s1TemplatePrompt,
+      recalledMemory ?? undefined,
+    );
+
+    // Inject blueprint guidance and adaptive guidance
+    const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
+    const adaptiveBlock = lastAgenticDecision
+      ? buildAdaptiveGuidance(lastAgenticDecision, blueprintPlan ?? { chapterPlan: [], conceptDependencies: [], bloomsStrategy: [], riskAreas: [], planConfidence: 50 }, chNum)
+      : '';
+    const bridgeBlock = context.bridgeContent
+      ? `\n\n## CONCEPT BRIDGE (From Prior Chapter)\n${context.bridgeContent}\n`
+      : '';
+    const agenticBlocks = `${blueprintBlock}${adaptiveBlock}${bridgeBlock}`;
+
+    const augmentedS1User = s1QualityFeedback
+      ? `${s1User}${agenticBlocks}\n\n${buildQualityFeedbackBlock(s1QualityFeedback)}`
+      : `${s1User}${agenticBlocks}`;
+
+    const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature };
+    let responseText: string;
+    if (enableStreamingThinking) {
+      const { fullContent } = await streamWithThinkingExtraction({
+        userId, ...chatParams,
+        onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
+      });
+      responseText = fullContent;
+    } else {
+      responseText = await runSAMChatWithPreference({ userId, capability: 'course', ...chatParams });
+    }
+    const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters);
+
+    const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
+    const blended = blendScores(result.qualityScore, samResult);
+
+    if (blended.overall > bestResult.qualityScore.overall) {
+      bestResult = { ...result, qualityScore: blended };
+    }
+    if (blended.overall >= s1Strategy.retryThreshold || attempt === s1Strategy.maxRetries) break;
+
+    if (s1Strategy.enableSelfCritique) {
+      const critique = critiqueGeneration({
+        thinking: result.thinking,
+        output: responseText,
+        stage: 1,
+        bloomsLevel: result.chapter.bloomsLevel,
+        courseContext,
+        qualityScore: result.qualityScore,
+        samResult,
+        conceptTracker,
+      });
+
+      onSSEEvent?.({ type: 'self_critique', data: {
+        stage: 1, chapter: chNum, attempt: attempt + 1,
+        confidenceScore: critique.confidenceScore,
+        topImprovement: critique.topImprovements[0] ?? '',
+      }});
+
+      s1QualityFeedback = extractQualityFeedback(samResult, result.qualityScore, attempt + 2);
+      s1QualityFeedback.reasoningWeaknesses = critique.reasoningAnalysis.weakSteps.slice(0, 3);
+      s1QualityFeedback.missingStructure = critique.topImprovements.slice(0, 2);
+    } else {
+      s1QualityFeedback = extractQualityFeedback(samResult, result.qualityScore, attempt + 2);
+    }
+
+    onSSEEvent?.({ type: 'quality_retry', data: {
+      stage: 1, chapter: chNum, attempt: attempt + 1,
+      previousScore: blended.overall,
+      topIssue: s1QualityFeedback.criticalIssues[0] ?? 'Below threshold',
+    }});
+  }
+
+  strategyMonitor.record({
+    stage: 1, chapterNumber: chNum, score: bestResult.qualityScore.overall,
+    attempt: 0, timeMs: Date.now() - s1StartTime,
+  });
+
+  const { chapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
+  localQualityScores.push(chQuality);
+  qualityScores.push(chQuality);
+
+  // Update concept tracker
+  const chapterConcepts = chapter.conceptsIntroduced ?? chapter.keyTopics;
+  for (const concept of chapterConcepts) {
+    if (!conceptTracker.concepts.has(concept)) {
+      const entry: ConceptEntry = { concept, introducedInChapter: chNum, bloomsLevel: chapter.bloomsLevel };
+      conceptTracker.concepts.set(concept, entry);
+    }
+  }
+  conceptTracker.vocabulary.push(...chapter.keyTopics.filter(t => !conceptTracker.vocabulary.includes(t)));
+  bloomsProgression.push({ chapter: chNum, level: chapter.bloomsLevel, topics: chapter.keyTopics });
+
+  onSSEEvent?.({ type: 'thinking', data: { stage: 1, chapter: chNum, thinking: chThinking } });
+
+  // Save chapter to DB
+  const dbChapter = await db.chapter.create({
+    data: {
+      title: chapter.title,
+      description: chapter.description,
+      courseGoals: chapter.learningObjectives.join('\n'),
+      learningOutcomes: chapter.learningObjectives.join('\n'),
+      position: chapter.position,
+      courseId,
+      estimatedTime: chapter.estimatedTime,
+      prerequisites: chapter.prerequisites,
+      targetBloomsLevel: chapter.bloomsLevel,
+      sectionCount: effectiveSectionsPerChapter,
+      isPublished: false,
+    },
+  });
+
+  const chapterWithId = { ...chapter, id: dbChapter.id };
+  generatedChapters.push(chapterWithId);
+  chaptersCreated++;
+
+  onSSEEvent?.({
+    type: 'item_complete',
+    data: { stage: 1, chapter: chNum, title: chapter.title, id: dbChapter.id, qualityScore: chQuality.overall },
+  });
+
+  await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1' });
+
+  // =====================================================================
+  // MULTI-AGENT CRITIC: Review Stage 1 output with independent reviewer
+  // =====================================================================
+  try {
+    const criticReview = await reviewChapterWithCritic({
+      userId,
+      chapter,
+      courseContext,
+      priorChapters: completedChapters,
+      conceptTracker,
+    });
+
+    onSSEEvent?.({
+      type: 'critic_review',
+      data: {
+        chapter: chNum,
+        verdict: criticReview.verdict,
+        confidence: criticReview.confidence,
+        arrowCompliance: criticReview.arrowCompliance,
+        bloomsAlignment: criticReview.bloomsAlignment,
+        conceptFlow: criticReview.conceptFlow,
+        specificity: criticReview.specificity,
+        improvements: criticReview.actionableImprovements.length,
+      },
+    });
+
+    // If critic says REVISE: do ONE more retry with critic feedback injected
+    if (criticReview.verdict === 'revise' && criticReview.actionableImprovements.length > 0) {
+      logger.info('[ORCHESTRATOR] Critic requested revision, running one more Stage 1 attempt', {
+        chapter: chNum,
+        confidence: criticReview.confidence,
+        improvements: criticReview.actionableImprovements.length,
+      });
+
+      const criticFeedback = [
+        '\n\n## INDEPENDENT REVIEWER FEEDBACK',
+        '',
+        `An independent course quality reviewer scored your chapter and requests revision (confidence: ${criticReview.confidence}%).`,
+        '',
+        '### Required Improvements:',
+        ...criticReview.actionableImprovements.map((imp, i) => `${i + 1}. ${imp}`),
+        '',
+        `Dimension Scores: ARROW=${criticReview.arrowCompliance}, Bloom's=${criticReview.bloomsAlignment}, Concepts=${criticReview.conceptFlow}, Specificity=${criticReview.specificity}`,
+        '',
+        'Address ALL reviewer feedback. Generate a substantially improved version.',
+      ].join('\n');
+
+      const s1Retry = strategyMonitor.getStrategy(1, chNum);
+      const { systemPrompt: retrySystem, userPrompt: retryUser } = buildStage1Prompt(
+        courseContext, chNum, previousPlain, conceptTracker,
+        composedCategoryPrompt, completedChapters, experimentVariant,
+      );
+      const augmentedRetryUser = `${retryUser}${criticFeedback}`;
+
+      const retryResponse = await runSAMChatWithPreference({
+        userId,
+        capability: 'course',
+        messages: [{ role: 'user', content: augmentedRetryUser }],
+        systemPrompt: retrySystem,
+        maxTokens: s1Retry.maxTokens,
+        temperature: s1Retry.temperature,
+      });
+      const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters);
+
+      const retrySam = await validateChapterWithSAM(retryResult.chapter, retryResult.qualityScore, courseContext);
+      const retryBlended = blendScores(retryResult.qualityScore, retrySam);
+
+      // Accept revised version only if quality improves
+      if (retryBlended.overall > bestResult.qualityScore.overall) {
+        // Update the chapter data with the improved version
+        await db.chapter.update({
+          where: { id: dbChapter.id },
+          data: {
+            title: retryResult.chapter.title,
+            description: retryResult.chapter.description,
+            courseGoals: retryResult.chapter.learningObjectives.join('\n'),
+            learningOutcomes: retryResult.chapter.learningObjectives.join('\n'),
+            estimatedTime: retryResult.chapter.estimatedTime,
+            prerequisites: retryResult.chapter.prerequisites,
+            targetBloomsLevel: retryResult.chapter.bloomsLevel,
+          },
+        });
+
+        // Update in-memory references (chapterPlain is built from chapterWithId later)
+        Object.assign(chapter, retryResult.chapter);
+        Object.assign(chapterWithId, { ...retryResult.chapter, id: dbChapter.id });
+
+        // Update quality scores
+        localQualityScores[0] = retryBlended;
+        qualityScores[qualityScores.length - 1] = retryBlended;
+
+        onSSEEvent?.({
+          type: 'critic_revision_accepted',
+          data: {
+            chapter: chNum,
+            previousScore: bestResult.qualityScore.overall,
+            newScore: retryBlended.overall,
+            title: retryResult.chapter.title,
+          },
+        });
+
+        logger.info('[ORCHESTRATOR] Critic revision accepted', {
+          chapter: chNum,
+          improvement: retryBlended.overall - bestResult.qualityScore.overall,
+        });
+      }
+
+      await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' });
+    }
+  } catch (criticError) {
+    // Critic failure is non-blocking — proceed with original chapter
+    logger.warn('[ORCHESTRATOR] Critic review failed, proceeding with original', {
+      chapter: chNum,
+      error: criticError instanceof Error ? criticError.message : String(criticError),
+    });
+  }
+
+  // =====================================================================
+  // Dynamic section selection — use blueprint recommendation if available
+  // =====================================================================
+  const blueprintEntry = blueprintPlan?.chapters?.find(
+    (entry) => entry.position === chNum,
+  );
+  const selectedSections = selectTemplateSections(
+    chapterTemplate,
+    blueprintEntry?.recommendedSections,
+    chapter.bloomsLevel,
+  );
+  effectiveSectionsPerChapter = selectedSections.length;
+
+  // Update DB chapter's sectionCount if it changed
+  if (effectiveSectionsPerChapter !== chapterTemplate.totalSections) {
+    await db.chapter.update({
+      where: { id: dbChapter.id },
+      data: { sectionCount: effectiveSectionsPerChapter },
+    });
+  }
+
+  // =====================================================================
+  // STAGE 2: Generate all sections for this chapter
+  // =====================================================================
+  const chapterSections: (GeneratedSection & { id: string })[] = [];
+  const completedSections: CompletedSection[] = [];
+
+  const chapterPlain: GeneratedChapter = {
+    position: chapterWithId.position,
+    title: chapterWithId.title,
+    description: chapterWithId.description,
+    bloomsLevel: chapterWithId.bloomsLevel,
+    learningObjectives: chapterWithId.learningObjectives,
+    keyTopics: chapterWithId.keyTopics,
+    prerequisites: chapterWithId.prerequisites,
+    estimatedTime: chapterWithId.estimatedTime,
+    topicsToExpand: chapterWithId.topicsToExpand,
+    conceptsIntroduced: chapterWithId.conceptsIntroduced,
+  };
+
+  for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
+    const templateSectionDef = selectedSections[secNum - 1];
+    const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+
+    onSSEEvent?.({
+      type: 'item_generating',
+      data: { stage: 2, chapter: chNum, section: secNum, message: `Generating ${sectionRoleName}...` },
+    });
+
+    const enrichedContext: EnrichedChapterContext = {
+      allChapters: generatedChapters.map(ch => stripId(ch)),
+      conceptTracker,
+      bloomsProgression,
+    };
+
+    const previousPlainSections = chapterSections.map((s) => stripId(s));
+
+    // Quality gate: retry with feedback-driven improvement
+    const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
+    const s2Strategy = strategyMonitor.getStrategy(2, chNum);
+    let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) };
+    let s2QualityFeedback: QualityFeedback | null = null;
+    const s2StartTime = Date.now();
+
+    for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
+      const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+
+      const augmentedS2User = s2QualityFeedback
+        ? `${s2User}\n\n${buildQualityFeedbackBlock(s2QualityFeedback)}`
+        : s2User;
+
+      const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
+      let s2ResponseText: string;
+      if (enableStreamingThinking) {
+        const { fullContent } = await streamWithThinkingExtraction({
+          userId, ...s2ChatParams,
+          onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
+        });
+        s2ResponseText = fullContent;
+      } else {
+        s2ResponseText = await runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams });
+      }
+      const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
+
+      const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
+      const blendedSec = blendScores(result.qualityScore, samSecResult);
+
+      if (blendedSec.overall > bestSec.qualityScore.overall) {
+        bestSec = { ...result, qualityScore: blendedSec };
+      }
+      if (blendedSec.overall >= s2Strategy.retryThreshold || attempt === s2Strategy.maxRetries) break;
+
+      s2QualityFeedback = extractQualityFeedback(samSecResult, result.qualityScore, attempt + 2);
+
+      onSSEEvent?.({ type: 'quality_retry', data: {
+        stage: 2, chapter: chNum, section: secNum, attempt: attempt + 1,
+        previousScore: blendedSec.overall,
+        topIssue: s2QualityFeedback.criticalIssues[0] ?? 'Below threshold',
+      }});
+    }
+
+    strategyMonitor.record({
+      stage: 2, chapterNumber: chNum, sectionNumber: secNum,
+      score: bestSec.qualityScore.overall, attempt: 0, timeMs: Date.now() - s2StartTime,
+    });
+
+    const { section, thinking: secThinking } = bestSec;
+    section.templateRole = templateSectionDef?.role;
+
+    const secQuality = bestSec.qualityScore;
+    localQualityScores.push(secQuality);
+    qualityScores.push(secQuality);
+    allSectionTitles.push(section.title);
+
+    // Update concept tracker
+    const sectionConcepts = section.conceptsIntroduced ?? [];
+    for (const concept of sectionConcepts) {
+      if (!conceptTracker.concepts.has(concept)) {
+        const entry: ConceptEntry = { concept, introducedInChapter: chNum, introducedInSection: secNum, bloomsLevel: chapterWithId.bloomsLevel };
+        conceptTracker.concepts.set(concept, entry);
+      }
+    }
+
+    onSSEEvent?.({ type: 'thinking', data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking } });
+
+    // Save to DB
+    const durationMinutes = parseDuration(section.estimatedDuration);
+    const dbSection = await db.section.create({
+      data: {
+        title: section.title,
+        position: section.position,
+        chapterId: chapterWithId.id,
+        type: section.contentType,
+        duration: durationMinutes,
+        isPublished: false,
+      },
+    });
+
+    const sectionWithId = { ...section, id: dbSection.id };
+    chapterSections.push(sectionWithId);
+    completedSections.push({ ...section, id: dbSection.id });
+    sectionsCreated++;
+
+    onSSEEvent?.({
+      type: 'item_complete',
+      data: { stage: 2, chapter: chNum, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
+    });
+
+    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' });
+  }
+
+  // Chapter-section coverage validation
+  const coveredTopics = validateChapterSectionCoverage(
+    { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },
+    chapterSections
+  );
+  if (coveredTopics.uncoveredTopics.length > 0) {
+    logger.warn('[ORCHESTRATOR] Chapter-section coverage gap', {
+      chapter: chapter.title,
+      uncoveredTopics: coveredTopics.uncoveredTopics,
+      coverageScore: coveredTopics.coveragePercent,
+    });
+  }
+
+  // =====================================================================
+  // STAGE 3: Generate details for all sections of this chapter
+  // =====================================================================
+  for (let secIdx = 0; secIdx < chapterSections.length; secIdx++) {
+    const section = chapterSections[secIdx];
+
+    const s3SectionRoleName = selectedSections[section.position - 1]?.displayName ?? section.title;
+
+    onSSEEvent?.({
+      type: 'item_generating',
+      data: { stage: 3, chapter: chNum, section: section.position, message: `Generating content for ${s3SectionRoleName}...` },
+    });
+
+    const enrichedContext: EnrichedChapterContext = {
+      allChapters: generatedChapters.map(ch => stripId(ch)),
+      conceptTracker,
+      bloomsProgression,
+    };
+
+    const sectionPlain: GeneratedSection = {
+      position: section.position,
+      title: section.title,
+      contentType: section.contentType,
+      estimatedDuration: section.estimatedDuration,
+      topicFocus: section.topicFocus,
+      parentChapterContext: section.parentChapterContext,
+      conceptsIntroduced: section.conceptsIntroduced,
+      conceptsReferenced: section.conceptsReferenced,
+      templateRole: section.templateRole,
+    };
+    const allChapterSectionsPlain = chapterSections.map((s) => stripId(s));
+
+    // Quality gate: retry with feedback-driven improvement
+    const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
+    const s3TemplateDef = selectedSections[section.position - 1];
+    const s3Strategy = strategyMonitor.getStrategy(3, chNum);
+    let bestDet = {
+      details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef),
+      thinking: '',
+      qualityScore: buildDefaultQualityScore(50),
+    };
+    let s3QualityFeedback: QualityFeedback | null = null;
+    const s3StartTime = Date.now();
+
+    for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
+      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt, experimentVariant, s3TemplatePrompt);
+
+      const augmentedS3User = s3QualityFeedback
+        ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
+        : s3User;
+
+      const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature };
+      let s3ResponseText: string;
+      if (enableStreamingThinking) {
+        const { fullContent } = await streamWithThinkingExtraction({
+          userId, ...s3ChatParams,
+          onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
+        });
+        s3ResponseText = fullContent;
+      } else {
+        s3ResponseText = await runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams });
+      }
+      const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
+
+      const samDetResult = await validateDetailsWithSAM(
+        result.details, sectionPlain, chapterPlain.bloomsLevel, result.qualityScore, courseContext
+      );
+      const blendedDet = blendScores(result.qualityScore, samDetResult);
+
+      if (blendedDet.overall > bestDet.qualityScore.overall) {
+        bestDet = { ...result, qualityScore: blendedDet };
+      }
+      if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
+
+      s3QualityFeedback = extractQualityFeedback(samDetResult, result.qualityScore, attempt + 2);
+
+      onSSEEvent?.({ type: 'quality_retry', data: {
+        stage: 3, chapter: chNum, section: section.position, attempt: attempt + 1,
+        previousScore: blendedDet.overall,
+        topIssue: s3QualityFeedback.criticalIssues[0] ?? 'Below threshold',
+      }});
+    }
+
+    strategyMonitor.record({
+      stage: 3, chapterNumber: chNum, sectionNumber: section.position,
+      score: bestDet.qualityScore.overall, attempt: 0, timeMs: Date.now() - s3StartTime,
+    });
+
+    const { details, thinking: detThinking } = bestDet;
+    const detQuality = bestDet.qualityScore;
+    localQualityScores.push(detQuality);
+    qualityScores.push(detQuality);
+
+    // Update concept tracker
+    const detailConcepts = ensureOptionalArray(details.keyConceptsCovered);
+    for (const concept of detailConcepts) {
+      if (!conceptTracker.concepts.has(concept)) {
+        const entry: ConceptEntry = { concept, introducedInChapter: chNum, introducedInSection: section.position, bloomsLevel: chapterWithId.bloomsLevel };
+        conceptTracker.concepts.set(concept, entry);
+      }
+    }
+
+    completedSections[secIdx].details = details;
+
+    onSSEEvent?.({ type: 'thinking', data: { stage: 3, chapter: chNum, section: section.position, thinking: detThinking } });
+
+    // Update section in DB with details
+    await db.section.update({
+      where: { id: section.id },
+      data: {
+        description: details.description,
+        learningObjectives: details.learningObjectives.join('\n'),
+        resourceUrls: details.resources?.join('\n') ?? null,
+      },
+    });
+
+    onSSEEvent?.({
+      type: 'item_complete',
+      data: { stage: 3, chapter: chNum, section: section.position, title: section.title, qualityScore: detQuality.overall },
+    });
+
+    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' });
+  }
+
+  // =====================================================================
+  // CHAPTER FULLY COMPLETE
+  // =====================================================================
+  const completedChapter: CompletedChapter = {
+    ...chapter,
+    id: chapterWithId.id,
+    sections: completedSections,
+  };
+  completedChapters.push(completedChapter);
+
+  // Between-chapter agentic decision
+  let agenticDecision: AgenticDecision | null = null;
+  if (blueprintPlan && chNum < totalChapters) {
+    agenticDecision = evaluateChapterOutcome(
+      completedChapter,
+      qualityScores,
+      blueprintPlan,
+      conceptTracker,
+    );
+
+    onSSEEvent?.({
+      type: 'agentic_decision',
+      data: { chapter: chNum, action: agenticDecision.action, reasoning: agenticDecision.reasoning },
+    });
+  }
+
+  return {
+    completedChapter,
+    qualityScores: localQualityScores,
+    agenticDecision,
+    chaptersCreated,
+    sectionsCreated,
+  };
+}
 
 // =============================================================================
 // ORCHESTRATOR
@@ -126,25 +797,22 @@ export interface OrchestrateOptions {
   config: SequentialCreationConfig;
   onProgress?: (progress: CreationProgress) => void;
   onSSEEvent?: (event: { type: string; data: Record<string, unknown> }) => void;
-  /** Pre-built CoreAIAdapter — if omitted, one is created via createUserScopedAdapter */
-  aiAdapter?: CoreAIAdapter;
   /** AbortSignal for cancellation — checked before each chapter generation */
   abortSignal?: AbortSignal;
   /** Enable streaming thinking extraction (Phase 6). Default: false. */
   enableStreamingThinking?: boolean;
   /** Resume state — when provided, skips course/goal creation and resumes from checkpoint */
   resumeState?: ResumeState;
+  /** Use AgentStateMachine for execution. Default: true for new courses. */
+  useAgenticStateMachine?: boolean;
 }
 
 export async function orchestrateCourseCreation(
   options: OrchestrateOptions
 ): Promise<SequentialCreationResult> {
-  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState } = options;
+  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
-
-  // Create or receive a persistent CoreAIAdapter for this creation session.
-  const aiAdapter = options.aiAdapter ?? await createUserScopedAdapter(userId, 'course');
 
   // Resolve A/B experiment (if any active)
   const experimentAssignment: ExperimentAssignment | null = getActiveExperiment(userId);
@@ -207,8 +875,94 @@ export async function orchestrateCourseCreation(
     sectionsPerChapter: effectiveSectionsPerChapter,
   });
 
+  // Phase 2: Recall memory from prior course creations (3s timeout, safe fallback)
+  let recalledMemory: RecalledMemory | null = null;
+  try {
+    recalledMemory = await recallCourseCreationMemory(
+      userId,
+      courseContext.courseCategory,
+      courseContext.courseTitle,
+    );
+    if (recalledMemory.priorConcepts.length > 0 || recalledMemory.qualityPatterns) {
+      logger.info('[ORCHESTRATOR] Memory recalled from prior courses', {
+        priorConceptCount: recalledMemory.priorConcepts.length,
+        hasQualityPatterns: !!recalledMemory.qualityPatterns,
+      });
+    }
+  } catch {
+    // Memory recall failure is non-blocking
+    recalledMemory = null;
+  }
+
+  // Phase 5: Initialize adaptive strategy monitor
+  const strategyMonitor = new AdaptiveStrategyMonitor(
+    resumeState ? [] : undefined // Could seed with prior history from checkpoint
+  );
+
+  // Phase 7: Pre-generation course blueprint planning (new courses only)
+  let blueprintPlan: CourseBlueprintPlan | null = null;
+  let lastAgenticDecision: AgenticDecision | null = null;
+
+  if (!isResume) {
+    try {
+      onSSEEvent?.({
+        type: 'planning_start',
+        data: { message: 'Planning course blueprint...' },
+      });
+
+      blueprintPlan = await planCourseBlueprint(
+        userId,
+        courseContext,
+        recalledMemory ?? undefined,
+      );
+
+      onSSEEvent?.({
+        type: 'planning_complete',
+        data: {
+          message: 'Course blueprint ready',
+          chapterCount: blueprintPlan.chapterPlan.length,
+          confidence: blueprintPlan.planConfidence,
+          riskAreas: blueprintPlan.riskAreas.length,
+        },
+      });
+
+      logger.info('[ORCHESTRATOR] Course blueprint planned', {
+        chapters: blueprintPlan.chapterPlan.length,
+        confidence: blueprintPlan.planConfidence,
+      });
+    } catch {
+      // Blueprint planning is non-blocking
+      blueprintPlan = null;
+      logger.debug('[ORCHESTRATOR] Blueprint planning skipped');
+    }
+  }
+
+  // Resolve chapter count — AI may have recommended a different count
+  let totalChapters = config.totalChapters;
+  if (blueprintPlan) {
+    const resolvedTotal = resolveChapterCount(config.totalChapters, blueprintPlan.recommendedChapterCount);
+    if (resolvedTotal !== totalChapters) {
+      logger.info('[ORCHESTRATOR] Chapter count adjusted by blueprint', {
+        original: totalChapters,
+        resolved: resolvedTotal,
+      });
+      totalChapters = resolvedTotal;
+      courseContext.totalChapters = resolvedTotal;
+
+      // Update DB course record
+      await db.course.update({
+        where: { id: courseId },
+        data: { chapterCount: resolvedTotal },
+      });
+
+      onSSEEvent?.({
+        type: 'chapter_count_adjusted',
+        data: { original: config.totalChapters, resolved: resolvedTotal },
+      });
+    }
+  }
+
   // Calculate total items for percentage tracking
-  const totalChapters = config.totalChapters;
   const totalSections = totalChapters * effectiveSectionsPerChapter;
   const totalItems = totalChapters + totalSections + totalSections; // chapters + sections + details
   let completedItems = 0;
@@ -361,6 +1115,13 @@ export async function orchestrateCourseCreation(
       planId = goalPlan.planId;
       stepIds = goalPlan.stepIds;
       progress.goalId = goalId;
+
+      // Store blueprint in Goal context for later comparison
+      if (blueprintPlan && goalId) {
+        storeBlueprintInGoal(goalId, blueprintPlan as unknown as Record<string, unknown>).catch(() => {
+          /* non-blocking */
+        });
+      }
     }
 
     // =========================================================================
@@ -409,583 +1170,454 @@ export async function orchestrateCourseCreation(
     // Start loop from first chapter that needs work
     const startChapter = isResume ? resumeState!.completedChapterCount + 1 : 1;
 
-    for (let chNum = startChapter; chNum <= totalChapters; chNum++) {
-      // Check for cancellation before starting each chapter
-      if (abortSignal?.aborted) {
-        logger.info('[ORCHESTRATOR] Aborted before chapter', { chapter: chNum, chaptersCreated, sectionsCreated });
-        onSSEEvent?.({
-          type: 'complete',
-          data: {
-            courseId,
-            chaptersCreated,
-            sectionsCreated,
-            totalTime: Date.now() - startTime,
-            averageQualityScore: qualityScores.length > 0
-              ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
-              : 0,
-            cancelled: true,
-          },
-        });
-        return {
-          success: true,
-          courseId,
-          chaptersCreated,
-          sectionsCreated,
-          stats: {
-            totalChapters: chaptersCreated,
-            totalSections: sectionsCreated,
-            totalTime: Date.now() - startTime,
-            averageQualityScore: qualityScores.length > 0
-              ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
-              : 0,
-          },
-          goalId,
-          planId,
-        };
+    // Persistent healing queue — tracks chapters flagged for inline regeneration
+    const healingQueue: number[] = [];
+
+    // Bridge content — generated between chapters when concept gaps are detected
+    let bridgeContent = '';
+
+    // =====================================================================
+    // AGENTIC vs LEGACY PATH
+    // =====================================================================
+    const useStateMachine = useAgenticStateMachine ?? true;
+
+    logger.info('[ORCHESTRATOR] Execution path selected', {
+      useStateMachine,
+      isResume,
+      startChapter,
+      finalPath: useStateMachine ? 'agentic' : 'legacy',
+    });
+
+    if (useStateMachine) {
+      // AGENTIC PATH: Delegate to CourseCreationStateMachine
+      // Works for both new courses and resume — offset handles completed chapters
+      const { CourseCreationStateMachine } = await import('./course-state-machine');
+      const remainingCount = totalChapters - (startChapter - 1);
+      const chapterTitles = blueprintPlan
+        ? blueprintPlan.chapterPlan
+            .filter(e => e.position >= startChapter)
+            .map(e => e.suggestedTitle)
+        : Array.from({ length: remainingCount }, (_, i) => `Chapter ${startChapter + i}`);
+
+      // If blueprint filtering returned fewer titles than remaining, pad with defaults
+      while (chapterTitles.length < remainingCount) {
+        chapterTitles.push(`Chapter ${startChapter + chapterTitles.length}`);
       }
 
-      // =====================================================================
-      // STAGE 1: Generate this chapter
-      // =====================================================================
-      progress.state.stage = 1;
-      progress.state.currentChapter = chNum;
-      progress.state.phase = 'generating_chapter';
-      progress.currentItem = `Chapter ${chNum} of ${totalChapters}`;
-      emitProgress(`Generating chapter ${chNum} of ${totalChapters}...`);
-
-      onSSEEvent?.({
-        type: 'item_generating',
-        data: { stage: 1, chapter: chNum, message: `Generating chapter ${chNum}...` },
-      });
-
-      const previousPlain = generatedChapters.map((ch) => stripId(ch));
-
-      // Quality gate: retry up to MAX_RETRIES if score is below threshold
-      let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        // Pass completedChapters for rich section-level context from prior chapters
-        // Template prompt for Stage 1 uses position 1 (chapter-level awareness)
-        const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
-        const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
-          courseContext, chNum, previousPlain, conceptTracker,
-          composedCategoryPrompt, completedChapters, experimentVariant,
-          s1TemplatePrompt
-        );
-        const chatParams = { messages: [{ role: 'user' as const, content: s1User }], systemPrompt: s1System, maxTokens: AI_MAX_TOKENS_CHAPTER, temperature: 0.7 };
-        let responseText: string;
-        if (enableStreamingThinking) {
-          const { fullContent } = await streamWithThinkingExtraction({
-            aiAdapter, chatParams,
-            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
-          });
-          responseText = fullContent;
-        } else {
-          responseText = (await aiAdapter.chat(chatParams)).content;
-        }
-        const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters);
-
-        if (result.qualityScore.overall > bestResult.qualityScore.overall) {
-          bestResult = result;
-        }
-        if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
-
-        logger.info('[ORCHESTRATOR] Chapter quality below threshold, retrying', {
-          chapter: chNum, score: result.qualityScore.overall, attempt: attempt + 1,
-        });
-      }
-
-      const { chapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
-      qualityScores.push(chQuality);
-
-      // Update concept tracker with this chapter's concepts
-      const chapterConcepts = chapter.conceptsIntroduced ?? chapter.keyTopics;
-      for (const concept of chapterConcepts) {
-        if (!conceptTracker.concepts.has(concept)) {
-          const entry: ConceptEntry = {
-            concept,
-            introducedInChapter: chNum,
-            bloomsLevel: chapter.bloomsLevel,
-          };
-          conceptTracker.concepts.set(concept, entry);
-        }
-      }
-      conceptTracker.vocabulary.push(...chapter.keyTopics.filter(t => !conceptTracker.vocabulary.includes(t)));
-      bloomsProgression.push({
-        chapter: chNum,
-        level: chapter.bloomsLevel,
-        topics: chapter.keyTopics,
-      });
-
-      onSSEEvent?.({
-        type: 'thinking',
-        data: { stage: 1, chapter: chNum, thinking: chThinking },
-      });
-
-      // Save chapter to DB
-      progress.state.phase = 'saving_chapter';
-      emitProgress(`Saving chapter ${chNum}: ${chapter.title}...`);
-
-      const dbChapter = await db.chapter.create({
-        data: {
-          title: chapter.title,
-          description: chapter.description,
-          courseGoals: chapter.learningObjectives.join('\n'),
-          learningOutcomes: chapter.learningObjectives.join('\n'),
-          position: chapter.position,
-          courseId,
-          estimatedTime: chapter.estimatedTime,
-          prerequisites: chapter.prerequisites,
-          targetBloomsLevel: chapter.bloomsLevel,
-          sectionCount: effectiveSectionsPerChapter,
-          isPublished: false,
-        },
-      });
-
-      const chapterWithId = { ...chapter, id: dbChapter.id };
-      generatedChapters.push(chapterWithId);
-      chaptersCreated++;
-      completedItems++;
-
-      progress.completedItems.chapters.push({
-        position: chapter.position,
-        title: chapter.title,
-        id: dbChapter.id,
-        qualityScore: chQuality.overall,
-      });
-
-      onSSEEvent?.({
-        type: 'item_complete',
-        data: {
-          stage: 1,
-          chapter: chNum,
-          title: chapter.title,
-          id: dbChapter.id,
-          qualityScore: chQuality.overall,
-        },
-      });
-
-      await recordAIUsage(userId, 'course', 1, {
-        requestType: 'orchestrator-stage-1',
-      });
-
-      logger.info('[ORCHESTRATOR] Chapter saved', {
-        chapterNum: chNum,
-        title: chapter.title,
-        qualityScore: chQuality.overall,
-      });
-
-      // =====================================================================
-      // STAGE 2: Generate all sections for this chapter
-      // =====================================================================
-      progress.state.stage = 2;
-      if (chNum === 1) {
-        onSSEEvent?.({ type: 'stage_start', data: { stage: 2, message: 'Generating sections...' } });
-      }
-
-      const chapterSections: (GeneratedSection & { id: string })[] = [];
-      const completedSections: CompletedSection[] = [];
-
-      // Build plain chapter for prompt builders
-      const chapterPlain: GeneratedChapter = {
-        position: chapterWithId.position,
-        title: chapterWithId.title,
-        description: chapterWithId.description,
-        bloomsLevel: chapterWithId.bloomsLevel,
-        learningObjectives: chapterWithId.learningObjectives,
-        keyTopics: chapterWithId.keyTopics,
-        prerequisites: chapterWithId.prerequisites,
-        estimatedTime: chapterWithId.estimatedTime,
-        topicsToExpand: chapterWithId.topicsToExpand,
-        conceptsIntroduced: chapterWithId.conceptsIntroduced,
-      };
-
-      for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
-        // Get template section def for progress messages
-        const templateSectionDef = chapterTemplate.sections[secNum - 1];
-        const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
-
-        progress.state.currentSection = secNum;
-        progress.state.phase = 'generating_section';
-        progress.currentItem = `Chapter ${chNum}, ${sectionRoleName}`;
-        emitProgress(
-          `Generating ${sectionRoleName} (${secNum}/${effectiveSectionsPerChapter}) for "${chapter.title}"...`
-        );
-
-        onSSEEvent?.({
-          type: 'item_generating',
-          data: {
-            stage: 2,
-            chapter: chNum,
-            section: secNum,
-            message: `Generating ${sectionRoleName}...`,
-          },
-        });
-
-        const enrichedContext: EnrichedChapterContext = {
-          allChapters: generatedChapters.map(ch => stripId(ch)),
+      const stateMachine = new CourseCreationStateMachine({
+        userId,
+        courseId,
+        goalId,
+        planId,
+        totalChapters,
+        courseContext,
+        onSSEEvent,
+        enableStreamingThinking,
+        startChapterOffset: startChapter - 1,
+        sharedState: {
+          completedChapters,
+          generatedChapters,
+          qualityScores,
+          allSectionTitles,
           conceptTracker,
           bloomsProgression,
-        };
+          blueprintPlan,
+          lastAgenticDecision,
+          recalledMemory,
+          strategyMonitor,
+          healingQueue,
+          bridgeContent,
+          stepIds,
+          chapterTemplate,
+          categoryPrompt: composedCategoryPrompt,
+          experimentVariant,
+          config,
+        },
+      });
 
-        const previousPlainSections = chapterSections.map((s) => stripId(s));
-
-        // Quality gate: retry up to MAX_RETRIES if score is below threshold
-        const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
-        let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) };
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt, experimentVariant, s2TemplatePrompt);
-          const s2ChatParams = { messages: [{ role: 'user' as const, content: s2User }], systemPrompt: s2System, maxTokens: AI_MAX_TOKENS_SECTION, temperature: 0.7 };
-          let s2ResponseText: string;
-          if (enableStreamingThinking) {
-            const { fullContent } = await streamWithThinkingExtraction({
-              aiAdapter, chatParams: s2ChatParams,
-              onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
-            });
-            s2ResponseText = fullContent;
-          } else {
-            s2ResponseText = (await aiAdapter.chat(s2ChatParams)).content;
-          }
-          const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
-
-          if (result.qualityScore.overall > bestSec.qualityScore.overall) {
-            bestSec = result;
-          }
-          if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
-
-          logger.info('[ORCHESTRATOR] Section quality below threshold, retrying', {
-            chapter: chNum, section: secNum, score: result.qualityScore.overall, attempt: attempt + 1,
-          });
-        }
-
-        const { section, thinking: secThinking, qualityScore: secQuality } = bestSec;
-        // Set template role from Chapter DNA
-        section.templateRole = templateSectionDef?.role;
-        qualityScores.push(secQuality);
-        allSectionTitles.push(section.title);
-
-        // Update concept tracker with section concepts
-        const sectionConcepts = section.conceptsIntroduced ?? [];
-        for (const concept of sectionConcepts) {
-          if (!conceptTracker.concepts.has(concept)) {
-            const entry: ConceptEntry = {
-              concept,
-              introducedInChapter: chNum,
-              introducedInSection: secNum,
-              bloomsLevel: chapterWithId.bloomsLevel,
-            };
-            conceptTracker.concepts.set(concept, entry);
-          }
-        }
-
-        onSSEEvent?.({
-          type: 'thinking',
-          data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking },
-        });
-
-        // Save to DB
-        progress.state.phase = 'saving_section';
-        emitProgress(`Saving section: ${section.title}...`);
-
-        const durationMinutes = parseDuration(section.estimatedDuration);
-
-        const dbSection = await db.section.create({
-          data: {
-            title: section.title,
-            position: section.position,
-            chapterId: chapterWithId.id,
-            type: section.contentType,
-            duration: durationMinutes,
-            isPublished: false,
-          },
-        });
-
-        const sectionWithId = { ...section, id: dbSection.id };
-        chapterSections.push(sectionWithId);
-        completedSections.push({ ...section, id: dbSection.id });
-        sectionsCreated++;
-        completedItems++;
-
-        progress.completedItems.sections.push({
-          chapterPosition: chNum,
-          position: section.position,
-          title: section.title,
-          id: dbSection.id,
-          qualityScore: secQuality.overall,
-        });
-
-        onSSEEvent?.({
-          type: 'item_complete',
-          data: {
-            stage: 2,
-            chapter: chNum,
-            section: secNum,
-            title: section.title,
-            id: dbSection.id,
-            qualityScore: secQuality.overall,
-          },
-        });
-
-        await recordAIUsage(userId, 'course', 1, {
-          requestType: 'orchestrator-stage-2',
-        });
-
-        logger.info('[ORCHESTRATOR] Section saved', {
-          chapter: chapter.title,
-          section: section.title,
-          qualityScore: secQuality.overall,
-        });
-      }
-
-      allSections.set(chapterWithId.id, chapterSections);
-
-      // Chapter-section coverage validation
-      const coveredTopics = validateChapterSectionCoverage(
-        { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },
-        chapterSections
-      );
-      if (coveredTopics.uncoveredTopics.length > 0) {
-        logger.warn('[ORCHESTRATOR] Chapter-section coverage gap', {
-          chapter: chapter.title,
-          uncoveredTopics: coveredTopics.uncoveredTopics,
-          coverageScore: coveredTopics.coveragePercent,
-        });
-      }
-
-      // Checkpoint after all sections generated (Stage 2 complete for this chapter)
-      // This saves section structure so Stage 3 failure doesn't require regenerating sections
-      await saveCheckpointWithRetry(courseId, userId, planId, {
+      await stateMachine.start(chapterTitles, (chNum) => ({
+        chapterNumber: chNum,
+        courseId,
+        courseContext,
         conceptTracker,
         bloomsProgression,
         allSectionTitles,
         qualityScores,
-        completedChapterCount: chaptersCreated,
-        config,
-        goalId,
-        planId,
-        stepIds,
-        courseId,
-        completedChaptersList: completedChapters,
-        percentage: Math.round((chaptersCreated / totalChapters) * 100),
-        status: 'in_progress',
-        lastCompletedStage: 2,
-        currentChapterNumber: chNum,
-      });
+        completedChapters,
+        generatedChapters,
+        blueprintPlan,
+        lastAgenticDecision,
+        recalledMemory,
+        strategyMonitor,
+        chapterTemplate,
+        categoryPrompt: composedCategoryPrompt,
+        experimentVariant,
+      }));
 
-      // =====================================================================
-      // STAGE 3: Generate details for all sections of this chapter
-      // =====================================================================
-      progress.state.stage = 3;
-      if (chNum === 1 && !isResume) {
-        onSSEEvent?.({ type: 'stage_start', data: { stage: 3, message: 'Generating section details...' } });
-      }
-
-      for (let secIdx = 0; secIdx < chapterSections.length; secIdx++) {
-        const section = chapterSections[secIdx];
-
-        // On resume, skip sections that already have descriptions
-        if (isResume && resumeState?.sectionsWithDetails.has(section.id)) {
-          completedItems++;
-          logger.info('[ORCHESTRATOR] Skipping section with existing details (resume)', {
-            section: section.title,
-            sectionId: section.id,
+      chaptersCreated = completedChapters.length;
+      sectionsCreated = completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0);
+    } else {
+      // LEGACY PATH: Original for-loop (backward compatibility + resume)
+      for (let chNum = startChapter; chNum <= totalChapters; chNum++) {
+        // Check for cancellation before starting each chapter
+        if (abortSignal?.aborted) {
+          logger.info('[ORCHESTRATOR] Aborted before chapter', { chapter: chNum, chaptersCreated, sectionsCreated });
+          onSSEEvent?.({
+            type: 'complete',
+            data: {
+              courseId,
+              chaptersCreated,
+              sectionsCreated,
+              totalTime: Date.now() - startTime,
+              averageQualityScore: qualityScores.length > 0
+                ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
+                : 0,
+              cancelled: true,
+            },
           });
-          continue;
+          return {
+            success: true,
+            courseId,
+            chaptersCreated,
+            sectionsCreated,
+            stats: {
+              totalChapters: chaptersCreated,
+              totalSections: sectionsCreated,
+              totalTime: Date.now() - startTime,
+              averageQualityScore: qualityScores.length > 0
+                ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
+                : 0,
+            },
+            goalId,
+            planId,
+          };
         }
 
-        const s3SectionRoleName = chapterTemplate.sections[section.position - 1]?.displayName ?? section.title;
-        progress.state.currentSection = section.position;
-        progress.state.phase = 'generating_details';
-        progress.currentItem = `Details for ${s3SectionRoleName}`;
-        emitProgress(`Generating content for ${s3SectionRoleName}: "${section.title}"...`);
+        // Create SubGoal for this chapter (Phase 3: granular goal tracking)
+        const chapterSubGoalId = await initializeChapterSubGoal(
+          goalId,
+          chNum,
+          `Chapter ${chNum}`,
+          totalChapters,
+          courseContext.difficulty === 'expert' ? 'hard' : courseContext.difficulty === 'beginner' ? 'easy' : 'medium',
+        );
 
-        onSSEEvent?.({
-          type: 'item_generating',
-          data: {
-            stage: 3,
-            chapter: chNum,
-            section: section.position,
-            message: `Generating content for ${s3SectionRoleName}...`,
-          },
-        });
+        // =====================================================================
+        // Generate chapter via extracted function (all 3 stages)
+        // =====================================================================
+        progress.state.stage = 1;
+        progress.state.currentChapter = chNum;
+        progress.state.phase = 'generating_chapter';
+        progress.currentItem = `Chapter ${chNum} of ${totalChapters}`;
+        emitProgress(`Generating chapter ${chNum} of ${totalChapters}...`);
 
-        const enrichedContext: EnrichedChapterContext = {
-          allChapters: generatedChapters.map(ch => stripId(ch)),
+        const chapterStepContext: ChapterStepContext = {
+          chapterNumber: chNum,
+          courseId,
+          courseContext,
           conceptTracker,
           bloomsProgression,
+          allSectionTitles,
+          qualityScores,
+          completedChapters,
+          generatedChapters,
+          blueprintPlan,
+          lastAgenticDecision,
+          recalledMemory,
+          strategyMonitor,
+          chapterTemplate,
+          categoryPrompt: composedCategoryPrompt,
+          experimentVariant,
+          bridgeContent: bridgeContent || undefined,
         };
 
-        const sectionPlain: GeneratedSection = {
-          position: section.position,
-          title: section.title,
-          contentType: section.contentType,
-          estimatedDuration: section.estimatedDuration,
-          topicFocus: section.topicFocus,
-          parentChapterContext: section.parentChapterContext,
-          conceptsIntroduced: section.conceptsIntroduced,
-          conceptsReferenced: section.conceptsReferenced,
-          templateRole: section.templateRole,
-        };
-        const allChapterSectionsPlain = chapterSections.map((s) => stripId(s));
+        const chapterResult = await generateSingleChapter(
+          userId,
+          chapterStepContext,
+          { onSSEEvent, enableStreamingThinking },
+        );
 
-        // Quality gate: retry up to MAX_RETRIES if score is below threshold
-        const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
-        const s3TemplateDef = chapterTemplate.sections[section.position - 1];
-        let bestDet = {
-          details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef),
-          thinking: '',
-          qualityScore: buildDefaultQualityScore(50),
-        };
-        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt, experimentVariant, s3TemplatePrompt);
-          const s3ChatParams = { messages: [{ role: 'user' as const, content: s3User }], systemPrompt: s3System, maxTokens: AI_MAX_TOKENS_DETAILS, temperature: 0.7 };
-          let s3ResponseText: string;
-          if (enableStreamingThinking) {
-            const { fullContent } = await streamWithThinkingExtraction({
-              aiAdapter, chatParams: s3ChatParams,
-              onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
-            });
-            s3ResponseText = fullContent;
-          } else {
-            s3ResponseText = (await aiAdapter.chat(s3ChatParams)).content;
-          }
-          const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
+        // Clear consumed bridge content
+        bridgeContent = '';
 
-          if (result.qualityScore.overall > bestDet.qualityScore.overall) {
-            bestDet = result;
-          }
-          if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
+        chaptersCreated += chapterResult.chaptersCreated;
+        sectionsCreated += chapterResult.sectionsCreated;
+        completedItems += 1 + 2 * effectiveSectionsPerChapter; // chapter + sections + details
 
-          logger.info('[ORCHESTRATOR] Details quality below threshold, retrying', {
-            section: section.title, score: result.qualityScore.overall, attempt: attempt + 1,
+        // Update progress completedItems for SSE
+        progress.completedItems.chapters.push({
+          position: chapterResult.completedChapter.position,
+          title: chapterResult.completedChapter.title,
+          id: chapterResult.completedChapter.id,
+          qualityScore: chapterResult.qualityScores[0]?.overall,
+        });
+        for (const sec of chapterResult.completedChapter.sections) {
+          progress.completedItems.sections.push({
+            chapterPosition: chNum,
+            position: sec.position,
+            title: sec.title,
+            id: sec.id,
           });
         }
 
-        const { details, thinking: detThinking, qualityScore: detQuality } = bestDet;
-        qualityScores.push(detQuality);
+        logger.info('[ORCHESTRATOR] Chapter fully completed (depth-first)', {
+          chapter: chNum,
+          title: chapterResult.completedChapter.title,
+          sectionsCompleted: chapterResult.completedChapter.sections.length,
+          conceptsTracked: conceptTracker.concepts.size,
+        });
 
-        // Update concept tracker with details concepts
-        const detailConcepts = ensureOptionalArray(details.keyConceptsCovered);
-        for (const concept of detailConcepts) {
-          if (!conceptTracker.concepts.has(concept)) {
-            const entry: ConceptEntry = {
-              concept,
-              introducedInChapter: chNum,
-              introducedInSection: section.position,
-              bloomsLevel: chapterWithId.bloomsLevel,
-            };
-            conceptTracker.concepts.set(concept, entry);
+        // Mark chapter SubGoal as completed
+        await completeChapterSubGoal(chapterSubGoalId, {
+          chapterNumber: chNum,
+          sectionsCompleted: chapterResult.completedChapter.sections.length,
+          qualityScore: chapterResult.qualityScores[0]?.overall ?? 0,
+        });
+
+        // Persist memory after each completed chapter (background)
+        persistConceptsBackground(userId, courseId, conceptTracker, chNum, courseContext.courseTitle, courseContext.courseCategory);
+        persistQualityScoresBackground(userId, courseId, qualityScores.slice(), chNum);
+
+        // Between-chapter memory recall
+        if (chNum < totalChapters) {
+          try {
+            const relatedConcepts = await recallChapterContext(
+              userId,
+              courseId,
+              chapterResult.completedChapter.keyTopics,
+            );
+            if (relatedConcepts.length > 0) {
+              if (recalledMemory) {
+                recalledMemory.relatedConcepts = [
+                  ...recalledMemory.relatedConcepts,
+                  ...relatedConcepts.filter(
+                    rc => !recalledMemory!.relatedConcepts.some(existing => existing.name === rc.name),
+                  ),
+                ].slice(0, 15);
+              }
+            }
+          } catch {
+            // Memory recall failure is non-blocking
           }
         }
 
-        // Store details on the completed section for next chapter's context
-        completedSections[secIdx].details = details;
+        // AI-driven agentic decision after chapter completion
+        if (chapterResult.agenticDecision && chNum < totalChapters) {
+          // Upgrade to AI-driven decision (falls back to rule-based on failure)
+          if (blueprintPlan) {
+            try {
+              lastAgenticDecision = await evaluateChapterOutcomeWithAI(
+                userId,
+                chapterResult.completedChapter,
+                completedChapters,
+                qualityScores,
+                blueprintPlan,
+                conceptTracker,
+                courseContext,
+              );
 
-        onSSEEvent?.({
-          type: 'thinking',
-          data: { stage: 3, chapter: chNum, section: section.position, thinking: detThinking },
-        });
+              onSSEEvent?.({
+                type: 'agentic_decision',
+                data: {
+                  chapter: chNum,
+                  action: lastAgenticDecision.action,
+                  reasoning: lastAgenticDecision.reasoning,
+                  decisionType: 'ai_decision',
+                },
+              });
+            } catch {
+              lastAgenticDecision = chapterResult.agenticDecision;
+            }
+          } else {
+            lastAgenticDecision = chapterResult.agenticDecision;
+          }
 
-        // Update section in DB with details
-        progress.state.phase = 'saving_details';
-        emitProgress(`Saving details for "${section.title}"...`);
+          // Store decision in plan (background)
+          storeDecisionInPlan(
+            planId,
+            chNum,
+            lastAgenticDecision as unknown as Record<string, unknown>,
+          ).catch(() => { /* non-blocking */ });
 
-        await db.section.update({
-          where: { id: section.id },
-          data: {
-            description: details.description,
-            learningObjectives: details.learningObjectives.join('\n'),
-            resourceUrls: details.resources?.join('\n') ?? null,
-          },
-        });
+          // Apply the decision (actionable agentic decisions)
+          applyAgenticDecision(lastAgenticDecision, strategyMonitor, healingQueue);
 
-        completedItems++;
+          // Handle inject_bridge_content: generate bridge for next chapter
+          if (lastAgenticDecision.action === 'inject_bridge_content' && chNum < totalChapters) {
+            try {
+              const nextBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum + 1);
+              const conceptGaps = lastAgenticDecision.actionPayload?.conceptGaps ?? [];
+              bridgeContent = await generateBridgeContent(
+                userId,
+                chapterResult.completedChapter,
+                nextBlueprintEntry,
+                conceptGaps,
+                courseContext,
+              );
+              onSSEEvent?.({
+                type: 'bridge_content',
+                data: {
+                  chapter: chNum,
+                  bridgeLength: bridgeContent.length,
+                  conceptGaps: conceptGaps.length,
+                },
+              });
+            } catch {
+              logger.warn('[ORCHESTRATOR] Bridge content generation failed');
+            }
+          }
 
-        onSSEEvent?.({
-          type: 'item_complete',
-          data: {
-            stage: 3,
-            chapter: chNum,
-            section: section.position,
-            title: section.title,
-            qualityScore: detQuality.overall,
-          },
-        });
+          // Dynamic re-planning when triggered
+          if (lastAgenticDecision.action === 'replan_remaining' && chNum < totalChapters) {
+            onSSEEvent?.({ type: 'replan_start', data: { reason: lastAgenticDecision.reasoning } });
+            try {
+              blueprintPlan = await replanRemainingChapters(userId, courseContext, completedChapters, conceptTracker, blueprintPlan);
+              onSSEEvent?.({ type: 'replan_complete', data: { remainingChapters: blueprintPlan?.chapterPlan.length ?? 0 } });
+            } catch {
+              logger.warn('[ORCHESTRATOR] Re-planning failed, continuing with existing blueprint');
+            }
+          }
+        } else if (chapterResult.agenticDecision) {
+          lastAgenticDecision = chapterResult.agenticDecision;
+        }
 
-        await recordAIUsage(userId, 'course', 1, {
-          requestType: 'orchestrator-stage-3',
-        });
+        // Inline healing: drain healing queue before next chapter
+        if (healingQueue.length > 0) {
+          const chaptersToHeal = healingQueue.splice(0, healingQueue.length);
+          for (const healChapterNum of chaptersToHeal) {
+            const healTarget = completedChapters.find(ch => ch.position === healChapterNum);
+            if (!healTarget) continue;
 
-        // Per-section checkpoint: save after each section detail so mid-chapter
-        // failures don't lose already-generated content (Bug #3 fix)
-        const sectionPercentage = Math.round(
-          ((chaptersCreated * effectiveSectionsPerChapter + secIdx + 1) /
-            (totalChapters * effectiveSectionsPerChapter)) * 100
-        );
+            onSSEEvent?.({ type: 'inline_healing', data: { chapter: healChapterNum } });
+            try {
+              const healResult = await regenerateChapter({
+                userId,
+                courseId,
+                chapterId: healTarget.id,
+                chapterPosition: healChapterNum,
+                onSSEEvent,
+              });
+              onSSEEvent?.({
+                type: 'inline_healing_complete',
+                data: {
+                  chapter: healChapterNum,
+                  success: healResult.success,
+                  qualityScore: healResult.qualityScore,
+                },
+              });
+            } catch {
+              logger.warn('[ORCHESTRATOR] Inline healing failed', { chapter: healChapterNum });
+            }
+          }
+        }
+
+        // Checkpoint after chapter completion
         await saveCheckpointWithRetry(courseId, userId, planId, {
           conceptTracker,
           bloomsProgression,
           allSectionTitles,
           qualityScores,
-          completedChapterCount: chaptersCreated,
+          completedChapterCount: chNum,
           config,
           goalId,
           planId,
           stepIds,
           courseId,
           completedChaptersList: completedChapters,
-          percentage: sectionPercentage,
+          percentage: Math.round((chNum / config.totalChapters) * 100),
           status: 'in_progress',
           lastCompletedStage: 3,
-          lastCompletedSectionIndex: secIdx,
           currentChapterNumber: chNum,
         });
+      }
+    } // end AGENTIC vs LEGACY PATH
 
-        logger.info('[ORCHESTRATOR] Details saved', {
-          section: section.title,
-          qualityScore: detQuality.overall,
-        });
+    // =========================================================================
+    // Phase 7: Post-generation course reflection
+    // =========================================================================
+    let courseReflection = null;
+    try {
+      courseReflection = await reflectOnCourseWithAI(
+        userId,
+        completedChapters,
+        conceptTracker,
+        courseContext,
+        qualityScores,
+        blueprintPlan ?? undefined,
+      );
+
+      onSSEEvent?.({
+        type: 'course_reflection',
+        data: {
+          coherenceScore: courseReflection.coherenceScore,
+          bloomsIsMonotonic: courseReflection.bloomsProgression.isMonotonic,
+          totalConcepts: courseReflection.conceptCoverage.totalConcepts,
+          flaggedChapters: courseReflection.flaggedChapters.length,
+          summary: courseReflection.summary,
+        },
+      });
+
+      onSSEEvent?.({
+        type: 'ai_reflection',
+        data: {
+          coherenceScore: courseReflection.coherenceScore,
+          flaggedChapters: courseReflection.flaggedChapters.length,
+          summary: courseReflection.summary,
+        },
+      });
+
+      // Store reflection in Goal (background)
+      if (goalId) {
+        storeReflectionInGoal(
+          goalId,
+          courseReflection as unknown as Record<string, unknown>,
+        ).catch(() => { /* non-blocking */ });
       }
 
-      // =====================================================================
-      // CHAPTER FULLY COMPLETE — store for next chapter's rich context
-      // =====================================================================
-      const completedChapter: CompletedChapter = {
-        ...chapter,
-        id: chapterWithId.id,
-        sections: completedSections,
-      };
-      completedChapters.push(completedChapter);
-
-      logger.info('[ORCHESTRATOR] Chapter fully completed (depth-first)', {
-        chapter: chNum,
-        title: chapter.title,
-        sectionsCompleted: completedSections.length,
-        conceptsTracked: conceptTracker.concepts.size,
+      logger.info('[ORCHESTRATOR] Course reflection complete', {
+        coherenceScore: courseReflection.coherenceScore,
+        flaggedChapters: courseReflection.flaggedChapters.length,
       });
+    } catch {
+      // Reflection failure is non-blocking
+      logger.debug('[ORCHESTRATOR] Course reflection skipped');
+    }
 
-      // Persist memory after each completed chapter (background)
-      persistConceptsBackground(userId, courseId, conceptTracker, chNum);
-      persistQualityScoresBackground(userId, courseId, qualityScores.slice(), chNum);
+    // =========================================================================
+    // Phase 8: Autonomous healing loop
+    // =========================================================================
+    if (courseReflection && courseReflection.flaggedChapters.length > 0) {
+      const highSeverity = courseReflection.flaggedChapters.filter(f => f.severity === 'high');
 
-      // Save checkpoint for resume-on-failure (awaited for reliability — Bug #5 fix)
-      const chapterPercentage = Math.round((chNum / config.totalChapters) * 100);
-      await saveCheckpointWithRetry(courseId, userId, planId, {
-        conceptTracker,
-        bloomsProgression,
-        allSectionTitles,
-        qualityScores,
-        completedChapterCount: chNum,
-        config,
-        goalId,
-        planId,
-        stepIds,
-        courseId,
-        completedChaptersList: completedChapters,
-        percentage: chapterPercentage,
-        status: 'in_progress',
-        lastCompletedStage: 3,
-        currentChapterNumber: chNum,
-      });
+      if (highSeverity.length > 0 && courseReflection.coherenceScore < 70) {
+        try {
+          const healingResult = await runHealingLoop(
+            {
+              userId,
+              courseId,
+              maxHealingIterations: 2,
+              minCoherenceScore: 70,
+              severityThreshold: 'high',
+            },
+            completedChapters,
+            conceptTracker,
+            courseContext,
+            qualityScores,
+            blueprintPlan,
+            onSSEEvent,
+          );
+
+          logger.info('[ORCHESTRATOR] Healing loop complete', {
+            healed: healingResult.healed,
+            chaptersRegenerated: healingResult.chaptersRegenerated,
+            finalCoherenceScore: healingResult.finalCoherenceScore,
+            improvement: healingResult.improvementDelta,
+          });
+        } catch {
+          // Healing loop failure is non-blocking
+          logger.warn('[ORCHESTRATOR] Healing loop failed, continuing');
+        }
+      }
     }
 
     // Emit stage completion events and finalize goal tracking
@@ -1061,6 +1693,14 @@ export async function orchestrateCourseCreation(
       },
     });
 
+    // Phase 4: Post-creation enrichment (fire-and-forget)
+    // Builds knowledge graph + Bloom's cognitive profile in background
+    runPostCreationEnrichmentBackground({
+      userId,
+      courseId,
+      courseTitle: config.courseTitle,
+    });
+
     return {
       success: true,
       courseId,
@@ -1109,926 +1749,21 @@ export async function orchestrateCourseCreation(
 }
 
 // =============================================================================
-// RESPONSE PARSERS
+// RE-EXPORTS from extracted modules
 // =============================================================================
 
-/**
- * Parse Stage 1 (chapter) AI response.
- */
-function parseChapterResponse(
-  responseText: string,
-  chapterNumber: number,
-  courseContext: CourseContext,
-  previousChapters: (GeneratedChapter & { id: string })[]
-): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
-  try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
-    const thinking = parsed.thinking ?? 'Generated chapter based on course context.';
-    const ch = parsed.chapter;
+// Response parsers (extracted to response-parsers.ts)
+export { parseChapterResponse, parseSectionResponse, parseDetailsResponse } from './response-parsers';
 
-    if (!ch) throw new Error('No chapter data in response');
+// Checkpoint/resume (extracted to checkpoint-manager.ts)
+export { resumeCourseCreation, saveCheckpoint, saveCheckpointWithRetry } from './checkpoint-manager';
+export type { SaveCheckpointInput } from './checkpoint-manager';
 
-    const chapter: GeneratedChapter = {
-      position: chapterNumber,
-      title: cleanTitle(ch.title, chapterNumber, courseContext.courseTitle),
-      description: ch.description ?? buildFallbackDescription(courseContext),
-      bloomsLevel: ch.bloomsLevel ?? 'UNDERSTAND',
-      learningObjectives: ensureArray(ch.learningObjectives, courseContext.learningObjectivesPerChapter),
-      keyTopics: ensureArray(ch.keyTopics, 3),
-      prerequisites: ch.prerequisites ?? 'None',
-      estimatedTime: ch.estimatedTime ?? '1-2 hours',
-      topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, 3),
-      conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics),
-    };
+// Chapter regeneration (extracted to chapter-regenerator.ts)
+export { regenerateChapter } from './chapter-regenerator';
+export type { RegenerateChapterOptions, RegenerateChapterResult } from './chapter-regenerator';
 
-    const qualityScore = scoreChapter(chapter, courseContext, previousChapters);
-    return { chapter, thinking, qualityScore };
-  } catch {
-    logger.warn('[ORCHESTRATOR] Failed to parse chapter response, using fallback');
-    return {
-      chapter: buildFallbackChapter(chapterNumber, courseContext),
-      thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: buildDefaultQualityScore(50),
-    };
-  }
-}
-
-/**
- * Parse Stage 2 (section) AI response.
- */
-function parseSectionResponse(
-  responseText: string,
-  sectionNumber: number,
-  chapter: GeneratedChapter,
-  existingTitles: string[],
-  templateDef?: TemplateSectionDef
-): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
-  try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
-    const thinking = parsed.thinking ?? 'Generated section based on chapter context.';
-    const sec = parsed.section;
-
-    if (!sec) throw new Error('No section data in response');
-
-    let title = sec.title ?? `Section ${sectionNumber}`;
-    // Ensure uniqueness
-    if (existingTitles.some((t) => t.toLowerCase() === title.toLowerCase())) {
-      title = `${title} - ${chapter.title.split(':')[0]}`;
-    }
-
-    const contentType = normalizeContentType(sec.contentType);
-
-    const section: GeneratedSection = {
-      position: sectionNumber,
-      title,
-      contentType,
-      estimatedDuration: sec.estimatedDuration ?? '15-20 minutes',
-      topicFocus: sec.topicFocus ?? title,
-      parentChapterContext: {
-        title: chapter.title,
-        bloomsLevel: chapter.bloomsLevel,
-        relevantObjectives: sec.parentChapterContext?.relevantObjectives ??
-          chapter.learningObjectives.slice(0, 2),
-      },
-      conceptsIntroduced: ensureOptionalArray(sec.conceptsIntroduced),
-      conceptsReferenced: ensureOptionalArray(sec.conceptsReferenced),
-    };
-
-    const qualityScore = scoreSection(section, existingTitles, templateDef);
-    return { section, thinking, qualityScore };
-  } catch {
-    logger.warn('[ORCHESTRATOR] Failed to parse section response, using fallback');
-    return {
-      section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
-      thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: buildDefaultQualityScore(50),
-    };
-  }
-}
-
-/**
- * Parse Stage 3 (details) AI response.
- */
-function parseDetailsResponse(
-  responseText: string,
-  chapter: GeneratedChapter,
-  section: GeneratedSection,
-  courseContext: CourseContext,
-  templateDef?: TemplateSectionDef
-): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
-  try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
-    const thinking = parsed.thinking ?? 'Generated section details based on context.';
-    const det = parsed.details;
-
-    if (!det) throw new Error('No details data in response');
-
-    const details: SectionDetails = {
-      description: det.description ?? `This section covers ${section.topicFocus}.`,
-      learningObjectives: ensureArray(det.learningObjectives, courseContext.learningObjectivesPerSection),
-      keyConceptsCovered: ensureArray(det.keyConceptsCovered ?? det.conceptsIntroduced, 3),
-      practicalActivity: det.practicalActivity ?? `Practice the concepts from "${section.title}".`,
-      resources: det.resources,
-    };
-
-    const qualityScore = scoreDetails(details, section, chapter.bloomsLevel, templateDef);
-    return { details, thinking, qualityScore };
-  } catch {
-    logger.warn('[ORCHESTRATOR] Failed to parse details response, using fallback');
-    return {
-      details: buildFallbackDetails(chapter, section, courseContext, templateDef),
-      thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: buildDefaultQualityScore(50),
-    };
-  }
-}
-
-// =============================================================================
-// CHECKPOINT / RESUME
-// =============================================================================
-
-interface SaveCheckpointInput {
-  conceptTracker: ConceptTracker;
-  bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
-  allSectionTitles: string[];
-  qualityScores: QualityScore[];
-  completedChapterCount: number;
-  config: SequentialCreationConfig;
-  goalId: string;
-  planId: string;
-  stepIds: string[];
-  // UI-visible progress fields
-  courseId: string;
-  completedChaptersList: CompletedChapter[];
-  percentage: number;
-  status: CheckpointData['status'];
-  // Mid-chapter recovery fields
-  lastCompletedStage?: 1 | 2 | 3;
-  lastCompletedSectionIndex?: number;
-  currentChapterNumber?: number;
-}
-
-/**
- * Save checkpoint to SAMExecutionPlan.checkpointData for resume-on-failure.
- * ConceptTracker.concepts (Map) is serialized as an array of entries.
- */
-async function saveCheckpoint(cId: string, planId: string, input: SaveCheckpointInput): Promise<void> {
-  const {
-    conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
-    completedChapterCount, config, goalId, stepIds,
-    completedChaptersList, percentage, status,
-    lastCompletedStage, lastCompletedSectionIndex, currentChapterNumber,
-  } = input;
-
-  const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } = config;
-
-  const checkpoint: CheckpointData = {
-    conceptEntries: Array.from(conceptTracker.concepts.entries()),
-    vocabulary: conceptTracker.vocabulary,
-    skillsBuilt: conceptTracker.skillsBuilt,
-    bloomsProgression,
-    allSectionTitles,
-    completedChapterCount,
-    config: serializableConfig,
-    qualityScores,
-    goalId,
-    planId,
-    stepIds,
-    savedAt: new Date().toISOString(),
-    // Mid-chapter recovery
-    lastCompletedStage,
-    lastCompletedSectionIndex,
-    currentChapterNumber,
-    // UI-visible progress fields
-    courseId: cId,
-    totalChapters: config.totalChapters,
-    percentage,
-    status,
-    completedChapters: completedChaptersList.map(ch => ({
-      position: ch.position,
-      title: ch.title,
-      id: ch.id,
-      qualityScore: qualityScores[ch.position - 1]?.overall,
-    })),
-    completedSections: completedChaptersList.flatMap(ch =>
-      ch.sections.map(sec => ({
-        chapterPosition: ch.position,
-        position: sec.position,
-        title: sec.title,
-        id: sec.id,
-      }))
-    ),
-  };
-
-  await db.sAMExecutionPlan.update({
-    where: { id: planId },
-    data: {
-      checkpointData: checkpoint as unknown as Record<string, unknown>,
-    },
-  });
-
-  logger.debug('[ORCHESTRATOR] Checkpoint saved', {
-    courseId: cId,
-    completedChapterCount,
-    lastCompletedStage,
-    lastCompletedSectionIndex,
-  });
-}
-
-/**
- * Save checkpoint with retry — ensures checkpoint persistence is reliable.
- * Retries once on failure before logging a warning.
- */
-async function saveCheckpointWithRetry(
-  cId: string,
-  userId: string,
-  pId: string,
-  input: SaveCheckpointInput
-): Promise<void> {
-  try {
-    await saveCheckpoint(cId, pId, input);
-  } catch (err) {
-    logger.warn('[ORCHESTRATOR] Checkpoint save failed, retrying once...', {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    try {
-      await saveCheckpoint(cId, pId, input);
-    } catch (retryErr) {
-      // Log but don't throw — checkpoint failure shouldn't kill the pipeline
-      logger.error('[ORCHESTRATOR] Checkpoint save failed after retry', {
-        error: retryErr instanceof Error ? retryErr.message : String(retryErr),
-        courseId: cId,
-        completedChapterCount: input.completedChapterCount,
-      });
-    }
-  }
-}
-
-/**
- * Resume a failed course creation from a checkpoint.
- *
- * Reconstructs ResumeState from checkpoint + DB, then passes it to
- * orchestrateCourseCreation which skips course creation, threads the
- * existing state, and continues the depth-first pipeline from where
- * it left off — no duplicate course, no wasted tokens.
- */
-export async function resumeCourseCreation(
-  options: OrchestrateOptions & { resumeCourseId: string }
-): Promise<SequentialCreationResult> {
-  const { userId, resumeCourseId, onProgress, onSSEEvent } = options;
-
-  try {
-    // 1. Load checkpoint from SAMExecutionPlan
-    const plan = await db.sAMExecutionPlan.findFirst({
-      where: {
-        steps: {
-          some: {
-            metadata: {
-              path: ['courseId'],
-              equals: resumeCourseId,
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!plan?.checkpointData) {
-      return { success: false, error: 'No checkpoint found for this course' };
-    }
-
-    const checkpoint = plan.checkpointData as unknown as CheckpointData;
-
-    // 2. Verify course exists and belongs to user
-    const course = await db.course.findUnique({
-      where: { id: resumeCourseId },
-      include: {
-        chapters: {
-          orderBy: { position: 'asc' },
-          include: {
-            sections: {
-              orderBy: { position: 'asc' },
-            },
-          },
-        },
-      },
-    });
-
-    if (!course) {
-      return { success: false, error: 'Course not found' };
-    }
-    if (course.isPublished) {
-      return { success: false, error: 'Cannot resume: course is already published' };
-    }
-    if (course.userId !== userId) {
-      return { success: false, error: 'Unauthorized: course belongs to another user' };
-    }
-
-    // 3. Reconstruct config (checkpoint config + any overrides from current options)
-    const config = {
-      ...checkpoint.config,
-      ...(options.config ?? {}),
-    } as SequentialCreationConfig;
-
-    const completedChapterCount = checkpoint.completedChapterCount;
-    const totalChapters = config.totalChapters;
-
-    // Resolve template-driven section count for resume validation
-    const resumeTemplate = getTemplateForDifficulty(config.difficulty);
-    const resumeEffectiveSections = resumeTemplate.totalSections;
-
-    if (completedChapterCount >= totalChapters) {
-      return {
-        success: true,
-        courseId: resumeCourseId,
-        chaptersCreated: completedChapterCount,
-        sectionsCreated: course.chapters.reduce((sum, ch) => sum + ch.sections.length, 0),
-      };
-    }
-
-    // 4. Reconstruct concept tracker from checkpoint
-    const conceptTracker: ConceptTracker = {
-      concepts: new Map(checkpoint.conceptEntries ?? []),
-      vocabulary: checkpoint.vocabulary ?? [],
-      skillsBuilt: checkpoint.skillsBuilt ?? [],
-    };
-
-    // 5. Build CompletedChapters from DB for the fully-completed chapters
-    //    These are chapters 1..completedChapterCount
-    const fullyCompletedDbChapters = course.chapters.slice(0, completedChapterCount);
-    const completedChapters: CompletedChapter[] = fullyCompletedDbChapters.map(ch => ({
-      id: ch.id,
-      position: ch.position,
-      title: ch.title,
-      description: ch.description ?? '',
-      bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
-      learningObjectives: (ch.courseGoals ?? '').split('\n').filter(Boolean),
-      keyTopics: [],
-      prerequisites: '',
-      estimatedTime: ch.estimatedTime ?? '1-2 hours',
-      topicsToExpand: [],
-      sections: ch.sections.map(sec => ({
-        id: sec.id,
-        position: sec.position,
-        title: sec.title,
-        contentType: (sec.type ?? 'video') as ContentType,
-        estimatedDuration: sec.duration ? `${sec.duration} minutes` : '15-20 minutes',
-        topicFocus: sec.title,
-        parentChapterContext: {
-          title: ch.title,
-          bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
-          relevantObjectives: (ch.courseGoals ?? '').split('\n').filter(Boolean).slice(0, 2),
-        },
-        details: sec.description ? {
-          description: sec.description,
-          learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
-          keyConceptsCovered: [],
-          practicalActivity: '',
-        } : undefined,
-      })),
-    }));
-
-    // 6. Detect partial chapter (chapter beyond completedChapterCount that may have
-    //    some sections already with descriptions from per-section checkpointing)
-    const sectionsWithDetails = new Set<string>();
-    const partialDbChapter = course.chapters[completedChapterCount]; // 0-indexed
-
-    if (partialDbChapter) {
-      // This chapter exists in DB — it was started but not fully completed
-      for (const sec of partialDbChapter.sections) {
-        // A section has details if description is non-trivial (> 100 chars of content)
-        if (sec.description && sec.description.length > 100) {
-          sectionsWithDetails.add(sec.id);
-        }
-      }
-
-      logger.info('[ORCHESTRATOR] Partial chapter detected for resume', {
-        chapterPosition: partialDbChapter.position,
-        totalSections: partialDbChapter.sections.length,
-        sectionsWithDetails: sectionsWithDetails.size,
-        expectedSections: resumeEffectiveSections,
-      });
-
-      // If the partial chapter has fewer sections than expected, we'll need to
-      // delete it and regenerate (Stage 1+2 incomplete). Only keep it if all
-      // sections exist (Stage 2 complete, Stage 3 partially done).
-      if (partialDbChapter.sections.length < resumeEffectiveSections) {
-        // Incomplete Stage 2 — delete partial chapter, regenerate from scratch
-        await db.section.deleteMany({ where: { chapterId: partialDbChapter.id } });
-        await db.chapter.delete({ where: { id: partialDbChapter.id } });
-        sectionsWithDetails.clear();
-        logger.info('[ORCHESTRATOR] Deleted incomplete partial chapter (missing sections)', {
-          chapterId: partialDbChapter.id,
-          had: partialDbChapter.sections.length,
-          expected: resumeEffectiveSections,
-        });
-      }
-    }
-
-    // 7. Delete any orphan chapters beyond the partial/resume point
-    const keepCount = completedChapterCount +
-      (partialDbChapter && partialDbChapter.sections.length >= resumeEffectiveSections ? 1 : 0);
-    const orphanChapters = course.chapters.slice(keepCount);
-
-    for (const ch of orphanChapters) {
-      await db.section.deleteMany({ where: { chapterId: ch.id } });
-      await db.chapter.delete({ where: { id: ch.id } });
-    }
-    if (orphanChapters.length > 0) {
-      logger.info('[ORCHESTRATOR] Deleted orphan chapters beyond resume point', {
-        deleted: orphanChapters.length,
-      });
-    }
-
-    // 8. Build ResumeState
-    const resume: ResumeState = {
-      courseId: resumeCourseId,
-      goalId: checkpoint.goalId,
-      planId: checkpoint.planId,
-      stepIds: checkpoint.stepIds ?? [],
-      completedChapters,
-      conceptTracker,
-      bloomsProgression: checkpoint.bloomsProgression ?? [],
-      allSectionTitles: checkpoint.allSectionTitles ?? [],
-      qualityScores: checkpoint.qualityScores ?? [],
-      completedChapterCount,
-      sectionsWithDetails,
-    };
-
-    logger.info('[ORCHESTRATOR] Resume state built', {
-      courseId: resumeCourseId,
-      completedChapters: completedChapterCount,
-      totalChapters,
-      sectionsWithDetails: sectionsWithDetails.size,
-    });
-
-    // 9. Call orchestrateCourseCreation with resumeState — it will skip
-    //    course creation, thread the existing state, and start the loop
-    //    from completedChapterCount + 1
-    const result = await orchestrateCourseCreation({
-      ...options,
-      config: {
-        ...config,
-        onProgress: onProgress ?? config.onProgress,
-      },
-      resumeState: resume,
-    });
-
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[ORCHESTRATOR] Resume failed:', errorMessage);
-    return {
-      success: false,
-      error: `Resume failed: ${errorMessage}`,
-    };
-  }
-}
-
-// =============================================================================
-// CHAPTER REGENERATION
-// =============================================================================
-
-export interface RegenerateChapterOptions {
-  userId: string;
-  courseId: string;
-  chapterId: string;
-  chapterPosition: number;
-  /** Pre-built CoreAIAdapter — if omitted, one is created via createUserScopedAdapter */
-  aiAdapter?: CoreAIAdapter;
-  onSSEEvent?: (event: { type: string; data: Record<string, unknown> }) => void;
-}
-
-export interface RegenerateChapterResult {
-  success: boolean;
-  chapterId?: string;
-  chapterTitle?: string;
-  sectionsRegenerated?: number;
-  qualityScore?: number;
-  error?: string;
-}
-
-/**
- * Regenerate a single chapter and all its sections.
- *
- * 1. Loads the course with all chapters + sections
- * 2. Builds context from neighboring chapters (excluding the target)
- * 3. Deletes the target chapter's existing sections
- * 4. Regenerates the chapter (Stage 1) with quality gates
- * 5. Regenerates all sections (Stage 2) with quality gates
- * 6. Regenerates all details (Stage 3) with quality gates
- * 7. Updates DB records
- */
-export async function regenerateChapter(
-  options: RegenerateChapterOptions
-): Promise<RegenerateChapterResult> {
-  const { userId, courseId, chapterId, chapterPosition, onSSEEvent } = options;
-
-  try {
-    // 1. Load course with all chapters and sections
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      include: {
-        chapters: {
-          orderBy: { position: 'asc' },
-          include: {
-            sections: {
-              orderBy: { position: 'asc' },
-            },
-          },
-        },
-        category: true,
-      },
-    });
-
-    if (!course) return { success: false, error: 'Course not found' };
-    if (course.userId !== userId) return { success: false, error: 'Unauthorized' };
-
-    const targetChapter = course.chapters.find(ch => ch.id === chapterId);
-    if (!targetChapter) return { success: false, error: 'Chapter not found' };
-
-    // Check for user-added content (videos, exams attached to sections)
-    const sectionsWithContent = await db.section.findMany({
-      where: {
-        chapterId,
-        OR: [
-          { muxData: { isNot: null } },
-          { userProgress: { some: {} } },
-        ],
-      },
-      select: { id: true, title: true },
-    });
-
-    if (sectionsWithContent.length > 0) {
-      logger.warn('[ORCHESTRATOR] Chapter has user-added content, proceeding with regeneration', {
-        chapterId,
-        sectionsWithContent: sectionsWithContent.map(s => s.title),
-      });
-    }
-
-    // 2. Build CourseContext from course record
-    const courseGoals = course.courseGoals?.split('\n').filter(Boolean) ?? [];
-    const courseContext: CourseContext = {
-      courseTitle: course.title,
-      courseDescription: course.description ?? '',
-      courseCategory: course.category?.name ?? 'General',
-      targetAudience: 'learners',
-      difficulty: (course.difficulty ?? 'intermediate') as CourseContext['difficulty'],
-      courseLearningObjectives: courseGoals,
-      totalChapters: course.chapters.length,
-      sectionsPerChapter: targetChapter.sections.length || 3,
-      bloomsFocus: ['UNDERSTAND', 'APPLY', 'ANALYZE'] as BloomsLevel[],
-      learningObjectivesPerChapter: 5,
-      learningObjectivesPerSection: 3,
-    };
-
-    // 3. Build context from surrounding chapters (excluding target)
-    const otherChapters = course.chapters
-      .filter(ch => ch.id !== chapterId)
-      .map(ch => ({
-        position: ch.position,
-        title: ch.title,
-        description: ch.description ?? '',
-        bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
-        learningObjectives: (ch.courseGoals ?? '').split('\n').filter(Boolean),
-        keyTopics: [] as string[],
-        prerequisites: '',
-        estimatedTime: ch.estimatedTime ?? '1-2 hours',
-        topicsToExpand: [] as string[],
-      }));
-
-    // Collect all section titles (excluding target chapter's sections)
-    const allSectionTitles = course.chapters
-      .filter(ch => ch.id !== chapterId)
-      .flatMap(ch => ch.sections.map(s => s.title));
-
-    const sectionCount = targetChapter.sections.length || courseContext.sectionsPerChapter;
-
-    // 4. Get AI adapter
-    const aiAdapter = options.aiAdapter ?? await createUserScopedAdapter(userId, 'course');
-
-    // Category prompt enhancer
-    const categoryEnhancer = getCategoryEnhancer(
-      courseContext.courseCategory,
-      courseContext.courseSubcategory
-    );
-    const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
-
-    // Resolve chapter template for regeneration
-    const regenTemplate = getTemplateForDifficulty(courseContext.difficulty);
-
-    // Concept tracker from existing chapters
-    const conceptTracker: ConceptTracker = {
-      concepts: new Map(),
-      vocabulary: [],
-      skillsBuilt: [],
-    };
-    const bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }> = [];
-
-    for (const ch of otherChapters) {
-      bloomsProgression.push({
-        chapter: ch.position,
-        level: ch.bloomsLevel,
-        topics: ch.learningObjectives.slice(0, 3),
-      });
-    }
-
-    // Build CompletedChapter array for context
-    const completedChapters: CompletedChapter[] = course.chapters
-      .filter(ch => ch.id !== chapterId && ch.position < chapterPosition)
-      .map(ch => ({
-        id: ch.id,
-        position: ch.position,
-        title: ch.title,
-        description: ch.description ?? '',
-        bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
-        learningObjectives: (ch.courseGoals ?? '').split('\n').filter(Boolean),
-        keyTopics: [],
-        prerequisites: '',
-        estimatedTime: ch.estimatedTime ?? '1-2 hours',
-        topicsToExpand: [],
-        sections: ch.sections.map(sec => ({
-          id: sec.id,
-          position: sec.position,
-          title: sec.title,
-          contentType: (sec.type ?? 'video') as ContentType,
-          estimatedDuration: sec.duration ? `${sec.duration} minutes` : '15-20 minutes',
-          topicFocus: sec.title,
-          parentChapterContext: {
-            title: ch.title,
-            bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
-            relevantObjectives: (ch.courseGoals ?? '').split('\n').filter(Boolean).slice(0, 2),
-          },
-          details: sec.description ? {
-            description: sec.description,
-            learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
-            keyConceptsCovered: [],
-            practicalActivity: '',
-          } : undefined,
-        })),
-      }));
-
-    const qualityScores: QualityScore[] = [];
-
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: `Regenerating chapter ${chapterPosition}...` } });
-
-    // 5. Delete existing sections for the target chapter
-    await db.section.deleteMany({ where: { chapterId } });
-    logger.info('[ORCHESTRATOR] Deleted sections for chapter regeneration', {
-      chapterId,
-      deletedCount: targetChapter.sections.length,
-    });
-
-    // 6. Regenerate chapter (Stage 1) with quality gates
-    onSSEEvent?.({
-      type: 'item_generating',
-      data: { stage: 1, chapter: chapterPosition, message: `Regenerating chapter ${chapterPosition}...` },
-    });
-
-    let bestResult = {
-      chapter: buildFallbackChapter(chapterPosition, courseContext),
-      thinking: '',
-      qualityScore: buildDefaultQualityScore(50),
-    };
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
-        courseContext, chapterPosition, otherChapters, conceptTracker,
-        composedCategoryPrompt, completedChapters
-      );
-      const aiResponse = await aiAdapter.chat({
-        messages: [{ role: 'user', content: s1User }],
-        systemPrompt: s1System,
-        maxTokens: AI_MAX_TOKENS_CHAPTER,
-        temperature: 0.7,
-      });
-      const result = parseChapterResponse(aiResponse.content, chapterPosition, courseContext, otherChapters.map(ch => ({
-        ...ch,
-        id: '',
-      })));
-
-      if (result.qualityScore.overall > bestResult.qualityScore.overall) {
-        bestResult = result;
-      }
-      if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
-    }
-
-    const { chapter: newChapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
-    qualityScores.push(chQuality);
-
-    onSSEEvent?.({
-      type: 'thinking',
-      data: { stage: 1, chapter: chapterPosition, thinking: chThinking },
-    });
-
-    // Update chapter record in DB
-    await db.chapter.update({
-      where: { id: chapterId },
-      data: {
-        title: newChapter.title,
-        description: newChapter.description,
-        courseGoals: newChapter.learningObjectives.join('\n'),
-        learningOutcomes: newChapter.learningObjectives.join('\n'),
-        estimatedTime: newChapter.estimatedTime,
-        prerequisites: newChapter.prerequisites,
-        targetBloomsLevel: newChapter.bloomsLevel,
-        sectionCount,
-      },
-    });
-
-    onSSEEvent?.({
-      type: 'item_complete',
-      data: {
-        stage: 1,
-        chapter: chapterPosition,
-        title: newChapter.title,
-        id: chapterId,
-        qualityScore: chQuality.overall,
-      },
-    });
-
-    await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-1' });
-
-    // 7. Regenerate sections (Stage 2) + details (Stage 3)
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 2, message: 'Regenerating sections...' } });
-
-    const currentSectionTitles = [...allSectionTitles];
-    let sectionsRegenerated = 0;
-
-    for (let secNum = 1; secNum <= sectionCount; secNum++) {
-      // Stage 2: Generate section
-      onSSEEvent?.({
-        type: 'item_generating',
-        data: { stage: 2, chapter: chapterPosition, section: secNum, message: `Generating section ${secNum}...` },
-      });
-
-      const enrichedContext: EnrichedChapterContext = {
-        allChapters: [...otherChapters, newChapter],
-        conceptTracker,
-        bloomsProgression,
-      };
-
-      const previousSections: GeneratedSection[] = [];
-
-      const regenSecTemplateDef = regenTemplate.sections[secNum - 1];
-
-      let bestSec = {
-        section: buildFallbackSection(secNum, newChapter, currentSectionTitles, regenSecTemplateDef),
-        thinking: '',
-        qualityScore: buildDefaultQualityScore(50),
-      };
-
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const regenS2TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, secNum);
-        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
-          courseContext, newChapter, secNum, previousSections, currentSectionTitles,
-          enrichedContext, composedCategoryPrompt, undefined, regenS2TemplatePrompt
-        );
-        const aiResponse = await aiAdapter.chat({
-          messages: [{ role: 'user', content: s2User }],
-          systemPrompt: s2System,
-          maxTokens: AI_MAX_TOKENS_SECTION,
-          temperature: 0.7,
-        });
-        const result = parseSectionResponse(aiResponse.content, secNum, newChapter, currentSectionTitles, regenSecTemplateDef);
-
-        if (result.qualityScore.overall > bestSec.qualityScore.overall) {
-          bestSec = result;
-        }
-        if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
-      }
-
-      const { section, thinking: secThinking, qualityScore: secQuality } = bestSec;
-      qualityScores.push(secQuality);
-      currentSectionTitles.push(section.title);
-      previousSections.push(section);
-
-      onSSEEvent?.({
-        type: 'thinking',
-        data: { stage: 2, chapter: chapterPosition, section: secNum, thinking: secThinking },
-      });
-
-      // Save section to DB
-      const durationMinutes = parseDuration(section.estimatedDuration);
-      const dbSection = await db.section.create({
-        data: {
-          title: section.title,
-          position: section.position,
-          chapterId,
-          type: section.contentType,
-          duration: durationMinutes,
-          isPublished: false,
-        },
-      });
-
-      onSSEEvent?.({
-        type: 'item_complete',
-        data: { stage: 2, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
-      });
-
-      await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-2' });
-
-      // Stage 3: Generate details
-      onSSEEvent?.({
-        type: 'item_generating',
-        data: { stage: 3, chapter: chapterPosition, section: secNum, message: `Generating details for "${section.title}"...` },
-      });
-
-      const regenDetTemplateDef = regenTemplate.sections[section.position - 1];
-
-      let bestDet = {
-        details: buildFallbackDetails(newChapter, section, courseContext, regenDetTemplateDef),
-        thinking: '',
-        qualityScore: buildDefaultQualityScore(50),
-      };
-
-      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
-        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
-          courseContext, newChapter, section, previousSections,
-          enrichedContext, composedCategoryPrompt, undefined, regenS3TemplatePrompt
-        );
-        const aiResponse = await aiAdapter.chat({
-          messages: [{ role: 'user', content: s3User }],
-          systemPrompt: s3System,
-          maxTokens: AI_MAX_TOKENS_DETAILS,
-          temperature: 0.7,
-        });
-        const result = parseDetailsResponse(aiResponse.content, newChapter, section, courseContext, regenDetTemplateDef);
-
-        if (result.qualityScore.overall > bestDet.qualityScore.overall) {
-          bestDet = result;
-        }
-        if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
-      }
-
-      const { details, thinking: detThinking, qualityScore: detQuality } = bestDet;
-      qualityScores.push(detQuality);
-
-      onSSEEvent?.({
-        type: 'thinking',
-        data: { stage: 3, chapter: chapterPosition, section: secNum, thinking: detThinking },
-      });
-
-      // Update section with details
-      await db.section.update({
-        where: { id: dbSection.id },
-        data: {
-          description: details.description,
-          learningObjectives: details.learningObjectives.join('\n'),
-          resourceUrls: details.resources?.join('\n') ?? null,
-        },
-      });
-
-      onSSEEvent?.({
-        type: 'item_complete',
-        data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall },
-      });
-
-      await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-3' });
-
-      sectionsRegenerated++;
-    }
-
-    const averageQuality = qualityScores.length > 0
-      ? Math.round(qualityScores.reduce((sum, q) => sum + q.overall, 0) / qualityScores.length)
-      : 0;
-
-    onSSEEvent?.({
-      type: 'complete',
-      data: {
-        chapterId,
-        chapterTitle: newChapter.title,
-        sectionsRegenerated,
-        qualityScore: averageQuality,
-      },
-    });
-
-    logger.info('[ORCHESTRATOR] Chapter regeneration complete', {
-      chapterId,
-      chapterTitle: newChapter.title,
-      sectionsRegenerated,
-      averageQuality,
-    });
-
-    return {
-      success: true,
-      chapterId,
-      chapterTitle: newChapter.title,
-      sectionsRegenerated,
-      qualityScore: averageQuality,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[ORCHESTRATOR] Chapter regeneration failed:', errorMessage);
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-}
-
-// Re-export helpers for external consumers that may import from orchestrator
+// Helpers re-export for external consumers
 export {
   cleanTitle,
   ensureArray,

@@ -4,6 +4,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
 import {
   type PlanStore,
@@ -385,6 +386,11 @@ export class PrismaPlanStore implements PlanStore {
     planId: string,
     updates: Partial<ExecutionPlan>
   ): Promise<ExecutionPlan> {
+    if (!planId) {
+      logger.debug('[PlanStore] Skipping update — no planId (goal tracking unavailable)');
+      return { id: '', goalId: '', userId: '', steps: [], checkpoints: [], fallbackStrategies: [], overallProgress: 0, status: PlanStatus.DRAFT } as ExecutionPlan;
+    }
+
     const updateData: Record<string, unknown> = {};
 
     if (updates.startDate !== undefined) updateData.startDate = updates.startDate;
@@ -414,6 +420,7 @@ export class PrismaPlanStore implements PlanStore {
    * Delete a plan
    */
   async delete(planId: string): Promise<void> {
+    if (!planId) return;
     await db.sAMExecutionPlan.delete({
       where: { id: planId },
     });
@@ -423,6 +430,11 @@ export class PrismaPlanStore implements PlanStore {
    * Save plan state for resumability
    */
   async saveState(state: PlanState): Promise<void> {
+    if (!state.planId) {
+      logger.debug('[PlanStore] Skipping saveState — no planId');
+      return;
+    }
+
     await db.sAMPlanState.upsert({
       where: { planId: state.planId },
       update: {
@@ -550,6 +562,11 @@ export class PrismaPlanStore implements PlanStore {
     stepId: string,
     updates: Partial<PlanStep>
   ): Promise<PlanStep> {
+    if (!planId || !stepId) {
+      logger.debug('[PlanStore] Skipping updateStep — missing planId or stepId');
+      return { id: stepId || '', planId: planId || '', type: 'content', title: '', description: '', order: 0, status: 'pending', estimatedMinutes: 0, retryCount: 0, maxRetries: 2 } as PlanStep;
+    }
+
     const updateData: Record<string, unknown> = {};
 
     if (updates.status !== undefined) updateData.status = mapAgenticStepStatus(updates.status);

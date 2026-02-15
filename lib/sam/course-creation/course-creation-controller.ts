@@ -5,6 +5,8 @@
  * Creates a SAM Goal + 3-step ExecutionPlan when a course creation starts, then
  * advances steps as each stage completes.
  *
+ * Phase 3: SubGoal decomposition — one SubGoal per chapter for granular tracking.
+ *
  * Uses: getGoalStores() from TaxomindContext for store access.
  */
 
@@ -12,7 +14,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus } from '@sam-ai/agentic';
+import { GoalStatus, PlanStatus, SubGoalType } from '@sam-ai/agentic';
 
 interface GoalPlanIds {
   goalId: string;
@@ -257,6 +259,209 @@ export async function reactivateCourseCreation(
       error: error instanceof Error ? error.message : String(error),
       goalId,
       planId,
+    });
+  }
+}
+
+// =============================================================================
+// SUBGOAL DECOMPOSITION (Phase 3)
+// =============================================================================
+
+/**
+ * Create a SubGoal for a specific chapter.
+ * Called at the start of each chapter's depth-first loop.
+ * Returns the subGoalId for later completion.
+ */
+export async function initializeChapterSubGoal(
+  goalId: string,
+  chapterNumber: number,
+  chapterTitle: string,
+  totalChapters: number,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+): Promise<string> {
+  if (!goalId) return '';
+
+  const { subGoal: subGoalStore } = getGoalStores();
+
+  try {
+    const subGoal = await subGoalStore.create({
+      goalId,
+      title: `Chapter ${chapterNumber}: ${chapterTitle}`,
+      description: `Generate chapter ${chapterNumber}/${totalChapters} with sections and details`,
+      type: SubGoalType.CREATE,
+      order: chapterNumber - 1,
+      estimatedMinutes: 5,
+      difficulty,
+      prerequisites: chapterNumber > 1
+        ? [] // Could track previous subGoalIds for sequential deps
+        : [],
+      successCriteria: [
+        'Chapter generated with learning objectives',
+        'All sections generated with content types',
+        'Section details enriched with activities',
+      ],
+      metadata: {
+        chapterNumber,
+        totalChapters,
+        stage: 'chapter',
+      },
+    });
+
+    logger.debug('[CourseCreationController] Chapter SubGoal created', {
+      subGoalId: subGoal.id,
+      goalId,
+      chapterNumber,
+    });
+
+    return subGoal.id;
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to create chapter SubGoal', {
+      error: error instanceof Error ? error.message : String(error),
+      goalId,
+      chapterNumber,
+    });
+    return '';
+  }
+}
+
+/**
+ * Mark a chapter SubGoal as completed after all 3 stages finish for that chapter.
+ */
+export async function completeChapterSubGoal(
+  subGoalId: string,
+  metadata?: Record<string, unknown>,
+): Promise<void> {
+  if (!subGoalId) return;
+
+  const { subGoal: subGoalStore } = getGoalStores();
+
+  try {
+    await subGoalStore.markComplete(subGoalId);
+
+    if (metadata) {
+      await subGoalStore.update(subGoalId, { metadata });
+    }
+
+    logger.debug('[CourseCreationController] Chapter SubGoal completed', { subGoalId });
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to complete chapter SubGoal', {
+      error: error instanceof Error ? error.message : String(error),
+      subGoalId,
+    });
+  }
+}
+
+// =============================================================================
+// AGENTIC STORAGE (Blueprint, Decisions, Reflection)
+// =============================================================================
+
+/**
+ * Store the pre-generation blueprint in the Goal's context field.
+ * Allows later comparison between plan and reality.
+ */
+export async function storeBlueprintInGoal(
+  goalId: string,
+  blueprint: Record<string, unknown>,
+): Promise<void> {
+  if (!goalId) return;
+
+  const { goal: goalStore } = getGoalStores();
+
+  try {
+    const existing = await goalStore.getById(goalId);
+    const existingContext = (existing?.context ?? {}) as Record<string, unknown>;
+
+    await goalStore.update(goalId, {
+      context: {
+        ...existingContext,
+        blueprint,
+        blueprintStoredAt: new Date().toISOString(),
+      },
+    });
+
+    logger.debug('[CourseCreationController] Blueprint stored in goal', { goalId });
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to store blueprint', {
+      error: error instanceof Error ? error.message : String(error),
+      goalId,
+    });
+  }
+}
+
+/**
+ * Record an agentic decision in the plan's checkpoint data.
+ * Creates audit trail of autonomous decisions.
+ */
+export async function storeDecisionInPlan(
+  planId: string,
+  chapterNumber: number,
+  decision: Record<string, unknown>,
+): Promise<void> {
+  if (!planId) return;
+
+  const { plan: planStore } = getGoalStores();
+
+  try {
+    const existing = await planStore.getById(planId);
+    const existingCheckpoint = (existing?.checkpointData ?? {}) as Record<string, unknown>;
+    const existingDecisions = (existingCheckpoint.agenticDecisions ?? []) as Array<Record<string, unknown>>;
+
+    await planStore.update(planId, {
+      checkpointData: {
+        ...existingCheckpoint,
+        agenticDecisions: [
+          ...existingDecisions,
+          {
+            chapterNumber,
+            decision,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      },
+    });
+
+    logger.debug('[CourseCreationController] Decision stored in plan', { planId, chapterNumber });
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to store decision', {
+      error: error instanceof Error ? error.message : String(error),
+      planId,
+      chapterNumber,
+    });
+  }
+}
+
+/**
+ * Store the post-generation reflection in the Goal's metadata.
+ * Makes it available for future course creations.
+ */
+export async function storeReflectionInGoal(
+  goalId: string,
+  reflection: Record<string, unknown>,
+): Promise<void> {
+  if (!goalId) return;
+
+  const { goal: goalStore } = getGoalStores();
+
+  try {
+    const existing = await goalStore.getById(goalId);
+    const existingContext = (existing?.context ?? {}) as Record<string, unknown>;
+
+    await goalStore.update(goalId, {
+      context: {
+        ...existingContext,
+        courseReflection: reflection,
+        reflectionStoredAt: new Date().toISOString(),
+      },
+    });
+
+    logger.info('[CourseCreationController] Reflection stored in goal', {
+      goalId,
+      coherenceScore: reflection.coherenceScore,
+    });
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to store reflection', {
+      error: error instanceof Error ? error.message : String(error),
+      goalId,
     });
   }
 }

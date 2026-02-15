@@ -267,7 +267,26 @@ export type SSEEventType =
   | 'thinking_chunk'
   | 'progress'
   | 'error'
-  | 'complete';
+  | 'complete'
+  // Agentic events (Phase 2+)
+  | 'state_change'
+  | 'agentic_decision'
+  | 'replan_start'
+  | 'replan_complete'
+  // Healing events (Phase 3)
+  | 'healing_start'
+  | 'healing_chapter'
+  | 'healing_complete'
+  // Inline healing events (agentic pipeline)
+  | 'inline_healing'
+  | 'inline_healing_complete'
+  // Bridge content events
+  | 'bridge_content'
+  // Agentic gap closure events
+  | 'chapter_count_adjusted'    // Blueprint recommended different chapter count
+  | 'chapter_skipped'           // AI decided to skip a redundant chapter
+  | 'healing_diagnosis'         // AI diagnosis before healing
+  | 'ai_reflection';            // AI-enhanced reflection results
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -452,6 +471,185 @@ export interface StagePrompt {
   userPrompt: string;
 }
 
+// ============================================================================
+// Agentic Planning Types
+// ============================================================================
+
+/** AI-generated course blueprint created before generation starts */
+export interface CourseBlueprintPlan {
+  /** Optimal chapter sequence with reasoning */
+  chapterPlan: ChapterPlanEntry[];
+  /** Expected concept dependency graph */
+  conceptDependencies: Array<{ concept: string; dependsOn: string[] }>;
+  /** Bloom's progression strategy */
+  bloomsStrategy: Array<{ level: BloomsLevel; chapters: number[] }>;
+  /** Risk areas identified by the planner */
+  riskAreas: string[];
+  /** Overall confidence in this plan (0-100) */
+  planConfidence: number;
+  /** AI-recommended chapter count (may differ from user's totalChapters by ±2) */
+  recommendedChapterCount?: number;
+}
+
+export interface ChapterPlanEntry {
+  position: number;
+  suggestedTitle: string;
+  primaryFocus: string;
+  bloomsLevel: BloomsLevel;
+  keyConcepts: string[];
+  estimatedComplexity: 'low' | 'medium' | 'high';
+  rationale: string;
+  /** AI-recommended section count for this chapter (optional, bounded 5-10) */
+  recommendedSections?: number;
+}
+
+// ============================================================================
+// Agentic Decision Types
+// ============================================================================
+
+/** Actions the agentic decision engine can recommend */
+export type AgenticAction =
+  | 'continue'
+  | 'adjust_strategy'
+  | 'flag_for_review'
+  | 'regenerate_chapter'     // Trigger immediate regeneration
+  | 'inject_bridge_content'  // Add scaffolding between chapters
+  | 'replan_remaining'       // Revise blueprint for remaining chapters
+  | 'skip_next_chapter';     // Skip redundant chapter (max 1 per course)
+
+/** Decision made after each chapter completes */
+export interface AgenticDecision {
+  action: AgenticAction;
+  reasoning: string;
+  adjustments?: {
+    temperatureShift?: number;
+    additionalGuidance?: string;
+    conceptsToEmphasize?: string[];
+  };
+  /** Structured payload for actionable decisions (Phase 2: Actionable Agentic Decisions) */
+  actionPayload?: {
+    targetChapter?: number;
+    strategyOverrides?: Partial<import('./adaptive-strategy').GenerationStrategy>;
+    conceptGaps?: string[];
+    bloomsCorrection?: BloomsLevel;
+    /** Bridge content for inject_bridge_content action */
+    bridgeContent?: string;
+  };
+}
+
+/** AI-driven decision response from LLM reasoning */
+export interface AIDecisionResponse {
+  action: AgenticAction;
+  reasoning: string;
+  confidence: number;
+  conceptGaps?: string[];
+  bridgeContentSuggestion?: string;
+  strategyAdjustments?: {
+    temperatureShift?: number;
+    additionalGuidance?: string;
+    conceptsToEmphasize?: string[];
+  };
+}
+
+/** Quality trend analysis for decision-making */
+export interface QualityTrend {
+  trend: 'improving' | 'stable' | 'declining';
+  recentAverage: number;
+  overallAverage: number;
+  consecutiveLow: number;
+  consecutiveHigh: number;
+}
+
+// ============================================================================
+// State Machine Integration Types (Phase 1: Agentic Foundation)
+// ============================================================================
+
+/** Context passed to generateSingleChapter() for state machine step execution */
+export interface ChapterStepContext {
+  chapterNumber: number;
+  courseId: string;
+  courseContext: CourseContext;
+  conceptTracker: ConceptTracker;
+  bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
+  allSectionTitles: string[];
+  qualityScores: QualityScore[];
+  completedChapters: CompletedChapter[];
+  generatedChapters: (GeneratedChapter & { id: string })[];
+  blueprintPlan: CourseBlueprintPlan | null;
+  lastAgenticDecision: AgenticDecision | null;
+  recalledMemory: import('./memory-recall').RecalledMemory | null;
+  strategyMonitor: import('./adaptive-strategy').AdaptiveStrategyMonitor;
+  chapterTemplate: import('./chapter-templates').ChapterTemplate;
+  categoryPrompt: import('./category-prompts').ComposedCategoryPrompt;
+  experimentVariant?: string;
+  /** Bridge content to scaffold concept gaps from prior chapter */
+  bridgeContent?: string;
+}
+
+/** Result of generating a single chapter (all 3 stages) */
+export interface ChapterStepResult {
+  completedChapter: CompletedChapter;
+  qualityScores: QualityScore[];
+  agenticDecision: AgenticDecision | null;
+  chaptersCreated: number;
+  sectionsCreated: number;
+}
+
+// ============================================================================
+// Healing Loop Types (Phase 3: Autonomous Healing)
+// ============================================================================
+
+/** Configuration for the autonomous healing loop */
+export interface HealingLoopConfig {
+  userId: string;
+  courseId: string;
+  /** Maximum healing iterations (default: 2, capped to prevent infinite loops) */
+  maxHealingIterations: number;
+  /** Minimum coherence score — skip healing if above (default: 70) */
+  minCoherenceScore: number;
+  /** Severity threshold for selecting chapters to heal (default: 'high') */
+  severityThreshold: 'high' | 'medium' | 'low';
+}
+
+/** Result of the autonomous healing loop */
+export interface HealingResult {
+  healed: boolean;
+  iterationsRun: number;
+  chaptersRegenerated: number[];
+  finalCoherenceScore: number;
+  improvementDelta: number;
+}
+
+// ============================================================================
+// Course Reflection Types
+// ============================================================================
+
+/** Result of post-generation course-level reflection */
+export interface CourseReflection {
+  /** Overall coherence score (0-100) */
+  coherenceScore: number;
+  /** Bloom's progression analysis */
+  bloomsProgression: {
+    isMonotonic: boolean;
+    gaps: Array<{ fromChapter: number; toChapter: number; issue: string }>;
+  };
+  /** Concept coverage analysis */
+  conceptCoverage: {
+    totalConcepts: number;
+    coveredByMultipleChapters: number;
+    orphanedConcepts: string[];
+    missingPrerequisites: string[];
+  };
+  /** Chapters flagged for potential improvement */
+  flaggedChapters: Array<{ position: number; reason: string; severity: 'low' | 'medium' | 'high' }>;
+  /** Summary for the user */
+  summary: string;
+}
+
+// ============================================================================
+// Content-Aware Bloom's Input
+// ============================================================================
+
 /** Input for content-aware Bloom's level assignment */
 export interface ContentAwareBloomsInput {
   chapterNumber: number;
@@ -543,4 +741,26 @@ export interface ResumeState {
   partialChapterDbId?: string;
   /** DB section records for the partial chapter (skip Stage 2 if all present) */
   partialChapterSectionIds?: string[];
+}
+
+// ============================================================================
+// AI-Guided Healing Types
+// ============================================================================
+
+/** Healing strategy types for targeted regeneration */
+export type HealingStrategyType =
+  | 'full_regeneration'     // Current behavior — regenerate all 3 stages
+  | 'sections_only'         // Keep chapter metadata, regenerate sections (Stage 2+3)
+  | 'details_only'          // Keep chapter + section structure, regenerate details (Stage 3)
+  | 'targeted_sections'     // Regenerate specific sections by position
+  | 'skip_healing';         // AI determines chapter is actually fine (false positive)
+
+/** AI-diagnosed healing strategy for a flagged chapter */
+export interface HealingStrategy {
+  type: HealingStrategyType;
+  reasoning: string;
+  /** Section positions to regenerate (for 'targeted_sections' type) */
+  targetSections?: number[];
+  /** Extra prompt guidance for the regeneration AI call */
+  guidanceForRegeneration?: string;
 }

@@ -59,6 +59,8 @@ export interface TemplateSectionDef {
   tone: string;
   exerciseGuidance?: string;
   consistencyRules: string[];
+  /** Whether this section is required (always included) or optional (AI can exclude). Default: true */
+  required: boolean;
 }
 
 export interface ChapterTemplate {
@@ -118,6 +120,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Create curiosity with a real-world story or scenario that makes the topic irresistible.',
       contentType: 'reading',
       bloomsLevels: ['REMEMBER'],
+      required: true,
       wordCountRange: { min: 150, max: 300 },
       formatRules: [
         'Write a real-world story or scenario featuring a character facing a problem.',
@@ -141,6 +144,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Build a mental model using ONE fully developed analogy with mapping table, visual description, and "aha" moment.',
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND'],
+      required: true,
       wordCountRange: { min: 250, max: 500 },
       formatRules: [
         'Start with "Think of it like..." framing — ONE primary analogy.',
@@ -166,6 +170,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Step-by-step worked example with REAL numbers. Show 3-5 iterations until the pattern emerges.',
       contentType: 'reading',
       bloomsLevels: ['APPLY'],
+      required: false,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Use the SAME scenario from THE HOOK with real numbers.',
@@ -190,6 +195,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Now name things the student already understands. Formula is a TRANSLATION of what they saw, not a revelation.',
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND'],
+      required: true,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         '"Remember the pattern you noticed? That pattern has a name:..."',
@@ -213,6 +219,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: '3 progressive exercises with scaffolding removal: guided → semi-guided → independent.',
       contentType: 'assignment',
       bloomsLevels: ['APPLY'],
+      required: false,
       wordCountRange: { min: 250, max: 450 },
       formatRules: [
         'Exactly 3 exercises with decreasing scaffolding.',
@@ -239,6 +246,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Common mistakes with named pitfalls, using the SAME analogy from INTUITION to explain why they fail.',
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'APPLY'],
+      required: false,
       wordCountRange: { min: 200, max: 350 },
       formatRules: [
         'Name each pitfall: "The [Name] Trap" — give it a memorable label.',
@@ -262,6 +270,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Recap with key concepts, formula card, backward connections to prior chapters, and forward preview.',
       contentType: 'reading',
       bloomsLevels: ['REMEMBER', 'UNDERSTAND'],
+      required: true,
       wordCountRange: { min: 150, max: 300 },
       formatRules: [
         'Recap in 5-7 bullet points using "You can now..." framing.',
@@ -285,6 +294,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       purpose: 'Self-assessment with metacognitive reflection and confidence rating.',
       contentType: 'quiz',
       bloomsLevels: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
+      required: true,
       wordCountRange: { min: 150, max: 250 },
       formatRules: [
         '3-5 self-assessment questions at appropriate Bloom&apos;s levels.',
@@ -317,6 +327,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Challenge surface-level understanding with a counterintuitive result or paradox.',
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'ANALYZE'],
+      required: false,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         'Present a result that CONTRADICTS what the student thinks they know.',
@@ -340,6 +351,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Build 2-3 different mental models for the same concept, then reveal the unifying insight.',
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'ANALYZE'],
+      required: true,
       wordCountRange: { min: 400, max: 600 },
       formatRules: [
         'Present Mental Model 1: A concrete analogy or physical intuition.',
@@ -365,6 +377,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Derive the key result from scratch with motivated math, English translations at each step, and intuition checks.',
       contentType: 'reading',
       bloomsLevels: ['APPLY', 'ANALYZE'],
+      required: true,
       wordCountRange: { min: 500, max: 800 },
       formatRules: [
         'Start with: "We want to find/prove/derive [goal]. Let&apos;s start from what we know."',
@@ -390,6 +403,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: '5+ exercises covering: compute, predict-verify, diagnose, compare, and design.',
       contentType: 'assignment',
       bloomsLevels: ['APPLY', 'ANALYZE'],
+      required: false,
       wordCountRange: { min: 400, max: 700 },
       formatRules: [
         'Exactly 5 exercises, each a different TYPE:',
@@ -417,6 +431,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Explore edge cases, breaking conditions, and surprising connections to other topics.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: false,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Edge Cases: "What happens when [parameter] → [extreme]?"',
@@ -441,6 +456,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Distill key insights, build a concept map, and connect backward/forward to the course arc.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: true,
       wordCountRange: { min: 200, max: 350 },
       formatRules: [
         'Key Insights: 3-5 bullet points, each a non-obvious takeaway.',
@@ -464,6 +480,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       purpose: 'Self-assessment at ANALYZE/EVALUATE levels with metacognitive confidence rating.',
       contentType: 'quiz',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: true,
       wordCountRange: { min: 200, max: 350 },
       formatRules: [
         '4-5 self-assessment questions at ANALYZE and EVALUATE Bloom&apos;s levels.',
@@ -497,6 +514,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Frame an intellectual puzzle or research-level question that motivates the chapter.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: false,
       wordCountRange: { min: 250, max: 450 },
       formatRules: [
         'Pose an open, research-level question that has no trivially obvious answer.',
@@ -520,6 +538,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'One POWERFUL analogy for genuinely counterintuitive aspects — brief but targeted.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: true,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         'Identify the single most counterintuitive aspect of this chapter&apos;s topic.',
@@ -543,6 +562,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Build the solution from the simplest possible case, adding complexity layer by layer.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: true,
       wordCountRange: { min: 500, max: 800 },
       formatRules: [
         'Start with: "Let&apos;s strip the problem to its simplest form."',
@@ -569,6 +589,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Formal analysis: complexity, expressiveness, limitations, and comparison to alternatives.',
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
+      required: true,
       wordCountRange: { min: 400, max: 700 },
       formatRules: [
         'Complexity Analysis: Time/space complexity or computational cost.',
@@ -594,6 +615,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: '4+ challenges at L4-L6: analyze, evaluate, create, and critique.',
       contentType: 'assignment',
       bloomsLevels: ['ANALYZE', 'EVALUATE', 'CREATE'],
+      required: false,
       wordCountRange: { min: 500, max: 900 },
       formatRules: [
         'At least 4 challenges, each at a different cognitive level:',
@@ -621,6 +643,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Open research questions, key papers/resources, and a research project idea.',
       contentType: 'reading',
       bloomsLevels: ['EVALUATE', 'CREATE'],
+      required: false,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Open Questions: 2-3 genuinely unsolved or actively researched questions.',
@@ -645,6 +668,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Extract design principles, build concept map, and connect to the broader course arc.',
       contentType: 'reading',
       bloomsLevels: ['EVALUATE', 'CREATE'],
+      required: true,
       wordCountRange: { min: 250, max: 400 },
       formatRules: [
         'Design Principles: 3-5 general principles extracted from this chapter.',
@@ -668,6 +692,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       purpose: 'Self-assessment at EVALUATE/CREATE levels with research readiness reflection.',
       contentType: 'quiz',
       bloomsLevels: ['EVALUATE', 'CREATE'],
+      required: true,
       wordCountRange: { min: 250, max: 400 },
       formatRules: [
         '4-5 self-assessment questions at EVALUATE and CREATE Bloom&apos;s levels.',
@@ -895,6 +920,80 @@ IMPORTANT: The description HTML must follow the format rules and HTML structure 
 Do NOT use the generic 5-h2 lesson structure — use the section-type-specific structure for ${sectionDef.displayName}.`;
 
   return { stage1Block, stage2Block, stage3Block, totalSections: template.totalSections };
+}
+
+// ============================================================================
+// Dynamic Section Selection
+// ============================================================================
+
+/** Minimum number of sections allowed per chapter (hard floor) */
+const MIN_SECTIONS = 5;
+/** Maximum number of sections allowed per chapter (hard ceiling) */
+const MAX_SECTIONS = 10;
+
+/**
+ * Select which template sections to include for a chapter, based on
+ * an optional AI-recommended count, Bloom's level, and complexity.
+ *
+ * Always includes all `required` sections. Fills the remaining count
+ * from optional sections, ranked by relevance to the chapter's Bloom's level.
+ *
+ * @param template         The full chapter template for this difficulty
+ * @param recommendedCount Optional AI-recommended section count (bounded 5-10)
+ * @param chapterBloomsLevel The chapter's primary Bloom's level (for optional ranking)
+ * @param chapterComplexity  Heuristic complexity of this chapter
+ * @returns Selected sections with positions re-numbered 1..N
+ */
+export function selectTemplateSections(
+  template: ChapterTemplate,
+  recommendedCount: number | undefined,
+  chapterBloomsLevel: BloomsLevel,
+  chapterComplexity: 'low' | 'medium' | 'high' = 'medium',
+): TemplateSectionDef[] {
+  const requiredSections = template.sections.filter(s => s.required);
+  const optionalSections = template.sections.filter(s => !s.required);
+
+  // Determine target count
+  let targetCount: number;
+  if (recommendedCount !== undefined) {
+    targetCount = Math.max(MIN_SECTIONS, Math.min(MAX_SECTIONS, recommendedCount));
+  } else {
+    // Complexity heuristic
+    switch (chapterComplexity) {
+      case 'low':
+        targetCount = MIN_SECTIONS;
+        break;
+      case 'high':
+        targetCount = Math.min(MAX_SECTIONS, template.totalSections);
+        break;
+      case 'medium':
+      default:
+        targetCount = template.totalSections; // Use template default
+    }
+  }
+
+  // If target is at or below required count, just use required
+  if (targetCount <= requiredSections.length) {
+    return requiredSections.map((s, i) => ({ ...s, position: i + 1 }));
+  }
+
+  // Rank optional sections by relevance to Bloom's level
+  const rankedOptional = [...optionalSections].sort((a, b) => {
+    const aRelevance = a.bloomsLevels.includes(chapterBloomsLevel) ? 1 : 0;
+    const bRelevance = b.bloomsLevels.includes(chapterBloomsLevel) ? 1 : 0;
+    if (bRelevance !== aRelevance) return bRelevance - aRelevance;
+    // Secondary sort: preserve original order
+    return a.position - b.position;
+  });
+
+  const optionalToInclude = rankedOptional.slice(0, targetCount - requiredSections.length);
+
+  // Merge required + selected optional, sorted by original position
+  const selected = [...requiredSections, ...optionalToInclude]
+    .sort((a, b) => a.position - b.position);
+
+  // Re-number positions 1..N
+  return selected.map((s, i) => ({ ...s, position: i + 1 }));
 }
 
 // ============================================================================

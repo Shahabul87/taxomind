@@ -48,6 +48,7 @@ import { createStudentAnalyticsTool } from '@/lib/sam/tools/student-analytics';
 import { createCreatorAnalyticsTool } from '@/lib/sam/tools/creator-analytics';
 import { createSkillNavigatorTool } from '@/lib/sam/tools/skill-navigator';
 import { createContentGeneratorTool } from '@/lib/sam/tools/content-generator';
+import { createCourseChapterGeneratorTool, createCourseHealerTool } from '@/lib/sam/tools/course-chapter-generator';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -281,6 +282,8 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createCreatorAnalyticsTool(),
     createSkillNavigatorTool(),
     createContentGeneratorTool(),
+    createCourseChapterGeneratorTool(),
+    createCourseHealerTool(),
   ];
 
   let standaloneRegistered = 0;

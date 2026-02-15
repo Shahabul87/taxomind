@@ -11,7 +11,7 @@
  * Falls back transparently to blocking `chat()` if streaming is unavailable.
  */
 
-import type { AIAdapter as CoreAIAdapter, AIChatParams } from '@sam-ai/core';
+import { runSAMChatWithPreference, runSAMChatStream } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -19,8 +19,16 @@ import { logger } from '@/lib/logger';
 // ============================================================================
 
 export interface StreamWithThinkingOptions {
-  aiAdapter: CoreAIAdapter;
-  chatParams: AIChatParams;
+  /** User ID for SAM AI provider routing */
+  userId: string;
+  /** Chat messages to send */
+  messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+  /** System prompt for the AI */
+  systemPrompt?: string;
+  /** Maximum tokens for the response */
+  maxTokens?: number;
+  /** Temperature for generation */
+  temperature?: number;
   /** Called with each new chunk of thinking text as it streams in */
   onThinkingChunk?: (chunk: string) => void;
 }
@@ -163,24 +171,23 @@ class ThinkingExtractor {
 export async function streamWithThinkingExtraction(
   options: StreamWithThinkingOptions
 ): Promise<StreamWithThinkingResult> {
-  const { aiAdapter, chatParams, onThinkingChunk } = options;
+  const { userId, messages, systemPrompt, maxTokens, temperature, onThinkingChunk } = options;
 
-  // Fallback: If streaming not available, use blocking chat
-  if (!aiAdapter.chatStream) {
-    logger.debug('[STREAMING] chatStream unavailable, falling back to chat()');
-    const response = await aiAdapter.chat(chatParams);
-    return {
-      fullContent: response.content,
-      thinkingExtracted: '',
-    };
-  }
-
-  // Stream and accumulate
+  // Stream and accumulate via SAM unified AI provider
   const extractor = new ThinkingExtractor(onThinkingChunk ?? (() => {}));
   let fullContent = '';
 
   try {
-    for await (const chunk of aiAdapter.chatStream(chatParams)) {
+    const stream = runSAMChatStream({
+      userId,
+      capability: 'course',
+      messages,
+      systemPrompt,
+      maxTokens,
+      temperature,
+    });
+
+    for await (const chunk of stream) {
       if (chunk.content) {
         fullContent += chunk.content;
         extractor.feed(chunk.content);
@@ -189,8 +196,28 @@ export async function streamWithThinkingExtraction(
       if (chunk.done) break;
     }
   } catch (error) {
-    // If streaming fails mid-way, log and return what we have
-    logger.warn('[STREAMING] Stream interrupted, using accumulated content', error);
+    // If streaming fails, fall back to blocking call
+    if (!fullContent) {
+      logger.debug('[STREAMING] Stream failed, falling back to runSAMChatWithPreference()');
+      try {
+        const response = await runSAMChatWithPreference({
+          userId,
+          capability: 'course',
+          messages,
+          systemPrompt,
+          maxTokens,
+          temperature,
+        });
+        return {
+          fullContent: response,
+          thinkingExtracted: '',
+        };
+      } catch (fallbackError) {
+        logger.warn('[STREAMING] Fallback also failed', fallbackError);
+      }
+    } else {
+      logger.warn('[STREAMING] Stream interrupted, using accumulated content', error);
+    }
   }
 
   return {

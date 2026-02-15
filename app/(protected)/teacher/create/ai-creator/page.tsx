@@ -221,14 +221,27 @@ export default function AICreatorPage() {
           });
         }
       } else {
-        logger.error('[AI-CREATOR] Sequential creation failed:', result.error);
-        toast.error('Course creation failed', {
-          description: result.error || 'An unexpected error occurred',
+        const isCancelled = result.error?.toLowerCase().includes('cancel');
+        if (isCancelled) {
+          logger.info('[AI-CREATOR] Course creation was cancelled by user');
+        } else {
+          logger.error('[AI-CREATOR] Sequential creation failed:', result.error);
+        }
+        toast.error(isCancelled ? 'Course creation cancelled' : 'Course creation failed', {
+          description: isCancelled ? 'You can restart generation anytime.' : (result.error || 'An unexpected error occurred'),
         });
       }
     } catch (error) {
-      logger.error('[AI-CREATOR] Error in sequential creation:', error);
-      toast.error('Failed to create course');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const isCancelled = errorMsg.toLowerCase().includes('cancel');
+      if (isCancelled) {
+        logger.info('[AI-CREATOR] Course creation was cancelled by user');
+      } else {
+        logger.error('[AI-CREATOR] Error in sequential creation:', error);
+      }
+      if (!isCancelled) {
+        toast.error('Failed to create course');
+      }
     }
   }, [formData, startSequentialCreation, router]);
 

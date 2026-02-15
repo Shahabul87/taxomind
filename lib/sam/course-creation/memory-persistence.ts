@@ -21,10 +21,12 @@ export function persistConceptsBackground(
   userId: string,
   courseId: string,
   conceptTracker: ConceptTracker,
-  stage: number
+  stage: number,
+  courseTitle?: string,
+  courseCategory?: string,
 ): void {
   // Fire and forget — don't await
-  doPersistConcepts(userId, courseId, conceptTracker, stage).catch(error => {
+  doPersistConcepts(userId, courseId, conceptTracker, stage, courseTitle, courseCategory).catch(error => {
     logger.warn('[MemoryPersistence] Background concept persistence failed', {
       error: error instanceof Error ? error.message : String(error),
       userId,
@@ -38,7 +40,9 @@ async function doPersistConcepts(
   userId: string,
   courseId: string,
   conceptTracker: ConceptTracker,
-  stage: number
+  stage: number,
+  courseTitle?: string,
+  courseCategory?: string,
 ): Promise<void> {
   const { knowledgeGraph } = getMemoryStores();
 
@@ -65,6 +69,8 @@ async function doPersistConcepts(
           introducedInSection: entry.introducedInSection,
           bloomsLevel: entry.bloomsLevel,
           persistedAtStage: stage,
+          ...(courseTitle ? { courseTitle } : {}),
+          ...(courseCategory ? { courseCategory } : {}),
         },
       });
       entityIds.push(entity.id);
