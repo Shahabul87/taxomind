@@ -479,14 +479,25 @@ describe('withSubscriptionGate', () => {
   });
 
   // -----------------------------------------------------------------------
-  // Error handling (fail-open)
+  // Error handling (fail-closed for high-cost, fail-open for low-cost)
   // -----------------------------------------------------------------------
 
   describe('error handling', () => {
-    it('fails open when an error occurs', async () => {
+    it('fails closed for high-cost categories when an error occurs', async () => {
       mockGetCurrentAdminSession.mockRejectedValue(new Error('DB connection lost'));
 
       const result = await withSubscriptionGate('user-1', { category: 'generation' });
+
+      expect(result.allowed).toBe(false);
+      expect(result.response).toBeDefined();
+      const body = await result.response!.json();
+      expect(body.code).toBe('SUBSCRIPTION_CHECK_UNAVAILABLE');
+    });
+
+    it('fails open for low-cost categories when an error occurs', async () => {
+      mockGetCurrentAdminSession.mockRejectedValue(new Error('DB connection lost'));
+
+      const result = await withSubscriptionGate('user-1', { category: 'chat' });
 
       expect(result.allowed).toBe(true);
     });
