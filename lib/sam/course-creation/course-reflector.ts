@@ -483,10 +483,11 @@ function identifyFlaggedChapters(
 }
 
 /**
- * Estimate average quality scores per chapter from the flat quality scores array.
+ * Estimate average quality scores per chapter from the quality scores array.
  *
- * The orchestrator adds scores in order: chapter score, section scores, detail scores.
- * For a chapter with N sections, that's approximately 1 + 2*N scores per chapter.
+ * If scores have `chapterNumber` metadata (new pipeline), groups precisely by it.
+ * Otherwise falls back to position-based estimation for backward compatibility
+ * with old checkpoint data.
  */
 function estimateChapterScores(
   chapters: CompletedChapter[],
@@ -494,6 +495,18 @@ function estimateChapterScores(
 ): number[] {
   if (qualityScores.length === 0) return [];
 
+  // Precise path: use chapterNumber metadata if available on any scores
+  const hasChapterMetadata = qualityScores.some(s => s.chapterNumber !== undefined);
+
+  if (hasChapterMetadata) {
+    return chapters.map(ch => {
+      const chapterScores = qualityScores.filter(s => s.chapterNumber === ch.position);
+      if (chapterScores.length === 0) return 0;
+      return chapterScores.reduce((sum, s) => sum + s.overall, 0) / chapterScores.length;
+    });
+  }
+
+  // Fallback: position-based estimation (old checkpoint data)
   const result: number[] = [];
   let scoreIdx = 0;
 

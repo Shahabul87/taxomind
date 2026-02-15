@@ -53,7 +53,7 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     id: 'arrow-vs-traditional',
     name: 'ARROW vs Traditional Pedagogy',
     description: 'Compares the ARROW application-first framework against traditional taxonomy-based linear progression.',
-    active: false, // Toggle to true to activate
+    active: true,
     variants: ['control', 'treatment-a'],
   },
 ];

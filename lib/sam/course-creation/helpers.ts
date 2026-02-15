@@ -95,7 +95,11 @@ export function jaccardSimilarity(a: string, b: string): number {
 // QUALITY SCORING
 // =============================================================================
 
-export function buildDefaultQualityScore(overall: number): QualityScore {
+export function buildDefaultQualityScore(
+  overall: number,
+  chapterNumber?: number,
+  stage?: 1 | 2 | 3,
+): QualityScore {
   return {
     completeness: overall,
     specificity: overall,
@@ -103,6 +107,8 @@ export function buildDefaultQualityScore(overall: number): QualityScore {
     uniqueness: overall,
     depth: overall,
     overall,
+    ...(chapterNumber !== undefined && { chapterNumber }),
+    ...(stage !== undefined && { stage }),
   };
 }
 

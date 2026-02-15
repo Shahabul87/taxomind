@@ -285,6 +285,7 @@ export async function regenerateChapter(
     };
     let s1QualityFeedback: QualityFeedback | null = null;
     const s1StartTime = Date.now();
+    let s1ConsecutiveDeclines = 0;
 
     for (let attempt = 0; attempt <= s1Strategy.maxRetries; attempt++) {
       const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
@@ -315,6 +316,10 @@ export async function regenerateChapter(
 
       if (blended.overall > bestResult.qualityScore.overall) {
         bestResult = { ...result, qualityScore: blended };
+        s1ConsecutiveDeclines = 0;
+      } else {
+        s1ConsecutiveDeclines++;
+        if (s1ConsecutiveDeclines >= 2) break;
       }
       if (blended.overall >= s1Strategy.retryThreshold || attempt === s1Strategy.maxRetries) break;
 
@@ -358,6 +363,8 @@ export async function regenerateChapter(
 
     const { chapter: newChapter, thinking: chThinking, qualityScore: chQualityRaw } = bestResult;
     const chQuality = chQualityRaw; // Already blended in the loop
+    chQuality.chapterNumber = chapterPosition;
+    chQuality.stage = 1;
     qualityScores.push(chQuality);
 
     // Update concept tracker from generated chapter
@@ -437,6 +444,7 @@ export async function regenerateChapter(
       };
       let s2QualityFeedback: QualityFeedback | null = null;
       const s2StartTime = Date.now();
+      let s2ConsecutiveDeclines = 0;
 
       for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
         const regenS2TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, secNum);
@@ -462,6 +470,10 @@ export async function regenerateChapter(
 
         if (blendedSec.overall > bestSec.qualityScore.overall) {
           bestSec = { ...result, qualityScore: blendedSec };
+          s2ConsecutiveDeclines = 0;
+        } else {
+          s2ConsecutiveDeclines++;
+          if (s2ConsecutiveDeclines >= 2) break;
         }
         if (blendedSec.overall >= s2Strategy.retryThreshold || attempt === s2Strategy.maxRetries) break;
 
@@ -481,6 +493,8 @@ export async function regenerateChapter(
 
       const { section, thinking: secThinking } = bestSec;
       const secQuality = bestSec.qualityScore;
+      secQuality.chapterNumber = chapterPosition;
+      secQuality.stage = 2;
       qualityScores.push(secQuality);
       currentSectionTitles.push(section.title);
       previousSections.push(section);
@@ -535,6 +549,7 @@ export async function regenerateChapter(
       };
       let s3QualityFeedback: QualityFeedback | null = null;
       const s3StartTime = Date.now();
+      let s3ConsecutiveDeclines = 0;
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
@@ -567,6 +582,10 @@ export async function regenerateChapter(
 
         if (blendedDet.overall > bestDet.qualityScore.overall) {
           bestDet = { ...result, qualityScore: blendedDet };
+          s3ConsecutiveDeclines = 0;
+        } else {
+          s3ConsecutiveDeclines++;
+          if (s3ConsecutiveDeclines >= 2) break;
         }
         if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
 
@@ -586,6 +605,8 @@ export async function regenerateChapter(
 
       const { details, thinking: detThinking } = bestDet;
       const detQuality = bestDet.qualityScore;
+      detQuality.chapterNumber = chapterPosition;
+      detQuality.stage = 3;
       qualityScores.push(detQuality);
 
       onSSEEvent?.({
@@ -785,6 +806,7 @@ export async function regenerateSectionsOnly(
       };
       let s2QualityFeedback: QualityFeedback | null = null;
       const s2StartTime = Date.now();
+      let s2ConsecutiveDeclines = 0;
 
       for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
         const regenS2TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, secNum);
@@ -807,6 +829,10 @@ export async function regenerateSectionsOnly(
 
         if (blendedSec.overall > bestSec.qualityScore.overall) {
           bestSec = { ...result, qualityScore: blendedSec };
+          s2ConsecutiveDeclines = 0;
+        } else {
+          s2ConsecutiveDeclines++;
+          if (s2ConsecutiveDeclines >= 2) break;
         }
         if (blendedSec.overall >= s2Strategy.retryThreshold || attempt === s2Strategy.maxRetries) break;
 
@@ -826,6 +852,8 @@ export async function regenerateSectionsOnly(
 
       const { section } = bestSec;
       const secQuality = bestSec.qualityScore;
+      secQuality.chapterNumber = chapterPosition;
+      secQuality.stage = 2;
       qualityScores.push(secQuality);
       currentSectionTitles.push(section.title);
       previousSections.push(section);
@@ -859,6 +887,7 @@ export async function regenerateSectionsOnly(
       };
       let s3QualityFeedback: QualityFeedback | null = null;
       const s3StartTime = Date.now();
+      let s3ConsecutiveDeclines = 0;
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
@@ -886,6 +915,10 @@ export async function regenerateSectionsOnly(
 
         if (blendedDet.overall > bestDet.qualityScore.overall) {
           bestDet = { ...result, qualityScore: blendedDet };
+          s3ConsecutiveDeclines = 0;
+        } else {
+          s3ConsecutiveDeclines++;
+          if (s3ConsecutiveDeclines >= 2) break;
         }
         if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
 
@@ -905,6 +938,8 @@ export async function regenerateSectionsOnly(
 
       const { details } = bestDet;
       const detQuality = bestDet.qualityScore;
+      detQuality.chapterNumber = chapterPosition;
+      detQuality.stage = 3;
       qualityScores.push(detQuality);
 
       await db.section.update({
@@ -1071,6 +1106,7 @@ export async function regenerateDetailsOnly(
       };
       let s3QualityFeedback: QualityFeedback | null = null;
       const s3StartTime = Date.now();
+      let s3ConsecutiveDeclines = 0;
 
       for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
@@ -1098,6 +1134,10 @@ export async function regenerateDetailsOnly(
 
         if (blendedDet.overall > bestDet.qualityScore.overall) {
           bestDet = { ...result, qualityScore: blendedDet };
+          s3ConsecutiveDeclines = 0;
+        } else {
+          s3ConsecutiveDeclines++;
+          if (s3ConsecutiveDeclines >= 2) break;
         }
         if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
 
@@ -1117,6 +1157,8 @@ export async function regenerateDetailsOnly(
 
       const { details } = bestDet;
       const detQuality = bestDet.qualityScore;
+      detQuality.chapterNumber = chapterPosition;
+      detQuality.stage = 3;
       qualityScores.push(detQuality);
 
       await db.section.update({

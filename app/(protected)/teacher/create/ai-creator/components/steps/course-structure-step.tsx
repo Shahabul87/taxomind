@@ -22,8 +22,10 @@ import {
   Layers,
   FileText,
   ClipboardCheck,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 // Dynamic import with SSR disabled to fix Radix UI hydration mismatch
 // See: https://github.com/radix-ui/primitives/issues/3700
@@ -89,59 +91,10 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
 
   const goalsIsValid = Array.isArray(formData.courseGoals) && formData.courseGoals.length >= 2;
   const bloomsIsValid = Array.isArray(formData.bloomsFocus) && formData.bloomsFocus.length >= 2;
-  const completedFields = [goalsIsValid, bloomsIsValid].filter(Boolean).length;
-  const totalRequired = 2;
-
   const totalLessons = formData.chapterCount * formData.sectionsPerChapter;
 
   return (
     <div className="space-y-6">
-      {/* Step Progress Indicator */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-emerald-50/50 dark:from-slate-900/50 dark:to-emerald-950/30 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
-            <Brain className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Step 3: Course structure
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Define learning objectives and content organization
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex -space-x-1">
-            {[bloomsIsValid, goalsIsValid].map((isValid, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center transition-all duration-300",
-                  isValid
-                    ? "bg-emerald-500 text-white"
-                    : "bg-slate-200 dark:bg-slate-700 text-slate-400"
-                )}
-              >
-                {isValid ? (
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                ) : (
-                  <span className="text-[10px] font-bold">{i + 1}</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <Badge variant="outline" className={cn(
-            "text-xs font-semibold transition-colors",
-            completedFields === totalRequired
-              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800"
-              : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
-          )}>
-            {completedFields}/{totalRequired} complete
-          </Badge>
-        </div>
-      </div>
-
       {/* Course Structure Sliders */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Chapters Slider */}
@@ -577,33 +530,30 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
         />
       </div>
 
-      {/* Tips Card */}
-      <div className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 rounded-xl border border-violet-200/50 dark:border-violet-800/50">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg bg-violet-100 dark:bg-violet-900/50">
-            <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+      {/* Tips - Collapsible */}
+      <Collapsible>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-2 w-full p-3 rounded-xl bg-violet-50/50 dark:bg-violet-950/20 border border-violet-200/50 dark:border-violet-800/30 hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors text-left group">
+            <Sparkles className="h-4 w-4 text-violet-500" />
+            <span className="text-sm font-medium text-violet-700 dark:text-violet-300">Pro Tips</span>
+            <ChevronDown className="h-4 w-4 ml-auto text-violet-400 transition-transform group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 pb-3 pt-2 space-y-2">
+            {[
+              "Start with concrete, measurable objectives using action verbs",
+              "Build from lower Bloom\u2019s levels (Remember, Understand) to higher ones (Analyze, Create)",
+              "Mix content types to accommodate different learning styles"
+            ].map((tip, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm text-violet-700 dark:text-violet-300">
+                <Target className="h-3 w-3 mt-1 flex-shrink-0 text-violet-500" />
+                <span className="leading-relaxed">{tip}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-violet-800 dark:text-violet-200 mb-1.5">
-              Tips for effective course structure
-            </h4>
-            <ul className="text-xs text-violet-700 dark:text-violet-300 space-y-1.5">
-              <li className="flex items-start gap-2">
-                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span>Start with concrete, measurable objectives using action verbs</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span>Build from lower Bloom&apos;s levels (Remember, Understand) to higher ones (Analyze, Create)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Target className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                <span>Mix content types to accommodate different learning styles</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

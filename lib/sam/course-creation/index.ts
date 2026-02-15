@@ -21,8 +21,12 @@ export {
 export type { Stage3PromptOptions } from './prompts';
 
 // Orchestrator (coordinator)
-export { orchestrateCourseCreation, generateSingleChapter } from './orchestrator';
+export { orchestrateCourseCreation } from './orchestrator';
 export type { OrchestrateOptions } from './orchestrator';
+
+// Chapter Generator (extracted from orchestrator for modularity)
+export { generateSingleChapter } from './chapter-generator';
+export type { ChapterGenerationCallbacks } from './chapter-generator';
 
 // Checkpoint / Resume
 export { resumeCourseCreation, saveCheckpoint, saveCheckpointWithRetry } from './checkpoint-manager';

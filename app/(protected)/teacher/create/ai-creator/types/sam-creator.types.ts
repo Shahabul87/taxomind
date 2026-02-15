@@ -89,6 +89,7 @@ export interface StepComponentProps {
   validationErrors: Record<string, string>;
   onNext?: () => void;
   onBack?: () => void;
+  goToStep?: (step: number) => void;
 }
 
 export interface SamWizardState {

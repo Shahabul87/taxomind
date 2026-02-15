@@ -19,6 +19,7 @@
 
 import 'server-only';
 
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
@@ -34,6 +35,8 @@ import type {
   HealingResult,
   HealingStrategy,
   HealingStrategyType,
+  BloomsLevel,
+  ContentType,
 } from './types';
 
 // ============================================================================
@@ -217,6 +220,56 @@ export async function runHealingLoop(
 
         if (result.success) {
           allRegeneratedChapters.add(flag.position);
+
+          // Reload chapter from DB to replace stale data in completedChapters[]
+          try {
+            const freshChapter = await db.chapter.findUnique({
+              where: { id: chapter.id },
+              include: { sections: { orderBy: { position: 'asc' } } },
+            });
+            if (freshChapter) {
+              const idx = completedChapters.findIndex(ch => ch.position === flag.position);
+              if (idx !== -1) {
+                completedChapters[idx] = {
+                  id: freshChapter.id,
+                  position: freshChapter.position,
+                  title: freshChapter.title,
+                  description: freshChapter.description ?? '',
+                  bloomsLevel: (freshChapter.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
+                  learningObjectives: (freshChapter.courseGoals ?? '').split('\n').filter(Boolean),
+                  keyTopics: completedChapters[idx].keyTopics,
+                  prerequisites: freshChapter.prerequisites ?? '',
+                  estimatedTime: freshChapter.estimatedTime ?? '1-2 hours',
+                  topicsToExpand: completedChapters[idx].topicsToExpand ?? [],
+                  sections: freshChapter.sections.map(sec => ({
+                    id: sec.id,
+                    position: sec.position,
+                    title: sec.title,
+                    contentType: (sec.type ?? 'video') as ContentType,
+                    estimatedDuration: sec.duration ? `${sec.duration} minutes` : '15-20 minutes',
+                    topicFocus: sec.title,
+                    parentChapterContext: {
+                      title: freshChapter.title,
+                      bloomsLevel: (freshChapter.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
+                      relevantObjectives: (freshChapter.courseGoals ?? '').split('\n').filter(Boolean).slice(0, 2),
+                    },
+                    details: sec.description ? {
+                      description: sec.description,
+                      learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
+                      keyConceptsCovered: (sec.keyConceptsCovered ?? '').split('\n').filter(Boolean),
+                      practicalActivity: sec.practicalActivity ?? '',
+                    } : undefined,
+                  })),
+                };
+              }
+            }
+          } catch (reloadError) {
+            logger.warn('[HealingLoop] Failed to reload chapter from DB after healing — using stale data', {
+              position: flag.position,
+              error: reloadError instanceof Error ? reloadError.message : String(reloadError),
+            });
+          }
+
           logger.info('[HealingLoop] Chapter healed successfully', {
             position: flag.position,
             strategy: strategy.type,

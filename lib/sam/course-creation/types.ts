@@ -315,6 +315,10 @@ export interface QualityScore {
   completeness: number;    // 0-100: Has all required fields
   depth: number;           // 0-100: Content depth beyond surface level
   overall: number;         // Weighted average
+  /** Which chapter this score belongs to (for precise grouping in reflector) */
+  chapterNumber?: number;
+  /** Which pipeline stage produced this score: 1=chapter, 2=section, 3=details */
+  stage?: 1 | 2 | 3;
 }
 
 export interface ValidationResult {

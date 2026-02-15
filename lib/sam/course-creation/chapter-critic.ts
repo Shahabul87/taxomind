@@ -14,7 +14,7 @@
  * - Overlap with prior chapters
  *
  * Falls back to rule-based approval if AI call fails (graceful degradation).
- * Single call per chapter, 5-second timeout.
+ * Single call per chapter, 12-second timeout.
  */
 
 import 'server-only';
@@ -64,8 +64,8 @@ export interface ChapterCritique {
 // Constants
 // ============================================================================
 
-/** Timeout for critic AI call (ms) */
-const CRITIC_TIMEOUT_MS = 5000;
+/** Timeout for critic AI call (ms) — 12s allows real AI critique; 5s was too aggressive */
+const CRITIC_TIMEOUT_MS = 12_000;
 
 /** Minimum confidence to act on a 'revise' verdict */
 const MIN_REVISE_CONFIDENCE = 60;

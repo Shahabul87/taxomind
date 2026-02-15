@@ -190,6 +190,42 @@ export function buildMemoryRecallBlock(memory: RecalledMemory): string {
 }
 
 // ============================================================================
+// Related Categories Map
+// ============================================================================
+
+/** Groups of related domain categories — substring-matched, case-insensitive */
+const RELATED_CATEGORY_GROUPS: string[][] = [
+  ['programming', 'computer-science', 'web-development', 'software', 'coding', 'web-dev'],
+  ['data-science', 'machine-learning', 'artificial-intelligence', 'deep-learning', 'ai', 'ml', 'data-analytics'],
+  ['business', 'finance', 'marketing', 'economics', 'management', 'entrepreneurship'],
+  ['design', 'ux', 'ui', 'graphic-design', 'user-experience', 'user-interface'],
+  ['engineering', 'electrical', 'mechanical', 'civil', 'chemical'],
+  ['mathematics', 'statistics', 'algebra', 'calculus', 'geometry'],
+  ['science', 'physics', 'chemistry', 'biology'],
+  ['language', 'writing', 'literature', 'communication', 'linguistics'],
+];
+
+/**
+ * Get a set of related categories for the given category.
+ * Uses case-insensitive substring matching against predefined groups.
+ */
+function getRelatedCategories(category: string): Set<string> {
+  const lower = category.toLowerCase();
+  const related = new Set<string>([lower]);
+
+  for (const group of RELATED_CATEGORY_GROUPS) {
+    const match = group.some(g => lower.includes(g) || g.includes(lower));
+    if (match) {
+      for (const g of group) {
+        related.add(g);
+      }
+    }
+  }
+
+  return related;
+}
+
+// ============================================================================
 // Internal Helpers
 // ============================================================================
 
@@ -209,10 +245,15 @@ async function recallPriorConcepts(
 
     if (!entities || entities.length === 0) return [];
 
+    const relatedCategories = getRelatedCategories(courseCategory);
+
     return entities
       .filter((e: Record<string, unknown>) => {
         const props = e.properties as Record<string, unknown> | undefined;
-        return props?.courseCategory === courseCategory || !props?.courseCategory;
+        const entityCategory = props?.courseCategory as string | undefined;
+        // Include entities without a category, or whose category is in the related set
+        if (!entityCategory) return true;
+        return relatedCategories.has(entityCategory.toLowerCase());
       })
       .slice(0, MAX_PRIOR_CONCEPTS)
       .map((e: Record<string, unknown>) => {

@@ -156,6 +156,14 @@ export function useSamWizard() {
     }
   }, [step]);
 
+  const goToStep = useCallback((targetStep: number) => {
+    if (targetStep >= 1 && targetStep <= TOTAL_STEPS && targetStep <= step) {
+      setStep(targetStep);
+      setSamSuggestion(null);
+      setValidationErrors({});
+    }
+  }, [step]);
+
   const handleGenerate = useCallback(async () => {
     const genId = trackGenerationStart('blueprint', {
       inputComplexity: 'high',
@@ -331,6 +339,7 @@ export function useSamWizard() {
 
     // Actions
     ...actions,
+    goToStep,
     handleStreamingComplete,
     handleStreamingError,
 

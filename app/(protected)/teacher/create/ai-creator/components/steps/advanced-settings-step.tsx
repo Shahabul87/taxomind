@@ -7,13 +7,14 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StepComponentProps } from '../../types/sam-creator.types';
-import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers } from 'lucide-react';
+import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
 import { formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
 import { getTemplateForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 
-export function AdvancedSettingsStep({ formData, setFormData }: StepComponentProps) {
+export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepComponentProps) {
   // Format difficulty for display (capitalize properly)
   const formatDifficulty = (difficulty: string) => {
     const displayMap: Record<string, string> = {
@@ -200,11 +201,19 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
         <div className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Basic Course Information */}
           <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
-            <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
-              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                <Star className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+            <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <Star className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Course Information</h3>
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Course Information</h3>
+              {goToStep && (
+                <Button variant="ghost" size="sm" onClick={() => goToStep(1)}
+                  className="text-xs text-slate-500 hover:text-indigo-600">
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                </Button>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
@@ -260,13 +269,21 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
 
           {/* Learning Objectives */}
           <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
-            <div className="flex items-center gap-2.5 mb-3 sm:mb-4">
-              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  Learning Objectives ({formData.courseGoals.length})
+                </h3>
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
-                Learning Objectives ({formData.courseGoals.length})
-              </h3>
+              {goToStep && (
+                <Button variant="ghost" size="sm" onClick={() => goToStep(3)}
+                  className="text-xs text-slate-500 hover:text-indigo-600">
+                  <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                </Button>
+              )}
             </div>
             
             <div className="grid grid-cols-1 gap-2.5 sm:gap-3">
@@ -286,11 +303,19 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </Card>
           {/* Learning Framework */}
           <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
-          <div className="flex items-center gap-2.5 mb-4 sm:mb-5 md:mb-6">
-            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-              <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+          <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+              </div>
+              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Framework</h3>
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">Learning Framework</h3>
+            {goToStep && (
+              <Button variant="ghost" size="sm" onClick={() => goToStep(3)}
+                className="text-xs text-slate-500 hover:text-indigo-600">
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              </Button>
+            )}
           </div>
           
           <div className="space-y-3 sm:space-y-4">

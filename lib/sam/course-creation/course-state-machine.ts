@@ -26,7 +26,7 @@ import {
 } from '@sam-ai/agentic';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
 import { logger } from '@/lib/logger';
-import { generateSingleChapter } from './orchestrator';
+import { generateSingleChapter } from './chapter-generator';
 import {
   initializeChapterSubGoal,
   completeChapterSubGoal,
@@ -42,6 +42,7 @@ import { replanRemainingChapters } from './course-planner';
 import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
 import { diagnoseChapterIssues } from './healing-loop';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
+import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import type {
   ChapterStepContext,
   ChapterStepResult,
@@ -177,15 +178,42 @@ export class CourseCreationStateMachine {
         chapterContext.bridgeContent = state.bridgeContent;
       }
 
-      // 3. Generate chapter (all 3 stages)
-      const chapterResult = await generateSingleChapter(
-        this.config.userId,
-        chapterContext,
-        {
-          onSSEEvent: this.config.onSSEEvent,
-          enableStreamingThinking: this.config.enableStreamingThinking,
-        },
-      );
+      // 3. Generate chapter (all 3 stages) with per-chapter timeout
+      const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
+      let chapterResult: ChapterStepResult;
+      try {
+        chapterResult = await withTimeout(
+          () => generateSingleChapter(
+            this.config.userId,
+            chapterContext,
+            {
+              onSSEEvent: this.config.onSSEEvent,
+              enableStreamingThinking: this.config.enableStreamingThinking,
+            },
+          ),
+          PER_CHAPTER_TIMEOUT_MS,
+          `chapter-${chapterNumber}-generation`,
+        );
+      } catch (timeoutErr) {
+        if (timeoutErr instanceof OperationTimeoutError) {
+          logger.warn('[CourseStateMachine] Chapter generation timed out', {
+            chapter: chapterNumber, timeoutMs: PER_CHAPTER_TIMEOUT_MS,
+          });
+          this.config.onSSEEvent?.({
+            type: 'chapter_skipped',
+            data: { chapter: chapterNumber, reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s` },
+          });
+          return {
+            stepId: _step.id,
+            success: false,
+            completedAt: new Date(),
+            duration: PER_CHAPTER_TIMEOUT_MS,
+            outputs: [],
+            error: `Chapter ${chapterNumber} generation timed out`,
+          } as StepResult;
+        }
+        throw timeoutErr;
+      }
 
       // 4. Clear consumed bridge content
       state.bridgeContent = '';
