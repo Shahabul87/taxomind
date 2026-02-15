@@ -107,13 +107,38 @@ function isProgrammingCode(content: string): boolean {
 }
 
 /**
+ * Check if content contains LaTeX backslash commands — if so, it's definitely math.
+ */
+function hasLatexCommands(content: string): boolean {
+  return /\\(?:frac|lim|int|sum|prod|sqrt|to|infty|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|cdot|times|div|pm|leq|geq|neq|approx|equiv|sin|cos|tan|log|ln|exp|max|min)\b/.test(
+    content
+  );
+}
+
+/**
+ * Normalize Unicode characters that break KaTeX parsing.
+ */
+function normalizeMathChars(text: string): string {
+  return text
+    .replace(/\u2013/g, "-") // en-dash → minus
+    .replace(/\u2014/g, "--") // em-dash → double minus
+    .replace(/\u2018/g, "'") // left single quote
+    .replace(/\u2019/g, "'") // right single quote
+    .replace(/\u201C/g, '"') // left double quote
+    .replace(/\u201D/g, '"') // right double quote
+    .replace(/\u00A0/g, " ") // non-breaking space
+    .replace(/\u2212/g, "-"); // minus sign (U+2212)
+}
+
+/**
  * Render math to HTML using KaTeX. Returns null on failure.
  */
 function renderMath(
   content: string,
   displayMode: boolean
 ): string | null {
-  const latex = toLatex(content.trim());
+  const normalized = normalizeMathChars(decodeHtmlEntities(content.trim()));
+  const latex = toLatex(normalized);
   try {
     return katex.renderToString(latex, {
       displayMode,
@@ -144,7 +169,9 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"');
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
 }
 
 interface MathSegment {
@@ -172,6 +199,10 @@ function findMathSegments(text: string): MathSegment[] {
     /\([^()]*(?:\([^)]*\)[^()]*)*\)\/[a-zA-Z0-9(]+(?:\([^)]*\))?/g,
     // Algebraic terms: 3x, 2y+1, coefficient-variable patterns
     /(?<![a-zA-Z])\d+[a-zA-Z](?=[+\-*/=^)]|\s|$)/g,
+    // Square bracket expression with division: [f(a+h)-f(a)]/h
+    /\[[^\]]+\]\s*\/\s*[a-zA-Z0-9]+/g,
+    // Math operator with subscript followed by bracket body: lim_{h→0} [expr]/var
+    /(?:lim|sum|prod|int|sup|inf|max|min)(?:_\{[^}]+\})?\s*\[[^\]]+\](?:\s*\/\s*\S+)?/g,
     // Unicode math (existing)
     UNICODE_MATH_SEGMENT_RE,
   ];
@@ -322,21 +353,46 @@ function processMathInHtml(html: string): string {
     }
   );
 
-  // Step 4: Process standalone <code>...</code> tags as inline math
-  result = result.replace(/<code>([^<]+)<\/code>/g, (match, content) => {
-    const trimmed = content.trim();
-
-    // Skip empty
-    if (!trimmed) return match;
-
-    // Skip programming code
-    if (isProgrammingCode(trimmed)) return match;
-
-    const rendered = renderMath(trimmed, false);
-    return rendered
-      ? `<span class="math-inline">${rendered}</span>`
-      : match;
+  // Step 3b: Convert backtick-wrapped LaTeX to math
+  result = result.replace(/`([^`]+)`/g, (match, content) => {
+    const decoded = decodeHtmlEntities(content.trim());
+    if (!decoded || !hasLatexCommands(decoded)) return match;
+    const isComplex = /\\(?:frac|int|sum|prod)\b/.test(decoded);
+    const rendered = renderMath(decoded, isComplex);
+    if (!rendered) return match;
+    return isComplex
+      ? `<div class="my-3 overflow-x-auto">${rendered}</div>`
+      : `<span class="math-inline">${rendered}</span>`;
   });
+
+  // Step 4: Process standalone <code>...</code> tags as inline math
+  result = result.replace(
+    /<code(?:\s[^>]*)?>([^<]+)<\/code>/g,
+    (match, content) => {
+      const decoded = decodeHtmlEntities(content.trim());
+
+      // Skip empty
+      if (!decoded) return match;
+
+      // If content has LaTeX commands, it's definitely math — skip programming check
+      if (hasLatexCommands(decoded)) {
+        const isComplex = /\\(?:frac|int|sum|prod)\b/.test(decoded);
+        const rendered = renderMath(decoded, isComplex);
+        if (!rendered) return match;
+        return isComplex
+          ? `<div class="my-3 overflow-x-auto">${rendered}</div>`
+          : `<span class="math-inline">${rendered}</span>`;
+      }
+
+      // Skip programming code
+      if (isProgrammingCode(decoded)) return match;
+
+      const rendered = renderMath(decoded, false);
+      return rendered
+        ? `<span class="math-inline">${rendered}</span>`
+        : match;
+    }
+  );
 
   // Step 4b: Process math expressions in text nodes (Unicode + ASCII patterns)
   // Split by HTML tags so we only process text content, not tag attributes
@@ -389,6 +445,12 @@ const ALLOWED_TAGS = [
   "div",
   "sub",
   "sup",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
 ];
 
 const ALLOWED_ATTR = ["href", "target", "rel", "class", "style"];
