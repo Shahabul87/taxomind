@@ -16,6 +16,7 @@ import {
   type ChapterTemplate,
   type TemplateSectionDef,
 } from '@/lib/sam/course-creation/chapter-templates';
+import { FEW_SHOT_EXAMPLES } from '@/lib/sam/course-creation/few-shot-examples';
 
 // ============================================================================
 // Template Lookup
@@ -504,5 +505,172 @@ describe('exercise types per difficulty', () => {
     expect(types).toContain('evaluation');
     expect(types).toContain('creation');
     expect(types).toContain('critique');
+  });
+});
+
+// ============================================================================
+// Few-Shot Examples
+// ============================================================================
+
+describe('few-shot example snippets', () => {
+  it('FEW_SHOT_EXAMPLES has entries for all 3 difficulty levels', () => {
+    expect(FEW_SHOT_EXAMPLES).toHaveProperty('beginner');
+    expect(FEW_SHOT_EXAMPLES).toHaveProperty('intermediate');
+    expect(FEW_SHOT_EXAMPLES).toHaveProperty('advanced');
+  });
+
+  it('beginner has 6 example snippets (non-formulaic roles)', () => {
+    const roles = Object.keys(FEW_SHOT_EXAMPLES.beginner);
+    expect(roles).toHaveLength(6);
+    expect(roles).toContain('HOOK');
+    expect(roles).toContain('INTUITION');
+    expect(roles).toContain('WALKTHROUGH');
+    expect(roles).toContain('FORMALIZATION');
+    expect(roles).toContain('PLAYGROUND');
+    expect(roles).toContain('PITFALLS');
+  });
+
+  it('intermediate has 5 example snippets', () => {
+    const roles = Object.keys(FEW_SHOT_EXAMPLES.intermediate);
+    expect(roles).toHaveLength(5);
+    expect(roles).toContain('PROVOCATION');
+    expect(roles).toContain('INTUITION_ENGINE');
+    expect(roles).toContain('DERIVATION');
+    expect(roles).toContain('LABORATORY');
+    expect(roles).toContain('DEPTH_DIVE');
+  });
+
+  it('advanced has 6 example snippets', () => {
+    const roles = Object.keys(FEW_SHOT_EXAMPLES.advanced);
+    expect(roles).toHaveLength(6);
+    expect(roles).toContain('OPEN_QUESTION');
+    expect(roles).toContain('INTUITION');
+    expect(roles).toContain('FIRST_PRINCIPLES');
+    expect(roles).toContain('ANALYSIS');
+    expect(roles).toContain('DESIGN_STUDIO');
+    expect(roles).toContain('FRONTIER');
+  });
+
+  it('formulaic sections (SUMMARY, CHECKPOINT, SYNTHESIS) have no examples', () => {
+    expect(FEW_SHOT_EXAMPLES.beginner.SUMMARY).toBeUndefined();
+    expect(FEW_SHOT_EXAMPLES.beginner.CHECKPOINT).toBeUndefined();
+    expect(FEW_SHOT_EXAMPLES.intermediate.SYNTHESIS).toBeUndefined();
+    expect(FEW_SHOT_EXAMPLES.intermediate.CHECKPOINT).toBeUndefined();
+    expect(FEW_SHOT_EXAMPLES.advanced.SYNTHESIS).toBeUndefined();
+    expect(FEW_SHOT_EXAMPLES.advanced.CHECKPOINT).toBeUndefined();
+  });
+
+  it('each snippet is a non-empty string containing HTML', () => {
+    for (const difficulty of ['beginner', 'intermediate', 'advanced'] as const) {
+      const examples = FEW_SHOT_EXAMPLES[difficulty];
+      for (const [role, snippet] of Object.entries(examples)) {
+        expect(snippet).toBeDefined();
+        expect(typeof snippet).toBe('string');
+        expect(snippet!.length).toBeGreaterThan(50);
+        expect(snippet).toContain('<');
+        // Verify it's valid-looking HTML
+        expect(snippet).toMatch(/<h[23]>/);
+      }
+    }
+  });
+});
+
+describe('exampleSnippet wiring in templates', () => {
+  it('beginner HOOK section has exampleSnippet defined', () => {
+    const template = getTemplateForDifficulty('beginner');
+    const hook = template.sections.find(s => s.role === 'HOOK');
+    expect(hook).toBeDefined();
+    expect(hook!.exampleSnippet).toBeDefined();
+    expect(hook!.exampleSnippet).toContain('Library');
+  });
+
+  it('beginner CHECKPOINT section has no exampleSnippet', () => {
+    const template = getTemplateForDifficulty('beginner');
+    const checkpoint = template.sections.find(s => s.role === 'CHECKPOINT');
+    expect(checkpoint).toBeDefined();
+    expect(checkpoint!.exampleSnippet).toBeUndefined();
+  });
+
+  it('intermediate PROVOCATION has exampleSnippet defined', () => {
+    const template = getTemplateForDifficulty('intermediate');
+    const prov = template.sections.find(s => s.role === 'PROVOCATION');
+    expect(prov).toBeDefined();
+    expect(prov!.exampleSnippet).toBeDefined();
+    expect(prov!.exampleSnippet).toContain('feedback');
+  });
+
+  it('advanced OPEN_QUESTION has exampleSnippet defined', () => {
+    const template = getTemplateForDifficulty('advanced');
+    const oq = template.sections.find(s => s.role === 'OPEN_QUESTION');
+    expect(oq).toBeDefined();
+    expect(oq!.exampleSnippet).toBeDefined();
+    expect(oq!.exampleSnippet).toContain('fisherman');
+  });
+
+  it('all sections with examples match FEW_SHOT_EXAMPLES source', () => {
+    const checks: Array<{ difficulty: 'beginner' | 'intermediate' | 'advanced'; role: string }> = [
+      { difficulty: 'beginner', role: 'HOOK' },
+      { difficulty: 'beginner', role: 'INTUITION' },
+      { difficulty: 'intermediate', role: 'DERIVATION' },
+      { difficulty: 'advanced', role: 'FIRST_PRINCIPLES' },
+    ];
+    for (const { difficulty, role } of checks) {
+      const template = getTemplateForDifficulty(difficulty);
+      const section = template.sections.find(s => s.role === role);
+      expect(section?.exampleSnippet).toBe(
+        FEW_SHOT_EXAMPLES[difficulty][role as keyof (typeof FEW_SHOT_EXAMPLES)[typeof difficulty]]
+      );
+    }
+  });
+});
+
+describe('stage3Block gold standard example injection', () => {
+  it('stage3Block contains GOLD STANDARD EXAMPLE for HOOK (beginner)', () => {
+    const template = getTemplateForDifficulty('beginner');
+    const blocks = composeTemplatePromptBlocks(template, 1);
+    expect(blocks.stage3Block).toContain('GOLD STANDARD EXAMPLE');
+    expect(blocks.stage3Block).toContain('generate ORIGINAL content');
+    expect(blocks.stage3Block).toContain('Library');
+  });
+
+  it('stage3Block does NOT contain GOLD STANDARD EXAMPLE for CHECKPOINT (beginner)', () => {
+    const template = getTemplateForDifficulty('beginner');
+    const blocks = composeTemplatePromptBlocks(template, 8); // CHECKPOINT
+    expect(blocks.stage3Block).not.toContain('GOLD STANDARD EXAMPLE');
+  });
+
+  it('stage3Block contains GOLD STANDARD EXAMPLE for PROVOCATION (intermediate)', () => {
+    const template = getTemplateForDifficulty('intermediate');
+    const blocks = composeTemplatePromptBlocks(template, 1);
+    expect(blocks.stage3Block).toContain('GOLD STANDARD EXAMPLE');
+    expect(blocks.stage3Block).toContain('THE PROVOCATION');
+  });
+
+  it('stage3Block does NOT contain GOLD STANDARD EXAMPLE for SYNTHESIS (intermediate)', () => {
+    const template = getTemplateForDifficulty('intermediate');
+    const blocks = composeTemplatePromptBlocks(template, 6); // SYNTHESIS
+    expect(blocks.stage3Block).not.toContain('GOLD STANDARD EXAMPLE');
+  });
+
+  it('stage3Block contains GOLD STANDARD EXAMPLE for OPEN_QUESTION (advanced)', () => {
+    const template = getTemplateForDifficulty('advanced');
+    const blocks = composeTemplatePromptBlocks(template, 1);
+    expect(blocks.stage3Block).toContain('GOLD STANDARD EXAMPLE');
+    expect(blocks.stage3Block).toContain('Rational Individuals');
+  });
+
+  it('stage3Block does NOT contain GOLD STANDARD EXAMPLE for CHECKPOINT (advanced)', () => {
+    const template = getTemplateForDifficulty('advanced');
+    const blocks = composeTemplatePromptBlocks(template, 8); // CHECKPOINT
+    expect(blocks.stage3Block).not.toContain('GOLD STANDARD EXAMPLE');
+  });
+
+  it('example block appears between consistency rules and explain-to-a-friend', () => {
+    const template = getTemplateForDifficulty('beginner');
+    const blocks = composeTemplatePromptBlocks(template, 1); // HOOK
+    const goldIdx = blocks.stage3Block.indexOf('GOLD STANDARD EXAMPLE');
+    const explainIdx = blocks.stage3Block.indexOf('Explain-to-a-Friend');
+    expect(goldIdx).toBeGreaterThan(0);
+    expect(explainIdx).toBeGreaterThan(goldIdx);
   });
 });

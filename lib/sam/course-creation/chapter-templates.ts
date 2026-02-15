@@ -41,6 +41,7 @@
 
 import type { BloomsLevel, ContentType } from './types';
 import type { ComposedTemplatePrompt, TemplateSectionRole } from './types';
+import { FEW_SHOT_EXAMPLES } from './few-shot-examples';
 
 // ============================================================================
 // Types
@@ -61,6 +62,8 @@ export interface TemplateSectionDef {
   consistencyRules: string[];
   /** Whether this section is required (always included) or optional (AI can exclude). Default: true */
   required: boolean;
+  /** Gold-standard few-shot example for this section role (100-300 tokens). */
+  exampleSnippet?: string;
 }
 
 export interface ChapterTemplate {
@@ -121,6 +124,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['REMEMBER'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.HOOK,
       wordCountRange: { min: 150, max: 300 },
       formatRules: [
         'Write a real-world story or scenario featuring a character facing a problem.',
@@ -145,6 +149,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.INTUITION,
       wordCountRange: { min: 250, max: 500 },
       formatRules: [
         'Start with "Think of it like..." framing — ONE primary analogy.',
@@ -171,6 +176,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['APPLY'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.WALKTHROUGH,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Use the SAME scenario from THE HOOK with real numbers.',
@@ -196,6 +202,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.FORMALIZATION,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         '"Remember the pattern you noticed? That pattern has a name:..."',
@@ -220,6 +227,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'assignment',
       bloomsLevels: ['APPLY'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.PLAYGROUND,
       wordCountRange: { min: 250, max: 450 },
       formatRules: [
         'Exactly 3 exercises with decreasing scaffolding.',
@@ -247,6 +255,7 @@ function buildBeginnerSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'APPLY'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.beginner.PITFALLS,
       wordCountRange: { min: 200, max: 350 },
       formatRules: [
         'Name each pitfall: "The [Name] Trap" — give it a memorable label.',
@@ -328,6 +337,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'ANALYZE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.intermediate.PROVOCATION,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         'Present a result that CONTRADICTS what the student thinks they know.',
@@ -352,6 +362,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['UNDERSTAND', 'ANALYZE'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.intermediate.INTUITION_ENGINE,
       wordCountRange: { min: 400, max: 600 },
       formatRules: [
         'Present Mental Model 1: A concrete analogy or physical intuition.',
@@ -378,6 +389,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['APPLY', 'ANALYZE'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.intermediate.DERIVATION,
       wordCountRange: { min: 500, max: 800 },
       formatRules: [
         'Start with: "We want to find/prove/derive [goal]. Let&apos;s start from what we know."',
@@ -404,6 +416,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       contentType: 'assignment',
       bloomsLevels: ['APPLY', 'ANALYZE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.intermediate.LABORATORY,
       wordCountRange: { min: 400, max: 700 },
       formatRules: [
         'Exactly 5 exercises, each a different TYPE:',
@@ -432,6 +445,7 @@ function buildIntermediateSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.intermediate.DEPTH_DIVE,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Edge Cases: "What happens when [parameter] → [extreme]?"',
@@ -515,6 +529,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.OPEN_QUESTION,
       wordCountRange: { min: 250, max: 450 },
       formatRules: [
         'Pose an open, research-level question that has no trivially obvious answer.',
@@ -539,6 +554,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.INTUITION,
       wordCountRange: { min: 200, max: 400 },
       formatRules: [
         'Identify the single most counterintuitive aspect of this chapter&apos;s topic.',
@@ -563,6 +579,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.FIRST_PRINCIPLES,
       wordCountRange: { min: 500, max: 800 },
       formatRules: [
         'Start with: "Let&apos;s strip the problem to its simplest form."',
@@ -590,6 +607,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['ANALYZE', 'EVALUATE'],
       required: true,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.ANALYSIS,
       wordCountRange: { min: 400, max: 700 },
       formatRules: [
         'Complexity Analysis: Time/space complexity or computational cost.',
@@ -616,6 +634,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'assignment',
       bloomsLevels: ['ANALYZE', 'EVALUATE', 'CREATE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.DESIGN_STUDIO,
       wordCountRange: { min: 500, max: 900 },
       formatRules: [
         'At least 4 challenges, each at a different cognitive level:',
@@ -644,6 +663,7 @@ function buildAdvancedSections(): TemplateSectionDef[] {
       contentType: 'reading',
       bloomsLevels: ['EVALUATE', 'CREATE'],
       required: false,
+      exampleSnippet: FEW_SHOT_EXAMPLES.advanced.FRONTIER,
       wordCountRange: { min: 300, max: 500 },
       formatRules: [
         'Open Questions: 2-3 genuinely unsolved or actively researched questions.',
@@ -893,6 +913,10 @@ ${sectionDef.formatRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
     ? `\n\n**Consistency Rules (MUST verify):**\n${sectionDef.consistencyRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`
     : '';
 
+  const exampleBlock = sectionDef.exampleSnippet
+    ? `\n\n## GOLD STANDARD EXAMPLE\nThe following is an example of excellent ${sectionDef.displayName} content. Use it as a quality reference for tone, structure, and depth — but generate ORIGINAL content for the actual course topic.\n\n${sectionDef.exampleSnippet}`
+    : '';
+
   const stage3Block = `
 ## CHAPTER DNA — CONTENT FORMAT FOR ${sectionDef.displayName}
 
@@ -910,6 +934,7 @@ ${sectionDef.htmlStructure}
 **Tone/Style:** ${sectionDef.tone}
 ${exerciseGuidance}
 ${consistencyBlock}
+${exampleBlock}
 
 **Explain-to-a-Friend Test:** ${template.explainToAFriend}
 
