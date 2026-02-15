@@ -287,20 +287,36 @@ jest.mock('@/lib/sam/course-creation/prompts', () => ({
   buildStage1Prompt: jest.fn().mockReturnValue({ systemPrompt: 'sys1', userPrompt: 'user1' }),
   buildStage2Prompt: jest.fn().mockReturnValue({ systemPrompt: 'sys2', userPrompt: 'user2' }),
   buildStage3Prompt: jest.fn().mockReturnValue({ systemPrompt: 'sys3', userPrompt: 'user3' }),
+  PROMPT_VERSION: '2.0.0',
 }));
 
 // Mock category prompts
-jest.mock('@/lib/sam/course-creation/category-prompts', () => ({
-  getCategoryEnhancer: jest.fn().mockReturnValue({
+jest.mock('@/lib/sam/course-creation/category-prompts', () => {
+  const enhancer = {
     categoryId: 'ai',
     displayName: 'AI',
-    domainSpecificGuidelines: '',
-    topicEnhancements: {},
-    bloomsGuidance: {},
-    qualityWeights: {},
-  }),
-  composeCategoryPrompt: jest.fn().mockReturnValue(''),
-}));
+    matchesCategories: ['artificial-intelligence', 'machine-learning'],
+    domainExpertise: '',
+    teachingMethodology: '',
+    bloomsInDomain: {},
+    contentTypeGuidance: '',
+    qualityCriteria: '',
+    chapterSequencingAdvice: '',
+    activityExamples: {},
+  };
+  return {
+    getCategoryEnhancer: jest.fn().mockReturnValue(enhancer),
+    getCategoryEnhancers: jest.fn().mockReturnValue([enhancer]),
+    blendEnhancers: jest.fn().mockImplementation((primary: unknown) => primary),
+    composeCategoryPrompt: jest.fn().mockReturnValue({
+      expertiseBlock: '',
+      chapterGuidanceBlock: '',
+      sectionGuidanceBlock: '',
+      detailGuidanceBlock: '',
+      tokenEstimate: { expertiseBlock: 0, chapterGuidanceBlock: 0, sectionGuidanceBlock: 0, detailGuidanceBlock: 0, total: 0 },
+    }),
+  };
+});
 
 // Mock COURSE_CATEGORIES
 jest.mock('@/app/(protected)/teacher/create/ai-creator/types/sam-creator.types', () => ({
@@ -1033,6 +1049,7 @@ describe('orchestrateCourseCreation', () => {
         bloomsProgression: [{ chapter: 1, level: 'UNDERSTAND', topics: ['training data'] }],
         allSectionTitles: ['Introduction'],
         qualityScores: [{ overall: 75, depth: 70, structure: 80, pedagogy: 75, engagement: 70 }],
+        chapterSectionCounts: [1],
         sectionsWithDetails: new Set<string>(),
       },
     });
