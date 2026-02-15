@@ -5,7 +5,12 @@
  * resolve to a domain-specific enhancer instead of the general fallback.
  */
 
-import { getCategoryEnhancer, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
+import {
+  getCategoryEnhancer,
+  getCategoryEnhancers,
+  blendEnhancers,
+  composeCategoryPrompt,
+} from '@/lib/sam/course-creation/category-prompts';
 
 describe('Category Prompt Enhancers', () => {
   // ========================================================================
@@ -178,6 +183,155 @@ describe('Category Prompt Enhancers', () => {
       // But the music enhancer is registered BEFORE artsHumanities
       const enhancer = getCategoryEnhancer('Music', 'Music Theory');
       expect(enhancer.categoryId).toBe('music');
+    });
+  });
+
+  // ========================================================================
+  // Bloom's Level Filtering (Issue 2)
+  // ========================================================================
+
+  describe('Bloom\u2019s level filtering', () => {
+    it('composeCategoryPrompt(enhancer, APPLY) contains only UNDERSTAND + APPLY Bloom\u2019s lines', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const composed = composeCategoryPrompt(enhancer, 'APPLY');
+
+      // Should contain APPLY and UNDERSTAND (scaffolding level)
+      expect(composed.chapterGuidanceBlock).toContain('**APPLY**');
+      expect(composed.chapterGuidanceBlock).toContain('**UNDERSTAND**');
+      // Should NOT contain other levels
+      expect(composed.chapterGuidanceBlock).not.toContain('**REMEMBER**');
+      expect(composed.chapterGuidanceBlock).not.toContain('**ANALYZE**');
+      expect(composed.chapterGuidanceBlock).not.toContain('**EVALUATE**');
+      expect(composed.chapterGuidanceBlock).not.toContain('**CREATE**');
+    });
+
+    it('composeCategoryPrompt(enhancer, REMEMBER) contains only REMEMBER', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const composed = composeCategoryPrompt(enhancer, 'REMEMBER');
+
+      // REMEMBER is the lowest level — no scaffolding level below it
+      expect(composed.chapterGuidanceBlock).toContain('**REMEMBER**');
+      expect(composed.chapterGuidanceBlock).not.toContain('**UNDERSTAND**');
+      expect(composed.chapterGuidanceBlock).not.toContain('**APPLY**');
+    });
+
+    it('composeCategoryPrompt(enhancer) (no filter) contains all 6 levels (backward compat)', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const composed = composeCategoryPrompt(enhancer);
+
+      // All levels present when no filter is applied
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+      for (const level of levels) {
+        // Only check levels that exist in the enhancer's bloomsInDomain
+        if (enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]) {
+          expect(composed.chapterGuidanceBlock).toContain(`**${level}**`);
+        }
+      }
+    });
+
+    it('filtered prompt has fewer tokens than unfiltered', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const unfilteredComposed = composeCategoryPrompt(enhancer);
+      const filteredComposed = composeCategoryPrompt(enhancer, 'APPLY');
+
+      expect(filteredComposed.tokenEstimate.total).toBeLessThan(unfilteredComposed.tokenEstimate.total);
+    });
+  });
+
+  // ========================================================================
+  // Token Budget Tracking (Issue 4)
+  // ========================================================================
+
+  describe('token budget tracking', () => {
+    it('tokenEstimate.total > 0 for a non-general enhancer', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const composed = composeCategoryPrompt(enhancer);
+
+      expect(composed.tokenEstimate.total).toBeGreaterThan(0);
+    });
+
+    it('tokenEstimate.total equals sum of individual block estimates', () => {
+      const enhancer = getCategoryEnhancer('mathematics');
+      const composed = composeCategoryPrompt(enhancer);
+
+      const expectedTotal =
+        composed.tokenEstimate.expertiseBlock +
+        composed.tokenEstimate.chapterGuidanceBlock +
+        composed.tokenEstimate.sectionGuidanceBlock +
+        composed.tokenEstimate.detailGuidanceBlock;
+
+      expect(composed.tokenEstimate.total).toBe(expectedTotal);
+    });
+
+    it('all individual block estimates are positive', () => {
+      const enhancer = getCategoryEnhancer('finance');
+      const composed = composeCategoryPrompt(enhancer);
+
+      expect(composed.tokenEstimate.expertiseBlock).toBeGreaterThan(0);
+      expect(composed.tokenEstimate.chapterGuidanceBlock).toBeGreaterThan(0);
+      expect(composed.tokenEstimate.sectionGuidanceBlock).toBeGreaterThan(0);
+      expect(composed.tokenEstimate.detailGuidanceBlock).toBeGreaterThan(0);
+    });
+  });
+
+  // ========================================================================
+  // Multi-domain Blending (Issue 3)
+  // ========================================================================
+
+  describe('multi-domain blending', () => {
+    it('getCategoryEnhancers with category + different subcategory returns 2 enhancers', () => {
+      // "Machine Learning" should match data-science-ml, "Finance" should match finance-accounting
+      const enhancers = getCategoryEnhancers('Machine Learning', 'Finance');
+      expect(enhancers.length).toBe(2);
+      expect(enhancers[0].categoryId).not.toBe(enhancers[1].categoryId);
+    });
+
+    it('getCategoryEnhancers with maxResults=1 returns exactly 1 enhancer', () => {
+      const enhancers = getCategoryEnhancers('programming', undefined, 1);
+      expect(enhancers.length).toBe(1);
+    });
+
+    it('getCategoryEnhancers primary result matches getCategoryEnhancer', () => {
+      const single = getCategoryEnhancer('music');
+      const multi = getCategoryEnhancers('music');
+      expect(multi[0].categoryId).toBe(single.categoryId);
+    });
+
+    it('getCategoryEnhancers with unknown category returns [general]', () => {
+      const enhancers = getCategoryEnhancers('completely-unknown-xyz');
+      expect(enhancers.length).toBe(1);
+      expect(enhancers[0].categoryId).toBe('general');
+    });
+
+    it('blendEnhancers produces valid enhancer with combined expertise', () => {
+      const primary = getCategoryEnhancer('music');
+      const secondary = getCategoryEnhancer('finance');
+      const blended = blendEnhancers(primary, secondary);
+
+      // Combined categoryId
+      expect(blended.categoryId).toBe('music+finance-accounting');
+      // Combined display name
+      expect(blended.displayName).toContain('\u00d7');
+      // Primary expertise preserved (starts with primary's content)
+      expect(blended.domainExpertise).toContain(primary.domainExpertise);
+      // Cross-domain section present
+      expect(blended.domainExpertise).toContain('### Cross-Domain Context');
+      // Primary Bloom's preserved (same reference)
+      expect(blended.bloomsInDomain).toBe(primary.bloomsInDomain);
+      // Activity examples merged — at least as many keys as primary
+      expect(Object.keys(blended.activityExamples).length).toBeGreaterThanOrEqual(
+        Object.keys(primary.activityExamples).length,
+      );
+    });
+
+    it('blended enhancer composes into valid prompt blocks', () => {
+      const primary = getCategoryEnhancer('education');
+      const secondary = getCategoryEnhancer('business');
+      const blended = blendEnhancers(primary, secondary);
+      const composed = composeCategoryPrompt(blended);
+
+      expect(composed.expertiseBlock).toContain('Cross-Domain Context');
+      expect(composed.tokenEstimate.total).toBeGreaterThan(0);
     });
   });
 });

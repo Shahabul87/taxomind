@@ -89,4 +89,12 @@ export interface ComposedCategoryPrompt {
   sectionGuidanceBlock: string;
   /** Quality criteria + activity examples for detail prompts */
   detailGuidanceBlock: string;
+  /** Approximate token counts for budget awareness (4 chars ~ 1 token) */
+  tokenEstimate: {
+    expertiseBlock: number;
+    chapterGuidanceBlock: number;
+    sectionGuidanceBlock: number;
+    detailGuidanceBlock: number;
+    total: number;
+  };
 }

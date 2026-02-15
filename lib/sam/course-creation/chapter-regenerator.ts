@@ -403,6 +403,9 @@ export async function regenerateChapter(
 
     await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-1' });
 
+    // Per-chapter Bloom's-filtered prompt for Stage 2/3
+    const chapterCategoryPrompt = composeCategoryPrompt(categoryEnhancer, newChapter.bloomsLevel);
+
     // 7. Regenerate sections (Stage 2) + details (Stage 3)
     onSSEEvent?.({ type: 'stage_start', data: { stage: 2, message: 'Regenerating sections...' } });
 
@@ -439,7 +442,7 @@ export async function regenerateChapter(
         const regenS2TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, secNum);
         const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
           courseContext, newChapter, secNum, previousSections, currentSectionTitles,
-          enrichedContext, composedCategoryPrompt, undefined, regenS2TemplatePrompt
+          enrichedContext, chapterCategoryPrompt, undefined, regenS2TemplatePrompt
         );
         const augmentedS2User = s2QualityFeedback
           ? `${s2User}\n\n${buildQualityFeedbackBlock(s2QualityFeedback)}`
@@ -537,7 +540,7 @@ export async function regenerateChapter(
         const regenS3TemplatePrompt = composeTemplatePromptBlocks(regenTemplate, section.position);
         const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(
           courseContext, newChapter, section, previousSections,
-          enrichedContext, composedCategoryPrompt, undefined, regenS3TemplatePrompt
+          enrichedContext, chapterCategoryPrompt, undefined, regenS3TemplatePrompt
         );
         const augmentedS3User = s3QualityFeedback
           ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
@@ -730,7 +733,7 @@ export async function regenerateSectionsOnly(
       .flatMap(ch => ch.sections.map(s => s.title));
 
     const categoryEnhancer = getCategoryEnhancer(courseContext.courseCategory, courseContext.courseSubcategory);
-    const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
+    const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer, existingChapter.bloomsLevel);
     const regenTemplate = getTemplateForDifficulty(courseContext.difficulty);
 
     const conceptTracker: ConceptTracker = { concepts: new Map(), vocabulary: [], skillsBuilt: [] };
@@ -996,7 +999,7 @@ export async function regenerateDetailsOnly(
       }));
 
     const categoryEnhancer = getCategoryEnhancer(courseContext.courseCategory, courseContext.courseSubcategory);
-    const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
+    const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer, existingChapter.bloomsLevel);
     const regenTemplate = getTemplateForDifficulty(courseContext.difficulty);
 
     const conceptTracker: ConceptTracker = { concepts: new Map(), vocabulary: [], skillsBuilt: [] };

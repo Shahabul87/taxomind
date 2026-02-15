@@ -34,6 +34,8 @@ import {
 import { streamWithThinkingExtraction } from './streaming-accumulator';
 import {
   getCategoryEnhancer,
+  getCategoryEnhancers,
+  blendEnhancers,
   composeCategoryPrompt,
 } from './category-prompts';
 import {
@@ -195,6 +197,7 @@ export async function generateSingleChapter(
     strategyMonitor,
     chapterTemplate,
     categoryPrompt: composedCategoryPrompt,
+    categoryEnhancer: rawCategoryEnhancer,
     experimentVariant,
   } = context;
   const { onSSEEvent, enableStreamingThinking } = callbacks;
@@ -505,6 +508,11 @@ export async function generateSingleChapter(
     conceptsIntroduced: chapterWithId.conceptsIntroduced,
   };
 
+  // Per-chapter Bloom's-filtered category prompt for Stage 2/3 (reduces ~400 tokens per call)
+  const chapterCategoryPrompt = rawCategoryEnhancer
+    ? composeCategoryPrompt(rawCategoryEnhancer, chapterPlain.bloomsLevel)
+    : composedCategoryPrompt;
+
   for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
     const templateSectionDef = selectedSections[secNum - 1];
     const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
@@ -530,7 +538,7 @@ export async function generateSingleChapter(
     const s2StartTime = Date.now();
 
     for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
-      const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+      const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
 
       const augmentedS2User = s2QualityFeedback
         ? `${s2User}\n\n${buildQualityFeedbackBlock(s2QualityFeedback)}`
@@ -674,7 +682,7 @@ export async function generateSingleChapter(
     const s3StartTime = Date.now();
 
     for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
-      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt, experimentVariant, s3TemplatePrompt);
+      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, chapterCategoryPrompt, experimentVariant, s3TemplatePrompt);
 
       const augmentedS3User = s3QualityFeedback
         ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
@@ -854,16 +862,21 @@ export async function orchestrateCourseCreation(
     preferredContentTypes: config.preferredContentTypes as ContentType[],
   };
 
-  // Resolve domain-specific category prompt enhancer
-  const categoryEnhancer = getCategoryEnhancer(
+  // Resolve domain-specific category prompt enhancer (with optional multi-domain blending)
+  const matchedEnhancers = getCategoryEnhancers(
     courseContext.courseCategory,
-    courseContext.courseSubcategory
+    courseContext.courseSubcategory,
   );
+  const categoryEnhancer = matchedEnhancers.length >= 2
+    ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
+    : matchedEnhancers[0];
   const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
   logger.info('[ORCHESTRATOR] Category enhancer resolved', {
     categoryId: categoryEnhancer.categoryId,
     displayName: categoryEnhancer.displayName,
     courseCategory: courseContext.courseCategory,
+    tokenEstimate: composedCategoryPrompt.tokenEstimate.total,
+    blended: matchedEnhancers.length >= 2,
   });
 
   // Resolve chapter template from difficulty level
@@ -1251,6 +1264,7 @@ export async function orchestrateCourseCreation(
         strategyMonitor,
         chapterTemplate,
         categoryPrompt: composedCategoryPrompt,
+        categoryEnhancer,
         experimentVariant,
       }));
 
@@ -1327,6 +1341,7 @@ export async function orchestrateCourseCreation(
           strategyMonitor,
           chapterTemplate,
           categoryPrompt: composedCategoryPrompt,
+          categoryEnhancer,
           experimentVariant,
           bridgeContent: bridgeContent || undefined,
         };

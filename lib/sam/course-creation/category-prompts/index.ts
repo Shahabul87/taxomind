@@ -5,5 +5,11 @@
  * Import from this file in orchestrator.ts and prompts.ts.
  */
 
-export { getCategoryEnhancer, composeCategoryPrompt, listCategoryEnhancers } from './registry';
+export {
+  getCategoryEnhancer,
+  getCategoryEnhancers,
+  blendEnhancers,
+  composeCategoryPrompt,
+  listCategoryEnhancers,
+} from './registry';
 export type { CategoryPromptEnhancer, ComposedCategoryPrompt } from './types';

@@ -581,6 +581,8 @@ export interface ChapterStepContext {
   strategyMonitor: import('./adaptive-strategy').AdaptiveStrategyMonitor;
   chapterTemplate: import('./chapter-templates').ChapterTemplate;
   categoryPrompt: import('./category-prompts').ComposedCategoryPrompt;
+  /** Raw enhancer for per-chapter Bloom's-filtered composition */
+  categoryEnhancer?: import('./category-prompts').CategoryPromptEnhancer;
   experimentVariant?: string;
   /** Bridge content to scaffold concept gaps from prior chapter */
   bridgeContent?: string;
