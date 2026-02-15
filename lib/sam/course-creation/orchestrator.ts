@@ -60,6 +60,7 @@ import type { ComposedCategoryPrompt } from './category-prompts';
 import { regenerateChapter } from './chapter-regenerator';
 import { registerCriticAgent } from './chapter-critic';
 import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
+import { PROMPT_VERSION } from './prompts';
 import type { CourseBlueprintPlan, AgenticDecision, ChapterStepContext, ChapterStepResult } from './types';
 import { AdaptiveStrategyMonitor } from './adaptive-strategy';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
@@ -138,12 +139,14 @@ export interface OrchestrateOptions {
   resumeState?: ResumeState;
   /** Use AgentStateMachine for execution. Default: true for new courses. */
   useAgenticStateMachine?: boolean;
+  /** Correlation ID for end-to-end tracing across the SSE session */
+  runId?: string;
 }
 
 export async function orchestrateCourseCreation(
   options: OrchestrateOptions
 ): Promise<SequentialCreationResult> {
-  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine } = options;
+  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
 
@@ -255,7 +258,7 @@ export async function orchestrateCourseCreation(
     try {
       onSSEEvent?.({
         type: 'planning_start',
-        data: { message: 'Planning course blueprint...' },
+        data: { message: 'Planning course blueprint...', promptVersion: PROMPT_VERSION },
       });
 
       blueprintPlan = await planCourseBlueprint(
@@ -984,6 +987,7 @@ export async function orchestrateCourseCreation(
           lastCompletedStage: 3,
           currentChapterNumber: chNum,
           chapterSectionCounts,
+          promptVersion: PROMPT_VERSION,
         });
       }
     } // end AGENTIC vs LEGACY PATH
@@ -1113,6 +1117,7 @@ export async function orchestrateCourseCreation(
         : 0;
 
     logger.info('[ORCHESTRATOR] Course creation complete', {
+      runId,
       courseId,
       chaptersCreated,
       sectionsCreated,
@@ -1146,6 +1151,7 @@ export async function orchestrateCourseCreation(
         sectionsCreated,
         totalTime,
         averageQualityScore,
+        promptVersion: PROMPT_VERSION,
       },
     });
 
@@ -1173,7 +1179,7 @@ export async function orchestrateCourseCreation(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[ORCHESTRATOR] Course creation failed:', errorMessage);
+    logger.error('[ORCHESTRATOR] Course creation failed', { runId, error: errorMessage });
 
     // Phase 3: Mark course creation as failed
     await failCourseCreation(goalId, planId, errorMessage);

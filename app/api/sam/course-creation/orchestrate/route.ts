@@ -15,9 +15,11 @@
  *   error           - Something went wrong
  */
 
+import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
@@ -52,6 +54,10 @@ const OrchestrateRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 0. Rate limit — prevent abuse of expensive 15-min SSE sessions
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {
@@ -80,12 +86,16 @@ export async function POST(request: NextRequest) {
     }
     const config = parseResult.data;
 
-    // 4. Set up SSE stream
+    // 4. Generate correlation ID for end-to-end tracing across the 15-min SSE session
+    const runId = crypto.randomUUID();
+    logger.info('[ORCHESTRATE_ROUTE] Starting course creation run', { runId, userId: user.id });
+
+    // 5. Set up SSE stream
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         function sendSSE(event: string, data: Record<string, unknown>) {
-          const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+          const payload = `event: ${event}\ndata: ${JSON.stringify({ ...data, runId })}\n\n`;
           try {
             controller.enqueue(encoder.encode(payload));
           } catch {
@@ -101,6 +111,7 @@ export async function POST(request: NextRequest) {
         try {
           const orchestrateOptions = {
             userId: user.id,
+            runId,
             abortSignal: request.signal,
             config: {
               ...config,
@@ -162,6 +173,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-cache, no-transform',
         Connection: 'keep-alive',
         'X-Accel-Buffering': 'no',
+        'X-Run-Id': runId,
       },
     });
   } catch (error) {

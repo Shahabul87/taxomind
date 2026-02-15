@@ -5,6 +5,10 @@
  * Ensures uniqueness across the entire course.
  *
  * SUBSCRIPTION REQUIRED: This endpoint requires a premium subscription.
+ *
+ * @deprecated Replaced by the unified `/api/sam/course-creation/orchestrate` SSE endpoint.
+ * This route is kept for backward compatibility with unknown external consumers.
+ * Scheduled for removal in Q3 2026. Monitor deprecation warnings in logs.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,6 +32,8 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest): Promise<NextResponse<Stage2Response>> {
+  logger.warn('[DEPRECATED] POST /api/sam/course-creation/stage-2 called — use /orchestrate instead. Removal: Q3 2026.');
+
   const rateLimitResponse = await withRateLimit(request, 'ai');
   if (rateLimitResponse) return rateLimitResponse;
 
