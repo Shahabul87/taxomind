@@ -405,6 +405,7 @@ export async function regenerateChapter(
         title: newChapter.title,
         id: chapterId,
         qualityScore: chQuality.overall,
+        isHealing: true,
       },
     });
 
@@ -528,7 +529,7 @@ export async function regenerateChapter(
 
       onSSEEvent?.({
         type: 'item_complete',
-        data: { stage: 2, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
+        data: { stage: 2, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall, isHealing: true },
       });
 
       await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-2' });
@@ -628,7 +629,7 @@ export async function regenerateChapter(
 
       onSSEEvent?.({
         type: 'item_complete',
-        data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall },
+        data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: detQuality.overall, isHealing: true },
       });
 
       await recordAIUsage(userId, 'course', 1, { requestType: 'regenerate-chapter-stage-3' });
@@ -872,7 +873,7 @@ export async function regenerateSectionsOnly(
         data: { title: section.title, position: section.position, chapterId, type: section.contentType, duration: durationMinutes, isPublished: false },
       });
 
-      onSSEEvent?.({ type: 'item_complete', data: { stage: 2, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall } });
+      onSSEEvent?.({ type: 'item_complete', data: { stage: 2, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall, isHealing: true } });
       await recordAIUsage(userId, 'course', 1, { requestType: 'heal-sections-only-stage-2' });
 
       // Stage 3: details
@@ -953,7 +954,7 @@ export async function regenerateSectionsOnly(
         },
       });
 
-      onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall } });
+      onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, id: dbSection.id, qualityScore: detQuality.overall, isHealing: true } });
       await recordAIUsage(userId, 'course', 1, { requestType: 'heal-sections-only-stage-3' });
       sectionsRegenerated++;
     }
@@ -1172,7 +1173,7 @@ export async function regenerateDetailsOnly(
         },
       });
 
-      onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, qualityScore: detQuality.overall } });
+      onSSEEvent?.({ type: 'item_complete', data: { stage: 3, chapter: chapterPosition, section: secNum, title: section.title, id: dbSec.id, qualityScore: detQuality.overall, isHealing: true } });
       await recordAIUsage(userId, 'course', 1, { requestType: 'heal-details-only-stage-3' });
       sectionsUpdated++;
     }

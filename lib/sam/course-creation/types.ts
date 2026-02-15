@@ -687,6 +687,9 @@ export interface CheckpointData {
   stepIds: string[];
   savedAt: string;
 
+  /** Per-chapter section counts — actual sections generated per completed chapter (1-indexed by position) */
+  chapterSectionCounts?: number[];
+
   // === Mid-chapter recovery fields ===
   /** The last completed stage within the current chapter (1=chapter, 2=sections, 3=details) */
   lastCompletedStage?: 1 | 2 | 3;
@@ -741,6 +744,8 @@ export interface ResumeState {
   qualityScores: QualityScore[];
   /** Number of fully completed chapters (start loop from this + 1) */
   completedChapterCount: number;
+  /** Per-chapter section counts — actual sections generated per completed chapter */
+  chapterSectionCounts: number[];
   /** Section IDs in the partial chapter that already have descriptions (skip Stage 3 for these) */
   sectionsWithDetails: Set<string>;
   /** DB chapter IDs that exist for the partial chapter (skip Stage 1+2 if present) */

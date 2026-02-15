@@ -54,6 +54,8 @@ export interface SaveCheckpointInput {
   lastCompletedStage?: 1 | 2 | 3;
   lastCompletedSectionIndex?: number;
   currentChapterNumber?: number;
+  /** Per-chapter section counts for accurate resume completedItems calculation */
+  chapterSectionCounts?: number[];
 }
 
 // =============================================================================
@@ -75,6 +77,7 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
     completedChapterCount, config, goalId, stepIds,
     completedChaptersList, percentage, status,
     lastCompletedStage, lastCompletedSectionIndex, currentChapterNumber,
+    chapterSectionCounts,
   } = input;
 
   const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } = config;
@@ -92,6 +95,8 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
     planId,
     stepIds,
     savedAt: new Date().toISOString(),
+    // Per-chapter section counts for accurate resume
+    chapterSectionCounts,
     // Mid-chapter recovery
     lastCompletedStage,
     lastCompletedSectionIndex,
@@ -344,6 +349,10 @@ export async function resumeCourseCreation(
     }
 
     // 8. Build ResumeState
+    // Derive per-chapter section counts: prefer checkpoint data, fall back to DB chapter sections
+    const chapterSectionCounts = checkpoint.chapterSectionCounts
+      ?? fullyCompletedDbChapters.map(ch => ch.sections.length);
+
     const resume: ResumeState = {
       courseId: resumeCourseId,
       goalId: checkpoint.goalId,
@@ -355,6 +364,7 @@ export async function resumeCourseCreation(
       allSectionTitles: checkpoint.allSectionTitles ?? [],
       qualityScores: checkpoint.qualityScores ?? [],
       completedChapterCount,
+      chapterSectionCounts,
       sectionsWithDetails,
     };
 

@@ -315,9 +315,11 @@ function handleSSEEvent(
         lastCourseIdRef.current = data.courseId as string;
       }
 
-      // Skip timestamp recording for resume-replay items (already completed)
+      // Skip timestamp recording for resume-replay and healing items
+      // (healing re-generates existing items, shouldn't inflate itemsCompleted)
       const isResumeReplay = data.isResumeReplay as boolean | undefined;
-      if (!isResumeReplay) {
+      const isHealing = data.isHealing as boolean | undefined;
+      if (!isResumeReplay && !isHealing) {
         // Record timestamp for ETA calculation
         itemTimestampsRef.current.push(Date.now());
       }

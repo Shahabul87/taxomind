@@ -105,6 +105,8 @@ export interface SharedPipelineState {
   skipNextChapter?: boolean;
   /** Counter: number of re-plans executed (max 2 per course) */
   replanCount?: number;
+  /** Per-chapter section counts for accurate resume completedItems calculation */
+  chapterSectionCounts: number[];
 }
 
 // ============================================================================
@@ -218,10 +220,13 @@ export class CourseCreationStateMachine {
       // 4. Clear consumed bridge content
       state.bridgeContent = '';
 
-      // 5. Complete SubGoal
+      // 5. Complete SubGoal + record section count
+      const actualSectionCount = chapterResult.completedChapter.sections.length;
+      state.chapterSectionCounts.push(actualSectionCount);
+
       await completeChapterSubGoal(chapterSubGoalId, {
         chapterNumber,
-        sectionsCompleted: chapterResult.completedChapter.sections.length,
+        sectionsCompleted: actualSectionCount,
         qualityScore: chapterResult.qualityScores[0]?.overall ?? 0,
       });
 
@@ -452,6 +457,7 @@ export class CourseCreationStateMachine {
         status: 'in_progress',
         lastCompletedStage: 3,
         currentChapterNumber: chapterNumber,
+        chapterSectionCounts: state.chapterSectionCounts,
       });
 
       // 14. Return StepResult

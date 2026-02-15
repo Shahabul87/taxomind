@@ -727,7 +727,7 @@ export async function generateSingleChapter(
 
     onSSEEvent?.({
       type: 'item_complete',
-      data: { stage: 3, chapter: chNum, section: section.position, title: section.title, qualityScore: detQuality.overall },
+      data: { stage: 3, chapter: chNum, section: section.position, title: section.title, id: section.id, qualityScore: detQuality.overall },
     });
 
     await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' });

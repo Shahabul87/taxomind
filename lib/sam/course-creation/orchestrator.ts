@@ -168,6 +168,9 @@ export async function orchestrateCourseCreation(
   let stepIds: string[] = resumeState?.stepIds.slice() ?? [];
   let createdCourseId = resumeState?.courseId ?? '';
 
+  // Track actual section counts per chapter (for accurate resume completedItems)
+  const chapterSectionCounts: number[] = resumeState?.chapterSectionCounts.slice() ?? [];
+
   // Initialize concept tracker and Bloom's progression from resume or empty
   const conceptTracker: ConceptTracker = resumeState?.conceptTracker ?? {
     concepts: new Map(),
@@ -518,8 +521,16 @@ export async function orchestrateCourseCreation(
 
     // On resume, adjust completedItems counter to reflect already-done work
     if (isResume) {
-      // Each completed chapter contributed: 1 chapter + N sections + N details = 1 + 2N items
-      completedItems = chaptersCreated * (1 + 2 * effectiveSectionsPerChapter);
+      // Use actual per-chapter section counts when available for precise calculation
+      if (chapterSectionCounts.length > 0) {
+        completedItems = chapterSectionCounts.reduce(
+          (sum, secCount) => sum + 1 + 2 * secCount, // 1 chapter + N sections + N details
+          0,
+        );
+      } else {
+        // Fallback: uniform estimate (backward compat with old checkpoints)
+        completedItems = chaptersCreated * (1 + 2 * effectiveSectionsPerChapter);
+      }
     }
 
     // Start loop from first chapter that needs work
@@ -591,6 +602,7 @@ export async function orchestrateCourseCreation(
           categoryPrompt: composedCategoryPrompt,
           experimentVariant,
           config,
+          chapterSectionCounts,
         },
       });
 
@@ -723,7 +735,9 @@ export async function orchestrateCourseCreation(
 
         chaptersCreated += chapterResult.chaptersCreated;
         sectionsCreated += chapterResult.sectionsCreated;
-        completedItems += 1 + 2 * effectiveSectionsPerChapter; // chapter + sections + details
+        const actualSectionCount = chapterResult.completedChapter.sections.length;
+        chapterSectionCounts.push(actualSectionCount);
+        completedItems += 1 + 2 * actualSectionCount; // chapter + sections + details
 
         // Update progress completedItems for SSE
         progress.completedItems.chapters.push({
@@ -969,6 +983,7 @@ export async function orchestrateCourseCreation(
           status: 'in_progress',
           lastCompletedStage: 3,
           currentChapterNumber: chNum,
+          chapterSectionCounts,
         });
       }
     } // end AGENTIC vs LEGACY PATH
