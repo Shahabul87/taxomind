@@ -302,7 +302,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
             <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
               ~{Math.round(totalLessons * 8)} min
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Est. duration</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Est. study time</div>
           </div>
         </div>
       </div>

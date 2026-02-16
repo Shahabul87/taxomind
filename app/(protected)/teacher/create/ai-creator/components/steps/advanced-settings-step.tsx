@@ -459,7 +459,7 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
                   {formatEstimatedTime(costEstimate.estimatedTimeSeconds)}
                 </div>
                 <div className="text-[10px] xs:text-xs text-slate-500 dark:text-slate-400">
-                  Est. Time
+                  Gen. Time
                 </div>
               </div>
 
