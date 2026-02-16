@@ -135,8 +135,8 @@ export async function generateSingleChapter(
   const { onSSEEvent, enableStreamingThinking } = callbacks;
 
   const totalChapters = courseContext.totalChapters;
-  // Dynamic section count — will be resolved after Stage 1 using blueprint recommendation
-  let effectiveSectionsPerChapter = chapterTemplate.totalSections;
+  // Strict mode: always use user's requested section count
+  const effectiveSectionsPerChapter = courseContext.sectionsPerChapter;
   const localQualityScores: QualityScore[] = [];
   let chaptersCreated = 0;
   let sectionsCreated = 0;
@@ -308,6 +308,7 @@ export async function generateSingleChapter(
 
   // =====================================================================
   // MULTI-AGENT CRITIC: Review Stage 1 output with independent reviewer
+  // Only fires for borderline quality (55-70) — same gate as Stage 2/3 critics
   // =====================================================================
   try {
     const criticReview = await reviewChapterWithCritic({
@@ -316,9 +317,11 @@ export async function generateSingleChapter(
       courseContext,
       priorChapters: completedChapters,
       conceptTracker,
+      qualityScore: chQuality.overall,
       runId,
     });
 
+    if (criticReview) {
     onSSEEvent?.({
       type: 'critic_review',
       data: {
@@ -419,6 +422,7 @@ export async function generateSingleChapter(
 
       await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' });
     }
+    } // end if (criticReview)
   } catch (criticError) {
     // Critic failure is non-blocking — proceed with original chapter
     logger.warn('[ORCHESTRATOR] Critic review failed, proceeding with original', {
@@ -427,26 +431,12 @@ export async function generateSingleChapter(
     });
   }
 
-  // =====================================================================
-  // Dynamic section selection — use blueprint recommendation if available
-  // =====================================================================
-  const blueprintEntry = blueprintPlan?.chapters?.find(
-    (entry) => entry.position === chNum,
-  );
+  // Select template sections for prompt guidance only (count is locked to user's choice)
   const selectedSections = selectTemplateSections(
     chapterTemplate,
-    blueprintEntry?.recommendedSections,
+    effectiveSectionsPerChapter,
     chapter.bloomsLevel,
   );
-  effectiveSectionsPerChapter = selectedSections.length;
-
-  // Update DB chapter's sectionCount if it changed
-  if (effectiveSectionsPerChapter !== chapterTemplate.totalSections) {
-    await db.chapter.update({
-      where: { id: dbChapter.id },
-      data: { sectionCount: effectiveSectionsPerChapter },
-    });
-  }
 
   // =====================================================================
   // STAGE 2: Generate all sections for this chapter

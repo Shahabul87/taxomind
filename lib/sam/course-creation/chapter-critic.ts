@@ -155,7 +155,10 @@ Be specific in actionableImprovements — tell the creator exactly what to fix.`
 /**
  * Review a generated chapter with an independent critic AI persona.
  *
- * Makes a single AI call with a 5-second timeout.
+ * Returns null if quality score is outside borderline range (cost optimization).
+ * Same gate as Stage 2/3 critics — only fires when quality is borderline (55-70).
+ *
+ * Makes a single AI call with a 12-second timeout.
  * Falls back to rule-based approval on failure.
  */
 export async function reviewChapterWithCritic(params: {
@@ -164,9 +167,15 @@ export async function reviewChapterWithCritic(params: {
   courseContext: CourseContext;
   priorChapters: CompletedChapter[];
   conceptTracker: ConceptTracker;
+  qualityScore: number;
   runId?: string;
-}): Promise<ChapterCritique> {
-  const { userId, chapter, courseContext, priorChapters, conceptTracker, runId } = params;
+}): Promise<ChapterCritique | null> {
+  const { userId, chapter, courseContext, priorChapters, conceptTracker, qualityScore, runId } = params;
+
+  // Only fire for borderline quality (cost optimization — same gate as Stage 2/3 critics)
+  if (qualityScore < BORDERLINE_MIN || qualityScore > BORDERLINE_MAX) {
+    return null;
+  }
 
   try {
     const critique = await withTimeout(

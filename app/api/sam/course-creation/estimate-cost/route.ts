@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { estimateCourseCost, type CostEstimate, type ProviderPricing } from '@/lib/sam/course-creation/cost-estimator';
+import { getActiveExperiments, joinVariants } from '@/lib/sam/course-creation/experiments';
 import { getCachedPlatformAISettings } from '@/lib/ai/platform-settings-cache';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
@@ -144,8 +145,12 @@ export async function POST(request: NextRequest) {
     const provider = await resolveUserProvider(user.id);
     const pricing = await getProviderPricing(provider);
 
-    // 4. Calculate estimate
-    const estimate: CostEstimate = estimateCourseCost(parseResult.data, pricing);
+    // 4. Resolve active experiment variants for accurate token estimation
+    const experimentAssignments = getActiveExperiments(user.id);
+    const experimentVariant = joinVariants(experimentAssignments);
+
+    // 5. Calculate estimate (includes core + non-core calls, variant-aware)
+    const estimate: CostEstimate = estimateCourseCost(parseResult.data, pricing, experimentVariant);
 
     return NextResponse.json({ success: true, estimate });
   } catch (error) {

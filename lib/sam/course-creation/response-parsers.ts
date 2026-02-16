@@ -136,17 +136,21 @@ export function parseChapterResponse(
 
     if (!ch) throw new Error('No chapter data in response');
 
+    // Enforce exact counts: trim to requested count (strict mode)
+    const requestedObjectives = courseContext.learningObjectivesPerChapter;
+    const requestedTopics = courseContext.sectionsPerChapter;
+
     const chapter: GeneratedChapter = {
       position: chapterNumber,
       title: cleanTitle(ch.title, chapterNumber, courseContext.courseTitle),
       description: ch.description ?? buildFallbackDescription(courseContext),
       bloomsLevel: ch.bloomsLevel ?? 'UNDERSTAND',
-      learningObjectives: ensureArray(ch.learningObjectives, courseContext.learningObjectivesPerChapter),
-      keyTopics: ensureArray(ch.keyTopics, 3),
+      learningObjectives: ensureArray(ch.learningObjectives, requestedObjectives).slice(0, requestedObjectives),
+      keyTopics: ensureArray(ch.keyTopics, Math.min(requestedTopics, 3)).slice(0, requestedTopics),
       prerequisites: ch.prerequisites ?? 'None',
       estimatedTime: ch.estimatedTime ?? '1-2 hours',
-      topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, 3),
-      conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics),
+      topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, Math.min(requestedTopics, 3)).slice(0, requestedTopics),
+      conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 7),
     };
 
     const qualityScore = scoreChapter(chapter, courseContext, previousChapters, blueprintEntry);
@@ -243,10 +247,13 @@ export function parseDetailsResponse(
 
     if (!det) throw new Error('No details data in response');
 
+    // Enforce exact counts: trim to requested count (strict mode)
+    const requestedSectionObjectives = courseContext.learningObjectivesPerSection;
+
     const details: SectionDetails = {
       description: det.description ?? `This section covers ${section.topicFocus}.`,
-      learningObjectives: ensureArray(det.learningObjectives, courseContext.learningObjectivesPerSection),
-      keyConceptsCovered: ensureArray(det.keyConceptsCovered ?? det.conceptsIntroduced, 3),
+      learningObjectives: ensureArray(det.learningObjectives, requestedSectionObjectives).slice(0, requestedSectionObjectives),
+      keyConceptsCovered: ensureArray(det.keyConceptsCovered ?? det.conceptsIntroduced, 3).slice(0, 5),
       practicalActivity: det.practicalActivity ?? `Practice the concepts from "${section.title}".`,
       resources: det.resources,
     };

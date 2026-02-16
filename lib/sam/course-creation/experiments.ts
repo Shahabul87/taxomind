@@ -58,6 +58,14 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     active: true,
     variants: ['control', 'treatment-a'],
   },
+  {
+    id: 'optimized-prompts-v1',
+    name: 'Optimized Prompt Token Efficiency',
+    description: 'Reduces input tokens via system prompt tiering and progressive prior context compression while preserving course quality.',
+    active: true,
+    variants: ['control', 'optimized-v1'],
+    weights: [0.8, 0.2],
+  },
 ];
 
 // ============================================================================
@@ -111,6 +119,7 @@ export function assignVariant(
 
 /**
  * Returns the experiment assignment for a user, or null if no experiments active.
+ * @deprecated Use getActiveExperiments() for multi-experiment support.
  */
 export function getActiveExperiment(userId: string): ExperimentAssignment | null {
   const active = EXPERIMENTS.find(e => e.active);
@@ -123,6 +132,31 @@ export function getActiveExperiment(userId: string): ExperimentAssignment | null
     userId,
     assignedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Returns ALL active experiment assignments for a user.
+ * Each active experiment produces an independent, deterministic assignment.
+ */
+export function getActiveExperiments(userId: string): ExperimentAssignment[] {
+  return EXPERIMENTS
+    .filter(e => e.active)
+    .map(exp => ({
+      experimentId: exp.id,
+      variant: assignVariant(userId, exp),
+      userId,
+      assignedAt: new Date().toISOString(),
+    }));
+}
+
+/**
+ * Joins multiple experiment variant strings into a single comma-delimited string.
+ * Used by the pipeline to pass all active variant signals through a single `variant` parameter.
+ * Each variant check uses `includes()` for safe substring matching.
+ */
+export function joinVariants(assignments: ExperimentAssignment[]): string | undefined {
+  if (assignments.length === 0) return undefined;
+  return assignments.map(a => a.variant).join(',');
 }
 
 /**
@@ -145,7 +179,7 @@ export async function recordExperimentOutcome(
     const existingSchedule = (plan?.schedule as Record<string, unknown>) ?? {};
     const experimentData = {
       ...existingSchedule,
-      experiment: {
+      [`experiment:${assignment.experimentId}`]: {
         id: assignment.experimentId,
         variant: assignment.variant,
         assignedAt: assignment.assignedAt,

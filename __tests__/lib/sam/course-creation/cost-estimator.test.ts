@@ -1,9 +1,12 @@
 /**
  * Course Creation Cost Estimator Tests
  *
- * Updated for template-driven sections per chapter (Chapter DNA).
- * The estimator resolves template from difficulty, overriding sectionsPerChapter:
- *   beginner: 8, intermediate: 7, advanced: 8.
+ * Updated for strict mode: user's sectionsPerChapter is authoritative.
+ * Templates are only used for section-role token multipliers, not counts.
+ *
+ * Estimator now models ALL pipeline AI calls:
+ *   Core: stage1/2/3 generation
+ *   Non-core: planner, critics (probabilistic), decisions, reflection
  */
 
 import { estimateCourseCost, formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
@@ -24,7 +27,7 @@ const ANTHROPIC_PRICING: ProviderPricing = {
 describe('estimateCourseCost', () => {
   const baseInput: CostEstimateInput = {
     totalChapters: 5,
-    sectionsPerChapter: 7, // Template-driven: intermediate = 7
+    sectionsPerChapter: 7,
     difficulty: 'intermediate',
     bloomsFocusCount: 3,
     learningObjectivesPerChapter: 5,
@@ -41,42 +44,43 @@ describe('estimateCourseCost', () => {
     expect(result.totalAICalls).toBeGreaterThan(0);
     expect(result.provider).toBe('DeepSeek');
     expect(result.breakdown.stage1.calls).toBe(5);
-    // Template-driven: 5 chapters * 7 sections (intermediate) = 35
-    expect(result.breakdown.stage2.calls).toBe(35);
-    expect(result.breakdown.stage3.calls).toBe(35);
+    expect(result.breakdown.stage2.calls).toBe(35); // 5 * 7
+    expect(result.breakdown.stage3.calls).toBe(35); // 5 * 7
+    expect(result.breakdown.nonCore.calls).toBeGreaterThan(0);
     expect(result.breakdown.retryOverheadPercent).toBe(30);
   });
 
-  it('template overrides sectionsPerChapter input', () => {
-    // Even if input says sectionsPerChapter: 3, template overrides based on difficulty
+  it('uses user sectionsPerChapter (strict mode, not template)', () => {
+    // User requests 3 sections — estimator should use 3, not template default 7
     const result = estimateCourseCost(
       { ...baseInput, sectionsPerChapter: 3 },
       DEEPSEEK_PRICING
     );
 
-    // Intermediate template forces 7 sections per chapter
-    expect(result.breakdown.stage2.calls).toBe(35); // 5 * 7
-    expect(result.breakdown.stage3.calls).toBe(35); // 5 * 7
+    expect(result.breakdown.stage2.calls).toBe(15); // 5 * 3
+    expect(result.breakdown.stage3.calls).toBe(15); // 5 * 3
   });
 
-  it('different difficulties produce different section counts', () => {
-    const beginner = estimateCourseCost(
-      { ...baseInput, difficulty: 'beginner', totalChapters: 1 },
-      DEEPSEEK_PRICING
-    );
-    const intermediate = estimateCourseCost(
-      { ...baseInput, difficulty: 'intermediate', totalChapters: 1 },
-      DEEPSEEK_PRICING
-    );
-    const advanced = estimateCourseCost(
-      { ...baseInput, difficulty: 'advanced', totalChapters: 1 },
-      DEEPSEEK_PRICING
-    );
+  it('includes non-core calls (planner, critics, decisions, reflection)', () => {
+    const result = estimateCourseCost(baseInput, DEEPSEEK_PRICING);
 
-    // beginner: 8, intermediate: 7, advanced: 8
-    expect(beginner.breakdown.stage2.calls).toBe(8);
-    expect(intermediate.breakdown.stage2.calls).toBe(7);
-    expect(advanced.breakdown.stage2.calls).toBe(8);
+    // Non-core should include at minimum: 1 planner + decisions + 1 reflection
+    // For 5 chapters: decisions = 4, planner = 1, reflection = 1 = 6 guaranteed
+    // Plus probabilistic critics and conditional calls
+    expect(result.breakdown.nonCore.calls).toBeGreaterThanOrEqual(6);
+    expect(result.breakdown.nonCore.inputTokens).toBeGreaterThan(0);
+    expect(result.breakdown.nonCore.outputTokens).toBeGreaterThan(0);
+  });
+
+  it('total calls includes both core and non-core', () => {
+    const result = estimateCourseCost(baseInput, DEEPSEEK_PRICING);
+
+    const coreCallsBase = 5 + 35 + 35; // stage1 + stage2 + stage3
+    // Total should be core*1.3 + nonCore
+    expect(result.totalAICalls).toBeGreaterThan(coreCallsBase);
+    expect(result.totalAICalls).toBe(
+      Math.round(coreCallsBase * 1.3) + result.breakdown.nonCore.calls
+    );
   });
 
   it('scales with chapter count', () => {
@@ -104,7 +108,7 @@ describe('estimateCourseCost', () => {
     expect(anthropic.estimatedTotalOutputTokens).toBe(deepseek.estimatedTotalOutputTokens);
   });
 
-  it('difficulty affects token estimates', () => {
+  it('difficulty affects token estimates via multiplier', () => {
     const beginner = estimateCourseCost(
       { ...baseInput, difficulty: 'beginner' },
       DEEPSEEK_PRICING
@@ -117,11 +121,11 @@ describe('estimateCourseCost', () => {
     expect(expert.estimatedTotalInputTokens).toBeGreaterThan(beginner.estimatedTotalInputTokens);
   });
 
-  it('handles minimum input (1 chapter beginner)', () => {
+  it('handles minimum input (1 chapter)', () => {
     const result = estimateCourseCost(
       {
         totalChapters: 1,
-        sectionsPerChapter: 8,
+        sectionsPerChapter: 3,
         difficulty: 'beginner',
         bloomsFocusCount: 2,
         learningObjectivesPerChapter: 3,
@@ -133,9 +137,11 @@ describe('estimateCourseCost', () => {
     expect(result.totalAICalls).toBeGreaterThan(0);
     expect(result.estimatedCostUSD).toBeGreaterThanOrEqual(0);
     expect(result.breakdown.stage1.calls).toBe(1);
-    // 1 chapter * 8 beginner template sections
-    expect(result.breakdown.stage2.calls).toBe(8);
-    expect(result.breakdown.stage3.calls).toBe(8);
+    expect(result.breakdown.stage2.calls).toBe(3); // 1 * 3
+    expect(result.breakdown.stage3.calls).toBe(3); // 1 * 3
+    // 1 chapter → 0 AI decisions (last chapter excluded)
+    // Non-core: planner(1) + reflection(1) + probabilistic critics/conditional
+    expect(result.breakdown.nonCore.calls).toBeGreaterThanOrEqual(2);
   });
 
   it('handles maximum input (20 chapters)', () => {
@@ -151,25 +157,40 @@ describe('estimateCourseCost', () => {
       ANTHROPIC_PRICING
     );
 
-    // expert falls back to advanced template (8 sections)
-    // 20 chapters * 8 sections * 2 (stage2 + stage3) + 20 stage1 = 340 base calls
     expect(result.totalAICalls).toBeGreaterThan(300);
     expect(result.estimatedCostUSD).toBeGreaterThan(0);
     expect(result.breakdown.stage1.calls).toBe(20);
-    expect(result.breakdown.stage2.calls).toBe(160);
-    expect(result.breakdown.stage3.calls).toBe(160);
+    expect(result.breakdown.stage2.calls).toBe(160); // 20 * 8
+    expect(result.breakdown.stage3.calls).toBe(160); // 20 * 8
   });
 
   it('Stage 3 output tokens vary by section type', () => {
-    // Verify that Stage 3 output uses per-section-type multipliers
     const result = estimateCourseCost(
       { ...baseInput, totalChapters: 1 },
       DEEPSEEK_PRICING
     );
 
-    // Stage 3 output should not be exactly 7 * BASE_OUTPUT * combined
-    // because different section types have different multipliers
+    // Stage 3 output should not be uniform — different section types have different multipliers
     expect(result.breakdown.stage3.outputTokens).toBeGreaterThan(0);
+  });
+
+  it('optimized variant reduces input token estimates', () => {
+    const standard = estimateCourseCost(baseInput, DEEPSEEK_PRICING);
+    const optimized = estimateCourseCost(baseInput, DEEPSEEK_PRICING, 'optimized-v1');
+
+    expect(optimized.estimatedTotalInputTokens).toBeLessThan(standard.estimatedTotalInputTokens);
+    // Output tokens should be the same (optimization targets input only)
+    expect(optimized.estimatedTotalOutputTokens).toBe(standard.estimatedTotalOutputTokens);
+  });
+
+  it('multi-experiment comma-delimited variant works', () => {
+    const standard = estimateCourseCost(baseInput, DEEPSEEK_PRICING);
+    // Simulates both experiments active: arrow control + optimized prompt compression
+    const multiVariant = estimateCourseCost(baseInput, DEEPSEEK_PRICING, 'control,optimized-v1');
+
+    // Should pick up the optimized-v1 signal from the joined string
+    expect(multiVariant.estimatedTotalInputTokens).toBeLessThan(standard.estimatedTotalInputTokens);
+    expect(multiVariant.estimatedTotalOutputTokens).toBe(standard.estimatedTotalOutputTokens);
   });
 });
 

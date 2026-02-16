@@ -160,7 +160,7 @@ You follow a systematic, objectives-first approach based on established instruct
  * treatment-a → Traditional taxonomy-based pedagogy.
  */
 export function getCourseDesignExpertise(variant?: string): string {
-  if (variant === 'treatment-a') return TRADITIONAL_DESIGN_EXPERTISE;
+  if (variant?.includes('treatment-a')) return TRADITIONAL_DESIGN_EXPERTISE;
   return COURSE_DESIGN_EXPERTISE;
 }
 
@@ -203,12 +203,119 @@ const STAGE3_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. Yo
 - When writing equations: use $...$ for inline math and $$...$$ for display equations — NEVER use <code> tags for math`;
 
 /**
+ * Condensed ARROW expertise for Stage 2 (section generation).
+ * ~400 tokens instead of ~1000. Keeps SAM identity, 1-line ARROW phase summaries
+ * (phases 1-6 only — relevant to section design), personality, and non-negotiable rules.
+ * Removes full phase descriptions, ADAPTIVE BEHAVIOR, and SUPPORTING FRAMEWORKS
+ * (already covered by SECTION_DESIGN_PRINCIPLES).
+ *
+ * Saves ~600 tokens × 49 calls = ~29,400 tokens per course.
+ */
+const STAGE2_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. You do NOT teach like a textbook. You teach like the world&apos;s best professor — someone who has built real systems, failed, learned, and can make anyone understand anything by showing them WHY it matters first.
+
+## ARROW FRAMEWORK (Condensed — Section Design Focus)
+
+1. **APPLICATION FIRST** — Show a real-world use case that creates curiosity.
+2. **REVERSE ENGINEER** — Break the application into core components.
+3. **INTUITION BUILDING** — Analogies, thought experiments, prediction questions before formalization.
+4. **THEORY & FORMALIZATION** — Every equation earns its place by mapping to built intuition.
+5. **FAILURE ANALYSIS** — Show what breaks and why. Diagnosis before answers.
+6. **DESIGN THINKING** — Open-ended problems with constraints and trade-offs.
+
+## YOUR PERSONALITY
+
+- Confident but never arrogant
+- Celebrate creative thinking, even when the answer is wrong
+- Use vivid language and concrete examples — NEVER dry academic prose
+- Challenge strong students harder — never plateau or go easy
+
+## RULES — NON-NEGOTIABLE
+
+- NEVER start a chapter with definitions, history, or "In this chapter we will learn..."
+- NEVER present theory without first building intuition
+- ALWAYS connect new concepts to what students already know
+- ALWAYS ask prediction questions before revealing answers
+- ALWAYS present trade-offs, not single "right answers"
+- ALWAYS include failure cases and edge cases in every major topic
+- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"`;
+
+/**
+ * Condensed ARROW expertise for Stage 1 subsequent chapters (chapter 2+).
+ * ~600 tokens instead of ~1000. Keeps SAM identity, full ARROW phase descriptions
+ * (all 11 phases — relevant to chapter arc design), personality, and non-negotiable rules.
+ * Removes ADAPTIVE BEHAVIOR (~100 tokens) and SUPPORTING FRAMEWORKS (~200 tokens) —
+ * these are already internalized from Chapter 1 and covered by CHAPTER_DESIGN_PRINCIPLES.
+ *
+ * Saves ~400 tokens × 6 calls = ~2,400 tokens per 7-chapter course.
+ */
+const STAGE1_SUBSEQUENT_EXPERTISE = `You are SAM, an expert-level course creator. You do NOT teach like a textbook. You teach like the world&apos;s best professor — someone who has built real systems, failed, learned, and can make anyone understand anything by showing them WHY it matters first.
+
+## YOUR TEACHING PHILOSOPHY: THE ARROW FRAMEWORK
+
+You follow the ARROW framework (Application → Reverse-engineer → Reason → Originate → Wire). This is your PRIMARY pedagogical approach — it defines how you structure every chapter, section, and learning arc:
+
+1. **APPLICATION FIRST** — Show a stunning real-world use case. Make students curious. NEVER start with definitions.
+2. **REVERSE ENGINEER** — Break the application into its core components. What data, decisions, and transforms make it work?
+3. **INTUITION BUILDING** — Build gut-level understanding using analogies, thought experiments, and prediction questions. Students should predict system behavior BEFORE seeing a single equation.
+4. **THEORY & FORMALIZATION** — Formalize the intuition. Every equation earns its place by mapping directly to something the student already understands intuitively.
+5. **FAILURE ANALYSIS** — Show what breaks and why. Present broken systems and ask students to diagnose before revealing answers. This is where deep understanding separates from surface knowledge.
+6. **DESIGN THINKING** — Present an open-ended problem the student hasn&apos;t seen. Guide through expert reasoning: constraints, trade-offs, design choices. NEVER give the answer — ask guiding questions.
+7. **CONSTRAINT CHALLENGES** — Remove a familiar tool and force creative problem-solving. "Do this without X." "Make it work with only Y." This prevents over-reliance on one approach.
+8. **BUILD & ITERATE** — Guide students through building a minimal working version. Build → Measure → Learn → Iterate. Deliberately imperfect at first, then improved.
+9. **SOCRATIC DEFENSE** — Become a tough but fair examiner. Challenge assumptions, push on edge cases, ask "why not X?" Students must defend their design choices.
+10. **META-COGNITION** — Pause to reflect on the thinking PROCESS, not just content. Help students identify reasoning patterns and build transferable thinking strategies.
+11. **KNOWLEDGE GRAPH** — Show how the topic connects to adjacent fields. Build a web of understanding, not isolated silos.
+
+## YOUR PERSONALITY
+
+- Confident but never arrogant
+- Celebrate creative thinking, even when the answer is wrong
+- Use vivid language and concrete examples — NEVER dry academic prose
+- Challenge strong students harder — never plateau or go easy
+
+## RULES — NON-NEGOTIABLE
+
+- NEVER start a chapter with definitions, history, or "In this chapter we will learn..."
+- NEVER present theory without first building intuition
+- ALWAYS connect new concepts to what students already know
+- ALWAYS ask prediction questions before revealing answers
+- ALWAYS present trade-offs, not single "right answers"
+- ALWAYS include failure cases and edge cases in every major topic
+- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"`;
+
+/**
+ * Returns the appropriate design expertise for Stage 2 (section generation).
+ * Default/control → full ARROW expertise (unchanged).
+ * treatment-a → Traditional expertise.
+ * optimized-v1 → condensed ARROW (~400 tokens, section-relevant phases only).
+ */
+export function getStage2DesignExpertise(variant?: string): string {
+  if (variant?.includes('treatment-a')) return TRADITIONAL_DESIGN_EXPERTISE;
+  if (variant?.includes('optimized-v1')) return STAGE2_DESIGN_EXPERTISE;
+  return COURSE_DESIGN_EXPERTISE;
+}
+
+/**
+ * Returns the appropriate design expertise for Stage 1 (chapter generation).
+ * Default/control/chapter 1 → full ARROW expertise (unchanged).
+ * treatment-a → Traditional expertise.
+ * optimized-v1 + chapter 2+ → condensed ARROW (~600 tokens, no adaptive/frameworks).
+ */
+export function getStage1DesignExpertise(variant?: string, chapterNumber?: number): string {
+  if (variant?.includes('treatment-a')) return TRADITIONAL_DESIGN_EXPERTISE;
+  if (variant?.includes('optimized-v1') && chapterNumber && chapterNumber > 1) {
+    return STAGE1_SUBSEQUENT_EXPERTISE;
+  }
+  return COURSE_DESIGN_EXPERTISE;
+}
+
+/**
  * Returns the appropriate design expertise for Stage 3.
  * Default → condensed ARROW (~500 tokens).
  * treatment-a → full Traditional expertise (unchanged).
  */
 export function getStage3DesignExpertise(variant?: string): string {
-  if (variant === 'treatment-a') return TRADITIONAL_DESIGN_EXPERTISE;
+  if (variant?.includes('treatment-a')) return TRADITIONAL_DESIGN_EXPERTISE;
   return STAGE3_DESIGN_EXPERTISE;
 }
 
@@ -374,6 +481,136 @@ Activities must also match Bloom&apos;s level — use Bloom&apos;s verbs appropr
 - EVALUATE/CREATE: Design reviews, constraint sprints, Socratic defense`;
 
 // ============================================================================
+// Progressive Prior Context Compression (optimized-v1)
+// ============================================================================
+
+/**
+ * Builds full-detail context for a completed chapter (~700 tokens).
+ * Extracted from buildStage1Prompt for reuse in compressPriorChapters.
+ */
+function buildFullChapterContext(ch: CompletedChapter): string {
+  const sectionLines = ch.sections.map(sec => {
+    let line = `    Section ${sec.position}: "${sec.title}" (${sec.contentType}, ${sec.estimatedDuration})`;
+    line += `\n      Topic: ${sec.topicFocus}`;
+    if (sec.conceptsIntroduced?.length) {
+      line += `\n      Concepts Taught: ${sec.conceptsIntroduced.join(', ')}`;
+    }
+    if (sec.details) {
+      line += `\n      Objectives: ${sec.details.learningObjectives.join('; ')}`;
+      if (sec.details.keyConceptsCovered?.length) {
+        line += `\n      Key Concepts: ${sec.details.keyConceptsCovered.join(', ')}`;
+      }
+      if (sec.details.practicalActivity) {
+        line += `\n      Activity: ${sec.details.practicalActivity.slice(0, 120)}`;
+      }
+    }
+    return line;
+  }).join('\n');
+
+  return `
+- **Chapter ${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]
+  Description: ${ch.description.slice(0, 250)}
+  Chapter Objectives: ${ch.learningObjectives.join('; ')}
+  Concepts Introduced: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}
+  Sections (what students actually experienced):
+${sectionLines}`;
+}
+
+/**
+ * Compresses prior chapter context with recency-based tiering (optimized-v1).
+ *
+ * - Recency <= 1 (immediate prior): FULL DETAIL (~700 tokens)
+ * - Recency 2-3: MODERATE — title, bloom's, truncated description, concepts, section titles (~200 tokens)
+ * - Recency 4+: COMPRESSED — 1-line summary (~50 tokens)
+ *
+ * Saves ~11,500 tokens per 7-chapter course in Stage 1.
+ */
+function compressPriorChapters(
+  completedChapters: CompletedChapter[],
+  currentChapterNumber: number,
+): string {
+  if (completedChapters.length === 0) return 'This is the first chapter.';
+
+  return completedChapters.map(ch => {
+    const recency = currentChapterNumber - ch.position;
+
+    if (recency <= 1) {
+      // FULL DETAIL — immediate prior chapter (current format, ~700 tokens)
+      return buildFullChapterContext(ch);
+    } else if (recency <= 3) {
+      // MODERATE — 2-3 chapters back (~200 tokens)
+      const sectionTitles = ch.sections
+        .map(s => `${s.title} (${s.contentType})`)
+        .join(', ');
+      return `
+- **Chapter ${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]
+  ${ch.description.slice(0, 150)}
+  Key concepts: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}
+  Sections: ${sectionTitles}`;
+    } else {
+      // COMPRESSED — older chapters (~50 tokens)
+      return `- Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] — ${(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 5).join(', ')}`;
+    }
+  }).join('\n');
+}
+
+/**
+ * Compresses chapter summaries in Stage 2 course-wide context (optimized-v1).
+ * Recent chapters (within 2 of current) get standard format.
+ * Older chapters get compressed 1-line format.
+ */
+function compressChapterSummaries(
+  allChapters: { position: number; title: string; bloomsLevel: string; keyTopics: string[] }[],
+  currentChapterPosition: number,
+): string {
+  return allChapters.map(ch => {
+    const recency = currentChapterPosition - ch.position;
+    if (recency <= 2 || recency < 0) {
+      // Recent or upcoming: standard format
+      return `  Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] - ${ch.keyTopics.slice(0, 3).join(', ')}`;
+    }
+    // Older: compressed
+    return `  Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}]`;
+  }).join('\n');
+}
+
+/**
+ * Compresses prior completed sections in Stage 3 (optimized-v1).
+ * Only the 2 most recent prior sections get full detail.
+ * Older sections get title + key concepts only.
+ */
+function compressPriorSections(
+  completedPrior: CompletedSection[],
+): string {
+  if (completedPrior.length === 0) return 'None — this is the first section.';
+
+  // Sort by position descending so most recent are first
+  const sorted = [...completedPrior].sort((a, b) => b.position - a.position);
+
+  return sorted.map((cs, idx) => {
+    if (idx < 2) {
+      // Full detail for 2 most recent
+      const d = cs.details;
+      let line = `- Section ${cs.position}: "${cs.title}" (${cs.contentType}${cs.templateRole ? `, ${cs.templateRole}` : ''})`;
+      if (d) {
+        const objs = d.learningObjectives.slice(0, 3).map(o => o.slice(0, 80)).join('; ');
+        line += `\n    Objectives: ${objs}`;
+        if (d.keyConceptsCovered?.length) {
+          line += `\n    Key Concepts: ${d.keyConceptsCovered.join(', ')}`;
+        }
+        if (d.practicalActivity) {
+          line += `\n    Activity: ${d.practicalActivity.slice(0, 120)}`;
+        }
+      }
+      return line;
+    }
+    // Compressed for older sections
+    const concepts = cs.details?.keyConceptsCovered?.join(', ') ?? cs.topicFocus;
+    return `- Sec${cs.position}: "${cs.title}" (${cs.contentType}) — ${concepts}`;
+  }).join('\n');
+}
+
+// ============================================================================
 // Stage 1: Chapter Generation Prompt
 // ============================================================================
 
@@ -404,35 +641,14 @@ export function buildStage1Prompt(
   let previousChaptersSummary: string;
 
   if (completedChapters && completedChapters.length > 0) {
-    // DEPTH-FIRST MODE: Full section-level context from completed chapters
-    // This is the key advantage — the AI knows EXACTLY what was taught in each section
-    previousChaptersSummary = completedChapters.map(ch => {
-      const sectionLines = ch.sections.map(sec => {
-        let line = `    Section ${sec.position}: "${sec.title}" (${sec.contentType}, ${sec.estimatedDuration})`;
-        line += `\n      Topic: ${sec.topicFocus}`;
-        if (sec.conceptsIntroduced?.length) {
-          line += `\n      Concepts Taught: ${sec.conceptsIntroduced.join(', ')}`;
-        }
-        if (sec.details) {
-          line += `\n      Objectives: ${sec.details.learningObjectives.join('; ')}`;
-          if (sec.details.keyConceptsCovered?.length) {
-            line += `\n      Key Concepts: ${sec.details.keyConceptsCovered.join(', ')}`;
-          }
-          if (sec.details.practicalActivity) {
-            line += `\n      Activity: ${sec.details.practicalActivity.slice(0, 120)}`;
-          }
-        }
-        return line;
-      }).join('\n');
-
-      return `
-- **Chapter ${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]
-  Description: ${ch.description.slice(0, 250)}
-  Chapter Objectives: ${ch.learningObjectives.join('; ')}
-  Concepts Introduced: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}
-  Sections (what students actually experienced):
-${sectionLines}`;
-    }).join('\n');
+    if (variant?.includes('optimized-v1')) {
+      // OPTIMIZED: Recency-tiered compression — full detail for immediate prior,
+      // moderate for 2-3 back, compressed for 4+
+      previousChaptersSummary = compressPriorChapters(completedChapters, currentChapterNumber);
+    } else {
+      // CONTROL: Full section-level context for all completed chapters
+      previousChaptersSummary = completedChapters.map(ch => buildFullChapterContext(ch)).join('\n');
+    }
   } else if (previousChapters.length > 0) {
     // STAGE-BATCHED MODE: Only chapter-level context (backward compatible)
     previousChaptersSummary = previousChapters.map(ch => `
@@ -536,7 +752,8 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage1Block ?? '';
 
-  const systemPrompt = `${getCourseDesignExpertise(variant)}
+  const designExpertise = getStage1DesignExpertise(variant, currentChapterNumber);
+  const systemPrompt = `${designExpertise}
 ${domainExpertise}
 
 ${CHAPTER_DESIGN_PRINCIPLES}
@@ -548,7 +765,9 @@ ${CHAPTER_THINKING_FRAMEWORK}`;
     {
       label: 'courseContext',
       priority: PromptPriority.CRITICAL,
-      content: `You are creating Chapter ${currentChapterNumber} of ${ctx.totalChapters} for this course.
+      content: `You are creating Chapter ${currentChapterNumber} of EXACTLY ${ctx.totalChapters} total chapters for this course.
+
+**CRITICAL**: The user has requested EXACTLY ${ctx.totalChapters} chapters. Do NOT suggest, recommend, or generate content for additional chapters beyond this count. Structure this chapter's scope to fit within a ${ctx.totalChapters}-chapter course.
 
 ## COURSE CONTEXT
 - **Title**: "${ctx.courseTitle}"
@@ -650,13 +869,13 @@ Return a JSON object with this EXACT structure:
     "description": "150-300 word description structured as: (1) The Problem — what real-world challenge this chapter addresses, (2) The Journey — what students will learn and do, (3) The Outcome — what students can accomplish after this chapter, (4) The Connection — how this links to the broader course arc",
     "bloomsLevel": "${bloomsLevel}",
     "learningObjectives": [
-      // Exactly ${ctx.learningObjectivesPerChapter} objectives
+      // EXACTLY ${ctx.learningObjectivesPerChapter} objectives — no more, no less
       // Each MUST start with a ${bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
       // Each must follow ABCD: Verb + specific content + condition + standard
       // Example: "Design a normalized database schema given business requirements, following third normal form"
     ],
     "keyTopics": [
-      // 3-5 main topics this chapter covers, ordered as a LEARNING PROGRESSION
+      // EXACTLY ${ctx.sectionsPerChapter} topics (one per section), ordered as a LEARNING PROGRESSION
       // Topic 1 should be most foundational, last topic should be most integrative
       // These will become sections — each must be substantial enough for a 15-30 min section
     ],
@@ -719,9 +938,11 @@ export function buildStage2Prompt(
   // Build course-wide context section
   let courseWideSection = '';
   if (enrichedContext) {
-    const chapterSummaries = enrichedContext.allChapters
-      .map(ch => `  Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] - ${ch.keyTopics.slice(0, 3).join(', ')}`)
-      .join('\n');
+    const chapterSummaries = variant?.includes('optimized-v1')
+      ? compressChapterSummaries(enrichedContext.allChapters, chapter.position)
+      : enrichedContext.allChapters
+          .map(ch => `  Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] - ${ch.keyTopics.slice(0, 3).join(', ')}`)
+          .join('\n');
 
     // Concepts available to students at this point
     const availableConcepts: string[] = [];
@@ -783,21 +1004,25 @@ This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}).
   const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage2Block ?? '';
 
-  const systemPrompt = `${getCourseDesignExpertise(variant)}
+  const designExpertise = getStage2DesignExpertise(variant);
+  const systemPrompt = `${designExpertise}
 ${domainExpertise}
 
 ${SECTION_DESIGN_PRINCIPLES}
 
 ${SECTION_THINKING_FRAMEWORK}`;
 
-  const effectiveSectionsPerChapter = templatePrompt?.totalSections ?? ctx.sectionsPerChapter;
+  // Strict mode: always use user's requested section count
+  const effectiveSectionsPerChapter = ctx.sectionsPerChapter;
 
   // ── Build user prompt via prioritized sections for token budget enforcement ──
   const userSections: PromptSection[] = [
     {
       label: 'courseAndChapterContext',
       priority: PromptPriority.CRITICAL,
-      content: `You are creating Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
+      content: `You are creating Section ${currentSectionNumber} of EXACTLY ${effectiveSectionsPerChapter} total sections for Chapter ${chapter.position}: "${chapter.title}".
+
+**CRITICAL**: This chapter has EXACTLY ${effectiveSectionsPerChapter} sections. Do NOT suggest or create content for additional sections. Structure this section's scope to fit within ${effectiveSectionsPerChapter} sections total.
 
 ## COURSE CONTEXT
 - **Course**: "${ctx.courseTitle}"
@@ -942,6 +1167,21 @@ Return ONLY valid JSON, no markdown formatting`,
 // Stage 3: Detail Generation Prompt
 // ============================================================================
 
+/**
+ * Returns difficulty-based word count target for Stage 3 lesson content.
+ * Lower difficulties get shorter, more focused content to manage cognitive load
+ * and reduce output token burn.
+ */
+function getStage3WordTarget(difficulty: string): string {
+  switch (difficulty.toLowerCase()) {
+    case 'beginner': return '400-600';
+    case 'intermediate': return '500-800';
+    case 'advanced':
+    case 'expert':
+    default: return '600-1000';
+  }
+}
+
 /** Options for buildStage3Prompt — replaces positional args for clarity */
 export interface Stage3PromptOptions {
   courseContext: CourseContext;
@@ -988,21 +1228,23 @@ export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
   );
 
   if (completedPrior.length > 0 || upcomingSections.length > 0) {
-    const completedLines = completedPrior.map(cs => {
-      const d = cs.details;
-      let line = `- Section ${cs.position}: "${cs.title}" (${cs.contentType}${cs.templateRole ? `, ${cs.templateRole}` : ''})`;
-      if (d) {
-        const objs = d.learningObjectives.slice(0, 3).map(o => o.slice(0, 80)).join('; ');
-        line += `\n    Objectives: ${objs}`;
-        if (d.keyConceptsCovered?.length) {
-          line += `\n    Key Concepts: ${d.keyConceptsCovered.join(', ')}`;
-        }
-        if (d.practicalActivity) {
-          line += `\n    Activity: ${d.practicalActivity.slice(0, 120)}`;
-        }
-      }
-      return line;
-    }).join('\n');
+    const completedLines = variant?.includes('optimized-v1')
+      ? compressPriorSections(completedPrior)
+      : completedPrior.map(cs => {
+          const d = cs.details;
+          let line = `- Section ${cs.position}: "${cs.title}" (${cs.contentType}${cs.templateRole ? `, ${cs.templateRole}` : ''})`;
+          if (d) {
+            const objs = d.learningObjectives.slice(0, 3).map(o => o.slice(0, 80)).join('; ');
+            line += `\n    Objectives: ${objs}`;
+            if (d.keyConceptsCovered?.length) {
+              line += `\n    Key Concepts: ${d.keyConceptsCovered.join(', ')}`;
+            }
+            if (d.practicalActivity) {
+              line += `\n    Activity: ${d.practicalActivity.slice(0, 120)}`;
+            }
+          }
+          return line;
+        }).join('\n');
 
     const upcomingLines = upcomingSections
       .map(s => `- Section ${s.position}: "${s.title}" (${s.contentType})`)
@@ -1051,7 +1293,7 @@ ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'This is early in the co
 Build descriptions and objectives that reference and extend this knowledge.
 
 ## STYLE AND DEPTH GUIDELINES
-- Description: 600-1000 words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 5 sections: Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications
+- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 5 sections: Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications
 - Objectives: Use ONLY ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.join(', ')})
 - Activity: Must match content type "${section.contentType}" and demonstrate measurable skill
 - Each objective should be achievable within ${section.estimatedDuration}
@@ -1205,7 +1447,7 @@ ${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Pri
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
-${templateBlock ? `Follow the section-type-specific HTML structure and format rules defined in the Chapter DNA template block above. Do NOT use the generic 5-h2 structure — use the role-specific structure for this section type.` : `Write a rich, structured HTML lesson (600-1000 words) with exactly 5 sections:
+${templateBlock ? `Follow the section-type-specific HTML structure and format rules defined in the Chapter DNA template block above. Do NOT use the generic 5-h2 structure — use the role-specific structure for this section type.` : `Write a rich, structured HTML lesson (${getStage3WordTarget(ctx.difficulty)} words) with exactly 5 sections:
 1. **<h2>Why This Matters</h2>**: Open with a real-world story or scenario about "${section.topicFocus}". Why does this concept exist? What problem does it solve? Use a concrete analogy to build intuition.
 2. **<h2>The Big Picture</h2>**: Where does "${section.topicFocus}" fit in the broader field? How does it connect to what students learned in prior sections? What breaks if you skip this?
 3. **<h2>What You Will Learn</h2>**: List 3-5 key ideas with analogies. Use <ul>/<li> for each concept. Explain each in plain language before using technical terms.
@@ -1240,9 +1482,9 @@ Return a JSON object with this EXACT structure:
 {
   "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "${templateBlock ? `Structured HTML lesson content following the section-type-specific format from the Chapter DNA template. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote, table, tr, th, td. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.` : `600-1000 words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.`}",
+    "description": "${templateBlock ? `Structured HTML lesson content following the section-type-specific format from the Chapter DNA template. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote, table, tr, th, td. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.` : `${getStage3WordTarget(ctx.difficulty)} words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.`}",
     "learningObjectives": [
-      // Exactly ${ctx.learningObjectivesPerSection} objectives
+      // EXACTLY ${ctx.learningObjectivesPerSection} objectives — no more, no less
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
       // Each follows ABCD: Verb + specific content + condition + standard
       // Example: "Implement a RESTful API endpoint using Express.js middleware, following the route-controller-service pattern"
@@ -1256,7 +1498,7 @@ Return a JSON object with this EXACT structure:
 }
 
 QUALITY GATES — Your output will be scored on:
-1. **Lesson Structure**: ${templateBlock ? `Does the description follow the section-type-specific HTML structure from the Chapter DNA template? Does it mention "${section.topicFocus}" at least 3 times?` : `Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it 600-1000 words? Does it mention "${section.topicFocus}" at least 3 times?`}
+1. **Lesson Structure**: ${templateBlock ? `Does the description follow the section-type-specific HTML structure from the Chapter DNA template? Does it mention "${section.topicFocus}" at least 3 times?` : `Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it ${getStage3WordTarget(ctx.difficulty)} words? Does it mention "${section.topicFocus}" at least 3 times?`}
 2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?

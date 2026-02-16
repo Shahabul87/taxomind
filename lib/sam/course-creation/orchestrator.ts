@@ -23,6 +23,8 @@ import {
 } from './chapter-templates';
 import {
   getActiveExperiment,
+  getActiveExperiments,
+  joinVariants,
   recordExperimentOutcome,
   type ExperimentAssignment,
 } from './experiments';
@@ -95,31 +97,7 @@ function resolveCategoryLabel(value: string): string {
   return match ? match.label : value;
 }
 
-/**
- * Resolve the effective chapter count, comparing user's requested count
- * with the AI blueprint's recommendation.
- *
- * Guardrails:
- * - If no recommendation, use user's count
- * - If recommendation differs by ≤2, use the recommendation
- * - If recommendation differs by >2, clamp to ±2 from user's count
- * - Hard bounds: min=3, max=15
- */
-function resolveChapterCount(
-  userRequested: number,
-  blueprintRecommended: number | undefined,
-): number {
-  if (blueprintRecommended === undefined) return userRequested;
-
-  // Clamp to ±2 from user's count
-  const clamped = Math.max(
-    userRequested - 2,
-    Math.min(userRequested + 2, blueprintRecommended),
-  );
-
-  // Hard bounds
-  return Math.max(3, Math.min(15, clamped));
-}
+// resolveChapterCount removed — strict mode: always use user's requested count
 
 // =============================================================================
 // ORCHESTRATOR
@@ -149,9 +127,11 @@ export async function orchestrateCourseCreation(
   const startTime = Date.now();
   const isResume = !!resumeState;
 
-  // Resolve A/B experiment (if any active)
-  const experimentAssignment: ExperimentAssignment | null = getActiveExperiment(userId);
-  const experimentVariant = experimentAssignment?.variant;
+  // Resolve A/B experiments (all active — supports concurrent experiments)
+  const experimentAssignments = getActiveExperiments(userId);
+  const experimentVariant = joinVariants(experimentAssignments);
+  // Keep single assignment reference for backward-compatible logging
+  const experimentAssignment: ExperimentAssignment | null = experimentAssignments[0] ?? null;
 
   // When resuming, seed state from checkpoint; otherwise start fresh
   const qualityScores: QualityScore[] = resumeState?.qualityScores.slice() ?? [];
@@ -212,13 +192,15 @@ export async function orchestrateCourseCreation(
     blended: matchedEnhancers.length >= 2,
   });
 
-  // Resolve chapter template from difficulty level
+  // Resolve chapter template from difficulty level (used for prompt guidance, not counts)
   const chapterTemplate = getTemplateForDifficulty(config.difficulty);
-  const effectiveSectionsPerChapter = chapterTemplate.totalSections;
+  // Strict mode: always use user's requested section count, not template default
+  const effectiveSectionsPerChapter = config.sectionsPerChapter;
   logger.info('[ORCHESTRATOR] Chapter DNA template resolved', {
     difficulty: config.difficulty,
     template: chapterTemplate.displayName,
-    sectionsPerChapter: effectiveSectionsPerChapter,
+    templateSections: chapterTemplate.totalSections,
+    userRequestedSections: effectiveSectionsPerChapter,
   });
 
   // Phase 2: Recall memory from prior course creations (3s timeout, safe fallback)
@@ -284,26 +266,8 @@ export async function orchestrateCourseCreation(
     }
   }
 
-  // Resolve chapter count — AI may have recommended a different count
-  let totalChapters = config.totalChapters;
-  if (blueprintPlan) {
-    const resolvedTotal = resolveChapterCount(config.totalChapters, blueprintPlan.recommendedChapterCount);
-    if (resolvedTotal !== totalChapters) {
-      logger.info('[ORCHESTRATOR] Chapter count adjusted by blueprint', {
-        original: totalChapters,
-        resolved: resolvedTotal,
-      });
-      totalChapters = resolvedTotal;
-      courseContext.totalChapters = resolvedTotal;
-
-      // NOTE: DB course record is updated after courseId is assigned (inside try block)
-
-      onSSEEvent?.({
-        type: 'chapter_count_adjusted',
-        data: { original: config.totalChapters, resolved: resolvedTotal },
-      });
-    }
-  }
+  // Strict mode: always use user's requested chapter count
+  const totalChapters = config.totalChapters;
 
   // Calculate total items for percentage tracking
   const totalSections = totalChapters * effectiveSectionsPerChapter;
@@ -455,13 +419,6 @@ export async function orchestrateCourseCreation(
       createdCourseId = course.id;
       logger.info('[ORCHESTRATOR] Course created', { courseId: course.id, title: course.title });
 
-      // If blueprint adjusted chapter count, update the new course record
-      if (totalChapters !== config.totalChapters) {
-        await db.course.update({
-          where: { id: courseId },
-          data: { chapterCount: totalChapters },
-        });
-      }
       onSSEEvent?.({
         type: 'item_complete',
         data: { stage: 0, message: 'Course record created', courseId: course.id },
@@ -1163,15 +1120,17 @@ export async function orchestrateCourseCreation(
       averageQualityScore,
     });
 
-    // Record A/B experiment outcome (fire-and-forget)
-    if (experimentAssignment && planId) {
-      recordExperimentOutcome(planId, experimentAssignment, {
-        averageQualityScore,
-        totalTimeMs: totalTime,
-        chaptersCreated,
-        sectionsCreated,
-        promptVersion: PROMPT_VERSION,
-      }).catch(() => { /* non-critical */ });
+    // Record A/B experiment outcomes for ALL active experiments (fire-and-forget)
+    for (const assignment of experimentAssignments) {
+      if (planId) {
+        recordExperimentOutcome(planId, assignment, {
+          averageQualityScore,
+          totalTimeMs: totalTime,
+          chaptersCreated,
+          sectionsCreated,
+          promptVersion: PROMPT_VERSION,
+        }).catch(() => { /* non-critical */ });
+      }
     }
 
     onSSEEvent?.({
