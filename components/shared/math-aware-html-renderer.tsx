@@ -483,11 +483,62 @@ function renderRawLatexInText(text: string): string {
 }
 
 /**
+ * Join LaTeX expressions that were split across HTML line breaks or paragraph
+ * boundaries. AI-generated content sometimes breaks a formula across lines,
+ * e.g. `\lim\limits_{h \<br>to 0}` should be `\lim\limits_{h \to 0}`.
+ */
+function joinSplitLatexExpressions(html: string): string {
+  let result = normalizeLatexBackslashes(html);
+
+  // Pattern 1: backslash + <br> or </p><p> + known LaTeX command name
+  // e.g., \<br>to → \to, \<br>frac → \frac
+  result = result.replace(
+    /\\\s*(?:<br\s*\/?>|<\/p>\s*<p[^>]*>)\s*(to|infty|frac|lim|limits|int|sum|prod|sqrt|cdot|times|div|pm|leq|geq|neq|approx|equiv|left|right|text|mathrm|mathbf|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|sin|cos|tan|log|ln|exp|max|min)\b/gi,
+    (_, cmd) => `\\${cmd}`
+  );
+
+  // Pattern 2: break inside an unbalanced brace group within a LaTeX expression
+  // e.g., \frac{f(a+h)<br>- f(a)}{h} → \frac{f(a+h) - f(a)}{h}
+  const breakRegex = /<br\s*\/?>|<\/p>\s*<p[^>]*>/gi;
+  let breakMatch: RegExpExecArray | null;
+  const breaks: Array<{ index: number; length: number }> = [];
+  while ((breakMatch = breakRegex.exec(result)) !== null) {
+    breaks.push({ index: breakMatch.index, length: breakMatch[0].length });
+  }
+
+  // Process right-to-left to preserve positions
+  for (let i = breaks.length - 1; i >= 0; i--) {
+    const { index, length } = breaks[i];
+    const lookback = Math.max(0, index - 300);
+    const beforeHtml = result.slice(lookback, index);
+    const beforeText = beforeHtml.replace(/<[^>]+>/g, "");
+
+    // Only process if there are LaTeX commands in the vicinity
+    if (!hasLatexCommands(beforeText)) continue;
+
+    // Count brace depth in the preceding text
+    let braceDepth = 0;
+    for (const ch of beforeText) {
+      if (ch === "{") braceDepth++;
+      else if (ch === "}") braceDepth--;
+    }
+
+    // If we're inside a brace group, replace the break with a space
+    if (braceDepth > 0) {
+      result = result.slice(0, index) + " " + result.slice(index + length);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Process sanitized HTML to render math content:
  * 1. Protect <pre><code>...</code></pre> (actual code blocks)
  * 2. Convert $$...$$ → KaTeX display math
  * 3. Convert $...$ → KaTeX inline math
  * 4. Convert standalone <code>...</code> → KaTeX inline math
+ * 4-pre. Join LaTeX expressions split across line breaks
  * 4a. Detect raw LaTeX commands in plain text → KaTeX math
  * 4b. Convert Unicode math symbols in plain text → KaTeX inline math
  */
@@ -563,6 +614,11 @@ function processMathInHtml(html: string): string {
         : match;
     }
   );
+
+  // Step 4-pre: Join LaTeX expressions split across HTML line breaks.
+  // AI content sometimes breaks a formula like \lim\limits_{h \to 0}
+  // across a <br> tag, producing \..._{h \<br>to 0} which fails.
+  result = joinSplitLatexExpressions(result);
 
   // Step 4a+4b: Process math expressions in text nodes
   // Split by HTML tags so we only process text content, not tag attributes
