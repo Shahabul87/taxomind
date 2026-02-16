@@ -378,10 +378,10 @@ function setupDBMocks() {
 
 function setupAIMocks() {
   // Alternate responses for chapter, section, details calls
-  // With template-driven sections per chapter (intermediate = 7):
-  // 1 = chapter, 2..8 = 7 sections, 9..15 = 7 details
-  // Total per chapter = 15 calls
-  const CALLS_PER_CHAPTER = 15; // 1 chapter + 7 sections + 7 details
+  // Strict mode: user's sectionsPerChapter = 2 (not template default 7):
+  // 1 = chapter, 2..3 = 2 sections, 4..5 = 2 details
+  // Total per chapter = 5 calls
+  const CALLS_PER_CHAPTER = 5; // 1 chapter + 2 sections + 2 details
   let callCount = 0;
   // runSAMChatWithPreference returns string directly (not { content: string })
   mockRunSAMChat.mockImplementation(() => {
@@ -389,7 +389,7 @@ function setupAIMocks() {
     const cyclePosition = ((callCount - 1) % CALLS_PER_CHAPTER) + 1;
     if (cyclePosition === 1) {
       return Promise.resolve(createMockChapterAIResponse(Math.ceil(callCount / CALLS_PER_CHAPTER)));
-    } else if (cyclePosition <= 8) {
+    } else if (cyclePosition <= 3) {
       return Promise.resolve(createMockSectionAIResponse(cyclePosition - 1));
     } else {
       return Promise.resolve(createMockDetailsAIResponse());
@@ -412,7 +412,7 @@ describe('orchestrateCourseCreation', () => {
   // Legacy path tests (useAgenticStateMachine: false)
   // ==========================================================================
 
-  it('completes a full pipeline (2 chapters x 7 template sections)', async () => {
+  it('completes a full pipeline (2 chapters x 2 user-requested sections)', async () => {
     const config = createBaseConfig();
     const sseEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
 
@@ -427,8 +427,8 @@ describe('orchestrateCourseCreation', () => {
     expect(result.success).toBe(true);
     expect(result.courseId).toBeDefined();
     expect(result.chaptersCreated).toBe(2);
-    // Template-driven: 2 chapters * 7 sections (intermediate) = 14
-    expect(result.sectionsCreated).toBe(14);
+    // Strict mode: 2 chapters * 2 sections (user-requested) = 4
+    expect(result.sectionsCreated).toBe(4);
     expect(result.stats).toBeDefined();
     expect(result.stats!.averageQualityScore).toBeGreaterThan(0);
   });
