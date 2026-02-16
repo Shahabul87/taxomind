@@ -555,7 +555,7 @@ ${CHAPTER_THINKING_FRAMEWORK}`;
 - **Description**: ${ctx.courseDescription}
 - **Category**: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
 - **Target Audience**: ${ctx.targetAudience}
-- **Difficulty**: ${ctx.difficulty}
+- **Difficulty**: ${ctx.difficulty}${ctx.courseIntent ? `\n- **Course Intent**: ${ctx.courseIntent}` : ''}${ctx.duration ? `\n- **Target Duration**: ${ctx.duration}` : ''}${ctx.includeAssessments !== undefined ? `\n- **Assessments**: ${ctx.includeAssessments ? 'Include assessment/quiz sections' : 'Focus on content only, no assessments'}` : ''}
 - **Course Learning Objectives**:
 ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
     },
@@ -802,7 +802,7 @@ ${SECTION_THINKING_FRAMEWORK}`;
 ## COURSE CONTEXT
 - **Course**: "${ctx.courseTitle}"
 - **Target Audience**: ${ctx.targetAudience}
-- **Difficulty**: ${ctx.difficulty}
+- **Difficulty**: ${ctx.difficulty}${ctx.includeAssessments !== undefined ? `\n- **Assessments**: ${ctx.includeAssessments ? 'Include assessment/quiz sections' : 'Focus on content only, no assessments'}` : ''}
 
 ## CHAPTER CONTEXT
 - **Title**: "${chapter.title}"
@@ -1148,7 +1148,7 @@ ${activityGuidance}`;
 ## COURSE CONTEXT
 - **Course**: "${ctx.courseTitle}"
 - **Target Audience**: ${ctx.targetAudience}
-- **Difficulty**: ${ctx.difficulty}
+- **Difficulty**: ${ctx.difficulty}${ctx.includeAssessments !== undefined ? `\n- **Assessments**: ${ctx.includeAssessments ? 'Include assessment/quiz sections' : 'Focus on content only, no assessments'}` : ''}
 
 ## CHAPTER CONTEXT
 - **Chapter ${chapter.position}**: "${chapter.title}"

@@ -110,6 +110,7 @@ export interface CourseContext {
   // Optional
   courseIntent?: string;
   includeAssessments?: boolean;
+  duration?: string;
   preferredContentTypes?: ContentType[];
 }
 
@@ -405,6 +406,11 @@ export interface SequentialCreationConfig {
   preferredContentTypes: string[];
   category?: string;
   subcategory?: string;
+
+  // Optional wizard fields
+  courseIntent?: string;
+  includeAssessments?: boolean;
+  duration?: string;
 
   // Optional callbacks
   onProgress?: (progress: CreationProgress) => void;
@@ -707,6 +713,12 @@ export interface CheckpointData {
   /** Per-chapter section counts — actual sections generated per completed chapter (1-indexed by position) */
   chapterSectionCounts?: number[];
 
+  /** Adaptive strategy performance history for resume seeding */
+  strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
+
+  /** Prompt template version used during generation */
+  promptVersion?: string;
+
   // === Mid-chapter recovery fields ===
   /** The last completed stage within the current chapter (1=chapter, 2=sections, 3=details) */
   lastCompletedStage?: 1 | 2 | 3;
@@ -765,6 +777,8 @@ export interface ResumeState {
   chapterSectionCounts: number[];
   /** Section IDs in the partial chapter that already have descriptions (skip Stage 3 for these) */
   sectionsWithDetails: Set<string>;
+  /** Adaptive strategy history from checkpoint for seeding the monitor on resume */
+  strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
   /** DB chapter IDs that exist for the partial chapter (skip Stage 1+2 if present) */
   partialChapterDbId?: string;
   /** DB section records for the partial chapter (skip Stage 2 if all present) */

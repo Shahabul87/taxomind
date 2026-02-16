@@ -5,7 +5,7 @@ import { CourseCreationRequest, SamSuggestion, SamWizardState, SamWizardActions 
 import { useSamDebounce } from '@/lib/sam/hooks/use-sam-debounce';
 import { useSamCache } from '@/lib/sam/hooks/use-sam-cache';
 import { useProgressiveCourseCreation } from '@/hooks/use-progressive-course-creation';
-import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from '@/lib/analytics-tracker';
+import { trackAIFeatureUsage, trackFormProgress } from '@/lib/analytics-tracker';
 import { logger } from '@/lib/logger';
 import { useIntelligentSAMSync } from '@/hooks/use-sam-intelligent-sync';
 import { getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-context';
@@ -42,9 +42,6 @@ export function useSamWizard() {
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
-  const [generationId, setGenerationId] = useState<string | null>(null);
-  const [showStreamingModal, setShowStreamingModal] = useState(false);
-
   // Enhanced hooks
   const { debouncedCall, cancelAllCalls } = useSamDebounce();
   const samCache = useSamCache({ ttl: 5 * 60 * 1000, maxSize: 100 });
@@ -164,86 +161,6 @@ export function useSamWizard() {
     }
   }, [step]);
 
-  const handleGenerate = useCallback(async () => {
-    const genId = trackGenerationStart('blueprint', {
-      inputComplexity: 'high',
-      inputData: formData
-    });
-    setGenerationId(genId);
-    
-    // Track all enhanced features usage
-    trackAIFeatureUsage('course_generation', { 
-      formData, 
-      step, 
-      totalSteps: TOTAL_STEPS,
-      aiSuggestionsUsed: samSuggestion ? 1 : 0
-    });
-    
-    // Show streaming modal
-    setShowStreamingModal(true);
-    trackAIFeatureUsage('streaming_generation');
-  }, [formData, step, samSuggestion]);
-
-  const handleStreamingComplete = useCallback(async (blueprint: any) => {
-    setShowStreamingModal(false);
-    
-    if (generationId) {
-      trackGenerationEnd(generationId, {
-        success: true,
-        duration: Date.now(),
-        outputQuality: 85,
-        outputSize: JSON.stringify(blueprint).length
-      });
-    }
-    
-    toast.success("Course blueprint generated successfully!");
-    
-    // Create course directly
-    try {
-      const response = await fetch('/api/courses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: blueprint.course.title,
-          description: blueprint.course.description,
-          learningObjectives: blueprint.course.goals?.join('\n') || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error(`Course creation failed: ${response.status} - ${errorText}`);
-        throw new Error(`Failed to create course: ${response.status} - ${errorText}`);
-      }
-
-      const course = await response.json();
-
-      // Store blueprint for course editing page
-      sessionStorage.setItem(`course_blueprint_${course.id}`, JSON.stringify(blueprint));
-      
-      // Navigate to course editing page
-      router.push(`/teacher/courses/${course.id}`);
-    } catch (error: any) {
-      logger.error('Error creating course from blueprint:', error);
-      toast.error('Failed to create course. Please try again.');
-    }
-  }, [generationId, router]);
-
-  const handleStreamingError = useCallback(() => {
-    setShowStreamingModal(false);
-    
-    if (generationId) {
-      trackGenerationEnd(generationId, {
-        success: false,
-        duration: Date.now(),
-        errorType: 'generation_failed'
-      });
-    }
-    toast.error("Course generation failed. Please try again.");
-  }, [generationId]);
-
   const resetWizard = useCallback(() => {
     setFormData(initialFormData);
     setStep(1);
@@ -270,8 +187,6 @@ export function useSamWizard() {
             e.preventDefault();
             if (step < TOTAL_STEPS) {
               handleNext();
-            } else {
-              handleGenerate();
             }
             break;
           case 'ArrowLeft':
@@ -310,7 +225,7 @@ export function useSamWizard() {
       document.removeEventListener('keydown', handleKeyDown);
       cancelAllCalls(); // Cleanup on unmount
     };
-  }, [step, formData, handleNext, handleBack, handleGenerate, isLoadingSuggestion, cancelAllCalls]);
+  }, [step, formData, handleNext, handleBack, isLoadingSuggestion, cancelAllCalls]);
 
   const state: SamWizardState = {
     step,
@@ -325,7 +240,6 @@ export function useSamWizard() {
   const actions: SamWizardActions = {
     handleNext,
     handleBack,
-    handleGenerate,
     resetWizard
   };
 
@@ -334,14 +248,10 @@ export function useSamWizard() {
     ...state,
     formData,
     setFormData,
-    showStreamingModal,
-    setShowStreamingModal,
 
     // Actions
     ...actions,
     goToStep,
-    handleStreamingComplete,
-    handleStreamingError,
 
     // Utilities
     samCache,

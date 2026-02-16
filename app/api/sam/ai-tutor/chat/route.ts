@@ -65,9 +65,8 @@ export async function POST(request: NextRequest) {
     };
 
     // Forward to unified endpoint (internal fetch)
-    const protocol = request.headers.get('x-forwarded-proto') ?? 'http';
-    const host = request.headers.get('host') ?? 'localhost:3000';
-    const unifiedUrl = `${protocol}://${host}/api/sam/unified`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const unifiedUrl = `${baseUrl}/api/sam/unified`;
 
     const unifiedResponse = await fetch(unifiedUrl, {
       method: 'POST',

@@ -15,6 +15,19 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
+/**
+ * Deterministic offset based on string hashing.
+ * Same input + dimension → same offset every time (0-9).
+ */
+function deterministicOffset(input: string, dimension: string): number {
+  let hash = 0;
+  const key = `${input}:${dimension}`;
+  for (let i = 0; i < key.length; i++) {
+    hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 10;
+}
+
 // Request schemas
 const TitleScoringSchema = z.object({
   type: z.literal('title'),
@@ -403,10 +416,10 @@ function calculateFallbackTitleScore(
     strengths.push('Good specificity without being overwhelming');
   }
 
-  // Cap scores at 100
-  marketingScore = Math.min(100, Math.max(0, marketingScore + Math.floor(Math.random() * 10)));
-  brandingScore = Math.min(100, Math.max(0, brandingScore + Math.floor(Math.random() * 10)));
-  salesScore = Math.min(100, Math.max(0, salesScore + Math.floor(Math.random() * 10)));
+  // Cap scores at 100 with deterministic offset
+  marketingScore = Math.min(100, Math.max(0, marketingScore + deterministicOffset(title, 'marketing')));
+  brandingScore = Math.min(100, Math.max(0, brandingScore + deterministicOffset(title, 'branding')));
+  salesScore = Math.min(100, Math.max(0, salesScore + deterministicOffset(title, 'sales')));
 
   const overallScore = Math.round((marketingScore + brandingScore + salesScore) / 3);
 
@@ -482,10 +495,10 @@ function calculateFallbackOverviewScore(
     strengths.push('Addresses target audience directly');
   }
 
-  // Cap scores at 100
-  relevanceScore = Math.min(100, Math.max(0, relevanceScore + Math.floor(Math.random() * 10)));
-  clarityScore = Math.min(100, Math.max(0, clarityScore + Math.floor(Math.random() * 10)));
-  engagementScore = Math.min(100, Math.max(0, engagementScore + Math.floor(Math.random() * 10)));
+  // Cap scores at 100 with deterministic offset
+  relevanceScore = Math.min(100, Math.max(0, relevanceScore + deterministicOffset(overview, 'relevance')));
+  clarityScore = Math.min(100, Math.max(0, clarityScore + deterministicOffset(overview, 'clarity')));
+  engagementScore = Math.min(100, Math.max(0, engagementScore + deterministicOffset(overview, 'engagement')));
 
   const overallScore = Math.round((relevanceScore + clarityScore + engagementScore) / 3);
 

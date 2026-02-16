@@ -364,6 +364,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           preferredContentTypes: courseData.preferredContentTypes,
           category: courseData.category,
           subcategory: courseData.subcategory,
+          courseIntent: courseData.courseIntent,
+          includeAssessments: courseData.includeAssessments,
+          duration: courseData.duration,
         }),
         signal: abortController.signal,
       });

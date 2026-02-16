@@ -45,6 +45,9 @@ const OrchestrateRequestSchema = z.object({
   preferredContentTypes: z.array(z.string()).default([]),
   category: z.string().optional(),
   subcategory: z.string().optional(),
+  courseIntent: z.string().optional(),
+  includeAssessments: z.boolean().optional(),
+  duration: z.string().optional(),
   resumeCourseId: z.string().optional(),
 });
 
@@ -138,15 +141,9 @@ export async function POST(request: NextRequest) {
               })
             : await orchestrateCourseCreation(orchestrateOptions);
 
-          // Final event
-          if (result.success) {
-            sendSSE('complete', {
-              courseId: result.courseId,
-              chaptersCreated: result.chaptersCreated,
-              sectionsCreated: result.sectionsCreated,
-              stats: result.stats,
-            });
-          } else {
+          // The orchestrator's own 'complete' event already flows through
+          // onSSEEvent → sendSSE. Only emit error as a safety net.
+          if (!result.success) {
             sendSSE('error', {
               message: result.error ?? 'Course creation failed',
               chaptersCreated: result.chaptersCreated,

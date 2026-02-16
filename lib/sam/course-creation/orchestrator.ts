@@ -190,6 +190,9 @@ export async function orchestrateCourseCreation(
     learningObjectivesPerChapter: config.learningObjectivesPerChapter,
     learningObjectivesPerSection: config.learningObjectivesPerSection,
     preferredContentTypes: config.preferredContentTypes as ContentType[],
+    courseIntent: config.courseIntent,
+    includeAssessments: config.includeAssessments,
+    duration: config.duration,
   };
 
   // Resolve domain-specific category prompt enhancer (with optional multi-domain blending)
@@ -237,9 +240,9 @@ export async function orchestrateCourseCreation(
     recalledMemory = null;
   }
 
-  // Phase 5: Initialize adaptive strategy monitor
+  // Phase 5: Initialize adaptive strategy monitor (seed from checkpoint on resume)
   const strategyMonitor = new AdaptiveStrategyMonitor(
-    resumeState ? [] : undefined // Could seed with prior history from checkpoint
+    resumeState ? resumeState.strategyHistory ?? [] : undefined
   );
 
   // Phase 7: Pre-generation course blueprint planning (new courses only)
@@ -1011,6 +1014,7 @@ export async function orchestrateCourseCreation(
           lastCompletedStage: 3,
           currentChapterNumber: chNum,
           chapterSectionCounts,
+          strategyHistory: strategyMonitor.getHistory(),
           promptVersion: PROMPT_VERSION,
         });
       }

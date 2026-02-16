@@ -105,7 +105,6 @@ export interface SamWizardState {
 export interface SamWizardActions {
   handleNext: () => void;
   handleBack: () => void;
-  handleGenerate: () => Promise<void>;
   resetWizard: () => void;
 }
 

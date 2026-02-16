@@ -850,6 +850,7 @@ describe('orchestrateCourseCreation', () => {
       expect.any(Object), // blueprint
       expect.any(Object), // conceptTracker
       expect.any(Object), // courseContext
+      undefined,          // runId (optional)
     );
   });
 
@@ -889,6 +890,7 @@ describe('orchestrateCourseCreation', () => {
       expect.any(Object), // nextBlueprintEntry (or undefined)
       ['neural networks', 'backpropagation'], // conceptGaps
       expect.any(Object), // courseContext
+      undefined,          // runId (optional)
     );
 
     // Bridge content SSE event emitted

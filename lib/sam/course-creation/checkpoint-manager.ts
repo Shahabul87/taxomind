@@ -56,6 +56,10 @@ export interface SaveCheckpointInput {
   currentChapterNumber?: number;
   /** Per-chapter section counts for accurate resume completedItems calculation */
   chapterSectionCounts?: number[];
+  /** Adaptive strategy performance history for resume seeding */
+  strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
+  /** Prompt template version used during generation */
+  promptVersion?: string;
 }
 
 // =============================================================================
@@ -77,7 +81,7 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
     completedChapterCount, config, goalId, stepIds,
     completedChaptersList, percentage, status,
     lastCompletedStage, lastCompletedSectionIndex, currentChapterNumber,
-    chapterSectionCounts,
+    chapterSectionCounts, strategyHistory, promptVersion,
   } = input;
 
   const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } = config;
@@ -97,6 +101,9 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
     savedAt: new Date().toISOString(),
     // Per-chapter section counts for accurate resume
     chapterSectionCounts,
+    // Adaptive strategy history + prompt version
+    strategyHistory,
+    promptVersion,
     // Mid-chapter recovery
     lastCompletedStage,
     lastCompletedSectionIndex,
@@ -366,6 +373,7 @@ export async function resumeCourseCreation(
       completedChapterCount,
       chapterSectionCounts,
       sectionsWithDetails,
+      strategyHistory: checkpoint.strategyHistory,
     };
 
     logger.info('[ORCHESTRATOR] Resume state built', {

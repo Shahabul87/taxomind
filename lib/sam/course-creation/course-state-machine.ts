@@ -271,13 +271,9 @@ export class CourseCreationStateMachine {
       },
 
       onPlanComplete: () => {
-        this.config.onSSEEvent?.({
-          type: 'complete',
-          data: {
-            courseId: this.config.courseId,
-            message: 'All chapters generated via state machine',
-          },
-        });
+        // NOTE: Do NOT emit 'complete' here — the orchestrator emits the
+        // authoritative 'complete' event after post-generation work
+        // (reflection, healing, enrichment, checkpointing) finishes.
         logger.info('[CourseStateMachine] Plan complete', {
           courseId: this.config.courseId,
         });
