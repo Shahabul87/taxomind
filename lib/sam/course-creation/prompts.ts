@@ -446,6 +446,17 @@ When the course topic involves math, science, or any quantitative content:
 
 5. **Every equation MUST have a plain-English translation** immediately before or after it
 
+6. **Additional LaTeX patterns**:
+   - Use \\text{} inside equations for non-math words: $P(\\text{heads}) = 0.5$
+   - Use \\, for proper spacing in integrals: $\\int_a^b f(x)\\,dx$
+   - Use \\left( \\right) for auto-sizing brackets: $\\left(\\frac{a}{b}\\right)^2$
+   - Square roots: \\sqrt{x}, \\sqrt[3]{x}
+   - Products: \\prod_{k=1}^{n}
+   - Matrices: \\begin{pmatrix} a &amp; b \\\\ c &amp; d \\end{pmatrix}
+   - Named functions: \\sin, \\cos, \\log, \\ln, \\max, \\min, \\lim, \\det
+   - Set notation: \\in, \\subset, \\cup, \\cap, \\emptyset
+   - Arrows: \\to, \\rightarrow, \\Rightarrow, \\iff
+
 ### Writing Learning Objectives (ABCD Method)
 Every objective must contain these elements:
 - **A — Audience**: Who is the learner? (implicit from course context)
@@ -1513,6 +1524,363 @@ Return ONLY valid JSON, no markdown formatting`,
   const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
+}
+
+// ============================================================================
+// Breadth-First Pipeline Prompt Builders
+// ============================================================================
+
+import type {
+  CourseRoadmap,
+  RoadmapSection,
+} from './types';
+import { buildCompactRoadmapBlock, buildMinimalRoadmapBlock } from './roadmap-generator';
+
+/** Options for buildBreadthFirstChapterPrompt */
+export interface BreadthFirstChapterPromptOptions {
+  courseContext: CourseContext;
+  roadmap: CourseRoadmap;
+  chapterNumber: number;
+  previousChapterDetails: GeneratedChapter[];
+  conceptTracker: ConceptTracker;
+  categoryPrompt?: ComposedCategoryPrompt;
+  variant?: string;
+  templatePrompt?: ComposedTemplatePrompt;
+  recalledMemory?: RecalledMemory;
+}
+
+/**
+ * Build prompt for Stage 2 of breadth-first pipeline: chapter detail generation.
+ * The chapter title, Bloom's level, and section titles are GIVEN from the roadmap.
+ * The AI fills in description, objectives, key topics, etc.
+ */
+export function buildBreadthFirstChapterPrompt(options: BreadthFirstChapterPromptOptions): StagePrompt {
+  const {
+    courseContext, roadmap, chapterNumber, previousChapterDetails,
+    conceptTracker, categoryPrompt, variant, recalledMemory,
+  } = options;
+
+  const ctx = sanitizeCourseContext(courseContext);
+  const roadmapChapter = roadmap.chapters[chapterNumber - 1];
+  const bloomsInfo = BLOOMS_TAXONOMY[roadmapChapter.bloomsLevel];
+
+  // Build previous chapter details summary (recency-tiered)
+  let previousDetailsSummary = 'This is the first chapter.';
+  if (previousChapterDetails.length > 0) {
+    previousDetailsSummary = previousChapterDetails.map((ch, idx) => {
+      const recency = chapterNumber - ch.position;
+      if (recency <= 1) {
+        return `- **Ch${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]\n  ${ch.description.slice(0, 250)}\n  Objectives: ${ch.learningObjectives.join('; ')}\n  Concepts: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}`;
+      } else if (recency <= 3) {
+        return `- **Ch${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]\n  ${ch.description.slice(0, 150)}\n  Concepts: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}`;
+      }
+      return `- Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] — ${(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 5).join(', ')}`;
+    }).join('\n');
+  }
+
+  // Build concept flow section
+  let conceptFlowSection = '';
+  if (conceptTracker.concepts.size > 0) {
+    const conceptsByChapter = new Map<number, string[]>();
+    for (const [name, entry] of conceptTracker.concepts) {
+      const chConcepts = conceptsByChapter.get(entry.introducedInChapter) ?? [];
+      chConcepts.push(name);
+      conceptsByChapter.set(entry.introducedInChapter, chConcepts);
+    }
+    conceptFlowSection = `
+## CONCEPT FLOW
+${Array.from(conceptsByChapter.entries()).sort(([a], [b]) => a - b).map(([chNum, concepts]) => `  Chapter ${chNum}: ${concepts.join(', ')}`).join('\n')}
+
+This chapter should BUILD on these existing concepts. Introduce 3-7 NEW concepts.`;
+  }
+
+  const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
+  const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
+  const memoryRecallSection = recalledMemory ? buildMemoryRecallBlock(recalledMemory) : '';
+
+  const designExpertise = getStage1DesignExpertise(variant, chapterNumber);
+  const systemPrompt = `${designExpertise}
+${domainExpertise}
+
+${CHAPTER_DESIGN_PRINCIPLES}
+
+${CHAPTER_THINKING_FRAMEWORK}`;
+
+  // Build user prompt sections with budget enforcement
+  const userSections: PromptSection[] = [
+    {
+      label: 'courseContext',
+      priority: PromptPriority.CRITICAL,
+      content: `You are generating detailed content for Chapter ${chapterNumber} of "${ctx.courseTitle}".
+
+## COURSE CONTEXT
+- **Title**: "${ctx.courseTitle}"
+- **Description**: ${ctx.courseDescription}
+- **Category**: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+- **Target Audience**: ${ctx.targetAudience}
+- **Difficulty**: ${ctx.difficulty}
+- **Course Learning Objectives**:
+${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
+    },
+    {
+      label: 'fullRoadmap',
+      priority: PromptPriority.CRITICAL,
+      content: `
+## FULL COURSE ROADMAP (All chapters and sections — already decided)
+${buildCompactRoadmapBlock(roadmap)}`,
+    },
+    {
+      label: 'currentChapterAssignment',
+      priority: PromptPriority.CRITICAL,
+      content: `
+## YOUR TASK: Generate Details for Chapter ${chapterNumber}
+Title (already decided): "${roadmapChapter.title}"
+Focus: ${roadmapChapter.focusSummary}
+Bloom&apos;s Level: ${roadmapChapter.bloomsLevel} (Level ${bloomsInfo.level}) — ${bloomsInfo.description}
+Key Concepts to Cover: ${roadmapChapter.keyConcepts.join(', ')}
+
+This chapter has ${roadmapChapter.sections.length} sections (titles already decided):
+${roadmapChapter.sections.map(s => `  ${s.position}. "${s.title}" (${s.arrowRole ?? 'content'}, ${s.contentType ?? 'reading'})`).join('\n')}
+
+Generate: description (150-300 words), learningObjectives (EXACTLY ${ctx.learningObjectivesPerChapter}, ABCD format with ${roadmapChapter.bloomsLevel}-level verbs), keyTopics, conceptsIntroduced (3-7 NEW), prerequisites, estimatedTime`,
+    },
+    {
+      label: 'previousChapterDetails',
+      priority: PromptPriority.MEDIUM,
+      content: `\n## PREVIOUS CHAPTER DETAILS\n${previousDetailsSummary}`,
+    },
+    {
+      label: 'conceptFlow',
+      priority: PromptPriority.MEDIUM,
+      content: conceptFlowSection,
+    },
+    {
+      label: 'memoryRecall',
+      priority: PromptPriority.LOW,
+      content: memoryRecallSection,
+    },
+    {
+      label: 'domainGuidance',
+      priority: PromptPriority.OPTIONAL,
+      content: domainChapterGuidance,
+    },
+    {
+      label: 'outputSchema',
+      priority: PromptPriority.CRITICAL,
+      content: `
+## OUTPUT REQUIREMENTS
+
+Return a JSON object with this EXACT structure:
+{
+  "thinking": "3-5 sentence reasoning",
+  "chapter": {
+    "position": ${chapterNumber},
+    "title": "${roadmapChapter.title}",
+    "description": "150-300 word description",
+    "bloomsLevel": "${roadmapChapter.bloomsLevel}",
+    "learningObjectives": ["EXACTLY ${ctx.learningObjectivesPerChapter} objectives using ${roadmapChapter.bloomsLevel}-level verbs"],
+    "keyTopics": ["${roadmapChapter.sections.length} topics matching section titles"],
+    "conceptsIntroduced": ["3-7 NEW concepts"],
+    "prerequisites": "Skills from previous chapters",
+    "estimatedTime": "X hours Y minutes",
+    "topicsToExpand": ["Same as keyTopics"]
+  }
+}
+
+Return ONLY valid JSON, no markdown formatting.`,
+    },
+  ];
+
+  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage1.user);
+
+  return { systemPrompt, userPrompt: budgetResult.content };
+}
+
+/** Options for buildBreadthFirstSectionPrompt */
+export interface BreadthFirstSectionPromptOptions {
+  courseContext: CourseContext;
+  roadmap: CourseRoadmap;
+  chapter: GeneratedChapter & { id: string };
+  sectionFromRoadmap: RoadmapSection;
+  sectionPosition: number;
+  allChapterDetails: GeneratedChapter[];
+  completedSectionsInChapter: CompletedSection[];
+  conceptTracker: ConceptTracker;
+  categoryPrompt?: ComposedCategoryPrompt;
+  variant?: string;
+  recalledMemory?: RecalledMemory;
+}
+
+/**
+ * Build prompt for Stage 3 of breadth-first pipeline: section detail generation.
+ * Learning objectives are generated FIRST, then the description serves those objectives.
+ */
+export function buildBreadthFirstSectionPrompt(options: BreadthFirstSectionPromptOptions): StagePrompt {
+  const {
+    courseContext, roadmap, chapter, sectionFromRoadmap, sectionPosition,
+    allChapterDetails, completedSectionsInChapter, conceptTracker,
+    categoryPrompt, variant, recalledMemory,
+  } = options;
+
+  const ctx = sanitizeCourseContext(courseContext);
+  const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
+
+  // Build all chapter summaries (condensed)
+  const chapterSummaries = allChapterDetails.map(ch =>
+    `Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] — ${ch.description.slice(0, 100)}`
+  ).join('\n');
+
+  // Build prior sections in this chapter
+  let priorSectionsBlock = 'None — this is the first section.';
+  if (completedSectionsInChapter.length > 0) {
+    const sorted = [...completedSectionsInChapter].sort((a, b) => b.position - a.position);
+    priorSectionsBlock = sorted.map((cs, idx) => {
+      if (idx < 2 && cs.details) {
+        return `- Section ${cs.position}: "${cs.title}" (${cs.contentType})\n    Objectives: ${cs.details.learningObjectives.slice(0, 3).join('; ')}\n    Key Concepts: ${cs.details.keyConceptsCovered?.join(', ') ?? ''}`;
+      }
+      return `- Sec${cs.position}: "${cs.title}" (${cs.contentType})`;
+    }).join('\n');
+  }
+
+  // Build cumulative knowledge
+  const knownConcepts: string[] = [];
+  for (const [name, entry] of conceptTracker.concepts) {
+    if (entry.introducedInChapter < chapter.position) {
+      knownConcepts.push(name);
+    }
+    if (entry.introducedInChapter === chapter.position && entry.introducedInSection !== undefined && entry.introducedInSection < sectionPosition) {
+      knownConcepts.push(name);
+    }
+  }
+
+  const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
+  const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
+  const memoryRecallSection = recalledMemory ? buildMemoryRecallBlock(recalledMemory) : '';
+
+  // Content-type-specific activity guidance
+  let activityGuidance = '';
+  const contentType = sectionFromRoadmap.contentType ?? 'reading';
+  switch (contentType) {
+    case 'video': activityGuidance = '\n### CONTENT TYPE: VIDEO\nDesign as a focused visual learning experience with pause-and-practice points.'; break;
+    case 'reading': activityGuidance = '\n### CONTENT TYPE: READING\nDesign as a deep conceptual learning experience with reflection questions.'; break;
+    case 'assignment': activityGuidance = '\n### CONTENT TYPE: ASSIGNMENT\nDesign as hands-on practice with progressive complexity.'; break;
+    case 'quiz': activityGuidance = '\n### CONTENT TYPE: QUIZ\nDesign as knowledge verification and self-assessment.'; break;
+    case 'project': activityGuidance = '\n### CONTENT TYPE: PROJECT\nDesign as synthesis and creation experience.'; break;
+    case 'discussion': activityGuidance = '\n### CONTENT TYPE: DISCUSSION\nDesign as collaborative sense-making experience.'; break;
+  }
+
+  const systemPrompt = `${getStage3DesignExpertise(variant)}
+${domainExpertise}
+
+${DETAIL_DESIGN_PRINCIPLES}
+
+${LEARNING_OBJECTIVES_FRAMEWORK}
+${activityGuidance}`;
+
+  const wordTarget = getStage3WordTarget(ctx.difficulty);
+
+  const userSections: PromptSection[] = [
+    {
+      label: 'courseAndChapterContext',
+      priority: PromptPriority.CRITICAL,
+      content: `You are generating detailed content for Section ${sectionPosition}: "${sectionFromRoadmap.title}".
+
+## COURSE CONTEXT
+- **Course**: "${ctx.courseTitle}"
+- **Target Audience**: ${ctx.targetAudience}
+- **Difficulty**: ${ctx.difficulty}
+
+## CHAPTER CONTEXT
+- **Chapter ${chapter.position}**: "${chapter.title}"
+- **Bloom&apos;s Level**: ${chapter.bloomsLevel} (Level ${bloomsInfo.level}) — ${bloomsInfo.description}
+- **Chapter Description**: ${chapter.description.slice(0, 300)}
+- **Chapter Objectives**:
+${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
+    },
+    {
+      label: 'minimalRoadmap',
+      priority: PromptPriority.HIGH,
+      content: `
+## COURSE ROADMAP (All chapters and sections)
+${buildMinimalRoadmapBlock(roadmap)}`,
+    },
+    {
+      label: 'allChapterSummaries',
+      priority: PromptPriority.HIGH,
+      content: `
+## ALL CHAPTER SUMMARIES
+${chapterSummaries}`,
+    },
+    {
+      label: 'currentSectionAssignment',
+      priority: PromptPriority.CRITICAL,
+      content: `
+## YOUR TASK: Generate Content for Section ${sectionPosition}
+Title (already decided): "${sectionFromRoadmap.title}"
+ARROW Role: ${sectionFromRoadmap.arrowRole ?? 'content'}
+Content Type: ${contentType}
+Chapter: "${chapter.title}" [${chapter.bloomsLevel}]
+Chapter Objectives: ${chapter.learningObjectives.join('; ')}
+
+## GENERATION ORDER (CRITICAL)
+### Step 1: LEARNING OBJECTIVES FIRST
+Define EXACTLY ${ctx.learningObjectivesPerSection} learning objectives BEFORE writing any content.
+Use ABCD method: Audience + Bloom&apos;s verb (${bloomsInfo.verbs.slice(0, 5).join(', ')}) + Condition + Degree
+These objectives DRIVE the description content below.
+
+### Step 2: LESSON CONTENT (Serving Your Objectives)
+Write ${wordTarget} word HTML lesson that TEACHES toward those objectives.
+Every objective must be addressed by at least one part of the content.`,
+    },
+    {
+      label: 'priorSections',
+      priority: PromptPriority.MEDIUM,
+      content: `
+## COMPLETED SECTIONS IN THIS CHAPTER
+${priorSectionsBlock}`,
+    },
+    {
+      label: 'cumulativeKnowledge',
+      priority: PromptPriority.MEDIUM,
+      content: `
+## CUMULATIVE KNOWLEDGE STATE
+Concepts students know: ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'Early in course — establish foundational concepts.'}`,
+    },
+    {
+      label: 'memoryRecall',
+      priority: PromptPriority.LOW,
+      content: memoryRecallSection,
+    },
+    {
+      label: 'domainDetailGuidance',
+      priority: PromptPriority.OPTIONAL,
+      content: domainDetailGuidance,
+    },
+    {
+      label: 'outputSchema',
+      priority: PromptPriority.CRITICAL,
+      content: `
+## OUTPUT REQUIREMENTS
+
+Return a JSON object with this EXACT structure:
+{
+  "thinking": "3-5 sentence reasoning",
+  "details": {
+    "learningObjectives": ["EXACTLY ${ctx.learningObjectivesPerSection} objectives — GENERATED FIRST"],
+    "description": "${wordTarget} words of structured HTML lesson content (h2, p, ul, ol, li, strong, em, code). Must mention '${sectionFromRoadmap.title}' topic by name at least 3 times.",
+    "keyConceptsCovered": ["3-5 specific concepts"],
+    "practicalActivity": "Detailed hands-on activity matching content type: ${contentType}",
+    "conceptsIntroduced": ["1-3 NEW concepts this section introduces"]
+  }
+}
+
+Return ONLY valid JSON, no markdown formatting.`,
+    },
+  ];
+
+  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage3.user);
+
+  return { systemPrompt, userPrompt: budgetResult.content };
 }
 
 // ============================================================================

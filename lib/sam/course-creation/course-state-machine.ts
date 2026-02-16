@@ -108,6 +108,8 @@ export interface SharedPipelineState {
   chapterSectionCounts: number[];
   /** Optional runtime cost budget tracker */
   budgetTracker?: PipelineBudgetTracker;
+  /** Breadth-first roadmap (populated only in BF mode) */
+  roadmap?: import('./types').CourseRoadmap;
 }
 
 // ============================================================================

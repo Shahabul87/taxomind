@@ -16,6 +16,8 @@ export interface CourseCreationRequest {
   includeAssessments: boolean;
   bloomsFocus: string[];
   preferredContentTypes: string[];
+  /** Pipeline mode: breadth-first (new, default) generates full roadmap first; depth-first (legacy) generates chapter-by-chapter */
+  useBreadthFirst: boolean;
 }
 
 /**

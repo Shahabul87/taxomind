@@ -75,6 +75,15 @@ export const INPUT_TOKEN_BUDGETS = {
   stage2: { system: 2000, user: 4000 },
   /** Stage 3: Detail generation — user prompt budget */
   stage3: { system: 2000, user: 5000 },
+  // ── Breadth-first pipeline stages ──
+  /** Roadmap generation (Stage 1 BF) — user prompt budget */
+  roadmap: { system: 2500, user: 4000 },
+  /** Roadmap self-review — user prompt budget */
+  roadmapReview: { system: 1500, user: 3000 },
+  /** BF Stage 2: Chapter details with roadmap context */
+  breadthFirstChapter: { system: 2500, user: 5000 },
+  /** BF Stage 3: Section details with roadmap + chapter context */
+  breadthFirstSection: { system: 2000, user: 5000 },
 } as const;
 
 /** Result of enforcing a token budget on prompt sections */

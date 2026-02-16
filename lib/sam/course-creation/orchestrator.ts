@@ -74,12 +74,14 @@ import type {
   CourseContext,
   GeneratedChapter,
   CompletedChapter,
+  CompletedSection,
   BloomsLevel,
   ContentType,
   QualityScore,
   ConceptTracker,
   ResumeState,
 } from './types';
+import { sanitizeHtmlOutput } from './helpers';
 
 // Chapter generator (extracted from this file for modularity)
 import { generateSingleChapter } from './chapter-generator';
@@ -440,6 +442,356 @@ export async function orchestrateCourseCreation(
           /* non-blocking */
         });
       }
+    }
+
+    // =========================================================================
+    // PIPELINE MODE SELECTION: Breadth-First (roadmap) vs Depth-First (legacy)
+    // =========================================================================
+
+    const useBreadthFirst = config.useBreadthFirst !== false && !isResume;
+    // On resume, detect pipeline mode from checkpoint
+    const resumeBreadthFirst = isResume && resumeState?.breadthFirstResumePoint != null;
+
+    if (useBreadthFirst || resumeBreadthFirst) {
+      // =====================================================================
+      // BREADTH-FIRST PIPELINE
+      // =====================================================================
+      const { generateCourseRoadmap } = await import('./roadmap-generator');
+      const { generateChapterDetailsFromRoadmap, generateSectionDetailsFromRoadmap } = await import('./chapter-generator');
+
+      await advanceCourseStage(planId, stepIds, 1);
+
+      // Seed state
+      const completedChapters: CompletedChapter[] = resumeState?.completedChapters.slice() ?? [];
+      const generatedChapters: (GeneratedChapter & { id: string })[] = completedChapters.map(ch => ({
+        position: ch.position, title: ch.title, description: ch.description ?? '',
+        bloomsLevel: ch.bloomsLevel, learningObjectives: ch.learningObjectives,
+        keyTopics: ch.keyTopics ?? [], prerequisites: ch.prerequisites ?? '',
+        estimatedTime: ch.estimatedTime ?? '1-2 hours', topicsToExpand: ch.topicsToExpand ?? [],
+        conceptsIntroduced: ch.conceptsIntroduced ?? [], id: ch.id,
+      }));
+
+      // ── STAGE 1: Full Roadmap ──
+      let roadmap: import('./types').CourseRoadmap;
+      const resumePoint = resumeState?.breadthFirstResumePoint;
+
+      if (resumePoint && resumePoint.stage >= 2 && resumeState?.roadmap) {
+        // Resume: roadmap already generated
+        roadmap = resumeState.roadmap;
+        logger.info('[ORCHESTRATOR:BF] Resuming with existing roadmap', { chapters: roadmap.chapters.length });
+      } else {
+        onSSEEvent?.({ type: 'stage_start', data: { stage: 'roadmap', message: 'Planning course structure...' } });
+
+        roadmap = await generateCourseRoadmap(
+          userId, courseContext, blueprintPlan, recalledMemory,
+          { onSSEEvent, runId, maxRefinementRounds: 2, variant: experimentVariant },
+        );
+
+        // Checkpoint: roadmap complete
+        await saveCheckpointWithRetry(courseId, userId, planId, {
+          conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
+          completedChapterCount: 0, config, goalId, planId, stepIds,
+          courseId, completedChaptersList: [], percentage: 5,
+          status: 'in_progress', chapterSectionCounts: [],
+          pipelineMode: 'breadth-first', roadmap, breadthFirstStage: 1,
+        });
+
+        onSSEEvent?.({
+          type: 'roadmap_complete',
+          data: {
+            chapters: roadmap.chapters.length,
+            totalSections: roadmap.chapters.reduce((s, ch) => s + ch.sections.length, 0),
+            selfReviewScore: roadmap.selfReviewScore,
+            titles: roadmap.chapters.map(ch => ({
+              title: ch.title, bloomsLevel: ch.bloomsLevel,
+              sections: ch.sections.map(s => s.title),
+            })),
+          },
+        });
+      }
+
+      // ── STAGE 2: Chapter Details ──
+      onSSEEvent?.({ type: 'stage_start', data: { stage: 'chapter_details', message: 'Generating chapter content...' } });
+
+      const bfStartChapter = (resumePoint?.stage === 2 && resumePoint.startChapter)
+        ? resumePoint.startChapter : 1;
+
+      for (let chNum = bfStartChapter; chNum <= totalChapters; chNum++) {
+        if (abortSignal?.aborted) break;
+
+        onSSEEvent?.({
+          type: 'item_generating',
+          data: { stage: 2, chapter: chNum, title: roadmap.chapters[chNum - 1].title },
+        });
+
+        const result = await generateChapterDetailsFromRoadmap(
+          userId, chNum, roadmap, courseContext,
+          generatedChapters.map(ch => {
+            const { id, ...rest } = ch;
+            return rest;
+          }),
+          conceptTracker,
+          { onSSEEvent, enableStreamingThinking, runId },
+        );
+
+        // Update concept tracker from chapter
+        const chapterConcepts = result.chapter.conceptsIntroduced ?? result.chapter.keyTopics;
+        for (const concept of chapterConcepts) {
+          if (!conceptTracker.concepts.has(concept)) {
+            conceptTracker.concepts.set(concept, {
+              concept, introducedInChapter: chNum, bloomsLevel: result.chapter.bloomsLevel,
+            });
+          }
+        }
+        bloomsProgression.push({ chapter: chNum, level: result.chapter.bloomsLevel, topics: result.chapter.keyTopics });
+
+        // Save chapter to DB
+        const dbChapter = await db.chapter.create({
+          data: {
+            title: result.chapter.title,
+            description: sanitizeHtmlOutput(result.chapter.description),
+            courseGoals: result.chapter.learningObjectives.join('\n'),
+            learningOutcomes: result.chapter.learningObjectives.join('\n'),
+            position: result.chapter.position,
+            courseId,
+            estimatedTime: result.chapter.estimatedTime,
+            prerequisites: result.chapter.prerequisites,
+            targetBloomsLevel: result.chapter.bloomsLevel,
+            sectionCount: roadmap.chapters[chNum - 1].sections.length,
+            isPublished: false,
+          },
+        });
+
+        generatedChapters.push({ ...result.chapter, id: dbChapter.id });
+        qualityScores.push(result.qualityScore);
+        chaptersCreated++;
+
+        onSSEEvent?.({
+          type: 'item_complete',
+          data: { stage: 2, chapter: chNum, title: result.chapter.title, qualityScore: result.qualityScore.overall },
+        });
+
+        // Checkpoint after each chapter
+        await saveCheckpointWithRetry(courseId, userId, planId, {
+          conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
+          completedChapterCount: chNum, config, goalId, planId, stepIds,
+          courseId, completedChaptersList: [], percentage: Math.round(5 + (chNum / totalChapters) * 30),
+          status: 'in_progress', chapterSectionCounts: [],
+          pipelineMode: 'breadth-first', roadmap, breadthFirstStage: 2,
+          detailedChapterCount: chNum,
+        });
+      }
+
+      // ── STAGE 3: Section Details ──
+      onSSEEvent?.({ type: 'stage_start', data: { stage: 'section_details', message: 'Generating lesson content...' } });
+
+      const bfStartDetailChapter = (resumePoint?.stage === 3 && resumePoint.startChapter)
+        ? resumePoint.startChapter : 1;
+      const bfStartDetailSection = (resumePoint?.stage === 3 && resumePoint.startSection)
+        ? resumePoint.startSection : 1;
+
+      const completedChaptersOut: CompletedChapter[] = [];
+
+      for (let chNum = bfStartDetailChapter; chNum <= totalChapters; chNum++) {
+        if (abortSignal?.aborted) break;
+
+        const chapter = generatedChapters[chNum - 1];
+        const roadmapChapter = roadmap.chapters[chNum - 1];
+        const secStart = (chNum === bfStartDetailChapter) ? bfStartDetailSection : 1;
+
+        // Create ALL section records for this chapter
+        const sectionRecords: Array<import('./types').RoadmapSection & { id: string }> = [];
+
+        if (secStart === 1) {
+          for (const rs of roadmapChapter.sections) {
+            const dbSection = await db.section.create({
+              data: {
+                title: rs.title,
+                position: rs.position,
+                chapterId: chapter.id,
+                type: rs.contentType || 'reading',
+                isPublished: false,
+              },
+            });
+            sectionRecords.push({ ...rs, id: dbSection.id });
+            allSectionTitles.push(rs.title);
+          }
+        } else {
+          // Resume: load existing section records from DB
+          const existingSections = await db.section.findMany({
+            where: { chapterId: chapter.id },
+            orderBy: { position: 'asc' },
+          });
+          for (let i = 0; i < existingSections.length; i++) {
+            sectionRecords.push({ ...roadmapChapter.sections[i], id: existingSections[i].id });
+          }
+        }
+
+        // Generate details for each section
+        const completedSections: CompletedSection[] = [];
+        for (let secIdx = (secStart - 1); secIdx < sectionRecords.length; secIdx++) {
+          const section = sectionRecords[secIdx];
+
+          onSSEEvent?.({
+            type: 'item_generating',
+            data: { stage: 3, chapter: chNum, section: section.position, title: section.title },
+          });
+
+          const details = await generateSectionDetailsFromRoadmap(
+            courseContext,
+            {
+              userId, roadmap, chapter,
+              sectionFromRoadmap: section,
+              allChapterDetails: generatedChapters.map(ch => {
+                const { id, ...rest } = ch;
+                return rest;
+              }),
+              completedSectionsInChapter: completedSections,
+              conceptTracker,
+              callbacks: { onSSEEvent, enableStreamingThinking, runId },
+            },
+          );
+
+          // Update section in DB with details
+          await db.section.update({
+            where: { id: section.id },
+            data: {
+              description: sanitizeHtmlOutput(details.description),
+              learningObjectives: details.learningObjectives.join('\n'),
+              practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
+              keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
+            },
+          });
+
+          completedSections.push({
+            position: section.position,
+            title: section.title,
+            contentType: (section.contentType ?? 'reading') as ContentType,
+            estimatedDuration: '15-30 minutes',
+            topicFocus: section.title,
+            parentChapterContext: {
+              title: chapter.title,
+              bloomsLevel: chapter.bloomsLevel as BloomsLevel,
+              relevantObjectives: [],
+            },
+            id: section.id,
+            details,
+          });
+          sectionsCreated++;
+
+          onSSEEvent?.({
+            type: 'item_complete',
+            data: { stage: 3, chapter: chNum, section: section.position, title: section.title },
+          });
+
+          // Checkpoint after each section
+          await saveCheckpointWithRetry(courseId, userId, planId, {
+            conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
+            completedChapterCount: chNum - 1, config, goalId, planId, stepIds,
+            courseId, completedChaptersList: completedChaptersOut, percentage: Math.round(35 + ((chNum - 1) * roadmapChapter.sections.length + secIdx + 1) / (totalChapters * roadmapChapter.sections.length) * 60),
+            status: 'in_progress', chapterSectionCounts: [],
+            pipelineMode: 'breadth-first', roadmap, breadthFirstStage: 3,
+            currentDetailChapter: chNum, currentDetailSection: section.position,
+          });
+        }
+
+        // Build CompletedChapter
+        const completedChapter: CompletedChapter = {
+          ...chapter,
+          sections: completedSections,
+        };
+        completedChaptersOut.push(completedChapter);
+      }
+
+      // ── Post-generation (same as depth-first) ──
+
+      // Reflection
+      try {
+        const reflection = reflectOnCourse(
+          completedChaptersOut,
+          qualityScores,
+          conceptTracker,
+          courseContext,
+        );
+
+        const aiReflection = await reflectOnCourseWithAI(
+          userId,
+          completedChaptersOut,
+          qualityScores,
+          conceptTracker,
+          courseContext,
+          runId,
+        );
+
+        const finalReflection = aiReflection ?? reflection;
+
+        onSSEEvent?.({
+          type: 'ai_reflection',
+          data: {
+            coherenceScore: finalReflection.coherenceScore,
+            bloomsMonotonic: finalReflection.bloomsProgression.isMonotonic,
+            totalConcepts: finalReflection.conceptCoverage.totalConcepts,
+            flaggedChapters: finalReflection.flaggedChapters.length,
+            summary: finalReflection.summary,
+          },
+        });
+
+        if (goalId) {
+          storeReflectionInGoal(goalId, finalReflection as unknown as Record<string, unknown>).catch(() => {});
+        }
+      } catch {
+        // Reflection failure is non-blocking
+      }
+
+      // Persist memory
+      persistConceptsBackground(userId, courseId, conceptTracker, totalChapters, courseContext.courseTitle, courseContext.courseCategory);
+      persistQualityScoresBackground(userId, courseId, qualityScores.slice(), totalChapters);
+
+      // Post-creation enrichment
+      runPostCreationEnrichmentBackground(userId, courseId, courseContext);
+
+      // Mark course creation as complete
+      await completeCourseCreation(goalId, planId, totalChapters);
+      await recordExperimentOutcome(experimentAssignment, courseId, qualityScores);
+
+      // Final checkpoint
+      await saveCheckpointWithRetry(courseId, userId, planId, {
+        conceptTracker, bloomsProgression, allSectionTitles, qualityScores,
+        completedChapterCount: totalChapters, config, goalId, planId, stepIds,
+        courseId, completedChaptersList: completedChaptersOut, percentage: 100,
+        status: 'completed', chapterSectionCounts: [],
+      });
+
+      const avgQuality = qualityScores.length > 0
+        ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
+        : 0;
+
+      onSSEEvent?.({
+        type: 'complete',
+        data: {
+          courseId,
+          chaptersCreated,
+          sectionsCreated,
+          totalTime: Date.now() - startTime,
+          averageQualityScore: avgQuality,
+          pipelineMode: 'breadth-first',
+        },
+      });
+
+      return {
+        success: true,
+        courseId,
+        chaptersCreated,
+        sectionsCreated,
+        stats: {
+          totalChapters: chaptersCreated,
+          totalSections: sectionsCreated,
+          totalTime: Date.now() - startTime,
+          averageQualityScore: avgQuality,
+        },
+        goalId,
+        planId,
+      };
     }
 
     // =========================================================================

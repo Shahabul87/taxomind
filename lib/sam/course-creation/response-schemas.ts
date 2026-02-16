@@ -69,3 +69,50 @@ export const AIDetailsResponseSchema = z.object({
 export type AIChapterResponse = z.infer<typeof AIChapterResponseSchema>;
 export type AISectionResponse = z.infer<typeof AISectionResponseSchema>;
 export type AIDetailsResponse = z.infer<typeof AIDetailsResponseSchema>;
+
+// =============================================================================
+// Breadth-First Pipeline: Roadmap Schemas
+// =============================================================================
+
+const ARROW_ROLES = [
+  'hook', 'reverse-engineer', 'intuition', 'formalization',
+  'failure-analysis', 'design-challenge', 'practice', 'reflection',
+] as const;
+
+export const RoadmapSectionSchema = z.object({
+  position: z.number().int().min(1),
+  title: z.string().min(3),
+  arrowRole: z.enum(ARROW_ROLES).optional(),
+  contentType: z.string().optional(),
+});
+
+export const RoadmapChapterSchema = z.object({
+  position: z.number().int().min(1),
+  title: z.string().min(5),
+  focusSummary: z.string().min(10).optional(),
+  bloomsLevel: z.enum(BLOOMS_LEVELS),
+  keyConcepts: z.array(z.string()).min(1).optional(),
+  sections: z.array(RoadmapSectionSchema).min(1),
+});
+
+export const CourseRoadmapSchema = z.object({
+  structuralReasoning: z.string().optional(),
+  chapters: z.array(RoadmapChapterSchema).min(1),
+});
+
+export const RoadmapReviewSchema = z.object({
+  overallScore: z.number().min(0).max(100),
+  issues: z.array(z.object({
+    type: z.enum([
+      'duplicate_topic', 'bloom_regression', 'coverage_gap',
+      'concept_overlap', 'arrow_violation', 'title_generic',
+    ]),
+    description: z.string(),
+    affectedChapters: z.array(z.number()).optional(),
+    affectedSections: z.array(z.string()).optional(),
+  })).optional(),
+  verdict: z.enum(['accept', 'refine']),
+});
+
+export type AIRoadmapResponse = z.infer<typeof CourseRoadmapSchema>;
+export type AIRoadmapReviewResponse = z.infer<typeof RoadmapReviewSchema>;

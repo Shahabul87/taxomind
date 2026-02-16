@@ -30,7 +30,8 @@ const initialFormData: CourseCreationRequest = {
   courseGoals: [],
   includeAssessments: true,
   bloomsFocus: ['UNDERSTAND', 'APPLY'],
-  preferredContentTypes: ['video', 'reading', 'assessments']
+  preferredContentTypes: ['video', 'reading', 'assessments'],
+  useBreadthFirst: true,
 };
 
 export function useSamWizard() {

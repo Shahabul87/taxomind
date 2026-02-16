@@ -98,21 +98,40 @@ export function handleSSEEvent(
     }
 
     case 'stage_start': {
-      const stage = data.stage as number;
+      const rawStage = data.stage;
       const message = data.message as string;
       // Track courseId if present for auto-reconnect
       if (data.courseId) {
         lastCourseIdRef.current = data.courseId as string;
       }
 
+      // Map breadth-first string stages to numeric stages
+      const BF_STAGE_MAP: Record<string, { stage: CreationStage; phase: string }> = {
+        'roadmap': { stage: 1, phase: 'generating_chapter' },
+        'chapter_details': { stage: 1, phase: 'generating_chapter' },
+        'section_details': { stage: 3, phase: 'generating_details' },
+      };
+
+      let numericStage: CreationStage;
+      let phase: string;
+
+      if (typeof rawStage === 'string' && BF_STAGE_MAP[rawStage]) {
+        numericStage = BF_STAGE_MAP[rawStage].stage;
+        phase = BF_STAGE_MAP[rawStage].phase;
+      } else {
+        const stageNum = Number(rawStage);
+        numericStage = (Math.max(1, Math.min(3, isNaN(stageNum) ? 1 : stageNum)) as CreationStage);
+        phase = stageNum === 1 ? 'generating_chapter' : stageNum === 2 ? 'generating_section' : 'generating_details';
+      }
+
       setProgress(prev => ({
         ...prev,
         state: {
           ...prev.state,
-          stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
-          phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
+          stage: numericStage,
+          phase,
         },
-        message: message || `Starting stage ${stage}...`,
+        message: message || `Starting stage ${rawStage}...`,
       }));
       return {};
     }
@@ -324,6 +343,42 @@ export function handleSSEEvent(
       setProgress(prev => ({
         ...prev,
         qualityFlags: [...(prev.qualityFlags ?? []), flagData],
+      }));
+      return {};
+    }
+
+    // ── Breadth-first pipeline events ──
+
+    case 'roadmap_complete': {
+      const titles = data.titles as Array<{ title: string; bloomsLevel: string; sections: string[] }>;
+      const chapterCount = titles?.length ?? (data.chapters as number) ?? 0;
+      setProgress(prev => ({
+        ...prev,
+        message: `Course roadmap ready (${chapterCount} chapters planned)`,
+      }));
+      return {};
+    }
+
+    case 'roadmap_generating': {
+      setProgress(prev => ({
+        ...prev,
+        message: (data.message as string) ?? 'Generating course roadmap...',
+      }));
+      return {};
+    }
+
+    case 'roadmap_reviewing': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'SAM is reviewing the course structure...',
+      }));
+      return {};
+    }
+
+    case 'roadmap_refining': {
+      setProgress(prev => ({
+        ...prev,
+        message: 'Refining course structure based on review...',
       }));
       return {};
     }

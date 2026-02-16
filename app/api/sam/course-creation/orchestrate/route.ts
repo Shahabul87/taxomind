@@ -49,6 +49,7 @@ const OrchestrateRequestSchema = z.object({
   includeAssessments: z.boolean().optional(),
   duration: z.string().max(50).optional(),
   resumeCourseId: z.string().optional(),
+  useBreadthFirst: z.boolean().optional().default(true),
 });
 
 // =============================================================================

@@ -212,7 +212,7 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
   progress: CreationProgress;
 }) {
   const { state } = progress;
-  const config = STAGE_CONFIG[state.stage];
+  const config = STAGE_CONFIG[state.stage] ?? STAGE_CONFIG[1];
   const Icon = config.icon;
 
   const activityText = useMemo(() => {
