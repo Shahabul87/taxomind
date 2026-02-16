@@ -35,6 +35,7 @@ import {
   Brain,
   Lightbulb,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -74,6 +75,7 @@ export function SAMTitleGeneratorModal({
   const [open, setOpen] = useState(false);
   const [titleSuggestions, setTitleSuggestions] = useState<TitleSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
 
   // Intelligent comments based on title length
@@ -204,6 +206,99 @@ export function SAMTitleGeneratorModal({
       setIsGenerating(false);
     }
   }, [currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, isGenerating]);
+
+  // Check if any titles scored below the refinement threshold
+  const lowScoringTitles = useMemo(
+    () => titleSuggestions.filter(s => s.overallScore < 70),
+    [titleSuggestions],
+  );
+
+  // Refine low-scoring titles (single pass)
+  const handleRefineTitles = useCallback(async () => {
+    if (lowScoringTitles.length === 0 || isRefining) return;
+
+    setIsRefining(true);
+    try {
+      const weakTitles = lowScoringTitles.map(s => ({
+        title: s.title,
+        score: s.overallScore,
+        issues: [
+          s.marketingScore < 70 ? 'weak marketing appeal' : '',
+          s.brandingScore < 70 ? 'weak branding' : '',
+          s.salesScore < 70 ? 'weak sales impact' : '',
+        ].filter(Boolean),
+      }));
+
+      // Re-generate only the weak titles via the existing endpoint with refinement context
+      const suggestionsResponse = await fetch('/api/sam/title-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentTitle,
+          overview: courseOverview,
+          category: courseCategory,
+          subcategory: courseSubcategory,
+          difficulty: 'BEGINNER',
+          intent: courseIntent,
+          targetAudience,
+          count: weakTitles.length,
+          refinementContext: { weakTitles },
+        }),
+      });
+
+      if (!suggestionsResponse.ok) throw new Error(`API error: ${suggestionsResponse.status}`);
+      const suggestionsResult = await suggestionsResponse.json();
+      const refinedTitles: string[] = suggestionsResult.titles || [];
+
+      if (refinedTitles.length === 0) {
+        toast.info('No refined titles generated. The current titles may already be optimal.');
+        return;
+      }
+
+      // Score refined titles
+      const scoringResponse = await fetch('/api/sam/content-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'batch',
+          items: refinedTitles.map((title: string) => ({ itemType: 'title', title })),
+          context: { category: courseCategory, subcategory: courseSubcategory, targetAudience, courseIntent },
+        }),
+      });
+
+      let refinedSuggestions: TitleSuggestion[] = [];
+      if (scoringResponse.ok) {
+        const scoringResult = await scoringResponse.json();
+        const scores = scoringResult.titleScores || scoringResult.scores || [];
+        refinedSuggestions = scores.map((score: {
+          title: string; marketingScore: number; brandingScore: number;
+          salesScore: number; overallScore: number; reasoning: string;
+        }) => ({
+          title: score.title,
+          marketingScore: score.marketingScore || 70,
+          brandingScore: score.brandingScore || 70,
+          salesScore: score.salesScore || 70,
+          overallScore: score.overallScore || 70,
+          reasoning: score.reasoning || 'Refined by AI for improved quality.',
+        }));
+      }
+
+      // Replace low-scoring titles with refined ones (only if refined score is better)
+      setTitleSuggestions(prev => {
+        const kept = prev.filter(s => s.overallScore >= 70);
+        const merged = [...kept, ...refinedSuggestions];
+        merged.sort((a, b) => b.overallScore - a.overallScore);
+        return merged;
+      });
+
+      toast.success(`Refined ${refinedSuggestions.length} title(s)!`);
+    } catch (error: unknown) {
+      logger.error('Error refining titles:', error);
+      toast.error('Failed to refine titles. Please try again.');
+    } finally {
+      setIsRefining(false);
+    }
+  }, [lowScoringTitles, isRefining, currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience]);
 
   const handleSelectTitle = (title: string) => {
     setSelectedTitle(title);
@@ -355,16 +450,34 @@ export function SAMTitleGeneratorModal({
                   <Sparkles className="h-4 w-4 text-purple-600" />
                   AI-Generated Titles
                 </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={generateTitleSuggestions}
-                  disabled={isGenerating}
-                  className="text-xs text-purple-600 hover:text-purple-700"
-                >
-                  <Wand2 className="h-3 w-3 mr-1" />
-                  Regenerate
-                </Button>
+                <div className="flex items-center gap-1">
+                  {lowScoringTitles.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefineTitles}
+                      disabled={isRefining || isGenerating}
+                      className="text-xs text-amber-600 hover:text-amber-700"
+                    >
+                      {isRefining ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                      )}
+                      Refine ({lowScoringTitles.length})
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={generateTitleSuggestions}
+                    disabled={isGenerating || isRefining}
+                    className="text-xs text-purple-600 hover:text-purple-700"
+                  >
+                    <Wand2 className="h-3 w-3 mr-1" />
+                    Regenerate
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2.5">

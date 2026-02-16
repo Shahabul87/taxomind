@@ -7,7 +7,8 @@
  * - Discouraging language that may harm learner confidence
  *   (via @sam-ai/safety DiscouragingLanguageDetector)
  *
- * Safety is NON-BLOCKING -- it surfaces issues but never stops course creation.
+ * Safety issues are surfaced in SAMValidationResult. High-severity issues
+ * trigger a score penalty in blendScores(), causing retry via the quality gate.
  * Results are added as optional fields on quality validation results.
  */
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -401,15 +401,6 @@ Return ONLY valid JSON array, no other text.`,
 
     return comments;
   }, [formData.courseTitle, formData.courseShortOverview]);
-
-  // Debug: Log state changes
-  useEffect(() => {
-    console.log('Overview suggestions state changed:', {
-      count: overviewSuggestions.length,
-      showOverviewSuggestions,
-      suggestions: overviewSuggestions.map((s, i) => ({ index: i, score: s.relevanceScore, preview: s.overview.substring(0, 50) + '...' }))
-    });
-  }, [overviewSuggestions, showOverviewSuggestions]);
 
   // Removed auto-generation to save tokens and costs
   // Users must manually click "Generate Overviews" button to generate suggestions

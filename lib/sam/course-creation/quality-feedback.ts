@@ -76,8 +76,13 @@ export function extractQualityFeedback(
     }
   }
 
+  // Surface high-severity safety issues as critical issues so retry prompts address them
+  const safetyIssues = (samResult.safetyIssues ?? [])
+    .filter(issue => issue.startsWith('[high/'))
+    .map(issue => `SAFETY: ${issue}`);
+
   return {
-    criticalIssues: samResult.qualityIssues.slice(0, 5),
+    criticalIssues: [...safetyIssues, ...samResult.qualityIssues.slice(0, 5)],
     pedagogyIssues: samResult.pedagogyIssues.slice(0, 3),
     suggestions: samResult.suggestions.slice(0, 4),
     weakDimensions,

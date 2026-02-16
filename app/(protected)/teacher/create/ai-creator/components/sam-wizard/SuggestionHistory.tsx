@@ -173,8 +173,7 @@ export function SuggestionHistory({
               'transition-colors duration-200'
             )}
             onClick={() => {
-              // Future: Open full history modal
-              console.log('View all suggestions');
+              // TODO: Open full suggestion history modal
             }}
           >
             View all {suggestions.length} suggestions →

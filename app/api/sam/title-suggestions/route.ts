@@ -7,6 +7,12 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
+interface WeakTitle {
+  title: string;
+  score: number;
+  issues: string[];
+}
+
 interface TitleSuggestionRequest {
   currentTitle?: string;
   overview?: string;
@@ -16,6 +22,9 @@ interface TitleSuggestionRequest {
   intent?: string;
   targetAudience?: string;
   count?: number;
+  refinementContext?: {
+    weakTitles: WeakTitle[];
+  };
 }
 
 interface TitleSuggestionResponse {
@@ -82,9 +91,23 @@ export async function POST(req: Request) {
 }
 
 async function generateTitleSuggestions(userId: string, request: TitleSuggestionRequest): Promise<TitleSuggestionResponse> {
-  const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 5 } = request;
+  const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 5, refinementContext } = request;
 
   const systemPrompt = `You are an expert course title generator. You MUST generate titles that are directly related to the subject the user provides. Every title MUST be about the specific topic given. Return ONLY valid JSON with no markdown fences or extra text.`;
+
+  // Build refinement block if refining weak titles
+  let refinementBlock = '';
+  if (refinementContext?.weakTitles && refinementContext.weakTitles.length > 0) {
+    const weakList = refinementContext.weakTitles
+      .map(w => `- "${w.title}" (score: ${w.score}/100, issues: ${w.issues.join(', ') || 'general quality'})`)
+      .join('\n');
+    refinementBlock = `
+REFINEMENT MODE — The following titles scored poorly. Generate IMPROVED replacements that fix the identified issues:
+${weakList}
+
+Focus on fixing the specific weaknesses while keeping the titles on-topic.
+`;
+  }
 
   const prompt = `Generate ${count} compelling course titles for the following course:
 
@@ -95,7 +118,7 @@ SUBCATEGORY: ${subcategory || 'Not specified'}
 DIFFICULTY LEVEL: ${difficulty || 'Not specified'}
 COURSE INTENT: ${intent || 'Not specified'}
 TARGET AUDIENCE: ${targetAudience || 'Not specified'}
-
+${refinementBlock}
 CRITICAL RULES:
 - Every title MUST be specifically about "${currentTitle}" — do NOT generate generic titles
 - Each title must clearly reference the core subject matter

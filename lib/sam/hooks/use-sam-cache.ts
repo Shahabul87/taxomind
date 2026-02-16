@@ -2,8 +2,13 @@ import { useState, useCallback, useRef } from 'react';
 import { logger } from '@/lib/logger';
 
 /**
- * SAM Cache Hook - Stub Implementation
- * This is a minimal stub for backward compatibility
+ * SAM Cache Hook — LRU cache with metrics and stale-while-revalidate support.
+ *
+ * Features:
+ * - LRU eviction when maxSize is reached (uses Map insertion-order)
+ * - TTL-based expiry
+ * - Cache metrics (hits, misses, evictions, hitRate)
+ * - Optional stale-while-revalidate via `revalidate` callback
  */
 
 interface CacheEntry<T> {
@@ -12,55 +17,109 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-interface CacheOptions {
-  ttl?: number;
-  maxSize?: number;
+interface CacheMetrics {
+  hits: number;
+  misses: number;
+  evictions: number;
+  hitRate: number;
 }
 
-export function useSamCache<T = unknown>(options?: CacheOptions) {
+interface CacheOptions<T> {
+  /** Time-to-live in ms. Default: 5 minutes */
+  ttl?: number;
+  /** Max entries before LRU eviction. Default: 100 */
+  maxSize?: number;
+  /** Optional background revalidation callback for stale-while-revalidate */
+  revalidate?: (key: string) => Promise<T>;
+}
+
+export function useSamCache<T = unknown>(options?: CacheOptions<T>) {
   const ttl = options?.ttl ?? 5 * 60 * 1000;
   const maxSize = options?.maxSize ?? 100;
+  const revalidateFn = options?.revalidate;
+
   const cacheRef = useRef<Map<string, CacheEntry<T>>>(new Map());
+  const metricsRef = useRef({ hits: 0, misses: 0, evictions: 0 });
+  const revalidatingRef = useRef<Set<string>>(new Set());
   const [cacheSize, setCacheSize] = useState(0);
+
+  /** Move a key to the end of the Map (most-recently-used position). */
+  const touchKey = (key: string, entry: CacheEntry<T>) => {
+    cacheRef.current.delete(key);
+    cacheRef.current.set(key, entry);
+  };
 
   const set = useCallback(
     (key: string, data: T) => {
       const now = Date.now();
+      const cache = cacheRef.current;
 
-      // Enforce maxSize limit - remove oldest entry if at capacity
-      if (cacheRef.current.size >= maxSize && !cacheRef.current.has(key)) {
-        const oldestKey = cacheRef.current.keys().next().value;
-        if (oldestKey) {
-          cacheRef.current.delete(oldestKey);
+      // LRU eviction: remove oldest (first) entry when at capacity
+      if (cache.size >= maxSize && !cache.has(key)) {
+        const oldestKey = cache.keys().next().value;
+        if (oldestKey !== undefined) {
+          cache.delete(oldestKey);
+          metricsRef.current.evictions++;
+          logger.debug('SAM Cache: Evicted (LRU)', { key: oldestKey, size: cache.size });
         }
       }
 
-      cacheRef.current.set(key, {
+      // If key already exists, delete first so it moves to end (MRU)
+      cache.delete(key);
+      cache.set(key, {
         data,
         timestamp: now,
-        expiresAt: now + ttl
+        expiresAt: now + ttl,
       });
-      setCacheSize(cacheRef.current.size);
-      logger.info('SAM Cache: Set', { key, size: cacheRef.current.size });
+      setCacheSize(cache.size);
     },
-    [ttl, maxSize]
+    [ttl, maxSize],
   );
 
-  const get = useCallback((key: string): T | null => {
-    const entry = cacheRef.current.get(key);
-    if (!entry) return null;
+  const get = useCallback(
+    (key: string): T | null => {
+      const entry = cacheRef.current.get(key);
+      if (!entry) {
+        metricsRef.current.misses++;
+        return null;
+      }
 
-    const now = Date.now();
-    if (now > entry.expiresAt) {
-      cacheRef.current.delete(key);
-      setCacheSize(cacheRef.current.size);
-      logger.info('SAM Cache: Expired', { key });
-      return null;
-    }
+      const now = Date.now();
+      if (now > entry.expiresAt) {
+        cacheRef.current.delete(key);
+        setCacheSize(cacheRef.current.size);
+        metricsRef.current.misses++;
 
-    logger.info('SAM Cache: Hit', { key });
-    return entry.data;
-  }, []);
+        // Stale-while-revalidate: return stale data and refresh in background
+        if (revalidateFn && !revalidatingRef.current.has(key)) {
+          revalidatingRef.current.add(key);
+          revalidateFn(key)
+            .then(freshData => {
+              set(key, freshData);
+              logger.debug('SAM Cache: Revalidated', { key });
+            })
+            .catch(err => {
+              logger.debug('SAM Cache: Revalidation failed', { key, error: String(err) });
+            })
+            .finally(() => {
+              revalidatingRef.current.delete(key);
+            });
+          // Return stale data while revalidation runs
+          metricsRef.current.hits++;
+          metricsRef.current.misses--; // Undo the miss counted above
+          return entry.data;
+        }
+
+        return null;
+      }
+
+      // Move to MRU position
+      touchKey(key, entry);
+      metricsRef.current.hits++;
+      return entry.data;
+    },
+    [revalidateFn, set],
+  );
 
   const has = useCallback((key: string): boolean => {
     const entry = cacheRef.current.get(key);
@@ -79,16 +138,27 @@ export function useSamCache<T = unknown>(options?: CacheOptions) {
   const clear = useCallback(() => {
     cacheRef.current.clear();
     setCacheSize(0);
-    logger.info('SAM Cache: Cleared');
+    metricsRef.current = { hits: 0, misses: 0, evictions: 0 };
+    logger.debug('SAM Cache: Cleared');
   }, []);
 
   const remove = useCallback((key: string) => {
     const deleted = cacheRef.current.delete(key);
     if (deleted) {
       setCacheSize(cacheRef.current.size);
-      logger.info('SAM Cache: Removed', { key });
     }
     return deleted;
+  }, []);
+
+  const getMetrics = useCallback((): CacheMetrics => {
+    const { hits, misses, evictions } = metricsRef.current;
+    const total = hits + misses;
+    return {
+      hits,
+      misses,
+      evictions,
+      hitRate: total > 0 ? hits / total : 0,
+    };
   }, []);
 
   return {
@@ -97,6 +167,7 @@ export function useSamCache<T = unknown>(options?: CacheOptions) {
     has,
     clear,
     remove,
-    size: cacheSize
+    size: cacheSize,
+    getMetrics,
   };
 }

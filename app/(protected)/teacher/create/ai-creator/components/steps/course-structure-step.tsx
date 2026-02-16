@@ -15,6 +15,7 @@ import {
   Target,
   Brain,
   CheckCircle2,
+  Info,
   Lightbulb,
   Plus,
   X,
@@ -25,6 +26,7 @@ import {
   Sparkles,
   ChevronDown
 } from 'lucide-react';
+import { getTemplateForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 // Dynamic import with SSR disabled to fix Radix UI hydration mismatch
@@ -36,6 +38,7 @@ const SAMLearningObjectivesGeneratorModal = dynamic(
 
 export function CourseStructureStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const [newGoal, setNewGoal] = useState('');
+  const chapterTemplate = getTemplateForDifficulty(formData.difficulty?.toLowerCase() ?? 'intermediate');
 
   const addGoal = (goal: string) => {
     if (goal.trim() && Array.isArray(formData.courseGoals) && !formData.courseGoals.includes(goal.trim())) {
@@ -178,6 +181,11 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
           <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/30 p-2.5 rounded-lg border border-purple-200/50 dark:border-purple-800/50">
             <Lightbulb className="h-3 w-3 inline mr-1.5" />
             Recommended: 3-5 sections per chapter for digestible content
+          </div>
+
+          <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+            <Info className="h-3 w-3 inline mr-1.5" />
+            Your selection of {formData.sectionsPerChapter} sections is authoritative. The AI assigns pedagogical roles from the {chapterTemplate.displayName} template to each section.
           </div>
         </div>
       </div>

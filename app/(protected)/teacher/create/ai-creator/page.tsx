@@ -243,13 +243,13 @@ export default function AICreatorPage() {
         courseDescription: formData.courseShortOverview || '',
         targetAudience: formData.targetAudience || '',
         difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        totalChapters: formData.chapterCount || 8,
-        sectionsPerChapter: formData.sectionsPerChapter || 3,
-        learningObjectivesPerChapter: formData.learningObjectivesPerChapter || 5,
-        learningObjectivesPerSection: formData.learningObjectivesPerSection || 3,
-        courseGoals: formData.courseGoals || [],
-        bloomsFocus: formData.bloomsFocus || ['UNDERSTAND', 'APPLY', 'ANALYZE'],
-        preferredContentTypes: formData.preferredContentTypes || ['video', 'reading', 'quiz'],
+        totalChapters: formData.chapterCount,
+        sectionsPerChapter: formData.sectionsPerChapter,
+        learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
+        learningObjectivesPerSection: formData.learningObjectivesPerSection,
+        courseGoals: formData.courseGoals,
+        bloomsFocus: formData.bloomsFocus,
+        preferredContentTypes: formData.preferredContentTypes,
         category: formData.courseCategory,
         subcategory: formData.courseSubcategory,
         courseIntent: formData.courseIntent,
@@ -324,13 +324,13 @@ export default function AICreatorPage() {
         courseDescription: formData.courseShortOverview || '',
         targetAudience: formData.targetAudience || '',
         difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        totalChapters: formData.chapterCount || 8,
-        sectionsPerChapter: formData.sectionsPerChapter || 3,
-        learningObjectivesPerChapter: formData.learningObjectivesPerChapter || 5,
-        learningObjectivesPerSection: formData.learningObjectivesPerSection || 3,
-        courseGoals: formData.courseGoals || [],
-        bloomsFocus: formData.bloomsFocus || ['UNDERSTAND', 'APPLY', 'ANALYZE'],
-        preferredContentTypes: formData.preferredContentTypes || ['video', 'reading', 'quiz'],
+        totalChapters: formData.chapterCount,
+        sectionsPerChapter: formData.sectionsPerChapter,
+        learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
+        learningObjectivesPerSection: formData.learningObjectivesPerSection,
+        courseGoals: formData.courseGoals,
+        bloomsFocus: formData.bloomsFocus,
+        preferredContentTypes: formData.preferredContentTypes,
         category: formData.courseCategory,
         subcategory: formData.courseSubcategory,
         courseIntent: formData.courseIntent,
@@ -375,9 +375,9 @@ export default function AICreatorPage() {
           courseGoals: formData.courseGoals || [],
           bloomsFocus: formData.bloomsFocus || [],
           preferredContentTypes: formData.preferredContentTypes || [],
-          chapterCount: formData.chapterCount || 8,
-          sectionsPerChapter: formData.sectionsPerChapter || 3,
-          includeAssessments: formData.includeAssessments || false,
+          chapterCount: formData.chapterCount,
+          sectionsPerChapter: formData.sectionsPerChapter,
+          includeAssessments: formData.includeAssessments,
         });
       });
     }
@@ -756,6 +756,8 @@ export default function AICreatorPage() {
                   <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
                     <span className="text-slate-600 dark:text-slate-400">Chapters:</span>
                     <span className="font-medium text-slate-900 dark:text-slate-100">{formData.chapterCount}</span>
+                    <span className="text-slate-600 dark:text-slate-400">Sections/chapter:</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">{formData.sectionsPerChapter}</span>
                     <span className="text-slate-600 dark:text-slate-400">Difficulty:</span>
                     <span className="font-medium text-slate-900 dark:text-slate-100">{formData.difficulty}</span>
                     <span className="text-slate-600 dark:text-slate-400">Objectives:</span>

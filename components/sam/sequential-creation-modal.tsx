@@ -605,8 +605,8 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 <div>
                   <span className="text-muted-foreground">Structure:</span>
                   <p className="font-medium">
-                    {formData.chapterCount || 8} chapters x{' '}
-                    {formData.sectionsPerChapter || 3} sections
+                    {formData.chapterCount} chapters x{' '}
+                    {formData.sectionsPerChapter} sections
                   </p>
                 </div>
                 <div>

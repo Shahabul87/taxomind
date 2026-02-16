@@ -25,10 +25,11 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
     return displayMap[difficulty] || difficulty;
   };
 
-  // Resolve Chapter DNA template based on difficulty
+  // Resolve Chapter DNA template for section-role display only.
+  // User's sectionsPerChapter is authoritative (strict mode).
   const chapterTemplate = getTemplateForDifficulty(formData.difficulty.toLowerCase());
   const templateSections = chapterTemplate.sections;
-  const effectiveSectionsPerChapter = chapterTemplate.totalSections;
+  const userSectionsPerChapter = formData.sectionsPerChapter;
 
   const isFormComplete =
     formData.courseTitle.length >= 10 &&
@@ -82,7 +83,7 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
   useEffect(() => {
     const params = {
       totalChapters: formData.chapterCount,
-      sectionsPerChapter: effectiveSectionsPerChapter,
+      sectionsPerChapter: userSectionsPerChapter,
       difficulty: formData.difficulty.toLowerCase(),
       bloomsFocusCount: formData.bloomsFocus.length,
       learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
@@ -109,7 +110,7 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
     formData.bloomsFocus.length,
     formData.learningObjectivesPerChapter,
     formData.learningObjectivesPerSection,
-    effectiveSectionsPerChapter,
+    userSectionsPerChapter,
     fetchCostEstimate,
   ]);
 
@@ -161,7 +162,7 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
                 <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">
-                {formData.chapterCount * effectiveSectionsPerChapter}
+                {formData.chapterCount * userSectionsPerChapter}
               </div>
               <div className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400">
                 Sections
@@ -385,21 +386,21 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Sections per Chapter:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">{effectiveSectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{userSectionsPerChapter}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-600 dark:text-slate-400">Total Sections:</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount * effectiveSectionsPerChapter}</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{formData.chapterCount * userSectionsPerChapter}</span>
                 </div>
               </div>
 
               {/* Chapter DNA Section Roles */}
               <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
                 <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-2 block">
-                  {effectiveSectionsPerChapter}-Section Chapter DNA ({chapterTemplate.displayName})
+                  {userSectionsPerChapter}-Section Chapter DNA ({chapterTemplate.displayName})
                 </Label>
-                <div className={`grid grid-cols-2 ${effectiveSectionsPerChapter <= 8 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'} gap-1.5`}>
-                  {templateSections.map((sec, i) => (
+                <div className={`grid grid-cols-2 ${chapterTemplate.totalSections <= 8 ? 'sm:grid-cols-4' : 'sm:grid-cols-5'} gap-1.5`}>
+                  {templateSections.slice(0, userSectionsPerChapter).map((sec, i) => (
                     <div
                       key={sec.role}
                       className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"

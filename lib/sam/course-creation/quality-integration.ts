@@ -112,7 +112,7 @@ export interface SAMValidationResult {
   samValidationRan: boolean;
   /**
    * Content safety issues (bias, accessibility, discouraging language).
-   * Purely informational -- does NOT affect the blended quality score.
+   * High-severity issues trigger a score penalty in blendScores().
    * Only populated when safety validation runs in parallel with quality checks.
    */
   safetyIssues?: string[];
@@ -240,9 +240,27 @@ export function blendScores(customScore: QualityScore, samResult: SAMValidationR
     return customScore;
   }
 
+  let finalScore = samResult.combinedScore;
+
+  // Safety hard-gate: penalize score when high-severity safety issues detected
+  if (samResult.safetyPassed === false) {
+    const highSeverityCount = (samResult.safetyIssues ?? [])
+      .filter(issue => issue.startsWith('[high/')).length;
+    if (highSeverityCount > 0) {
+      const penalty = Math.min(highSeverityCount * 15, 45);
+      finalScore = Math.max(0, finalScore - penalty);
+      logger.warn('[QUALITY_INTEGRATION] Safety penalty applied', {
+        originalScore: samResult.combinedScore,
+        penalty,
+        finalScore,
+        highSeverityCount,
+      });
+    }
+  }
+
   return {
     ...customScore,
-    overall: samResult.combinedScore,
+    overall: finalScore,
   };
 }
 
@@ -476,8 +494,9 @@ function fallbackResult(customScore: QualityScore): SAMValidationResult {
 /**
  * Attach content safety results to a SAMValidationResult.
  *
- * Safety is purely informational -- it does NOT affect the blended quality score.
- * If safety validation failed or timed out, the result is returned unchanged.
+ * High-severity safety issues trigger a score penalty in blendScores(),
+ * causing retry via the quality gate. If safety validation failed or
+ * timed out, the result is returned unchanged.
  */
 function attachSafetyResults(
   result: SAMValidationResult,

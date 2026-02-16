@@ -70,6 +70,7 @@ export function SAMOverviewGeneratorModal({
   const [open, setOpen] = useState(false);
   const [overviewSuggestions, setOverviewSuggestions] = useState<OverviewSuggestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [selectedOverview, setSelectedOverview] = useState<string | null>(null);
 
   // Intelligent comments based on overview length
@@ -256,6 +257,125 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     }
   }, [courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, isGenerating]);
 
+  // Check if any overviews scored below the refinement threshold
+  const lowScoringOverviews = useMemo(
+    () => overviewSuggestions.filter(s => s.relevanceScore < 70),
+    [overviewSuggestions],
+  );
+
+  // Refine low-scoring overviews (single pass)
+  const handleRefineOverviews = useCallback(async () => {
+    if (lowScoringOverviews.length === 0 || isRefining) return;
+
+    setIsRefining(true);
+    try {
+      const weakItems = lowScoringOverviews.map(s => ({
+        overview: s.overview.substring(0, 200),
+        score: s.relevanceScore,
+        reasoning: s.reasoning,
+      }));
+
+      const weakListText = weakItems
+        .map(w => `- Score ${w.score}/100: "${w.overview}..." — Feedback: ${w.reasoning}`)
+        .join('\n');
+
+      const response = await fetch('/api/sam/ai-tutor/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `As an expert course creator, improve these low-scoring course overviews for: "${courseTitle}"
+
+WEAK OVERVIEWS TO IMPROVE:
+${weakListText}
+
+COURSE CONTEXT:
+- Title: "${courseTitle}"
+- Category: ${courseCategory || 'Not specified'}
+- Target Audience: ${targetAudience || 'Not specified'}
+- Intent: ${courseIntent || 'Not specified'}
+
+Generate ${weakItems.length} IMPROVED overviews that fix the identified weaknesses.
+100-200 words per overview. Focus on learning outcomes, benefits, and engagement.
+
+Return a JSON array: ["Improved overview 1", "Improved overview 2"]
+Return ONLY valid JSON array, no markdown fences, no other text.`,
+          context: createSamContext({
+            formData: {
+              courseTitle,
+              courseShortOverview: currentOverview || '',
+              courseCategory: courseCategory || '',
+              courseSubcategory: courseSubcategory || '',
+              courseIntent: courseIntent || '',
+              targetAudience: targetAudience || '',
+            },
+            pageType: 'course_creation',
+            pageTitle: 'SAM Overview Refinement',
+            userRole: 'teacher',
+            additionalContext: { generatorMode: true, refinement: true },
+          }),
+        }),
+      });
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const result = await response.json();
+
+      let refinedOverviews: string[] = [];
+      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+      try {
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) refinedOverviews = JSON.parse(jsonMatch[0]);
+      } catch { /* fallback below */ }
+
+      if (refinedOverviews.length === 0) {
+        toast.info('No refined overviews generated.');
+        return;
+      }
+
+      // Score the refined overviews
+      const scoringResponse = await fetch('/api/sam/content-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'batch',
+          items: refinedOverviews.map((overview: string) => ({ itemType: 'overview', overview })),
+          context: { category: courseCategory, subcategory: courseSubcategory, targetAudience, courseIntent },
+        }),
+      });
+
+      let refinedSuggestions: OverviewSuggestion[] = [];
+      if (scoringResponse.ok) {
+        const scoringResult = await scoringResponse.json();
+        const scores = scoringResult.overviewScores || scoringResult.scores || [];
+        refinedSuggestions = scores.map((score: { overview: string; overallScore: number; relevanceScore?: number; reasoning: string }, idx: number) => ({
+          overview: refinedOverviews[idx] || score.overview,
+          relevanceScore: score.overallScore || score.relevanceScore || 80,
+          reasoning: score.reasoning || 'Refined by AI for improved quality.',
+        }));
+      } else {
+        refinedSuggestions = refinedOverviews.map((overview: string) => ({
+          overview,
+          relevanceScore: 80,
+          reasoning: 'Refined overview — scoring unavailable.',
+        }));
+      }
+
+      // Replace low-scoring overviews with refined ones
+      setOverviewSuggestions(prev => {
+        const kept = prev.filter(s => s.relevanceScore >= 70);
+        const merged = [...kept, ...refinedSuggestions];
+        merged.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        return merged;
+      });
+
+      toast.success(`Refined ${refinedSuggestions.length} overview(s)!`);
+    } catch (error: unknown) {
+      logger.error('Error refining overviews:', error);
+      toast.error('Failed to refine overviews. Please try again.');
+    } finally {
+      setIsRefining(false);
+    }
+  }, [lowScoringOverviews, isRefining, courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience]);
+
   const handleSelectOverview = (overview: string) => {
     setSelectedOverview(overview);
   };
@@ -417,16 +537,34 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
                   <Sparkles className="h-4 w-4 text-emerald-600" />
                   AI-Generated Overviews
                 </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={generateOverviewSuggestions}
-                  disabled={isGenerating}
-                  className="text-xs text-emerald-600 hover:text-emerald-700"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Regenerate
-                </Button>
+                <div className="flex items-center gap-1">
+                  {lowScoringOverviews.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefineOverviews}
+                      disabled={isRefining || isGenerating}
+                      className="text-xs text-amber-600 hover:text-amber-700"
+                    >
+                      {isRefining ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                      )}
+                      Refine ({lowScoringOverviews.length})
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={generateOverviewSuggestions}
+                    disabled={isGenerating || isRefining}
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Regenerate
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-3">

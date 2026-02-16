@@ -111,7 +111,8 @@ export function useSamWizard() {
         const hoursSinceSave = (Date.now() - saveTime.getTime()) / (1000 * 60 * 60);
         
         if (hoursSinceSave < 24) { // Only restore if less than 24 hours old
-          setFormData(savedFormData);
+          // Merge with defaults to ensure no missing fields from older drafts
+          setFormData({ ...initialFormData, ...savedFormData });
           setStep(savedStep);
           setLastAutoSave(saveTime);
           toast.success("Draft restored from auto-save");

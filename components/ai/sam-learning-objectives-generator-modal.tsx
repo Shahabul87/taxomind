@@ -92,6 +92,7 @@ export function SAMLearningObjectivesGeneratorModal({
   const [suggestions, setSuggestions] = useState<ObjectiveSuggestion[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<Set<number>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
   const [generateCount, setGenerateCount] = useState(targetObjectiveCount);
 
   // Analysis of current state
@@ -269,6 +270,109 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
       setIsGenerating(false);
     }
   }, [courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus, existingObjectives, generateCount, isGenerating]);
+
+  // Basic quality evaluation for objectives
+  const evaluateObjectiveQuality = useCallback((obj: ObjectiveSuggestion): number => {
+    let score = 50;
+    // Check Bloom's verb presence (action verb matches known verbs)
+    const knownVerbs = ['define','list','identify','name','recall','recognize','state','describe','explain','summarize','interpret','classify','compare','contrast','discuss','illustrate','apply','demonstrate','implement','use','execute','solve','calculate','analyze','examine','investigate','differentiate','evaluate','assess','critique','judge','justify','create','design','develop','construct','produce','formulate','generate','plan','build'];
+    if (knownVerbs.includes(obj.actionVerb.toLowerCase())) score += 20;
+    // Minimum length check (a good objective is at least 40 chars)
+    if (obj.objective.length >= 40) score += 15;
+    if (obj.objective.length >= 80) score += 5;
+    // Specificity: contains domain-relevant terms (not just generic)
+    const hasSpecificContent = /\b(using|through|by|with|for|in)\b/i.test(obj.objective);
+    if (hasSpecificContent) score += 10;
+    return Math.min(100, score);
+  }, []);
+
+  // Identify weak objectives
+  const weakObjectives = useMemo(
+    () => suggestions
+      .map((obj, idx) => ({ ...obj, idx, quality: evaluateObjectiveQuality(obj) }))
+      .filter(o => o.quality < 70),
+    [suggestions, evaluateObjectiveQuality],
+  );
+
+  // Refine weak objectives (single pass)
+  const handleRefineObjectives = useCallback(async () => {
+    if (weakObjectives.length === 0 || isRefining) return;
+
+    setIsRefining(true);
+    try {
+      const weakList = weakObjectives
+        .map(w => `- "${w.objective}" (Bloom's: ${w.bloomsLevel}, quality: ${w.quality}/100)`)
+        .join('\n');
+
+      const response = await fetch('/api/sam/ai-tutor/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `As an expert instructional designer, improve these weak learning objectives for: "${courseTitle}"
+
+WEAK OBJECTIVES TO IMPROVE:
+${weakList}
+
+IMPROVEMENT GUIDANCE:
+- Start each objective with a strong Bloom's Taxonomy action verb
+- Make each objective specific, measurable, and directly about "${courseTitle}"
+- Ensure minimum 40 characters of substantive content
+- Include specific skills, tools, or concepts from the course domain
+
+Generate ${weakObjectives.length} improved objectives.
+
+Return a JSON array:
+[{"objective":"...","bloomsLevel":"REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE","actionVerb":"..."}]
+
+Return ONLY valid JSON array, no markdown fences, no other text.`,
+          context: {
+            pageData: { pageType: 'course_creation', title: 'Objectives Refinement', forms: [], links: [] },
+            learningContext: { userRole: 'teacher', currentCourse: { title: courseTitle, difficulty } },
+            tutorPersonality: { tone: 'professional', teachingMethod: 'structured', responseStyle: 'concise' },
+            emotion: 'neutral',
+          },
+          conversationHistory: [],
+        }),
+      });
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const result = await response.json();
+
+      let refinedObjectives: ObjectiveSuggestion[] = [];
+      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+      try {
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          refinedObjectives = parsed.map((item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
+            objective: item.objective,
+            bloomsLevel: item.bloomsLevel || 'UNDERSTAND',
+            actionVerb: item.actionVerb || item.objective.split(' ')[0],
+          }));
+        }
+      } catch { /* no parse */ }
+
+      if (refinedObjectives.length === 0) {
+        toast.info('No refined objectives generated.');
+        return;
+      }
+
+      // Replace weak objectives with refined ones
+      const weakIndices = new Set(weakObjectives.map(w => w.idx));
+      setSuggestions(prev => {
+        const kept = prev.filter((_, idx) => !weakIndices.has(idx));
+        return [...kept, ...refinedObjectives];
+      });
+      setSelectedObjectives(new Set());
+
+      toast.success(`Refined ${refinedObjectives.length} objective(s)!`);
+    } catch (error: unknown) {
+      logger.error('Error refining objectives:', error);
+      toast.error('Failed to refine objectives. Please try again.');
+    } finally {
+      setIsRefining(false);
+    }
+  }, [weakObjectives, isRefining, courseTitle, difficulty]);
 
   const toggleObjective = (index: number) => {
     setSelectedObjectives(prev => {
@@ -481,11 +585,27 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
                   >
                     {selectedObjectives.size === suggestions.length ? 'Deselect All' : 'Select All'}
                   </Button>
+                  {weakObjectives.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefineObjectives}
+                      disabled={isRefining || isGenerating}
+                      className="text-xs text-amber-600 hover:text-amber-700"
+                    >
+                      {isRefining ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                      )}
+                      Refine ({weakObjectives.length})
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={generateObjectives}
-                    disabled={isGenerating}
+                    disabled={isGenerating || isRefining}
                     className="text-xs text-emerald-600 hover:text-emerald-700"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
