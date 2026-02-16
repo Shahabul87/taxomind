@@ -20,6 +20,7 @@
 import 'server-only';
 
 import { logger } from '@/lib/logger';
+import { traceAICall } from './helpers';
 import type {
   CompletedChapter,
   ConceptTracker,
@@ -124,6 +125,7 @@ export async function reflectOnCourseWithAI(
   courseContext: CourseContext,
   qualityScores: QualityScore[],
   blueprint?: CourseBlueprintPlan,
+  runId?: string,
 ): Promise<CourseReflection> {
   // 1. Get rule-based baseline
   const ruleBasedReflection = reflectOnCourse(
@@ -179,14 +181,17 @@ Enhance this reflection with pedagogical insights. You may:
   "pedagogicalInsights": ["<string>"]
 }`;
 
-    const responseText = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      messages: [{ role: 'user', content: userPrompt }],
-      systemPrompt,
-      maxTokens: 800,
-      temperature: 0.4,
-    });
+    const responseText = await traceAICall(
+      { runId, stage: 'reflect', label: 'AI-enhanced course reflection' },
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'analysis',
+        messages: [{ role: 'user', content: userPrompt }],
+        systemPrompt,
+        maxTokens: 800,
+        temperature: 0.4,
+      }),
+    );
 
     // Parse AI response
     const cleaned = responseText

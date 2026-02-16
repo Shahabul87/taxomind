@@ -314,6 +314,7 @@ export interface QualityScore {
   bloomsAlignment: number; // 0-100: Proper verb usage
   completeness: number;    // 0-100: Has all required fields
   depth: number;           // 0-100: Content depth beyond surface level
+  blueprintAlignment?: number; // 0-100: How well chapter matches blueprint entry (Stage 1 only)
   overall: number;         // Weighted average
   /** Which chapter this score belongs to (for precise grouping in reflector) */
   chapterNumber?: number;
@@ -590,6 +591,8 @@ export interface ChapterStepContext {
   experimentVariant?: string;
   /** Bridge content to scaffold concept gaps from prior chapter */
   bridgeContent?: string;
+  /** Correlation ID for end-to-end tracing across AI calls */
+  runId?: string;
 }
 
 /** Result of generating a single chapter (all 3 stages) */

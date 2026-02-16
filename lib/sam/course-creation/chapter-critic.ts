@@ -21,6 +21,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { traceAICall } from './helpers';
 import {
   getMultiAgentCoordinator,
   AgentType,
@@ -139,12 +140,13 @@ export async function reviewChapterWithCritic(params: {
   courseContext: CourseContext;
   priorChapters: CompletedChapter[];
   conceptTracker: ConceptTracker;
+  runId?: string;
 }): Promise<ChapterCritique> {
-  const { userId, chapter, courseContext, priorChapters, conceptTracker } = params;
+  const { userId, chapter, courseContext, priorChapters, conceptTracker, runId } = params;
 
   try {
     const critique = await withTimeout(
-      doReviewChapter(userId, chapter, courseContext, priorChapters, conceptTracker),
+      doReviewChapter(userId, chapter, courseContext, priorChapters, conceptTracker, runId),
       CRITIC_TIMEOUT_MS,
     );
 
@@ -256,6 +258,7 @@ async function doReviewChapter(
   courseContext: CourseContext,
   priorChapters: CompletedChapter[],
   conceptTracker: ConceptTracker,
+  runId?: string,
 ): Promise<ChapterCritique> {
   // Build context for the critic
   const priorChapterSummary = priorChapters.length > 0
@@ -295,14 +298,17 @@ ${priorConcepts.length > 0 ? priorConcepts.join(', ') : 'None yet (first chapter
 
 Review this chapter and return your critique as JSON.`;
 
-  const responseText = await runSAMChatWithPreference({
-    userId,
-    capability: 'analysis',
-    messages: [{ role: 'user', content: userPrompt }],
-    systemPrompt: COURSE_CRITIC_PERSONA,
-    maxTokens: 1000,
-    temperature: 0.3,
-  });
+  const responseText = await traceAICall(
+    { runId, stage: 'critic', chapter: chapter.position, label: `Critic Ch${chapter.position}` },
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
+      messages: [{ role: 'user', content: userPrompt }],
+      systemPrompt: COURSE_CRITIC_PERSONA,
+      maxTokens: 1000,
+      temperature: 0.3,
+    }),
+  );
 
   return parseCriticResponse(responseText, chapter);
 }

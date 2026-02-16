@@ -78,6 +78,8 @@ export interface CourseStateMachineConfig {
   sharedState: SharedPipelineState;
   /** Offset for resume: number of already-completed chapters to skip. Default: 0 */
   startChapterOffset?: number;
+  /** Correlation ID for end-to-end tracing */
+  runId?: string;
 }
 
 /** Mutable pipeline state shared by reference between orchestrator and state machine */
@@ -274,6 +276,7 @@ export class CourseCreationStateMachine {
             state.blueprintPlan,
             state.conceptTracker,
             this.config.courseContext,
+            this.config.runId,
           );
 
           this.config.onSSEEvent?.({
@@ -310,6 +313,7 @@ export class CourseCreationStateMachine {
               nextBlueprintEntry,
               conceptGaps,
               this.config.courseContext,
+              this.config.runId,
             );
             this.config.onSSEEvent?.({
               type: 'bridge_content',
@@ -342,6 +346,7 @@ export class CourseCreationStateMachine {
                 state.completedChapters,
                 state.conceptTracker,
                 state.blueprintPlan,
+                this.config.runId,
               );
               this.config.onSSEEvent?.({
                 type: 'replan_complete',
@@ -388,6 +393,7 @@ export class CourseCreationStateMachine {
               'Flagged by agentic decision for inline healing',
               'medium',
               this.config.courseContext,
+              this.config.runId,
             );
 
             this.config.onSSEEvent?.({

@@ -15,6 +15,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { traceAICall } from './helpers';
 import type {
   QualityScore,
   CourseBlueprintPlan,
@@ -571,6 +572,7 @@ export async function evaluateChapterOutcomeWithAI(
   blueprint: CourseBlueprintPlan,
   conceptTracker: ConceptTracker,
   courseContext: CourseContext,
+  runId?: string,
 ): Promise<AgenticDecision> {
   // Always compute rule-based first (guardrail + fallback)
   const ruleBasedDecision = evaluateChapterOutcomeEnhanced(
@@ -648,14 +650,17 @@ Respond with JSON:
   }
 }`;
 
-    const responseText = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      messages: [{ role: 'user', content: userPrompt }],
-      systemPrompt,
-      maxTokens: 500,
-      temperature: 0.3,
-    });
+    const responseText = await traceAICall(
+      { runId, stage: 'decision', chapter: completedChapter.position, label: `Decision Ch${completedChapter.position}` },
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'analysis',
+        messages: [{ role: 'user', content: userPrompt }],
+        systemPrompt,
+        maxTokens: 500,
+        temperature: 0.3,
+      }),
+    );
 
     const aiDecision = parseAIDecisionResponse(responseText, completedChapter.position);
     if (!aiDecision) {
@@ -812,6 +817,7 @@ export async function generateBridgeContent(
   nextChapterBlueprint: ChapterPlanEntry | undefined,
   conceptGaps: string[],
   courseContext: CourseContext,
+  runId?: string,
 ): Promise<string> {
   if (conceptGaps.length === 0 && !nextChapterBlueprint) {
     return '';
@@ -845,14 +851,17 @@ ${conceptGaps.length > 0 ? conceptGaps.join(', ') : 'No specific gaps — create
 
 Write 1-3 bridging paragraphs (plain text, no JSON).`;
 
-    const bridgeText = await runSAMChatWithPreference({
-      userId,
-      capability: 'course',
-      messages: [{ role: 'user', content: userPrompt }],
-      systemPrompt,
-      maxTokens: 500,
-      temperature: 0.6,
-    });
+    const bridgeText = await traceAICall(
+      { runId, stage: 'bridge', chapter: previousChapter.position, label: `Bridge after Ch${previousChapter.position}` },
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'course',
+        messages: [{ role: 'user', content: userPrompt }],
+        systemPrompt,
+        maxTokens: 500,
+        temperature: 0.6,
+      }),
+    );
 
     logger.info('[AgenticDecisions] Bridge content generated', {
       previousChapter: previousChapter.position,

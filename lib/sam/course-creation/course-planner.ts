@@ -19,6 +19,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { traceAICall } from './helpers';
 import type {
   CourseContext,
   CourseBlueprintPlan,
@@ -51,10 +52,11 @@ export async function planCourseBlueprint(
   userId: string,
   courseContext: CourseContext,
   recalledMemory?: RecalledMemory,
+  runId?: string,
 ): Promise<CourseBlueprintPlan> {
   try {
     const plan = await withTimeout(
-      doGenerateBlueprint(userId, courseContext, recalledMemory),
+      doGenerateBlueprint(userId, courseContext, recalledMemory, runId),
       PLANNING_TIMEOUT_MS,
     );
     logger.info('[CoursePlanner] Blueprint generated', {
@@ -123,6 +125,7 @@ async function doGenerateBlueprint(
   userId: string,
   courseContext: CourseContext,
   recalledMemory?: RecalledMemory,
+  runId?: string,
 ): Promise<CourseBlueprintPlan> {
   const memorySection = recalledMemory && recalledMemory.priorConcepts.length > 0
     ? `\n\nPRIOR KNOWLEDGE: The instructor has previously taught these concepts in related courses: ${recalledMemory.priorConcepts.map(c => c.concept).join(', ')}. Build on this experience.`
@@ -184,14 +187,17 @@ Return a JSON object:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-  const responseText = await runSAMChatWithPreference({
-    userId,
-    capability: 'course',
-    messages: [{ role: 'user', content: userPrompt }],
-    systemPrompt,
-    maxTokens: 3000,
-    temperature: 0.6,
-  });
+  const responseText = await traceAICall(
+    { runId, stage: 'plan', label: 'Blueprint planning' },
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      messages: [{ role: 'user', content: userPrompt }],
+      systemPrompt,
+      maxTokens: 3000,
+      temperature: 0.6,
+    }),
+  );
 
   return parseBlueprintResponse(responseText, courseContext);
 }
@@ -334,6 +340,7 @@ export async function replanRemainingChapters(
   completedChapters: CompletedChapter[],
   conceptTracker: ConceptTracker,
   currentBlueprint: CourseBlueprintPlan | null,
+  runId?: string,
 ): Promise<CourseBlueprintPlan> {
   const completedCount = completedChapters.length;
   const remainingCount = courseContext.totalChapters - completedCount;
@@ -445,14 +452,17 @@ Return a JSON object:
 
 Return ONLY valid JSON, no markdown formatting.`;
 
-  const responseText = await runSAMChatWithPreference({
-    userId,
-    capability: 'course',
-    messages: [{ role: 'user', content: userPrompt }],
-    systemPrompt,
-    maxTokens: 3000,
-    temperature: 0.6,
-  });
+  const responseText = await traceAICall(
+    { runId, stage: 'plan', label: 'Replan remaining chapters' },
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      messages: [{ role: 'user', content: userPrompt }],
+      systemPrompt,
+      maxTokens: 3000,
+      temperature: 0.6,
+    }),
+  );
 
   const revisedPlan = parseBlueprintResponse(responseText, courseContext);
 

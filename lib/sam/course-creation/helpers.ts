@@ -8,6 +8,7 @@
 import {
   validateObjective,
 } from '@/lib/sam/prompts/content-generation-criteria';
+import { logger } from '@/lib/logger';
 import {
   BLOOMS_TAXONOMY,
   BLOOMS_LEVELS,
@@ -20,6 +21,7 @@ import type {
   BloomsLevel,
   ContentType,
   QualityScore,
+  ChapterPlanEntry,
 } from './types';
 import type { TemplateSectionDef } from './chapter-templates';
 
@@ -130,6 +132,54 @@ export function jaccardSimilarity(a: string, b: string): number {
 }
 
 // =============================================================================
+// AI CALL TRACING
+// =============================================================================
+
+/** Trace metadata for structured AI call logging */
+export interface AICallTrace {
+  runId?: string;
+  stage: 1 | 2 | 3 | 'plan' | 'critic' | 'heal' | 'reflect' | 'decision' | 'bridge';
+  chapter?: number;
+  section?: number;
+  attempt?: number;
+  label: string;
+}
+
+/**
+ * Wraps an AI call with structured before/after logging.
+ * Returns the AI response string unchanged. Logs timing and trace metadata
+ * so the full call chain can be correlated via `runId`.
+ */
+export async function traceAICall<T>(
+  trace: AICallTrace,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const start = Date.now();
+  const ctx = {
+    runId: trace.runId ?? 'no-run-id',
+    stage: trace.stage,
+    ...(trace.chapter !== undefined && { chapter: trace.chapter }),
+    ...(trace.section !== undefined && { section: trace.section }),
+    ...(trace.attempt !== undefined && { attempt: trace.attempt }),
+  };
+  logger.info(`[AI-TRACE] ${trace.label} — start`, ctx);
+  try {
+    const result = await fn();
+    const latencyMs = Date.now() - start;
+    logger.info(`[AI-TRACE] ${trace.label} — done`, { ...ctx, latencyMs });
+    return result;
+  } catch (error) {
+    const latencyMs = Date.now() - start;
+    logger.error(`[AI-TRACE] ${trace.label} — failed`, {
+      ...ctx,
+      latencyMs,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
+// =============================================================================
 // QUALITY SCORING
 // =============================================================================
 
@@ -153,9 +203,10 @@ export function buildDefaultQualityScore(
 export function scoreChapter(
   ch: GeneratedChapter,
   ctx: CourseContext,
-  previousChapters: GeneratedChapter[]
+  previousChapters: GeneratedChapter[],
+  blueprintEntry?: ChapterPlanEntry | null,
 ): QualityScore {
-  // Completeness (20%)
+  // Completeness (18%)
   let completeness = 100;
   const descWordCount = ch.description.split(/\s+/).length;
   if (descWordCount < 50) completeness -= 30;
@@ -165,7 +216,7 @@ export function scoreChapter(
   if (!ch.prerequisites || ch.prerequisites === 'None') completeness -= 5;
   completeness = Math.max(0, completeness);
 
-  // Specificity (15%)
+  // Specificity (13%)
   let specificity = 100;
   if (ch.title.length < 20) specificity -= 25;
   const genericTitles = /^(introduction|getting started|fundamentals|overview|basics)/i;
@@ -175,7 +226,7 @@ export function scoreChapter(
   if (topicMentions < 2) specificity -= 20;
   specificity = Math.max(0, specificity);
 
-  // Bloom's Alignment (30%)
+  // Bloom's Alignment (28%)
   let bloomsAlignment = 100;
   if (ch.learningObjectives.length > 0) {
     const objectiveScores = ch.learningObjectives.map(obj =>
@@ -184,7 +235,7 @@ export function scoreChapter(
     bloomsAlignment = Math.round(objectiveScores.reduce((a, b) => a + b, 0) / objectiveScores.length);
   }
 
-  // Uniqueness (15%)
+  // Uniqueness (13%)
   let uniqueness = 100;
   if (previousChapters.length > 0) {
     for (const prev of previousChapters) {
@@ -205,7 +256,7 @@ export function scoreChapter(
   }
   uniqueness = Math.max(0, uniqueness);
 
-  // Depth (20%)
+  // Depth (18%)
   let depth = 100;
   if (descWordCount < 100) depth -= 20;
   if (descWordCount < 50) depth -= 20;
@@ -218,11 +269,55 @@ export function scoreChapter(
   if (avgTopicWords < 2) depth -= 15;
   depth = Math.max(0, depth);
 
+  // Blueprint Alignment (10%) — how well chapter matches the pre-generation blueprint
+  let blueprintAlignment = 100;
+  if (blueprintEntry) {
+    // Focus alignment: does the chapter cover the blueprint's primary focus?
+    const focusLower = blueprintEntry.primaryFocus.toLowerCase();
+    const titleAndDesc = `${ch.title} ${ch.description}`.toLowerCase();
+    const focusWords = focusLower.split(/\s+/).filter(w => w.length > 3);
+    const focusHits = focusWords.filter(w => titleAndDesc.includes(w)).length;
+    const focusCoverage = focusWords.length > 0 ? focusHits / focusWords.length : 1;
+    if (focusCoverage < 0.3) blueprintAlignment -= 40;
+    else if (focusCoverage < 0.5) blueprintAlignment -= 20;
+
+    // Concept alignment: how many planned concepts appear in keyTopics/conceptsIntroduced?
+    if (blueprintEntry.keyConcepts.length > 0) {
+      const actualTopics = [...ch.keyTopics, ...(ch.conceptsIntroduced ?? [])].map(t => t.toLowerCase());
+      const conceptHits = blueprintEntry.keyConcepts.filter(c =>
+        actualTopics.some(t => t.includes(c.toLowerCase()) || c.toLowerCase().includes(t))
+      ).length;
+      const conceptCoverage = conceptHits / blueprintEntry.keyConcepts.length;
+      if (conceptCoverage < 0.3) blueprintAlignment -= 35;
+      else if (conceptCoverage < 0.5) blueprintAlignment -= 15;
+    }
+
+    // Bloom's level alignment: does it match the blueprint's expected level?
+    if (blueprintEntry.bloomsLevel && ch.bloomsLevel !== blueprintEntry.bloomsLevel) {
+      const actualIdx = BLOOMS_LEVELS.indexOf(ch.bloomsLevel);
+      const expectedIdx = BLOOMS_LEVELS.indexOf(blueprintEntry.bloomsLevel);
+      const levelDrift = Math.abs(actualIdx - expectedIdx);
+      if (levelDrift >= 3) blueprintAlignment -= 25;
+      else if (levelDrift >= 2) blueprintAlignment -= 10;
+    }
+  }
+  blueprintAlignment = Math.max(0, blueprintAlignment);
+
+  // Weighted average: 18 + 13 + 28 + 13 + 18 + 10 = 100%
+  // When no blueprint, its 10% is redistributed proportionally to original weights
+  const hasBp = !!blueprintEntry;
   const overall = Math.round(
-    completeness * 0.20 + specificity * 0.15 + bloomsAlignment * 0.30 + uniqueness * 0.15 + depth * 0.20
+    hasBp
+      ? completeness * 0.18 + specificity * 0.13 + bloomsAlignment * 0.28
+        + uniqueness * 0.13 + depth * 0.18 + blueprintAlignment * 0.10
+      : completeness * 0.20 + specificity * 0.15 + bloomsAlignment * 0.30
+        + uniqueness * 0.15 + depth * 0.20
   );
 
-  return { completeness, specificity, bloomsAlignment, uniqueness, depth, overall };
+  return {
+    completeness, specificity, bloomsAlignment, uniqueness, depth, overall,
+    ...(hasBp && { blueprintAlignment }),
+  };
 }
 
 export function scoreSection(sec: GeneratedSection, existingTitles: string[], templateDef?: TemplateSectionDef): QualityScore {

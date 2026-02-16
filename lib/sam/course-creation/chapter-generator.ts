@@ -44,6 +44,7 @@ import {
   buildFallbackChapter,
   buildFallbackSection,
   buildFallbackDetails,
+  traceAICall,
 } from './helpers';
 import type {
   CourseContext,
@@ -121,6 +122,7 @@ export async function generateSingleChapter(
     categoryPrompt: composedCategoryPrompt,
     categoryEnhancer: rawCategoryEnhancer,
     experimentVariant,
+    runId,
   } = context;
   const { onSSEEvent, enableStreamingThinking } = callbacks;
 
@@ -172,17 +174,19 @@ export async function generateSingleChapter(
       : `${s1User}${agenticBlocks}`;
 
     const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature };
+    const s1Trace = { runId, stage: 1 as const, chapter: chNum, attempt, label: `Stage1 Ch${chNum}` };
     let responseText: string;
     if (enableStreamingThinking) {
-      const { fullContent } = await streamWithThinkingExtraction({
+      const { fullContent } = await traceAICall(s1Trace, () => streamWithThinkingExtraction({
         userId, ...chatParams,
         onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
-      });
+      }));
       responseText = fullContent;
     } else {
-      responseText = await runSAMChatWithPreference({ userId, capability: 'course', ...chatParams });
+      responseText = await traceAICall(s1Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...chatParams }));
     }
-    const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters);
+    const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
+    const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry);
 
     const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
     const blended = blendScores(result.qualityScore, samResult);
@@ -295,6 +299,7 @@ export async function generateSingleChapter(
       courseContext,
       priorChapters: completedChapters,
       conceptTracker,
+      runId,
     });
 
     onSSEEvent?.({
@@ -339,15 +344,18 @@ export async function generateSingleChapter(
       );
       const augmentedRetryUser = `${retryUser}${criticFeedback}`;
 
-      const retryResponse = await runSAMChatWithPreference({
-        userId,
-        capability: 'course',
-        messages: [{ role: 'user', content: augmentedRetryUser }],
-        systemPrompt: retrySystem,
-        maxTokens: s1Retry.maxTokens,
-        temperature: s1Retry.temperature,
-      });
-      const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters);
+      const retryResponse = await traceAICall(
+        { runId, stage: 1, chapter: chNum, label: `Stage1 Ch${chNum} critic-retry` },
+        () => runSAMChatWithPreference({
+          userId,
+          capability: 'course',
+          messages: [{ role: 'user', content: augmentedRetryUser }],
+          systemPrompt: retrySystem,
+          maxTokens: s1Retry.maxTokens,
+          temperature: s1Retry.temperature,
+        }),
+      );
+      const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters, currentBlueprintEntry);
 
       const retrySam = await validateChapterWithSAM(retryResult.chapter, retryResult.qualityScore, courseContext);
       const retryBlended = blendScores(retryResult.qualityScore, retrySam);
@@ -480,15 +488,16 @@ export async function generateSingleChapter(
         : s2User;
 
       const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
+      const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
       let s2ResponseText: string;
       if (enableStreamingThinking) {
-        const { fullContent } = await streamWithThinkingExtraction({
+        const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
           userId, ...s2ChatParams,
           onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
-        });
+        }));
         s2ResponseText = fullContent;
       } else {
-        s2ResponseText = await runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams });
+        s2ResponseText = await traceAICall(s2Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams }));
       }
       const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
 
@@ -648,15 +657,16 @@ export async function generateSingleChapter(
         : s3User;
 
       const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature };
+      const s3Trace = { runId, stage: 3 as const, chapter: chNum, section: section.position, attempt, label: `Stage3 Ch${chNum}S${section.position}` };
       let s3ResponseText: string;
       if (enableStreamingThinking) {
-        const { fullContent } = await streamWithThinkingExtraction({
+        const { fullContent } = await traceAICall(s3Trace, () => streamWithThinkingExtraction({
           userId, ...s3ChatParams,
           onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
-        });
+        }));
         s3ResponseText = fullContent;
       } else {
-        s3ResponseText = await runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams });
+        s3ResponseText = await traceAICall(s3Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams }));
       }
       const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
 

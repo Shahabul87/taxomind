@@ -22,6 +22,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { traceAICall } from './helpers';
 import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
 import { reflectOnCourse } from './course-reflector';
 import type {
@@ -64,6 +65,7 @@ export async function runHealingLoop(
   qualityScores: QualityScore[],
   blueprintPlan: CourseBlueprintPlan | null,
   onSSEEvent?: (event: { type: string; data: Record<string, unknown> }) => void,
+  runId?: string,
 ): Promise<HealingResult> {
   const maxIterations = Math.min(
     config.maxHealingIterations,
@@ -165,6 +167,7 @@ export async function runHealingLoop(
           flag.reason,
           flag.severity,
           courseContext,
+          runId,
         );
 
         onSSEEvent?.({
@@ -366,6 +369,7 @@ export async function diagnoseChapterIssues(
   flagReason: string,
   flagSeverity: string,
   courseContext: CourseContext,
+  runId?: string,
 ): Promise<HealingStrategy> {
   const fallback: HealingStrategy = {
     type: 'full_regeneration',
@@ -413,14 +417,17 @@ Respond ONLY with valid JSON:
 
 For "targetSections", only include if type is "targeted_sections".`;
 
-    const response = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      messages: [{ role: 'user', content: prompt }],
-      systemPrompt: 'You are a JSON-only responder. Output valid JSON with no markdown fences or extra text.',
-      maxTokens: 500,
-      temperature: 0.3,
-    });
+    const response = await traceAICall(
+      { runId, stage: 'heal', chapter: chapter.position, label: `Heal diagnosis Ch${chapter.position}` },
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'analysis',
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: 'You are a JSON-only responder. Output valid JSON with no markdown fences or extra text.',
+        maxTokens: 500,
+        temperature: 0.3,
+      }),
+    );
 
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return fallback;

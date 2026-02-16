@@ -309,7 +309,7 @@ export async function regenerateChapter(
       const result = parseChapterResponse(aiResponseText, chapterPosition, courseContext, otherChapters.map(ch => ({
         ...ch,
         id: '',
-      })));
+      })), null);
 
       const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
       const blended = blendScores(result.qualityScore, samResult);

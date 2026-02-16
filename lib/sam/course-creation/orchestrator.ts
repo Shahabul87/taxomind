@@ -265,6 +265,7 @@ export async function orchestrateCourseCreation(
         userId,
         courseContext,
         recalledMemory ?? undefined,
+        runId,
       );
 
       onSSEEvent?.({
@@ -587,6 +588,7 @@ export async function orchestrateCourseCreation(
         onSSEEvent,
         enableStreamingThinking,
         startChapterOffset: startChapter - 1,
+        runId,
         sharedState: {
           completedChapters,
           generatedChapters,
@@ -705,6 +707,7 @@ export async function orchestrateCourseCreation(
           categoryEnhancer,
           experimentVariant,
           bridgeContent: bridgeContent || undefined,
+          runId,
         };
 
         const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
@@ -812,6 +815,7 @@ export async function orchestrateCourseCreation(
                 blueprintPlan,
                 conceptTracker,
                 courseContext,
+                runId,
               );
 
               onSSEEvent?.({
@@ -851,6 +855,7 @@ export async function orchestrateCourseCreation(
                 nextBlueprintEntry,
                 conceptGaps,
                 courseContext,
+                runId,
               );
               onSSEEvent?.({
                 type: 'bridge_content',
@@ -875,7 +880,7 @@ export async function orchestrateCourseCreation(
               replanCount++;
               onSSEEvent?.({ type: 'replan_start', data: { reason: lastAgenticDecision.reasoning } });
               try {
-                blueprintPlan = await replanRemainingChapters(userId, courseContext, completedChapters, conceptTracker, blueprintPlan);
+                blueprintPlan = await replanRemainingChapters(userId, courseContext, completedChapters, conceptTracker, blueprintPlan, runId);
                 onSSEEvent?.({ type: 'replan_complete', data: { remainingChapters: blueprintPlan?.chapterPlan.length ?? 0 } });
               } catch {
                 logger.warn('[ORCHESTRATOR] Re-planning failed, continuing with existing blueprint');
@@ -1004,6 +1009,7 @@ export async function orchestrateCourseCreation(
         courseContext,
         qualityScores,
         blueprintPlan ?? undefined,
+        runId,
       );
 
       onSSEEvent?.({
@@ -1065,6 +1071,7 @@ export async function orchestrateCourseCreation(
             qualityScores,
             blueprintPlan,
             onSSEEvent,
+            runId,
           );
 
           logger.info('[ORCHESTRATOR] Healing loop complete', {

@@ -39,6 +39,7 @@ import type {
   GeneratedSection,
   SectionDetails,
   QualityScore,
+  ChapterPlanEntry,
 } from './types';
 
 // =============================================================================
@@ -123,7 +124,8 @@ export function parseChapterResponse(
   responseText: string,
   chapterNumber: number,
   courseContext: CourseContext,
-  previousChapters: (GeneratedChapter & { id: string })[]
+  previousChapters: (GeneratedChapter & { id: string })[],
+  blueprintEntry?: ChapterPlanEntry | null,
 ): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -147,7 +149,7 @@ export function parseChapterResponse(
       conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics),
     };
 
-    const qualityScore = scoreChapter(chapter, courseContext, previousChapters);
+    const qualityScore = scoreChapter(chapter, courseContext, previousChapters, blueprintEntry);
     return { chapter, thinking, qualityScore };
   } catch {
     logger.warn('[ORCHESTRATOR] Failed to parse chapter response, using fallback');
