@@ -48,7 +48,7 @@ jest.mock('../orchestrator', () => ({
   orchestrateCourseCreation: jest.fn(),
 }));
 
-import { saveCheckpointWithRetry, type SaveCheckpointInput } from '../checkpoint-manager';
+import { saveCheckpointWithRetry, resumeCourseCreation, type SaveCheckpointInput } from '../checkpoint-manager';
 import type { BloomsLevel, ConceptTracker, QualityScore, CompletedChapter } from '../types';
 
 // ============================================================================
@@ -200,9 +200,6 @@ describe('resumeCourseCreation validation', () => {
   it('rejects when no checkpoint exists', async () => {
     mockFindFirst.mockResolvedValueOnce(null);
 
-    // Dynamic import to get the function after mocks are set up
-    const { resumeCourseCreation } = await import('../checkpoint-manager');
-
     const result = await resumeCourseCreation({
       userId: 'user-1',
       resumeCourseId: 'course-1',
@@ -235,8 +232,6 @@ describe('resumeCourseCreation validation', () => {
       chapters: [],
     });
 
-    const { resumeCourseCreation } = await import('../checkpoint-manager');
-
     const result = await resumeCourseCreation({
       userId: 'user-1',
       resumeCourseId: 'course-1',
@@ -268,8 +263,6 @@ describe('resumeCourseCreation validation', () => {
       isPublished: true, // Already published
       chapters: [],
     });
-
-    const { resumeCourseCreation } = await import('../checkpoint-manager');
 
     const result = await resumeCourseCreation({
       userId: 'user-1',
