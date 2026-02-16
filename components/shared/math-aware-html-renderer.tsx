@@ -109,10 +109,23 @@ function isProgrammingCode(content: string): boolean {
 
 /**
  * Check if content contains LaTeX backslash commands — if so, it's definitely math.
+ * Matches both single (\frac) and double-escaped (\\frac) backslashes,
+ * since AI-generated content often stores LaTeX with escaped backslashes.
  */
 function hasLatexCommands(content: string): boolean {
-  return /\\(?:frac|lim|int|sum|prod|sqrt|to|infty|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|cdot|times|div|pm|leq|geq|neq|approx|equiv|sin|cos|tan|log|ln|exp|max|min)\b/.test(
+  return /\\{1,2}(?:frac|lim|limits|int|sum|prod|sqrt|to|infty|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|cdot|times|div|pm|leq|geq|neq|approx|equiv|sin|cos|tan|log|ln|exp|max|min|left|right|text|mathrm|mathbf)\b/.test(
     content
+  );
+}
+
+/**
+ * Normalize double-escaped backslashes (\\command) to single (\command)
+ * for known LaTeX commands. AI-generated content often stores \frac as \\frac.
+ */
+function normalizeLatexBackslashes(text: string): string {
+  return text.replace(
+    /\\\\(?=(?:frac|lim|limits|int|sum|prod|sqrt|to|infty|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|cdot|times|div|pm|leq|geq|neq|approx|equiv|sin|cos|tan|log|ln|exp|max|min|left|right|text|mathrm|mathbf|mathit)\b)/g,
+    "\\"
   );
 }
 
@@ -138,8 +151,10 @@ function renderMath(
   content: string,
   displayMode: boolean
 ): string | null {
-  const normalized = normalizeMathChars(decodeHtmlEntities(content.trim()));
-  const latex = toLatex(normalized);
+  const decoded = decodeHtmlEntities(content.trim());
+  const normalized = normalizeMathChars(decoded);
+  const deduped = normalizeLatexBackslashes(normalized);
+  const latex = toLatex(deduped);
   try {
     return katex.renderToString(latex, {
       displayMode,
@@ -315,11 +330,165 @@ function renderAsciiMath(text: string): string {
 }
 
 /**
+ * Find the end of a balanced brace group starting at pos.
+ * pos should point to the opening '{'. Returns index after closing '}'.
+ */
+function skipBraceGroup(text: string, pos: number): number {
+  if (pos >= text.length || text[pos] !== "{") return pos;
+  let depth = 1;
+  let i = pos + 1;
+  while (i < text.length && depth > 0) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}") depth--;
+    i++;
+  }
+  return i;
+}
+
+/**
+ * From a position after a LaTeX command name, skip over all following
+ * subscripts (_{}), superscripts (^{}), and brace groups ({}).
+ */
+function skipLatexArgs(text: string, pos: number): number {
+  let i = pos;
+  while (i < text.length) {
+    if (text[i] === " ") {
+      i++;
+      continue;
+    }
+    if (text[i] === "{") {
+      i = skipBraceGroup(text, i);
+      continue;
+    }
+    if (text[i] === "_" || text[i] === "^") {
+      i++;
+      if (i < text.length && text[i] === "{") {
+        i = skipBraceGroup(text, i);
+      } else if (i < text.length) {
+        i++;
+      }
+      continue;
+    }
+    break;
+  }
+  return i;
+}
+
+/** Regex for "structural" LaTeX commands that take brace arguments */
+const STRUCTURAL_CMD_RE =
+  /\\(?:frac|lim|limits|int|sum|prod|sqrt)\b/;
+
+/** Regex for any LaTeX command (structural + decorative) */
+const ANY_CMD_RE =
+  /\\(?:frac|lim|limits|int|sum|prod|sqrt|to|infty|cdot|times|div|pm|leq|geq|neq|approx|equiv|left|right|text|mathrm|mathbf|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|sin|cos|tan|log|ln|exp|max|min|sup|inf)\b/;
+
+/**
+ * Detect and render raw LaTeX expressions that appear in plain text
+ * without any delimiters ($, backticks, <code> tags).
+ * Also handles double-escaped backslashes (\\frac → \frac).
+ */
+function renderRawLatexInText(text: string): string {
+  // Quick check: does the text contain any LaTeX-like commands?
+  if (!/\\{1,2}(?:frac|lim|limits|int|sum|prod|sqrt)\b/.test(text)) {
+    return text;
+  }
+
+  // Normalize double backslashes to single for known LaTeX commands
+  const normalized = normalizeLatexBackslashes(text);
+
+  // Find all structural LaTeX command positions
+  const cmdRegex = new RegExp(STRUCTURAL_CMD_RE.source, "g");
+  let match: RegExpExecArray | null;
+  const ranges: MathSegment[] = [];
+
+  while ((match = cmdRegex.exec(normalized)) !== null) {
+    const cmdStart = match.index;
+    let end = cmdStart + match[0].length;
+
+    // Skip all arguments (brace groups, subscripts, superscripts)
+    end = skipLatexArgs(normalized, end);
+
+    // Continue if another LaTeX command follows
+    let extended = true;
+    while (extended) {
+      extended = false;
+      let peek = end;
+      while (peek < normalized.length && normalized[peek] === " ") peek++;
+      const nextCmd = normalized.slice(peek).match(new RegExp("^" + ANY_CMD_RE.source));
+      if (nextCmd) {
+        end = peek + nextCmd[0].length;
+        end = skipLatexArgs(normalized, end);
+        extended = true;
+      }
+    }
+
+    // Extend backwards to capture preceding math context (variables, operators, primes)
+    let start = cmdStart;
+    while (start > 0) {
+      const ch = normalized[start - 1];
+      if (
+        /[a-zA-Z0-9'()\[\]=+\-*/^_{}., ]/.test(ch) ||
+        /[→←≠≤≥≈×÷±∞·πθαβγδΔεσμλφ∑∫∂√\u2212]/.test(ch)
+      ) {
+        start--;
+      } else {
+        break;
+      }
+    }
+    // Trim leading spaces
+    while (start < cmdStart && normalized[start] === " ") start++;
+    // Trim trailing spaces
+    while (end > start && normalized[end - 1] === " ") end--;
+
+    ranges.push({ start, end });
+  }
+
+  if (ranges.length === 0) return text;
+
+  // Merge overlapping ranges
+  ranges.sort((a, b) => a.start - b.start);
+  const merged: MathSegment[] = [ranges[0]];
+  for (let i = 1; i < ranges.length; i++) {
+    const last = merged[merged.length - 1];
+    if (ranges[i].start <= last.end + 1) {
+      last.end = Math.max(last.end, ranges[i].end);
+    } else {
+      merged.push({ ...ranges[i] });
+    }
+  }
+
+  // Render right-to-left to preserve positions
+  let result = normalized;
+  for (let i = merged.length - 1; i >= 0; i--) {
+    const { start, end } = merged[i];
+    let expr = result.slice(start, end).trim();
+    if (!expr) continue;
+
+    // Strip trailing punctuation
+    const trailingMatch = expr.match(/[.,;:!?]+$/);
+    const trailing = trailingMatch ? trailingMatch[0] : "";
+    if (trailing) expr = expr.slice(0, -trailing.length).trim();
+
+    const isComplex = /\\(?:frac|int|sum|prod)\b/.test(expr);
+    const rendered = renderMath(expr, isComplex);
+    if (rendered) {
+      const replacement = isComplex
+        ? `<div class="my-3 overflow-x-auto">${rendered}</div>${trailing}`
+        : `<span class="math-inline">${rendered}</span>${trailing}`;
+      result = result.slice(0, start) + replacement + result.slice(end);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Process sanitized HTML to render math content:
  * 1. Protect <pre><code>...</code></pre> (actual code blocks)
  * 2. Convert $$...$$ → KaTeX display math
  * 3. Convert $...$ → KaTeX inline math
  * 4. Convert standalone <code>...</code> → KaTeX inline math
+ * 4a. Detect raw LaTeX commands in plain text → KaTeX math
  * 4b. Convert Unicode math symbols in plain text → KaTeX inline math
  */
 function processMathInHtml(html: string): string {
@@ -395,7 +564,7 @@ function processMathInHtml(html: string): string {
     }
   );
 
-  // Step 4b: Process math expressions in text nodes (Unicode + ASCII patterns)
+  // Step 4a+4b: Process math expressions in text nodes
   // Split by HTML tags so we only process text content, not tag attributes
   // or already-rendered KaTeX output
   const parts = result.split(/(<[^>]+>)/);
@@ -407,9 +576,16 @@ function processMathInHtml(html: string): string {
     // Skip already-rendered KaTeX
     if (parts[i].includes("math-inline")) continue;
 
-    // renderAsciiMath handles both Unicode math AND ASCII math patterns
-    // in a single pass with proper segment merging
-    parts[i] = renderAsciiMath(parts[i]);
+    // Step 4a: First try to render raw LaTeX commands (\frac, \\lim, etc.)
+    const afterLatex = renderRawLatexInText(parts[i]);
+    if (afterLatex !== parts[i]) {
+      // Raw LaTeX was found and rendered — the text now contains HTML,
+      // so skip ASCII math processing on this part
+      parts[i] = afterLatex;
+    } else {
+      // Step 4b: renderAsciiMath handles Unicode math AND ASCII math patterns
+      parts[i] = renderAsciiMath(parts[i]);
+    }
   }
   result = parts.join("");
 
