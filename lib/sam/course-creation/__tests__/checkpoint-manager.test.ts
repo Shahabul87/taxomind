@@ -209,10 +209,27 @@ describe('resumeCourseCreation validation', () => {
     expect(result.error).toContain('No checkpoint');
   });
 
+  it('rejects when checkpoint data is empty (no chapters completed)', async () => {
+    // Simulates the case where course failed before any chapter was generated:
+    // initializeCourseCreationGoal sets checkpointData: {} initially
+    mockFindFirst.mockResolvedValueOnce({
+      checkpointData: {},
+    });
+
+    const result = await resumeCourseCreation({
+      userId: 'user-1',
+      resumeCourseId: 'course-1',
+    } as Parameters<typeof resumeCourseCreation>[0]);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('incomplete');
+  });
+
   it('rejects when course belongs to different user', async () => {
     mockFindFirst.mockResolvedValueOnce({
       checkpointData: {
         completedChapterCount: 2,
+        courseId: 'course-1',
         config: { totalChapters: 5, difficulty: 'intermediate' },
         conceptEntries: [],
         vocabulary: [],
@@ -245,6 +262,7 @@ describe('resumeCourseCreation validation', () => {
     mockFindFirst.mockResolvedValueOnce({
       checkpointData: {
         completedChapterCount: 2,
+        courseId: 'course-1',
         config: { totalChapters: 5, difficulty: 'intermediate' },
         conceptEntries: [],
         vocabulary: [],

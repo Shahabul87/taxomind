@@ -282,8 +282,12 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
 
-      // Network errors during creation should trigger auto-reconnect
-      if (lastCourseIdRef.current && reconnectCountRef.current < MAX_RECONNECTIONS) {
+      // Only auto-reconnect on network errors (TypeError: Failed to fetch, etc.)
+      // NOT on API errors (400 validation, 401 auth, 500 server error) which would just loop.
+      const isNetworkError = err instanceof TypeError ||
+        (err instanceof Error && /fetch|network|connection|timeout/i.test(err.message));
+
+      if (isNetworkError && lastCourseIdRef.current && reconnectCountRef.current < MAX_RECONNECTIONS) {
         reconnectCountRef.current++;
         logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after network error', {
           reconnectCount: reconnectCountRef.current,

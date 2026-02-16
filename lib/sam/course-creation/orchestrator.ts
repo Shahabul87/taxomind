@@ -340,36 +340,29 @@ export async function orchestrateCourseCreation(
         },
       });
 
-      // Emit resume-replay events for all previously-completed items so the
-      // client can hydrate its completedItems list even if dbProgress was stale.
-      // The client deduplicates by id, so overlaps are safe.
-      for (const ch of resumeState.completedChapters) {
-        onSSEEvent?.({
-          type: 'item_complete',
-          data: {
-            stage: 1,
-            chapter: ch.position,
+      // Emit a single batch resume_hydrate event so the client can hydrate
+      // its completedItems list without showing individual "Chapter 1, 2, 3..."
+      // events that make it look like the pipeline is starting over.
+      onSSEEvent?.({
+        type: 'resume_hydrate',
+        data: {
+          courseId,
+          completedChapters: resumeState.completedChapters.map(ch => ({
+            position: ch.position,
             title: ch.title,
             id: ch.id,
-            courseId,
-            isResumeReplay: true,
-          },
-        });
-
-        for (const sec of ch.sections) {
-          onSSEEvent?.({
-            type: 'item_complete',
-            data: {
-              stage: 2,
-              chapter: ch.position,
-              section: sec.position,
+          })),
+          completedSections: resumeState.completedChapters.flatMap(ch =>
+            ch.sections.map(sec => ({
+              chapterPosition: ch.position,
+              position: sec.position,
               title: sec.title,
               id: sec.id,
-              isResumeReplay: true,
-            },
-          });
-        }
-      }
+            }))
+          ),
+          completedChapterCount: resumeState.completedChapterCount,
+        },
+      });
 
       // Reactivate goal/plan
       await reactivateCourseCreation(goalId, planId);

@@ -44,6 +44,7 @@ import { replanRemainingChapters } from './course-planner';
 import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
 import { diagnoseChapterIssues } from './healing-loop';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
+import { PROMPT_VERSION } from './prompts';
 import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import type {
   ChapterStepContext,
@@ -560,6 +561,8 @@ export async function phaseCheckpoint(
     lastCompletedStage: 3,
     currentChapterNumber: chapterNumber,
     chapterSectionCounts: state.chapterSectionCounts,
+    strategyHistory: state.strategyMonitor.getHistory(),
+    promptVersion: PROMPT_VERSION,
   });
 
   // 14. Return StepResult

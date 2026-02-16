@@ -185,6 +185,10 @@ export function handleSSEEvent(
       return {};
     }
 
+    case 'resume_hydrate': {
+      return handleResumeHydrate(data, ctx);
+    }
+
     case 'item_complete': {
       return handleItemComplete(data, ctx);
     }
@@ -343,6 +347,51 @@ export function handleSSEEvent(
 // ============================================================================
 // Complex Event Handlers (extracted for readability)
 // ============================================================================
+
+/**
+ * Handle the `resume_hydrate` batch event: set all previously-completed items
+ * in a single state update — no per-chapter event flooding that makes the UI
+ * look like it's "starting from the beginning."
+ */
+function handleResumeHydrate(
+  data: Record<string, unknown>,
+  ctx: SSEHandlerContext,
+): SSEEventResult {
+  const { setProgress, lastCourseIdRef } = ctx;
+
+  const courseId = data.courseId as string | undefined;
+  const chapters = (data.completedChapters ?? []) as Array<{ position: number; title: string; id?: string }>;
+  const sections = (data.completedSections ?? []) as Array<{ chapterPosition: number; position: number; title: string; id?: string }>;
+  const completedChapterCount = (data.completedChapterCount as number) ?? chapters.length;
+
+  if (courseId) {
+    lastCourseIdRef.current = courseId;
+  }
+
+  setProgress(prev => ({
+    ...prev,
+    state: {
+      ...prev.state,
+      currentChapter: completedChapterCount,
+      phase: 'resuming',
+    },
+    completedItems: {
+      chapters: chapters.map(ch => ({
+        position: ch.position,
+        title: ch.title,
+        id: ch.id,
+      })),
+      sections: sections.map(sec => ({
+        chapterPosition: sec.chapterPosition,
+        position: sec.position,
+        title: sec.title,
+        id: sec.id,
+      })),
+    },
+  }));
+
+  return {};
+}
 
 /**
  * Handle the `item_complete` event: track timing, update completed items,

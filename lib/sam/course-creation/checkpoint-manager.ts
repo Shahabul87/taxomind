@@ -214,6 +214,15 @@ export async function resumeCourseCreation(
 
     const checkpoint = plan.checkpointData as unknown as CheckpointData;
 
+    // 1b. Validate checkpoint has required resume data (not empty {} or completion-only)
+    if (
+      typeof checkpoint.completedChapterCount !== 'number' ||
+      !checkpoint.courseId ||
+      !checkpoint.config
+    ) {
+      return { success: false, error: 'Checkpoint data is incomplete — cannot resume. Please start a new course.' };
+    }
+
     // 2. Verify course exists and belongs to user
     const course = await db.course.findUnique({
       where: { id: resumeCourseId },
@@ -239,10 +248,17 @@ export async function resumeCourseCreation(
       return { success: false, error: 'Unauthorized: course belongs to another user' };
     }
 
-    // 3. Reconstruct config (checkpoint config + any overrides from current options)
+    // 3. Reconstruct config — checkpoint config is authoritative for resume.
+    //    Only take callbacks from options.config; do NOT let client-side formData
+    //    override totalChapters, sectionsPerChapter, etc.
+    const optConfig = options.config ?? {} as Partial<SequentialCreationConfig>;
     const config = {
       ...checkpoint.config,
-      ...(options.config ?? {}),
+      // Only merge callbacks — not structural course fields
+      onProgress: optConfig.onProgress ?? checkpoint.config.onProgress,
+      onThinking: optConfig.onThinking ?? checkpoint.config.onThinking,
+      onStageComplete: optConfig.onStageComplete ?? checkpoint.config.onStageComplete,
+      onError: optConfig.onError ?? checkpoint.config.onError,
     } as SequentialCreationConfig;
 
     const completedChapterCount = checkpoint.completedChapterCount;

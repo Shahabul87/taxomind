@@ -40,7 +40,24 @@ const customJestConfig = {
     '<rootDir>/dist/',
     '<rootDir>/backups/',
     '<rootDir>/e2e/',
-    'test-fixtures\\.ts$'
+    'test-fixtures\\.ts$',
+    // Exclude all packages/ (they use vitest, not jest)
+    '<rootDir>/packages/',
+    // Exclude performance tests (require k6, run separately)
+    '<rootDir>/__tests__/performance/',
+    // Exclude type declaration files
+    '\\.d\\.ts$',
+    // Exclude utility/fixture files with no tests
+    '__tests__/utils/mock-handlers\\.ts$',
+    '__tests__/utils/mock-providers\\.ts$',
+    '__tests__/utils/test-db\\.ts$',
+    '__tests__/utils/test-factory\\.ts$',
+    '__tests__/utils/test-helpers\\.ts$',
+    '__tests__/utils/test-utilities\\.ts$',
+    '__tests__/utils/test-utils\\.tsx$',
+    '__tests__/api/types/',
+    '__tests__/api/utils/test-helpers\\.ts$',
+    'golden-inputs\\.ts$',
   ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]

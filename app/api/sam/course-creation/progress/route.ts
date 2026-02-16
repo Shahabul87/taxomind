@@ -48,11 +48,13 @@ export async function GET() {
       );
     }
 
-    // 2. Find most recent active plan with checkpoint data
+    // 2. Find most recent resumable plan with checkpoint data
+    //    Include FAILED plans — they have preserved checkpoints and can be resumed.
+    //    Exclude COMPLETED/CANCELLED plans — they are done or dismissed.
     const plan = await db.sAMExecutionPlan.findFirst({
       where: {
         goal: { userId: user.id },
-        status: { in: ['ACTIVE', 'PAUSED'] },
+        status: { in: ['ACTIVE', 'PAUSED', 'FAILED'] },
         checkpointData: { not: null },
       },
       orderBy: { updatedAt: 'desc' },
@@ -71,6 +73,17 @@ export async function GET() {
     }
 
     const checkpoint = plan.checkpointData as unknown as CheckpointData;
+
+    // 2b. Validate checkpoint has actual course data (not empty {} or completion-only data)
+    if (
+      typeof checkpoint.completedChapterCount !== 'number' ||
+      !checkpoint.courseId
+    ) {
+      return NextResponse.json({
+        success: true,
+        ...({ hasActiveCreation: false } satisfies ProgressResponse),
+      });
+    }
 
     // 3. Verify the referenced course exists and is unpublished
     const courseId = checkpoint.courseId;
