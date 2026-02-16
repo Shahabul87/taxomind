@@ -374,6 +374,7 @@ export async function resumeCourseCreation(
       chapterSectionCounts,
       sectionsWithDetails,
       strategyHistory: checkpoint.strategyHistory,
+      promptVersion: checkpoint.promptVersion,
     };
 
     logger.info('[ORCHESTRATOR] Resume state built', {

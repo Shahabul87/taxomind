@@ -1170,6 +1170,7 @@ export async function orchestrateCourseCreation(
         totalTimeMs: totalTime,
         chaptersCreated,
         sectionsCreated,
+        promptVersion: PROMPT_VERSION,
       }).catch(() => { /* non-critical */ });
     }
 

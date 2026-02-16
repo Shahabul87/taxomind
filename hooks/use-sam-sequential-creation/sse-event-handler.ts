@@ -198,6 +198,11 @@ export function handleSSEEvent(
     }
 
     case 'complete': {
+      // Deduplicate: ignore duplicate complete events from multiple layers
+      if (ctx.progressRef.current.state.phase === 'complete') {
+        logger.debug('[SEQUENTIAL_SSE] Ignoring duplicate complete event');
+        return {};
+      }
       return handleComplete(data, ctx);
     }
 

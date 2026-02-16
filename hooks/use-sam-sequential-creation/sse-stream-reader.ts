@@ -57,7 +57,12 @@ export async function readSSEStream(
       }
       if (eventResult.gotComplete) gotComplete = true;
       if (eventResult.gotError) gotError = true;
+      // Stop processing further events after a terminal event
+      if (gotComplete || gotError) break;
     }
+
+    // Stop reading the stream after a terminal event
+    if (gotComplete || gotError) break;
   }
 
   return { result: finalResult, gotComplete, gotError };

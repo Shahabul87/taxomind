@@ -333,6 +333,9 @@ export default function AICreatorPage() {
         preferredContentTypes: formData.preferredContentTypes || ['video', 'reading', 'quiz'],
         category: formData.courseCategory,
         subcategory: formData.courseSubcategory,
+        courseIntent: formData.courseIntent,
+        includeAssessments: formData.includeAssessments,
+        duration: formData.duration,
       });
 
       if (result.success && result.courseId) {

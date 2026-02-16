@@ -779,6 +779,8 @@ export interface ResumeState {
   sectionsWithDetails: Set<string>;
   /** Adaptive strategy history from checkpoint for seeding the monitor on resume */
   strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
+  /** Prompt template version from checkpoint for observability continuity */
+  promptVersion?: string;
   /** DB chapter IDs that exist for the partial chapter (skip Stage 1+2 if present) */
   partialChapterDbId?: string;
   /** DB section records for the partial chapter (skip Stage 2 if all present) */
