@@ -79,11 +79,14 @@ ENV SKIP_ENV_VALIDATION=true
 # Pages are generated on first request instead (fine since all pages are
 # force-dynamic anyway via root layout.tsx).
 #
-# The heap limit below only applies to webpack compilation, which runs
-# as a single process. 3GB is more than sufficient for compilation alone.
+# V8 heap limits — tuned for Railway's ~8 GB container with Turbopack:
+#   Turbopack (native Rust) uses ~3-4 GB outside V8's heap (mmap).
+#   V8 old space peaks at ~175 MB during compilation, so 2 GB is 10x headroom.
+#   Semi-space capped at 8 MB (halves young gen from 32→16 MB) to prevent
+#   "Committing semi space" OOM when the OS is near its memory limit.
 # - EXPERIMENTAL_CPUS=1: Single worker to minimize total memory
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
-ENV NODE_OPTIONS="--max-old-space-size=3072"
+ENV NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=8"
 ENV EXPERIMENTAL_CPUS=1
 ENV UV_THREADPOOL_SIZE=4
 
@@ -99,9 +102,10 @@ RUN npx prisma generate
 # Memory strategy:
 #   1. --experimental-build-mode compile: eliminates page data phase (permanent OOM fix)
 #   2. next.config.js disables webpack cache + enables webpackMemoryOptimizations
-#   3. --max-old-space-size=3072: 3GB heap (only webpack compilation runs now)
-#   4. Single worker (EXPERIMENTAL_CPUS=1): minimal memory footprint
-RUN NODE_OPTIONS="--max-old-space-size=3072" \
+#   3. --max-old-space-size=2048: 2GB V8 heap (actual peak ~175 MB, 10x margin)
+#   4. --max-semi-space-size=8: 8MB semi-space prevents young-gen OOM under memory pressure
+#   5. Single worker (EXPERIMENTAL_CPUS=1): minimal memory footprint
+RUN NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=8" \
     EXPERIMENTAL_CPUS=1 \
     NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm run build:railway
