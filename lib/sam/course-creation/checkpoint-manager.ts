@@ -306,6 +306,7 @@ export async function resumeCourseCreation(
     // 6. Detect partial chapter (chapter beyond completedChapterCount that may have
     //    some sections already with descriptions from per-section checkpointing)
     const sectionsWithDetails = new Set<string>();
+    const deletedChapterIds = new Set<string>();
     const partialDbChapter = course.chapters[completedChapterCount]; // 0-indexed
 
     if (partialDbChapter) {
@@ -330,7 +331,8 @@ export async function resumeCourseCreation(
       if (partialDbChapter.sections.length < resumeEffectiveSections) {
         // Incomplete Stage 2 — delete partial chapter, regenerate from scratch
         await db.section.deleteMany({ where: { chapterId: partialDbChapter.id } });
-        await db.chapter.delete({ where: { id: partialDbChapter.id } });
+        await db.chapter.deleteMany({ where: { id: partialDbChapter.id } });
+        deletedChapterIds.add(partialDbChapter.id);
         sectionsWithDetails.clear();
         logger.info('[ORCHESTRATOR] Deleted incomplete partial chapter (missing sections)', {
           chapterId: partialDbChapter.id,
@@ -346,8 +348,9 @@ export async function resumeCourseCreation(
     const orphanChapters = course.chapters.slice(keepCount);
 
     for (const ch of orphanChapters) {
+      if (deletedChapterIds.has(ch.id)) continue; // Already deleted in step 6
       await db.section.deleteMany({ where: { chapterId: ch.id } });
-      await db.chapter.delete({ where: { id: ch.id } });
+      await db.chapter.deleteMany({ where: { id: ch.id } });
     }
     if (orphanChapters.length > 0) {
       logger.info('[ORCHESTRATOR] Deleted orphan chapters beyond resume point', {
