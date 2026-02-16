@@ -141,6 +141,7 @@ export default function AICreatorPage() {
     regenerateChapter,
     cancel: cancelSequentialCreation,
     reset: resetSequentialCreation,
+    dismissCreation,
   } = useSequentialCreation();
 
   // Step validation
@@ -473,10 +474,7 @@ export default function AICreatorPage() {
                   size="sm"
                   variant="ghost"
                   className="h-8 text-xs text-amber-700 dark:text-amber-300"
-                  onClick={() => {
-                    try { localStorage.removeItem('taxomind_partial_course'); } catch { /* */ }
-                    resetSequentialCreation();
-                  }}
+                  onClick={() => { dismissCreation(); }}
                 >
                   Dismiss
                 </Button>

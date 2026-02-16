@@ -59,6 +59,8 @@ export interface UseSequentialCreationReturn {
   regenerateChapter: (courseId: string, chapterId: string, position: number) => Promise<void>;
   cancel: () => void;
   reset: () => void;
+  /** Dismiss resume banner: cancels the DB plan + clears localStorage + resets state */
+  dismissCreation: () => Promise<void>;
 }
 
 /** Config callbacks extracted from SequentialCreationConfig */

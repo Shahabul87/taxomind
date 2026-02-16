@@ -539,6 +539,29 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     }
   }, []);
 
+  /**
+   * Dismiss the resume banner permanently by:
+   * 1. Marking the DB plan as CANCELLED (so it won't be found on next mount)
+   * 2. Clearing localStorage
+   * 3. Resetting React state
+   */
+  const dismissCreation = useCallback(async () => {
+    try {
+      await fetch('/api/sam/course-creation/dismiss', { method: 'POST' });
+    } catch {
+      logger.debug('[SEQUENTIAL_SSE] Failed to dismiss creation in DB (non-critical)');
+    }
+    try {
+      localStorage.removeItem(PARTIAL_COURSE_KEY);
+    } catch {
+      // localStorage not available
+    }
+    setResumableCourseId(null);
+    setDbProgress(null);
+    setProgress(INITIAL_PROGRESS);
+    setError(null);
+  }, []);
+
   // ========================================
   // Return
   // ========================================
@@ -555,6 +578,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     regenerateChapter,
     cancel,
     reset,
+    dismissCreation,
   };
 }
 
