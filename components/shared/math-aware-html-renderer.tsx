@@ -483,53 +483,83 @@ function renderRawLatexInText(text: string): string {
 }
 
 /**
- * Join LaTeX expressions that were split across HTML line breaks or paragraph
- * boundaries. AI-generated content sometimes breaks a formula across lines,
- * e.g. `\lim\limits_{h \<br>to 0}` should be `\lim\limits_{h \to 0}`.
+ * Render math strictly — returns non-null ONLY if KaTeX fully parses
+ * the expression without errors. Used to test if an entire text block
+ * is a valid math expression.
  */
-function joinSplitLatexExpressions(html: string): string {
-  let result = normalizeLatexBackslashes(html);
-
-  // Pattern 1: backslash + <br> or </p><p> + known LaTeX command name
-  // e.g., \<br>to → \to, \<br>frac → \frac
-  result = result.replace(
-    /\\\s*(?:<br\s*\/?>|<\/p>\s*<p[^>]*>)\s*(to|infty|frac|lim|limits|int|sum|prod|sqrt|cdot|times|div|pm|leq|geq|neq|approx|equiv|left|right|text|mathrm|mathbf|alpha|beta|gamma|delta|theta|pi|sigma|mu|lambda|phi|partial|nabla|sin|cos|tan|log|ln|exp|max|min)\b/gi,
-    (_, cmd) => `\\${cmd}`
-  );
-
-  // Pattern 2: break inside an unbalanced brace group within a LaTeX expression
-  // e.g., \frac{f(a+h)<br>- f(a)}{h} → \frac{f(a+h) - f(a)}{h}
-  const breakRegex = /<br\s*\/?>|<\/p>\s*<p[^>]*>/gi;
-  let breakMatch: RegExpExecArray | null;
-  const breaks: Array<{ index: number; length: number }> = [];
-  while ((breakMatch = breakRegex.exec(result)) !== null) {
-    breaks.push({ index: breakMatch.index, length: breakMatch[0].length });
+function renderMathStrict(
+  content: string,
+  displayMode: boolean
+): string | null {
+  const decoded = decodeHtmlEntities(content.trim());
+  const normalized = normalizeMathChars(decoded);
+  const deduped = normalizeLatexBackslashes(normalized);
+  const latex = toLatex(deduped);
+  try {
+    return katex.renderToString(latex, {
+      displayMode,
+      throwOnError: true,
+      strict: "error",
+      trust: false,
+      output: "html",
+    });
+  } catch {
+    return null;
   }
+}
 
-  // Process right-to-left to preserve positions
-  for (let i = breaks.length - 1; i >= 0; i--) {
-    const { index, length } = breaks[i];
-    const lookback = Math.max(0, index - 300);
-    const beforeHtml = result.slice(lookback, index);
-    const beforeText = beforeHtml.replace(/<[^>]+>/g, "");
+/**
+ * Process raw LaTeX expressions using DOM traversal.
+ * Uses element.textContent which naturally joins text across <br> tags,
+ * solving the problem of formulas split across line breaks.
+ */
+function processRawLatexViaDom(html: string): string {
+  if (typeof window === "undefined") return html;
 
-    // Only process if there are LaTeX commands in the vicinity
-    if (!hasLatexCommands(beforeText)) continue;
+  const container = document.createElement("div");
+  container.innerHTML = html;
 
-    // Count brace depth in the preceding text
-    let braceDepth = 0;
-    for (const ch of beforeText) {
-      if (ch === "{") braceDepth++;
-      else if (ch === "}") braceDepth--;
+  const leafSelector =
+    "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th";
+  const blocks = container.querySelectorAll(leafSelector);
+
+  for (const block of Array.from(blocks)) {
+    // Only process leaf-level blocks (no nested block children)
+    if (block.querySelector(leafSelector)) continue;
+
+    // Skip blocks already containing rendered math from earlier steps
+    if (
+      block.innerHTML.includes("math-inline") ||
+      block.innerHTML.includes("katex")
+    )
+      continue;
+
+    // textContent joins text across <br> tags — this is the key fix
+    const rawText = block.textContent || "";
+    const normalized = normalizeLatexBackslashes(rawText.trim());
+
+    if (!hasLatexCommands(normalized)) continue;
+
+    // Strategy 1: Try rendering the entire block as a single math expression.
+    // Works for standalone formula paragraphs.
+    const isComplex = /\\(?:frac|int|sum|prod)\b/.test(normalized);
+    const fullRender = renderMathStrict(normalized, isComplex);
+    if (fullRender) {
+      block.innerHTML = isComplex
+        ? `<div class="my-3 overflow-x-auto">${fullRender}</div>`
+        : `<span class="math-inline">${fullRender}</span>`;
+      continue;
     }
 
-    // If we're inside a brace group, replace the break with a space
-    if (braceDepth > 0) {
-      result = result.slice(0, index) + " " + result.slice(index + length);
+    // Strategy 2: Partial rendering — find and render LaTeX fragments
+    // within mixed text+math content.
+    const partialRender = renderRawLatexInText(normalized);
+    if (partialRender !== normalized) {
+      block.innerHTML = partialRender;
     }
   }
 
-  return result;
+  return container.innerHTML;
 }
 
 /**
@@ -615,14 +645,13 @@ function processMathInHtml(html: string): string {
     }
   );
 
-  // Step 4-pre: Join LaTeX expressions split across HTML line breaks.
-  // AI content sometimes breaks a formula like \lim\limits_{h \to 0}
-  // across a <br> tag, producing \..._{h \<br>to 0} which fails.
-  result = joinSplitLatexExpressions(result);
+  // Step 4a: Process raw LaTeX via DOM traversal.
+  // element.textContent joins text across <br> tags, solving the problem
+  // of formulas split across line breaks by AI-generated content.
+  result = processRawLatexViaDom(result);
 
-  // Step 4a+4b: Process math expressions in text nodes
-  // Split by HTML tags so we only process text content, not tag attributes
-  // or already-rendered KaTeX output
+  // Step 4b: Process remaining math expressions in text nodes
+  // (Unicode symbols, ASCII math patterns like f(x), x^2, etc.)
   const parts = result.split(/(<[^>]+>)/);
   for (let i = 0; i < parts.length; i++) {
     // Skip HTML tags
@@ -630,18 +659,10 @@ function processMathInHtml(html: string): string {
     // Skip pre-block placeholders
     if (parts[i].includes("__PRE_BLOCK_")) continue;
     // Skip already-rendered KaTeX
-    if (parts[i].includes("math-inline")) continue;
+    if (parts[i].includes("math-inline") || parts[i].includes("katex"))
+      continue;
 
-    // Step 4a: First try to render raw LaTeX commands (\frac, \\lim, etc.)
-    const afterLatex = renderRawLatexInText(parts[i]);
-    if (afterLatex !== parts[i]) {
-      // Raw LaTeX was found and rendered — the text now contains HTML,
-      // so skip ASCII math processing on this part
-      parts[i] = afterLatex;
-    } else {
-      // Step 4b: renderAsciiMath handles Unicode math AND ASCII math patterns
-      parts[i] = renderAsciiMath(parts[i]);
-    }
+    parts[i] = renderAsciiMath(parts[i]);
   }
   result = parts.join("");
 
