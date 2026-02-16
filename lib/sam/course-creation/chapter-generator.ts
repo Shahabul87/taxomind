@@ -33,7 +33,13 @@ import { extractQualityFeedback, buildQualityFeedbackBlock } from './quality-fee
 import type { QualityFeedback } from './quality-feedback';
 import { buildBlueprintBlock } from './course-planner';
 import { evaluateChapterOutcome, buildAdaptiveGuidance } from './agentic-decisions';
-import { reviewChapterWithCritic } from './chapter-critic';
+import {
+  reviewChapterWithCritic,
+  reviewSectionWithCritic,
+  reviewDetailsWithCritic,
+  buildSectionCriticFeedbackBlock,
+  buildDetailsCriticFeedbackBlock,
+} from './chapter-critic';
 import { critiqueGeneration } from './self-critique';
 import { parseChapterResponse, parseSectionResponse, parseDetailsResponse } from './response-parsers';
 import {
@@ -45,7 +51,9 @@ import {
   buildFallbackSection,
   buildFallbackDetails,
   traceAICall,
+  sanitizeHtmlOutput,
 } from './helpers';
+import { retryWithQualityGate } from './retry-quality-gate';
 import type {
   CourseContext,
   GeneratedChapter,
@@ -145,101 +153,110 @@ export async function generateSingleChapter(
 
   // Quality gate: retry with feedback-driven improvement
   const s1Strategy = strategyMonitor.getStrategy(1, chNum);
-  let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
-  let s1QualityFeedback: QualityFeedback | null = null;
   const s1StartTime = Date.now();
 
-  let s1ConsecutiveDeclines = 0;
-  for (let attempt = 0; attempt <= s1Strategy.maxRetries; attempt++) {
-    const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
-    const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
-      courseContext, chNum, previousPlain, conceptTracker,
-      composedCategoryPrompt, completedChapters, experimentVariant,
-      s1TemplatePrompt,
-      recalledMemory ?? undefined,
-    );
+  const s1Retry = await retryWithQualityGate<
+    { chapter: ReturnType<typeof buildFallbackChapter>; thinking: string; qualityScore: QualityScore },
+    QualityFeedback
+  >({
+    strategy: s1Strategy,
+    buildFallback: () => ({ chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
+    executeAttempt: async (attempt, feedback) => {
+      const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
+      const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
+        courseContext, chNum, previousPlain, conceptTracker,
+        composedCategoryPrompt, completedChapters, experimentVariant,
+        s1TemplatePrompt,
+        recalledMemory ?? undefined,
+      );
 
-    // Inject blueprint guidance and adaptive guidance
-    const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
-    const adaptiveBlock = lastAgenticDecision
-      ? buildAdaptiveGuidance(lastAgenticDecision, blueprintPlan ?? { chapterPlan: [], conceptDependencies: [], bloomsStrategy: [], riskAreas: [], planConfidence: 50 }, chNum)
-      : '';
-    const bridgeBlock = context.bridgeContent
-      ? `\n\n## CONCEPT BRIDGE (From Prior Chapter)\n${context.bridgeContent}\n`
-      : '';
-    const agenticBlocks = `${blueprintBlock}${adaptiveBlock}${bridgeBlock}`;
+      const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
+      const adaptiveBlock = lastAgenticDecision
+        ? buildAdaptiveGuidance(lastAgenticDecision, blueprintPlan ?? { chapterPlan: [], conceptDependencies: [], bloomsStrategy: [], riskAreas: [], planConfidence: 50 }, chNum)
+        : '';
+      const bridgeBlock = context.bridgeContent
+        ? `\n\n## CONCEPT BRIDGE (From Prior Chapter)\n${context.bridgeContent}\n`
+        : '';
+      const agenticBlocks = `${blueprintBlock}${adaptiveBlock}${bridgeBlock}`;
 
-    const augmentedS1User = s1QualityFeedback
-      ? `${s1User}${agenticBlocks}\n\n${buildQualityFeedbackBlock(s1QualityFeedback)}`
-      : `${s1User}${agenticBlocks}`;
+      const augmentedS1User = feedback
+        ? `${s1User}${agenticBlocks}\n\n${buildQualityFeedbackBlock(feedback)}`
+        : `${s1User}${agenticBlocks}`;
 
-    const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature };
-    const s1Trace = { runId, stage: 1 as const, chapter: chNum, attempt, label: `Stage1 Ch${chNum}` };
-    let responseText: string;
-    if (enableStreamingThinking) {
-      const { fullContent } = await traceAICall(s1Trace, () => streamWithThinkingExtraction({
-        userId, ...chatParams,
-        onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
-      }));
-      responseText = fullContent;
-    } else {
-      responseText = await traceAICall(s1Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...chatParams }));
-    }
-    const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
-    const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry);
+      const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature };
+      const s1Trace = { runId, stage: 1 as const, chapter: chNum, attempt, label: `Stage1 Ch${chNum}` };
+      let responseText: string;
+      if (enableStreamingThinking) {
+        const { fullContent } = await traceAICall(s1Trace, () => streamWithThinkingExtraction({
+          userId, ...chatParams,
+          onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
+        }));
+        responseText = fullContent;
+      } else {
+        responseText = await traceAICall(s1Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...chatParams }));
+      }
+      const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
+      const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry);
 
-    const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
-    const blended = blendScores(result.qualityScore, samResult);
+      const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
+      const blended = blendScores(result.qualityScore, samResult);
 
-    const previousBest = bestResult.qualityScore.overall;
-    if (blended.overall > previousBest) {
-      bestResult = { ...result, qualityScore: blended };
-      s1ConsecutiveDeclines = 0;
-    } else {
-      s1ConsecutiveDeclines++;
-    }
-    if (blended.overall >= s1Strategy.retryThreshold || attempt === s1Strategy.maxRetries) break;
-    // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
-    if (s1ConsecutiveDeclines >= 2) {
-      logger.info('[ORCHESTRATOR] S1 retry convergence — stopping after 2 consecutive non-improvements', { chapter: chNum, bestScore: bestResult.qualityScore.overall });
-      break;
-    }
+      // Stash samResult and responseText on the result for selfCritique access
+      (result as Record<string, unknown>)._samResult = samResult;
+      (result as Record<string, unknown>)._responseText = responseText;
 
-    if (s1Strategy.enableSelfCritique) {
-      const critique = critiqueGeneration({
-        thinking: result.thinking,
-        output: responseText,
-        stage: 1,
-        bloomsLevel: result.chapter.bloomsLevel,
-        courseContext,
-        qualityScore: result.qualityScore,
-        samResult,
-        conceptTracker,
-      });
+      return { result: { ...result, qualityScore: blended }, score: blended.overall };
+    },
+    extractFeedback: (result, score, nextAttempt) => {
+      const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
+      return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+    },
+    selfCritique: s1Strategy.enableSelfCritique
+      ? async (result, score, feedback) => {
+          const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
+          const responseText = (result as Record<string, unknown>)._responseText as string;
+          const critique = await critiqueGeneration({
+            thinking: result.thinking,
+            output: responseText,
+            stage: 1,
+            bloomsLevel: result.chapter.bloomsLevel,
+            courseContext,
+            qualityScore: result.qualityScore,
+            samResult,
+            conceptTracker,
+            userId,
+            runId,
+          });
 
-      onSSEEvent?.({ type: 'self_critique', data: {
-        stage: 1, chapter: chNum, attempt: attempt + 1,
-        confidenceScore: critique.confidenceScore,
-        topImprovement: critique.topImprovements[0] ?? '',
+          onSSEEvent?.({ type: 'self_critique', data: {
+            stage: 1, chapter: chNum, attempt: feedback.attemptNumber - 1,
+            confidenceScore: critique.confidenceScore,
+            topImprovement: critique.topImprovements[0] ?? '',
+          }});
+
+          feedback.reasoningWeaknesses = critique.reasoningAnalysis.weakSteps.slice(0, 3);
+          feedback.missingStructure = critique.topImprovements.slice(0, 2);
+          return feedback;
+        }
+      : undefined,
+    onRetry: (attempt, previousScore, topIssue) => {
+      onSSEEvent?.({ type: 'quality_retry', data: {
+        stage: 1, chapter: chNum, attempt,
+        previousScore,
+        topIssue,
       }});
+    },
+  });
 
-      s1QualityFeedback = extractQualityFeedback(samResult, result.qualityScore, attempt + 2);
-      s1QualityFeedback.reasoningWeaknesses = critique.reasoningAnalysis.weakSteps.slice(0, 3);
-      s1QualityFeedback.missingStructure = critique.topImprovements.slice(0, 2);
-    } else {
-      s1QualityFeedback = extractQualityFeedback(samResult, result.qualityScore, attempt + 2);
-    }
+  const bestResult = s1Retry.bestResult;
 
-    onSSEEvent?.({ type: 'quality_retry', data: {
-      stage: 1, chapter: chNum, attempt: attempt + 1,
-      previousScore: blended.overall,
-      topIssue: s1QualityFeedback.criticalIssues[0] ?? 'Below threshold',
-    }});
-  }
+  // Detect parse errors: fallback generation indicates a parsing failure
+  const s1ParseError = bestResult.thinking.includes('Used fallback generation due to parsing error');
 
   strategyMonitor.record({
     stage: 1, chapterNumber: chNum, score: bestResult.qualityScore.overall,
-    attempt: 0, timeMs: Date.now() - s1StartTime,
+    attempt: s1Retry.attemptsUsed - 1, timeMs: Date.now() - s1StartTime,
+    parseError: s1ParseError,
   });
 
   const { chapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
@@ -265,7 +282,7 @@ export async function generateSingleChapter(
   const dbChapter = await db.chapter.create({
     data: {
       title: chapter.title,
-      description: chapter.description,
+      description: sanitizeHtmlOutput(chapter.description),
       courseGoals: chapter.learningObjectives.join('\n'),
       learningOutcomes: chapter.learningObjectives.join('\n'),
       position: chapter.position,
@@ -367,7 +384,7 @@ export async function generateSingleChapter(
           where: { id: dbChapter.id },
           data: {
             title: retryResult.chapter.title,
-            description: retryResult.chapter.description,
+            description: sanitizeHtmlOutput(retryResult.chapter.description),
             courseGoals: retryResult.chapter.learningObjectives.join('\n'),
             learningOutcomes: retryResult.chapter.learningObjectives.join('\n'),
             estimatedTime: retryResult.chapter.estimatedTime,
@@ -475,67 +492,136 @@ export async function generateSingleChapter(
     // Quality gate: retry with feedback-driven improvement
     const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
     const s2Strategy = strategyMonitor.getStrategy(2, chNum);
-    let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) };
-    let s2QualityFeedback: QualityFeedback | null = null;
     const s2StartTime = Date.now();
 
-    let s2ConsecutiveDeclines = 0;
-    for (let attempt = 0; attempt <= s2Strategy.maxRetries; attempt++) {
-      const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+    const s2Retry = await retryWithQualityGate<
+      { section: ReturnType<typeof buildFallbackSection>; thinking: string; qualityScore: QualityScore },
+      QualityFeedback
+    >({
+      strategy: s2Strategy,
+      buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
+      executeAttempt: async (attempt, feedback) => {
+        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+        const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
 
-      const augmentedS2User = s2QualityFeedback
-        ? `${s2User}\n\n${buildQualityFeedbackBlock(s2QualityFeedback)}`
-        : s2User;
+        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
+        const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
+        let s2ResponseText: string;
+        if (enableStreamingThinking) {
+          const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
+            userId, ...s2ChatParams,
+            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
+          }));
+          s2ResponseText = fullContent;
+        } else {
+          s2ResponseText = await traceAICall(s2Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams }));
+        }
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
 
-      const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
-      const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
-      let s2ResponseText: string;
-      if (enableStreamingThinking) {
-        const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
-          userId, ...s2ChatParams,
-          onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
-        }));
-        s2ResponseText = fullContent;
-      } else {
-        s2ResponseText = await traceAICall(s2Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams }));
-      }
-      const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
+        const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
+        const blendedSec = blendScores(result.qualityScore, samSecResult);
+        (result as Record<string, unknown>)._samResult = samSecResult;
 
-      const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
-      const blendedSec = blendScores(result.qualityScore, samSecResult);
+        return { result: { ...result, qualityScore: blendedSec }, score: blendedSec.overall };
+      },
+      extractFeedback: (result, _score, nextAttempt) => {
+        const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
+        return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+      },
+      onRetry: (attempt, previousScore, topIssue) => {
+        onSSEEvent?.({ type: 'quality_retry', data: {
+          stage: 2, chapter: chNum, section: secNum, attempt, previousScore, topIssue,
+        }});
+      },
+    });
 
-      const previousBestSec = bestSec.qualityScore.overall;
-      if (blendedSec.overall > previousBestSec) {
-        bestSec = { ...result, qualityScore: blendedSec };
-        s2ConsecutiveDeclines = 0;
-      } else {
-        s2ConsecutiveDeclines++;
-      }
-      if (blendedSec.overall >= s2Strategy.retryThreshold || attempt === s2Strategy.maxRetries) break;
-      // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
-      if (s2ConsecutiveDeclines >= 2) {
-        logger.info('[ORCHESTRATOR] S2 retry convergence — stopping', { chapter: chNum, section: secNum, bestScore: bestSec.qualityScore.overall });
-        break;
-      }
+    const bestSec = s2Retry.bestResult;
 
-      s2QualityFeedback = extractQualityFeedback(samSecResult, result.qualityScore, attempt + 2);
-
-      onSSEEvent?.({ type: 'quality_retry', data: {
-        stage: 2, chapter: chNum, section: secNum, attempt: attempt + 1,
-        previousScore: blendedSec.overall,
-        topIssue: s2QualityFeedback.criticalIssues[0] ?? 'Below threshold',
-      }});
-    }
+    const s2ParseError = bestSec.thinking.includes('Used fallback generation due to parsing error');
 
     strategyMonitor.record({
       stage: 2, chapterNumber: chNum, sectionNumber: secNum,
-      score: bestSec.qualityScore.overall, attempt: 0, timeMs: Date.now() - s2StartTime,
+      score: bestSec.qualityScore.overall, attempt: s2Retry.attemptsUsed - 1,
+      timeMs: Date.now() - s2StartTime, parseError: s2ParseError,
     });
 
-    const { section, thinking: secThinking } = bestSec;
+    let { section, thinking: secThinking } = bestSec;
     section.templateRole = templateSectionDef?.role;
 
-    const secQuality = bestSec.qualityScore;
+    let secQuality = bestSec.qualityScore;
+
+    // ===================================================================
+    // MULTI-AGENT CRITIC: Review Stage 2 output (borderline quality only)
+    // ===================================================================
+    try {
+      const previousPlainSectionsForCritic = chapterSections.map((s) => stripId(s));
+      const sectionCriticReview = await reviewSectionWithCritic({
+        userId,
+        section,
+        chapter: chapterPlain,
+        priorSections: previousPlainSectionsForCritic,
+        qualityScore: secQuality.overall,
+        courseContext,
+        runId,
+      });
+
+      if (sectionCriticReview) {
+        onSSEEvent?.({
+          type: 'critic_review',
+          data: {
+            stage: 2, chapter: chNum, section: secNum,
+            verdict: sectionCriticReview.verdict,
+            confidence: sectionCriticReview.confidence,
+            improvements: sectionCriticReview.actionableImprovements.length,
+          },
+        });
+
+        if (sectionCriticReview.verdict === 'revise' && sectionCriticReview.actionableImprovements.length > 0) {
+          const criticFeedback = buildSectionCriticFeedbackBlock(sectionCriticReview);
+          const s2RetryStrategy = strategyMonitor.getStrategy(2, chNum);
+          const s2CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
+          const { systemPrompt: s2CriticSystem, userPrompt: s2CriticUser } = buildStage2Prompt(
+            courseContext, chapterPlain, secNum, previousPlainSectionsForCritic, allSectionTitles,
+            enrichedContext, chapterCategoryPrompt, experimentVariant, s2CriticTemplatePrompt,
+            recalledMemory ?? undefined,
+          );
+          const augmentedCriticUser = `${s2CriticUser}${criticFeedback}`;
+
+          const s2CriticResponse = await traceAICall(
+            { runId, stage: 2, chapter: chNum, section: secNum, label: `Stage2 Ch${chNum}S${secNum} critic-retry` },
+            () => runSAMChatWithPreference({
+              userId,
+              capability: 'course',
+              messages: [{ role: 'user', content: augmentedCriticUser }],
+              systemPrompt: s2CriticSystem,
+              maxTokens: s2RetryStrategy.maxTokens,
+              temperature: s2RetryStrategy.temperature,
+            }),
+          );
+          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef);
+          const criticSam = await validateSectionWithSAM(criticResult.section, criticResult.qualityScore, courseContext);
+          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
+
+          if (criticBlended.overall > secQuality.overall) {
+            section = criticResult.section;
+            section.templateRole = templateSectionDef?.role;
+            secQuality = criticBlended;
+            logger.info('[ORCHESTRATOR] Section critic revision accepted', {
+              chapter: chNum, section: secNum,
+              improvement: criticBlended.overall - bestSec.qualityScore.overall,
+            });
+          }
+
+          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2-critic-retry' });
+        }
+      }
+    } catch (sectionCriticError) {
+      logger.warn('[ORCHESTRATOR] Section critic review failed, proceeding with original', {
+        chapter: chNum, section: secNum,
+        error: sectionCriticError instanceof Error ? sectionCriticError.message : String(sectionCriticError),
+      });
+    }
+
     secQuality.chapterNumber = chNum;
     secQuality.stage = 2;
     localQualityScores.push(secQuality);
@@ -628,83 +714,142 @@ export async function generateSingleChapter(
     const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
     const s3TemplateDef = selectedSections[section.position - 1];
     const s3Strategy = strategyMonitor.getStrategy(3, chNum);
-    let bestDet = {
-      details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef),
-      thinking: '',
-      qualityScore: buildDefaultQualityScore(50),
-    };
-    let s3QualityFeedback: QualityFeedback | null = null;
     const s3StartTime = Date.now();
 
-    let s3ConsecutiveDeclines = 0;
-    for (let attempt = 0; attempt <= s3Strategy.maxRetries; attempt++) {
-      const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
-        courseContext,
-        chapter: chapterPlain,
-        section: sectionPlain,
-        chapterSections: allChapterSectionsPlain,
-        enrichedContext,
-        categoryPrompt: chapterCategoryPrompt,
-        variant: experimentVariant,
-        templatePrompt: s3TemplatePrompt,
-        completedSections: completedSections.slice(0, secIdx),
-        recalledMemory: recalledMemory ?? undefined,
-        bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
-      });
+    const s3Retry = await retryWithQualityGate<
+      { details: ReturnType<typeof buildFallbackDetails>; thinking: string; qualityScore: QualityScore },
+      QualityFeedback
+    >({
+      strategy: s3Strategy,
+      buildFallback: () => ({ details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
+      executeAttempt: async (attempt, feedback) => {
+        const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
+          courseContext, chapter: chapterPlain, section: sectionPlain,
+          chapterSections: allChapterSectionsPlain, enrichedContext,
+          categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
+          templatePrompt: s3TemplatePrompt, completedSections: completedSections.slice(0, secIdx),
+          recalledMemory: recalledMemory ?? undefined,
+          bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
+        });
+        const augmentedS3User = feedback ? `${s3User}\n\n${buildQualityFeedbackBlock(feedback)}` : s3User;
 
-      const augmentedS3User = s3QualityFeedback
-        ? `${s3User}\n\n${buildQualityFeedbackBlock(s3QualityFeedback)}`
-        : s3User;
+        const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature };
+        const s3Trace = { runId, stage: 3 as const, chapter: chNum, section: section.position, attempt, label: `Stage3 Ch${chNum}S${section.position}` };
+        let s3ResponseText: string;
+        if (enableStreamingThinking) {
+          const { fullContent } = await traceAICall(s3Trace, () => streamWithThinkingExtraction({
+            userId, ...s3ChatParams,
+            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
+          }));
+          s3ResponseText = fullContent;
+        } else {
+          s3ResponseText = await traceAICall(s3Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams }));
+        }
+        const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
 
-      const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature };
-      const s3Trace = { runId, stage: 3 as const, chapter: chNum, section: section.position, attempt, label: `Stage3 Ch${chNum}S${section.position}` };
-      let s3ResponseText: string;
-      if (enableStreamingThinking) {
-        const { fullContent } = await traceAICall(s3Trace, () => streamWithThinkingExtraction({
-          userId, ...s3ChatParams,
-          onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
-        }));
-        s3ResponseText = fullContent;
-      } else {
-        s3ResponseText = await traceAICall(s3Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams }));
-      }
-      const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
+        const samDetResult = await validateDetailsWithSAM(result.details, sectionPlain, chapterPlain.bloomsLevel, result.qualityScore, courseContext);
+        const blendedDet = blendScores(result.qualityScore, samDetResult);
+        (result as Record<string, unknown>)._samResult = samDetResult;
 
-      const samDetResult = await validateDetailsWithSAM(
-        result.details, sectionPlain, chapterPlain.bloomsLevel, result.qualityScore, courseContext
-      );
-      const blendedDet = blendScores(result.qualityScore, samDetResult);
+        return { result: { ...result, qualityScore: blendedDet }, score: blendedDet.overall };
+      },
+      extractFeedback: (result, _score, nextAttempt) => {
+        const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
+        return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+      },
+      onRetry: (attempt, previousScore, topIssue) => {
+        onSSEEvent?.({ type: 'quality_retry', data: {
+          stage: 3, chapter: chNum, section: section.position, attempt, previousScore, topIssue,
+        }});
+      },
+    });
 
-      const previousBestDet = bestDet.qualityScore.overall;
-      if (blendedDet.overall > previousBestDet) {
-        bestDet = { ...result, qualityScore: blendedDet };
-        s3ConsecutiveDeclines = 0;
-      } else {
-        s3ConsecutiveDeclines++;
-      }
-      if (blendedDet.overall >= s3Strategy.retryThreshold || attempt === s3Strategy.maxRetries) break;
-      // Convergence guard: stop retrying if 2 consecutive attempts failed to improve
-      if (s3ConsecutiveDeclines >= 2) {
-        logger.info('[ORCHESTRATOR] S3 retry convergence — stopping', { chapter: chNum, section: section.position, bestScore: bestDet.qualityScore.overall });
-        break;
-      }
+    const bestDet = s3Retry.bestResult;
 
-      s3QualityFeedback = extractQualityFeedback(samDetResult, result.qualityScore, attempt + 2);
-
-      onSSEEvent?.({ type: 'quality_retry', data: {
-        stage: 3, chapter: chNum, section: section.position, attempt: attempt + 1,
-        previousScore: blendedDet.overall,
-        topIssue: s3QualityFeedback.criticalIssues[0] ?? 'Below threshold',
-      }});
-    }
+    const s3ParseError = bestDet.thinking.includes('Used fallback generation due to parsing error');
 
     strategyMonitor.record({
       stage: 3, chapterNumber: chNum, sectionNumber: section.position,
-      score: bestDet.qualityScore.overall, attempt: 0, timeMs: Date.now() - s3StartTime,
+      score: bestDet.qualityScore.overall, attempt: s3Retry.attemptsUsed - 1,
+      timeMs: Date.now() - s3StartTime, parseError: s3ParseError,
     });
 
-    const { details, thinking: detThinking } = bestDet;
-    const detQuality = bestDet.qualityScore;
+    let { details, thinking: detThinking } = bestDet;
+    let detQuality = bestDet.qualityScore;
+
+    // ===================================================================
+    // MULTI-AGENT CRITIC: Review Stage 3 output (borderline quality only)
+    // ===================================================================
+    try {
+      const detailsCriticReview = await reviewDetailsWithCritic({
+        userId,
+        details,
+        section: sectionPlain,
+        chapter: chapterPlain,
+        qualityScore: detQuality.overall,
+        courseContext,
+        runId,
+      });
+
+      if (detailsCriticReview) {
+        onSSEEvent?.({
+          type: 'critic_review',
+          data: {
+            stage: 3, chapter: chNum, section: section.position,
+            verdict: detailsCriticReview.verdict,
+            confidence: detailsCriticReview.confidence,
+            improvements: detailsCriticReview.actionableImprovements.length,
+          },
+        });
+
+        if (detailsCriticReview.verdict === 'revise' && detailsCriticReview.actionableImprovements.length > 0) {
+          const criticFeedback = buildDetailsCriticFeedbackBlock(detailsCriticReview);
+          const s3RetryStrategy = strategyMonitor.getStrategy(3, chNum);
+          const s3CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
+          const s3CriticTemplateDef = selectedSections[section.position - 1];
+          const { systemPrompt: s3CriticSystem, userPrompt: s3CriticUser } = buildStage3Prompt({
+            courseContext, chapter: chapterPlain, section: sectionPlain,
+            chapterSections: allChapterSectionsPlain, enrichedContext,
+            categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
+            templatePrompt: s3CriticTemplatePrompt, completedSections: completedSections.slice(0, secIdx),
+            recalledMemory: recalledMemory ?? undefined,
+          });
+          const augmentedCriticUser = `${s3CriticUser}${criticFeedback}`;
+
+          const s3CriticResponse = await traceAICall(
+            { runId, stage: 3, chapter: chNum, section: section.position, label: `Stage3 Ch${chNum}S${section.position} critic-retry` },
+            () => runSAMChatWithPreference({
+              userId,
+              capability: 'course',
+              messages: [{ role: 'user', content: augmentedCriticUser }],
+              systemPrompt: s3CriticSystem,
+              maxTokens: s3RetryStrategy.maxTokens,
+              temperature: s3RetryStrategy.temperature,
+            }),
+          );
+          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3CriticTemplateDef);
+          const criticSam = await validateDetailsWithSAM(criticResult.details, sectionPlain, chapterPlain.bloomsLevel, criticResult.qualityScore, courseContext);
+          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
+
+          if (criticBlended.overall > detQuality.overall) {
+            details = criticResult.details;
+            detQuality = criticBlended;
+            logger.info('[ORCHESTRATOR] Details critic revision accepted', {
+              chapter: chNum, section: section.position,
+              improvement: criticBlended.overall - bestDet.qualityScore.overall,
+            });
+          }
+
+          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3-critic-retry' });
+        }
+      }
+    } catch (detailsCriticError) {
+      logger.warn('[ORCHESTRATOR] Details critic review failed, proceeding with original', {
+        chapter: chNum, section: section.position,
+        error: detailsCriticError instanceof Error ? detailsCriticError.message : String(detailsCriticError),
+      });
+    }
+
     detQuality.chapterNumber = chNum;
     detQuality.stage = 3;
     localQualityScores.push(detQuality);
@@ -727,10 +872,10 @@ export async function generateSingleChapter(
     await db.section.update({
       where: { id: section.id },
       data: {
-        description: details.description,
+        description: sanitizeHtmlOutput(details.description),
         learningObjectives: details.learningObjectives.join('\n'),
         resourceUrls: details.resources?.join('\n') ?? null,
-        practicalActivity: details.practicalActivity || null,
+        practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
         keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
       },
     });

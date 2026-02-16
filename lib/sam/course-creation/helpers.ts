@@ -5,6 +5,7 @@
  * Includes: parsing, normalization, quality scoring, fallback generators, and validators.
  */
 
+import DOMPurify from 'isomorphic-dompurify';
 import {
   validateObjective,
 } from '@/lib/sam/prompts/content-generation-criteria';
@@ -61,6 +62,41 @@ export function sanitizeCourseContext(ctx: CourseContext): CourseContext {
     ),
     courseIntent: ctx.courseIntent ? sanitizeForPrompt(ctx.courseIntent, 500) : undefined,
   };
+}
+
+// =============================================================================
+// OUTPUT SANITIZATION (XSS Defense-in-Depth)
+// =============================================================================
+
+/** Allowed HTML tags for AI-generated course content (matches frontend MathAwareHtmlRenderer) */
+const ALLOWED_TAGS = [
+  'p', 'br', 'strong', 'b', 'i', 'em', 'u',
+  'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'a', 'blockquote', 'code', 'pre',
+  'span', 'div', 'sub', 'sup',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+];
+
+/** Allowed HTML attributes for AI-generated course content */
+const ALLOWED_ATTR = ['href', 'target', 'rel', 'class', 'style'];
+
+/**
+ * Sanitize AI-generated HTML before writing to the database.
+ *
+ * Defense-in-depth: even though the frontend also sanitizes on render,
+ * this prevents stored XSS from persisting in the DB. Uses the same
+ * tag/attribute whitelist as the frontend&apos;s MathAwareHtmlRenderer.
+ *
+ * Returns the input unchanged if it is empty/falsy.
+ */
+export function sanitizeHtmlOutput(html: string): string {
+  if (!html) return html;
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+  });
 }
 
 // =============================================================================
@@ -138,7 +174,7 @@ export function jaccardSimilarity(a: string, b: string): number {
 /** Trace metadata for structured AI call logging */
 export interface AICallTrace {
   runId?: string;
-  stage: 1 | 2 | 3 | 'plan' | 'critic' | 'heal' | 'reflect' | 'decision' | 'bridge';
+  stage: 1 | 2 | 3 | 'plan' | 'critic' | 'section-critic' | 'details-critic' | 'heal' | 'reflect' | 'decision' | 'bridge';
   chapter?: number;
   section?: number;
   attempt?: number;

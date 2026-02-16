@@ -70,7 +70,7 @@ export { reflectOnCourse, reflectOnCourseWithAI } from './course-reflector';
 export { runHealingLoop, diagnoseChapterIssues } from './healing-loop';
 
 // Chapter Critic (Multi-Agent Review)
-export { reviewChapterWithCritic, registerCriticAgent } from './chapter-critic';
+export { reviewChapterWithCritic } from './chapter-critic';
 export type { CriticVerdict, ChapterCritique } from './chapter-critic';
 
 // Dynamic Section Selection

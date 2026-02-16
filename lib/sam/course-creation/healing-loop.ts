@@ -211,9 +211,10 @@ export async function runHealingLoop(
             result = await regenerateDetailsOnly(regenOptions);
             break;
           case 'targeted_sections':
-            // Targeted sections falls back to sections_only
-            // (full targeted regeneration would need per-section API, keep simple)
-            result = await regenerateSectionsOnly(regenOptions);
+            result = await regenerateSectionsOnly({
+              ...regenOptions,
+              targetSectionPositions: strategy.targetSections,
+            });
             break;
           case 'full_regeneration':
           default:

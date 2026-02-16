@@ -1,21 +1,20 @@
 /**
  * Self-Critique & Reasoning Analysis for Agentic Course Creation
  *
- * Analyzes the AI's "thinking" text and output against the structured
- * thinking steps defined in prompts, WITHOUT making additional AI calls.
- *
- * Pure text analysis:
- * 1. Parses thinking for structured step headers
- * 2. Checks ARROW framework keyword coverage
- * 3. Checks concept tracker references
- * 4. Maps quality score dimensions to identify weak areas
- * 5. Produces actionable improvements for the quality feedback loop
+ * Two-tier critique system:
+ * 1. AI-powered critique (primary): Uses a fast AI call to semantically evaluate
+ *    reasoning quality, ARROW framework depth, and pedagogical reasoning.
+ * 2. Rule-based critique (fallback): Pure text analysis when AI is unavailable
+ *    or times out. Checks keyword coverage and structured step headers.
  *
  * Only runs when quality score < QUALITY_RETRY_THRESHOLD. Successful
  * generations skip critique entirely.
  */
 
+import 'server-only';
+
 import { logger } from '@/lib/logger';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import type { QualityScore, BloomsLevel, CourseContext, ConceptTracker } from './types';
 import type { SAMValidationResult } from './quality-integration';
 
@@ -93,6 +92,46 @@ const ARROW_PHASES = [
 /** Minimum thinking length (chars) per step to consider it non-shallow */
 const MIN_STEP_DEPTH = 30;
 
+/** Timeout for AI critique call (ms) */
+const AI_CRITIQUE_TIMEOUT_MS = 6_000;
+
+/** Max chars of thinking text to send to AI critique (token efficiency) */
+const MAX_THINKING_CHARS = 1500;
+
+/** Max chars of output text to send to AI critique */
+const MAX_OUTPUT_CHARS = 800;
+
+// ============================================================================
+// AI Critique Persona
+// ============================================================================
+
+const SELF_CRITIQUE_PERSONA = `You are a REASONING QUALITY EVALUATOR for an AI course generator.
+
+Your job: evaluate HOW WELL the generator reasoned through the task, not the final content quality (that's scored separately).
+
+## What to Evaluate
+
+1. **Structured Thinking Quality**: Did the generator follow the expected thinking steps? Were steps superficial or genuinely analytical?
+2. **ARROW Framework Depth**: Did reasoning engage with ARROW phases (Application, Reverse-Engineer, Intuition, Formalization, Failure Analysis) substantively, or just mention keywords?
+3. **Pedagogical Reasoning**: Did the generator reason about learner cognition, prerequisite flow, Bloom's alignment, and concept progression — or just produce content?
+
+## Response Format
+
+Return ONLY JSON (no markdown fences):
+{
+  "weakSteps": ["<step that was shallow or missing>", ...],
+  "topImprovements": ["<specific actionable improvement>", ...],
+  "confidenceScore": <0-100>,
+  "shouldRetry": <true|false>
+}
+
+- weakSteps: max 3, name the specific thinking step that was weak
+- topImprovements: max 3, concrete and actionable (not vague)
+- confidenceScore: your confidence in the reasoning quality (NOT content quality)
+- shouldRetry: true if reasoning was superficial enough to warrant re-generation
+
+Be concise. Focus on reasoning process, not content.`;
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -100,10 +139,147 @@ const MIN_STEP_DEPTH = 30;
 /**
  * Analyze a generation result's thinking + output.
  *
- * Pure text analysis — NO additional AI calls.
+ * Tries AI-powered critique first (6s timeout), falls back to rule-based.
  * Returns actionable critique for the quality feedback loop.
  */
-export function critiqueGeneration(params: {
+export async function critiqueGeneration(params: {
+  thinking: string;
+  output: string;
+  stage: 1 | 2 | 3;
+  bloomsLevel: BloomsLevel;
+  courseContext: CourseContext;
+  qualityScore: QualityScore;
+  samResult: SAMValidationResult;
+  conceptTracker?: ConceptTracker;
+  userId?: string;
+  runId?: string;
+}): Promise<GenerationCritique> {
+  const { thinking, output, stage, bloomsLevel, qualityScore, samResult, conceptTracker, userId, runId } = params;
+
+  // Try AI-powered critique if userId is available
+  if (userId) {
+    try {
+      const aiCritique = await withTimeout(
+        doAICritique(userId, thinking, output, stage, bloomsLevel, qualityScore, runId),
+        AI_CRITIQUE_TIMEOUT_MS,
+      );
+
+      logger.debug('[SelfCritique] AI critique complete', {
+        stage,
+        confidenceScore: aiCritique.confidenceScore,
+        weakStepsCount: aiCritique.reasoningAnalysis.weakSteps.length,
+        shouldRetry: aiCritique.shouldRetry,
+        source: 'ai',
+      });
+
+      return aiCritique;
+    } catch (error) {
+      logger.warn('[SelfCritique] AI critique failed, using rule-based fallback', {
+        stage,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // Fallback to rule-based critique
+  return critiqueGenerationRuleBased({ thinking, output, stage, bloomsLevel, courseContext, qualityScore, samResult, conceptTracker });
+}
+
+// ============================================================================
+// AI-Powered Critique
+// ============================================================================
+
+async function doAICritique(
+  userId: string,
+  thinking: string,
+  output: string,
+  stage: 1 | 2 | 3,
+  bloomsLevel: BloomsLevel,
+  qualityScore: QualityScore,
+  runId?: string,
+): Promise<GenerationCritique> {
+  // Truncate inputs for token efficiency
+  const truncatedThinking = thinking.length > MAX_THINKING_CHARS
+    ? thinking.slice(0, MAX_THINKING_CHARS) + '...[truncated]'
+    : thinking;
+  const truncatedOutput = output.length > MAX_OUTPUT_CHARS
+    ? output.slice(0, MAX_OUTPUT_CHARS) + '...[truncated]'
+    : output;
+
+  const expectedSteps = EXPECTED_STEPS[stage];
+
+  const userPrompt = `## Generation to Critique
+
+**Stage**: ${stage} | **Bloom's Level**: ${bloomsLevel}
+**Quality Score**: overall=${qualityScore.overall}, blooms=${qualityScore.bloomsAlignment}, specificity=${qualityScore.specificity}, depth=${qualityScore.depth}
+
+**Expected Thinking Steps**: ${expectedSteps.join(', ')}
+
+### Generator's Thinking:
+${truncatedThinking || '(no thinking captured)'}
+
+### Generator's Output Summary:
+${truncatedOutput || '(no output captured)'}
+
+Evaluate the reasoning quality and return your critique as JSON.`;
+
+  const responseText = await runSAMChatWithPreference({
+    userId,
+    capability: 'analysis',
+    messages: [{ role: 'user', content: userPrompt }],
+    systemPrompt: SELF_CRITIQUE_PERSONA,
+    maxTokens: 600,
+    temperature: 0.3,
+  });
+
+  if (runId) {
+    logger.debug('[SelfCritique] AI call traced', { runId, stage });
+  }
+
+  return parseAICritiqueResponse(responseText, qualityScore);
+}
+
+function parseAICritiqueResponse(responseText: string, qualityScore: QualityScore): GenerationCritique {
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No JSON found in AI critique response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+
+  const weakSteps = Array.isArray(parsed.weakSteps)
+    ? (parsed.weakSteps as unknown[]).map(String).slice(0, 3)
+    : [];
+
+  const topImprovements = Array.isArray(parsed.topImprovements)
+    ? (parsed.topImprovements as unknown[]).map(String).slice(0, 3)
+    : [];
+
+  const confidenceScore = Math.max(0, Math.min(100, Number(parsed.confidenceScore) || 50));
+  const shouldRetry = parsed.shouldRetry === true || confidenceScore < 50 || qualityScore.overall < 55;
+
+  return {
+    reasoningAnalysis: {
+      followedStructuredThinking: weakSteps.length <= 1,
+      weakSteps,
+      referencedPriorConcepts: false, // AI critique doesn't track this
+      arrowPhasesCovered: [], // AI critique evaluates holistically instead
+    },
+    topImprovements,
+    confidenceScore,
+    shouldRetry,
+  };
+}
+
+// ============================================================================
+// Rule-Based Critique (Fallback)
+// ============================================================================
+
+/**
+ * Rule-based critique: Pure text analysis without AI calls.
+ * Used as fallback when AI critique is unavailable.
+ */
+function critiqueGenerationRuleBased(params: {
   thinking: string;
   output: string;
   stage: 1 | 2 | 3;
@@ -162,19 +338,20 @@ export function critiqueGeneration(params: {
     shouldRetry,
   };
 
-  logger.debug('[SelfCritique] Generation critique complete', {
+  logger.debug('[SelfCritique] Rule-based critique complete', {
     stage,
     confidenceScore,
     weakStepsCount: stepAnalysis.weakSteps.length,
     arrowPhasesCovered: arrowCoverage.length,
     shouldRetry,
+    source: 'rule-based',
   });
 
   return critique;
 }
 
 // ============================================================================
-// Internal Analysis Functions
+// Internal Analysis Functions (used by rule-based fallback)
 // ============================================================================
 
 interface StepAnalysis {
@@ -351,4 +528,17 @@ function calculateConfidence(
   score += Math.round((qualityScore.overall / 100) * 50);
 
   return Math.min(100, Math.max(0, score));
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Self-critique timed out after ${ms}ms`)), ms);
+    promise
+      .then(result => { clearTimeout(timer); resolve(result); })
+      .catch(err => { clearTimeout(timer); reject(err); });
+  });
 }

@@ -251,6 +251,8 @@ export interface CreationProgress {
     itemsCompleted: number;
     totalItems: number;
   };
+  /** Quality flags from agentic flag_for_review decisions */
+  qualityFlags?: CourseQualityFlag[];
 }
 
 // ============================================================================
@@ -271,6 +273,7 @@ export type SSEEventType =
   // Agentic events (Phase 2+)
   | 'state_change'
   | 'agentic_decision'
+  | 'quality_flag'
   | 'replan_start'
   | 'replan_complete'
   // Healing events (Phase 3)
@@ -540,6 +543,17 @@ export interface AgenticDecision {
     /** Bridge content for inject_bridge_content action */
     bridgeContent?: string;
   };
+}
+
+/** Quality flag persisted to the Course record when flag_for_review fires */
+export interface CourseQualityFlag {
+  chapterPosition: number;
+  chapterTitle: string;
+  reason: string;
+  severity: 'low' | 'medium' | 'high';
+  action: 'auto_healed' | 'pending_review';
+  healingStrategy?: string;
+  timestamp: string;
 }
 
 /** AI-driven decision response from LLM reasoning */

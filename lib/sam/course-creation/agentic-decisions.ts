@@ -14,6 +14,7 @@
  * for audit trail purposes.
  */
 
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { traceAICall } from './helpers';
 import type {
@@ -27,6 +28,7 @@ import type {
   CompletedChapter,
   BloomsLevel,
   CourseContext,
+  CourseQualityFlag,
 } from './types';
 import { BLOOMS_LEVELS } from './types';
 import type { AdaptiveStrategyMonitor } from './adaptive-strategy';
@@ -287,6 +289,52 @@ export function applyAgenticDecision(
     hasPayload: !!decision.actionPayload,
     healingQueueSize: healingQueue.length,
   });
+}
+
+/**
+ * Persist a quality flag to the Course record in the database.
+ *
+ * Reads existing qualityFlags, deduplicates by chapterPosition (replaces
+ * older flag for the same chapter), appends the new flag, and updates
+ * the Course. Fire-and-forget — callers should catch errors.
+ */
+export async function persistQualityFlag(
+  courseId: string,
+  flag: CourseQualityFlag,
+): Promise<void> {
+  try {
+    const course = await db.course.findUnique({
+      where: { id: courseId },
+      select: { qualityFlags: true },
+    });
+
+    const existing = Array.isArray(course?.qualityFlags)
+      ? (course.qualityFlags as CourseQualityFlag[])
+      : [];
+
+    // Deduplicate: replace older flag for the same chapter position
+    const filtered = existing.filter(
+      (f) => f.chapterPosition !== flag.chapterPosition,
+    );
+    filtered.push(flag);
+
+    await db.course.update({
+      where: { id: courseId },
+      data: { qualityFlags: filtered },
+    });
+
+    logger.info('[AgenticDecisions] Quality flag persisted', {
+      courseId,
+      chapterPosition: flag.chapterPosition,
+      action: flag.action,
+      severity: flag.severity,
+    });
+  } catch (error) {
+    logger.warn('[AgenticDecisions] Failed to persist quality flag', {
+      courseId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**

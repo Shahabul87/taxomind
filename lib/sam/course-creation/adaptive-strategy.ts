@@ -91,8 +91,11 @@ const CONSECUTIVE_HIGH_BEFORE_BOOST = 5;
 /** High quality threshold for boosting temperature */
 const HIGH_QUALITY_THRESHOLD = 80;
 
-/** Parse errors in recent window before reducing tokens */
-const PARSE_ERRORS_BEFORE_REDUCE = 2;
+/** Parse errors in recent window before adapting tokens */
+const PARSE_ERRORS_BEFORE_ADAPT = 2;
+
+/** Consistent low-quality + high-retry pattern before shrinking tokens */
+const OVERSIZED_PATTERN_WINDOW = 5;
 
 /** How many times all retries were exhausted before increasing max retries */
 const EXHAUSTED_RETRIES_BEFORE_INCREASE = 2;
@@ -305,16 +308,30 @@ export class AdaptiveStrategyMonitor {
 
   /**
    * Rule 4: Token adaptation
-   * - 2+ parsing errors in last 5 → reduce maxTokens by 10%
+   * - 2+ parsing errors in last 5 → INCREASE maxTokens (truncation needs more space)
+   * - Consistent low-quality + high-retry + NO parse errors → DECREASE (oversized responses)
    */
   private adaptTokens(): void {
-    const recentWithErrors = this.history.slice(-5);
-    const parseErrorCount = recentWithErrors.filter(p => p.parseError).length;
+    const recent = this.history.slice(-OVERSIZED_PATTERN_WINDOW);
+    const parseErrorCount = recent.filter(p => p.parseError).length;
 
-    if (parseErrorCount >= PARSE_ERRORS_BEFORE_REDUCE) {
-      // Reduce from current — tracked per-stage in getMaxTokens
-      this.lastAdaptationReason = `Parse errors detected (${parseErrorCount}/5) — reducing token limits`;
-      this.logAdaptation('maxTokens', 'reduced');
+    if (parseErrorCount >= PARSE_ERRORS_BEFORE_ADAPT) {
+      this.lastAdaptationReason = `Parse errors detected (${parseErrorCount}/${recent.length}) — increasing token limits to prevent truncation`;
+      this.logAdaptation('maxTokens', 'increased');
+      return;
+    }
+
+    // Oversized pattern: low quality + high retries + no parse errors
+    // Suggests the model is producing verbose but low-quality output
+    if (recent.length >= OVERSIZED_PATTERN_WINDOW) {
+      const avgScore = this.getAverageScore(recent);
+      const avgAttempts = recent.reduce((sum, p) => sum + p.attempt, 0) / recent.length;
+      const hasParseErrors = recent.some(p => p.parseError);
+
+      if (avgScore < LOW_QUALITY_THRESHOLD && avgAttempts >= 1 && !hasParseErrors) {
+        this.lastAdaptationReason = `Oversized pattern detected (avg score ${Math.round(avgScore)}, avg attempts ${avgAttempts.toFixed(1)}) — reducing token limits`;
+        this.logAdaptation('maxTokens', 'reduced');
+      }
     }
   }
 
@@ -336,14 +353,26 @@ export class AdaptiveStrategyMonitor {
     }
   }
 
-  /** Get max tokens for a specific stage, considering parse error adaptation */
+  /** Get max tokens for a specific stage, considering parse error and oversized adaptation */
   private getMaxTokens(stage: 1 | 2 | 3): number {
     const limits = STAGE_TOKEN_LIMITS[stage];
-    const recentWithErrors = this.history.slice(-5);
-    const parseErrorCount = recentWithErrors.filter(p => p.parseError).length;
+    const recent = this.history.slice(-OVERSIZED_PATTERN_WINDOW);
+    const parseErrorCount = recent.filter(p => p.parseError).length;
 
-    if (parseErrorCount >= PARSE_ERRORS_BEFORE_REDUCE) {
-      return Math.max(limits.min, Math.round(limits.default * 0.9));
+    // Parse errors → INCREASE tokens (truncation needs more space)
+    if (parseErrorCount >= PARSE_ERRORS_BEFORE_ADAPT) {
+      return Math.min(limits.max, Math.round(limits.default * 1.15));
+    }
+
+    // Oversized pattern → DECREASE tokens (verbose low-quality output)
+    if (recent.length >= OVERSIZED_PATTERN_WINDOW) {
+      const avgScore = this.getAverageScore(recent);
+      const avgAttempts = recent.reduce((sum, p) => sum + p.attempt, 0) / recent.length;
+      const hasParseErrors = recent.some(p => p.parseError);
+
+      if (avgScore < LOW_QUALITY_THRESHOLD && avgAttempts >= 1 && !hasParseErrors) {
+        return Math.max(limits.min, Math.round(limits.default * 0.9));
+      }
     }
 
     return limits.default;

@@ -36,6 +36,12 @@ import type { ComposedCategoryPrompt } from './category-prompts';
 import { sanitizeCourseContext } from './helpers';
 import type { RecalledMemory } from './memory-recall';
 import { buildMemoryRecallBlock } from './memory-recall';
+import {
+  enforceTokenBudget,
+  INPUT_TOKEN_BUDGETS,
+  PromptPriority,
+  type PromptSection,
+} from './prompt-budget';
 
 // ============================================================================
 // SAM's Pedagogical Expertise — Research-Backed Course Design Knowledge
@@ -537,7 +543,12 @@ ${CHAPTER_DESIGN_PRINCIPLES}
 
 ${CHAPTER_THINKING_FRAMEWORK}`;
 
-  const userPrompt = `You are creating Chapter ${currentChapterNumber} of ${ctx.totalChapters} for this course.
+  // ── Build user prompt via prioritized sections for token budget enforcement ──
+  const userSections: PromptSection[] = [
+    {
+      label: 'courseContext',
+      priority: PromptPriority.CRITICAL,
+      content: `You are creating Chapter ${currentChapterNumber} of ${ctx.totalChapters} for this course.
 
 ## COURSE CONTEXT
 - **Title**: "${ctx.courseTitle}"
@@ -546,22 +557,52 @@ ${CHAPTER_THINKING_FRAMEWORK}`;
 - **Target Audience**: ${ctx.targetAudience}
 - **Difficulty**: ${ctx.difficulty}
 - **Course Learning Objectives**:
-${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
-
-## PREVIOUS CHAPTERS
-${previousChaptersSummary}
-${conceptFlowSection}
-${memoryRecallSection}
-${domainChapterGuidance}
-${templateBlock}
-${positionGuidance}
-
+${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
+    },
+    {
+      label: 'previousChapters',
+      priority: PromptPriority.MEDIUM,
+      content: `\n## PREVIOUS CHAPTERS\n${previousChaptersSummary}`,
+    },
+    {
+      label: 'conceptFlow',
+      priority: PromptPriority.MEDIUM,
+      content: conceptFlowSection,
+    },
+    {
+      label: 'memoryRecall',
+      priority: PromptPriority.LOW,
+      content: memoryRecallSection,
+    },
+    {
+      label: 'domainChapterGuidance',
+      priority: PromptPriority.OPTIONAL,
+      content: domainChapterGuidance,
+    },
+    {
+      label: 'templateBlock',
+      priority: PromptPriority.OPTIONAL,
+      content: templateBlock,
+    },
+    {
+      label: 'positionGuidance',
+      priority: PromptPriority.LOW,
+      content: positionGuidance,
+    },
+    {
+      label: 'bloomsAssignment',
+      priority: PromptPriority.HIGH,
+      content: `
 ## BLOOM'S LEVEL ASSIGNMENT
 This chapter's Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
 - Cognitive Process: ${bloomsInfo.cognitiveProcess}
 - Required Verbs: ${bloomsInfo.verbs.join(', ')}
-- Student Outcome: Students should be able to ${bloomsInfo.description.toLowerCase()}
-
+- Student Outcome: Students should be able to ${bloomsInfo.description.toLowerCase()}`,
+    },
+    {
+      label: 'thinkingAndOutput',
+      priority: PromptPriority.CRITICAL,
+      content: `
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: ARROW ARC — What real-world application hooks this chapter?
@@ -640,7 +681,12 @@ QUALITY GATES — Your output will be scored on:
 5. **Concept Novelty**: Are conceptsIntroduced truly NEW to this chapter?
 6. **Description Depth**: Does the description explain WHY, WHAT, HOW, and OUTCOME?
 
-Return ONLY valid JSON, no markdown formatting`;
+Return ONLY valid JSON, no markdown formatting`,
+    },
+  ];
+
+  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage1.user);
+  const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }
@@ -746,7 +792,12 @@ ${SECTION_THINKING_FRAMEWORK}`;
 
   const effectiveSectionsPerChapter = templatePrompt?.totalSections ?? ctx.sectionsPerChapter;
 
-  const userPrompt = `You are creating Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
+  // ── Build user prompt via prioritized sections for token budget enforcement ──
+  const userSections: PromptSection[] = [
+    {
+      label: 'courseAndChapterContext',
+      priority: PromptPriority.CRITICAL,
+      content: `You are creating Section ${currentSectionNumber} of ${effectiveSectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
 
 ## COURSE CONTEXT
 - **Course**: "${ctx.courseTitle}"
@@ -760,22 +811,49 @@ ${SECTION_THINKING_FRAMEWORK}`;
 - **Required Verbs**: ${bloomsInfo.verbs.join(', ')}
 - **Chapter Learning Objectives**:
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
-- **Chapter's Learning Arc (Topics)**: ${chapter.keyTopics.map((t, i) => `${i + 1}. ${t}`).join(' → ')}
-${courseWideSection}
-${recalledMemory ? buildMemoryRecallBlock(recalledMemory) : ''}
-## PREVIOUS SECTIONS IN THIS CHAPTER
+- **Chapter's Learning Arc (Topics)**: ${chapter.keyTopics.map((t, i) => `${i + 1}. ${t}`).join(' → ')}`,
+    },
+    {
+      label: 'courseWideContext',
+      priority: PromptPriority.MEDIUM,
+      content: courseWideSection,
+    },
+    {
+      label: 'memoryRecall',
+      priority: PromptPriority.LOW,
+      content: recalledMemory ? buildMemoryRecallBlock(recalledMemory) : '',
+    },
+    {
+      label: 'previousSections',
+      priority: PromptPriority.HIGH,
+      content: `## PREVIOUS SECTIONS IN THIS CHAPTER
 ${previousSectionsSummary}
 
 ## TOPICS REMAINING TO COVER
 ${remainingTopics.length > 0 ? remainingTopics.map((t, i) => `${i + 1}. ${t}`).join(', ') : 'All main topics covered — create a synthesis/practice section that integrates everything'}
 
 ## EXISTING SECTION TITLES IN COURSE (MUST BE UNIQUE)
-${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${t}"`).join('\n') : 'None yet'}
-
-${domainSectionGuidance}
-${templateBlock}
-${scaffoldingGuidance}
-
+${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${t}"`).join('\n') : 'None yet'}`,
+    },
+    {
+      label: 'domainSectionGuidance',
+      priority: PromptPriority.OPTIONAL,
+      content: domainSectionGuidance,
+    },
+    {
+      label: 'templateBlock',
+      priority: PromptPriority.OPTIONAL,
+      content: templateBlock,
+    },
+    {
+      label: 'scaffoldingGuidance',
+      priority: PromptPriority.LOW,
+      content: scaffoldingGuidance,
+    },
+    {
+      label: 'thinkingAndOutput',
+      priority: PromptPriority.CRITICAL,
+      content: `
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: ARROW SECTION FLOW — Where in the ARROW arc does this section sit?
@@ -850,7 +928,12 @@ QUALITY GATES — Your output will be scored on:
 5. **Concept Tracking**: Are conceptsIntroduced truly new? Are conceptsReferenced from prior content?
 6. **Objective Alignment**: Do relevantObjectives come directly from the chapter's objectives?
 
-Return ONLY valid JSON, no markdown formatting`;
+Return ONLY valid JSON, no markdown formatting`,
+    },
+  ];
+
+  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage2.user);
+  const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }
@@ -1055,7 +1138,12 @@ ${DETAIL_DESIGN_PRINCIPLES}
 ${LEARNING_OBJECTIVES_FRAMEWORK}
 ${activityGuidance}`;
 
-  const userPrompt = `You are filling in the detailed content for Section ${section.position}: "${section.title}".
+  // ── Build user prompt via prioritized sections for token budget enforcement ──
+  const userSections: PromptSection[] = [
+    {
+      label: 'courseAndChapterContext',
+      priority: PromptPriority.CRITICAL,
+      content: `You are filling in the detailed content for Section ${section.position}: "${section.title}".
 
 ## COURSE CONTEXT
 - **Course**: "${ctx.courseTitle}"
@@ -1067,22 +1155,53 @@ ${activityGuidance}`;
 - **Bloom's Level**: ${chapter.bloomsLevel} (Level ${bloomsInfo.level}) — ${bloomsInfo.description}
 - **Chapter Description**: ${chapter.description}
 - **Chapter Objectives**:
-${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
-${priorSectionsBlock}
-${cumulativeKnowledgeSection}
-${memoryRecallSection}
-${bridgeBlock}
-## CURRENT SECTION TO FILL
+${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
+    },
+    {
+      label: 'priorSections',
+      priority: PromptPriority.MEDIUM,
+      content: priorSectionsBlock,
+    },
+    {
+      label: 'cumulativeKnowledge',
+      priority: PromptPriority.MEDIUM,
+      content: cumulativeKnowledgeSection,
+    },
+    {
+      label: 'memoryRecall',
+      priority: PromptPriority.LOW,
+      content: memoryRecallSection,
+    },
+    {
+      label: 'bridgeContent',
+      priority: PromptPriority.LOW,
+      content: bridgeBlock,
+    },
+    {
+      label: 'currentSection',
+      priority: PromptPriority.CRITICAL,
+      content: `## CURRENT SECTION TO FILL
 - **Title**: "${section.title}"
 - **Content Type**: ${section.contentType}
 - **Topic Focus**: ${section.topicFocus}
 - **Duration**: ${section.estimatedDuration}
 ${section.conceptsIntroduced && section.conceptsIntroduced.length > 0 ? `- **New Concepts**: ${section.conceptsIntroduced.join(', ')}` : ''}
-${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}
-
-${domainDetailGuidance}
-${templateBlock}
-
+${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}`,
+    },
+    {
+      label: 'domainDetailGuidance',
+      priority: PromptPriority.OPTIONAL,
+      content: domainDetailGuidance,
+    },
+    {
+      label: 'templateBlock',
+      priority: PromptPriority.OPTIONAL,
+      content: templateBlock,
+    },
+    {
+      label: 'thinkingAndOutput',
+      priority: PromptPriority.CRITICAL,
+      content: `
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
@@ -1144,7 +1263,12 @@ QUALITY GATES — Your output will be scored on:
 5. **Concept Specificity**: Are keyConceptsCovered precise terms, not vague categories?
 6. **Teaching Quality**: Does the lesson include analogies, concrete examples, and address the learner directly?
 
-Return ONLY valid JSON, no markdown formatting`;
+Return ONLY valid JSON, no markdown formatting`,
+    },
+  ];
+
+  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage3.user);
+  const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }

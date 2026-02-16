@@ -162,6 +162,9 @@ model Course {
   // Cognitive Quality (Bloom's Taxonomy Experience - January 2026)
   cognitiveQuality         CourseCognitiveQuality? @relation("CourseCognitiveQuality")
 
+  // Quality flags from AI course creation pipeline (agentic decisions)
+  qualityFlags             Json?
+
   @@index([categoryId])
   @@index([organizationId])
 }

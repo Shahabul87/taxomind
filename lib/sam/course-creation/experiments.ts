@@ -38,6 +38,8 @@ export interface ExperimentOutcome {
   totalTimeMs: number;
   chaptersCreated: number;
   sectionsCreated: number;
+  /** Prompt template version (from PROMPT_VERSION) used during this experiment run */
+  promptVersion?: string;
 }
 
 // ============================================================================

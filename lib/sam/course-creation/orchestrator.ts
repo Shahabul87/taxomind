@@ -52,16 +52,15 @@ import { runPostCreationEnrichmentBackground } from './post-creation-enrichment'
 import { recallCourseCreationMemory, recallChapterContext } from './memory-recall';
 import type { RecalledMemory } from './memory-recall';
 import { planCourseBlueprint, replanRemainingChapters } from './course-planner';
-import { applyAgenticDecision, evaluateChapterOutcomeWithAI, generateBridgeContent } from './agentic-decisions';
+import { applyAgenticDecision, evaluateChapterOutcomeWithAI, generateBridgeContent, persistQualityFlag } from './agentic-decisions';
 import { reflectOnCourse, reflectOnCourseWithAI } from './course-reflector';
 import { runHealingLoop } from './healing-loop';
 import type { ChapterTemplate } from './chapter-templates';
 import type { ComposedCategoryPrompt } from './category-prompts';
 import { regenerateChapter } from './chapter-regenerator';
-import { registerCriticAgent } from './chapter-critic';
 import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { PROMPT_VERSION } from './prompts';
-import type { CourseBlueprintPlan, AgenticDecision, ChapterStepContext, ChapterStepResult } from './types';
+import type { CourseBlueprintPlan, AgenticDecision, ChapterStepContext, ChapterStepResult, CourseQualityFlag } from './types';
 import { AdaptiveStrategyMonitor } from './adaptive-strategy';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { COURSE_CATEGORIES } from '@/app/(protected)/teacher/create/ai-creator/types/sam-creator.types';
@@ -149,13 +148,6 @@ export async function orchestrateCourseCreation(
   const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
-
-  // Register the critic agent on the MultiAgentCoordinator (forward-looking, non-blocking)
-  try {
-    registerCriticAgent();
-  } catch {
-    // Registration failure is non-blocking — reviews still go through reviewChapterWithCritic() directly
-  }
 
   // Resolve A/B experiment (if any active)
   const experimentAssignment: ExperimentAssignment | null = getActiveExperiment(userId);
@@ -843,6 +835,33 @@ export async function orchestrateCourseCreation(
 
           // Apply the decision (actionable agentic decisions)
           applyAgenticDecision(lastAgenticDecision, strategyMonitor, healingQueue);
+
+          // Emit quality_flag SSE and persist when flag_for_review
+          if (lastAgenticDecision.action === 'flag_for_review') {
+            const flaggedChapter = chapterResult.completedChapter;
+            const qualityFlag: CourseQualityFlag = {
+              chapterPosition: flaggedChapter.position,
+              chapterTitle: flaggedChapter.title,
+              reason: lastAgenticDecision.reasoning,
+              severity: 'high',
+              action: 'pending_review',
+              timestamp: new Date().toISOString(),
+            };
+
+            onSSEEvent?.({
+              type: 'quality_flag',
+              data: {
+                chapterPosition: qualityFlag.chapterPosition,
+                chapterTitle: qualityFlag.chapterTitle,
+                reason: qualityFlag.reason,
+                severity: qualityFlag.severity,
+                action: qualityFlag.action,
+              },
+            });
+
+            // Fire-and-forget persistence
+            persistQualityFlag(courseId, qualityFlag).catch(() => {});
+          }
 
           // Handle inject_bridge_content: generate bridge for next chapter
           if (lastAgenticDecision.action === 'inject_bridge_content' && chNum < totalChapters) {

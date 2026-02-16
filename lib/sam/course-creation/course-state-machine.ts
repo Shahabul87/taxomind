@@ -12,6 +12,9 @@
  *
  * This is the "agentic orchestration" layer that sits above the
  * per-chapter generation logic and below the API route handler.
+ *
+ * The step executor delegates to composed phase functions in
+ * `step-executor-phases.ts` for clarity and testability.
  */
 
 import {
@@ -26,26 +29,19 @@ import {
 } from '@sam-ai/agentic';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
 import { logger } from '@/lib/logger';
-import { generateSingleChapter } from './chapter-generator';
 import {
-  initializeChapterSubGoal,
-  completeChapterSubGoal,
-  storeDecisionInPlan,
-} from './course-creation-controller';
-import {
-  persistConceptsBackground,
-  persistQualityScoresBackground,
-} from './memory-persistence';
-import { recallChapterContext } from './memory-recall';
-import { evaluateChapterOutcomeWithAI, applyAgenticDecision, generateBridgeContent } from './agentic-decisions';
-import { replanRemainingChapters } from './course-planner';
-import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
-import { diagnoseChapterIssues } from './healing-loop';
-import { saveCheckpointWithRetry } from './checkpoint-manager';
-import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
+  phaseSkipCheck,
+  phaseLifecycleSetup,
+  phaseGenerate,
+  phaseLifecycleComplete,
+  phaseMemory,
+  phaseDecisionMaking,
+  phaseInlineHealing,
+  phaseCheckpoint,
+} from './step-executor-phases';
+import type { StepExecutorContext } from './step-executor-phases';
 import type {
   ChapterStepContext,
-  ChapterStepResult,
   CourseContext,
   CompletedChapter,
   GeneratedChapter,
@@ -141,7 +137,7 @@ export class CourseCreationStateMachine {
    * Build an execution plan and start the state machine.
    *
    * Creates one PlanStep per chapter, then starts execution.
-   * The step executor runs the full agentic loop body per chapter.
+   * The step executor delegates to composed phase functions for each chapter.
    */
   async start(
     chapterTitles: string[],
@@ -150,324 +146,45 @@ export class CourseCreationStateMachine {
     const plan = this.buildExecutionPlan(chapterTitles);
     const state = this.config.sharedState;
 
-    // Set the step executor: full agentic loop for each chapter
+    // Set the step executor: composed phase functions for each chapter
     const chapterOffset = this.config.startChapterOffset ?? 0;
     this.machine.setStepExecutor(async (_step: PlanStep, _context: ExecutionContext) => {
       const chapterNumber = _step.order + 1 + chapterOffset;
 
-      // 0. Check if this chapter should be skipped (from previous chapter's decision)
-      if (state.skipNextChapter) {
-        state.skipNextChapter = false;
-        state.hasSkipped = true;
-        this.config.onSSEEvent?.({
-          type: 'chapter_skipped',
-          data: { chapter: chapterNumber, reason: 'AI determined content would be redundant' },
-        });
-        logger.info('[CourseStateMachine] Skipping chapter (AI decision)', { chapter: chapterNumber });
-        return { success: true, output: { skipped: true } } as StepResult;
-      }
-
-      // 1. Create SubGoal
-      const chapterSubGoalId = await initializeChapterSubGoal(
-        this.config.goalId,
+      const ctx: StepExecutorContext = {
+        config: this.config,
+        state,
+        step: _step,
         chapterNumber,
-        _step.title,
-        this.config.totalChapters,
-        this.config.courseContext.difficulty === 'expert' ? 'hard' : this.config.courseContext.difficulty === 'beginner' ? 'easy' : 'medium',
-      );
+        buildContext,
+      };
 
-      // 2. Build context with bridge content
-      const chapterContext = buildContext(chapterNumber);
-      if (state.bridgeContent) {
-        chapterContext.bridgeContent = state.bridgeContent;
-      }
+      // Phase 0: Skip check
+      const skipResult = phaseSkipCheck(ctx);
+      if (skipResult) return skipResult;
 
-      // 3. Generate chapter (all 3 stages) with per-chapter timeout
-      const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
-      let chapterResult: ChapterStepResult;
-      try {
-        chapterResult = await withTimeout(
-          () => generateSingleChapter(
-            this.config.userId,
-            chapterContext,
-            {
-              onSSEEvent: this.config.onSSEEvent,
-              enableStreamingThinking: this.config.enableStreamingThinking,
-            },
-          ),
-          PER_CHAPTER_TIMEOUT_MS,
-          `chapter-${chapterNumber}-generation`,
-        );
-      } catch (timeoutErr) {
-        if (timeoutErr instanceof OperationTimeoutError) {
-          logger.warn('[CourseStateMachine] Chapter generation timed out', {
-            chapter: chapterNumber, timeoutMs: PER_CHAPTER_TIMEOUT_MS,
-          });
-          this.config.onSSEEvent?.({
-            type: 'chapter_skipped',
-            data: { chapter: chapterNumber, reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s` },
-          });
-          return {
-            stepId: _step.id,
-            success: false,
-            completedAt: new Date(),
-            duration: PER_CHAPTER_TIMEOUT_MS,
-            outputs: [],
-            error: `Chapter ${chapterNumber} generation timed out`,
-          } as StepResult;
-        }
-        throw timeoutErr;
-      }
+      // Phase 1: Lifecycle setup (SubGoal init, context build)
+      const { chapterSubGoalId, chapterContext } = await phaseLifecycleSetup(ctx);
 
-      // 4. Clear consumed bridge content
-      state.bridgeContent = '';
+      // Phase 2: Generate chapter (all 3 stages) with timeout
+      const generateResult = await phaseGenerate(ctx, chapterContext);
+      if ('earlyReturn' in generateResult) return generateResult.earlyReturn;
+      const { chapterResult } = generateResult;
 
-      // 5. Complete SubGoal + record section count
-      const actualSectionCount = chapterResult.completedChapter.sections.length;
-      state.chapterSectionCounts.push(actualSectionCount);
+      // Phase 3: Lifecycle complete (clear bridge, complete SubGoal)
+      await phaseLifecycleComplete(ctx, chapterSubGoalId, chapterResult);
 
-      await completeChapterSubGoal(chapterSubGoalId, {
-        chapterNumber,
-        sectionsCompleted: actualSectionCount,
-        qualityScore: chapterResult.qualityScores[0]?.overall ?? 0,
-      });
+      // Phase 4: Memory (persist concepts, between-chapter recall)
+      await phaseMemory(ctx, chapterResult);
 
-      // 6. Persist memory (background)
-      persistConceptsBackground(
-        this.config.userId, this.config.courseId,
-        state.conceptTracker, chapterNumber,
-        this.config.courseContext.courseTitle,
-        this.config.courseContext.courseCategory,
-      );
-      persistQualityScoresBackground(
-        this.config.userId, this.config.courseId,
-        state.qualityScores.slice(), chapterNumber,
-      );
+      // Phase 5: Decision making (evaluate, apply, quality flag, bridge, replan, skip)
+      await phaseDecisionMaking(ctx, chapterResult);
 
-      // 7. Between-chapter memory recall
-      if (chapterNumber < this.config.totalChapters) {
-        try {
-          const relatedConcepts = await recallChapterContext(
-            this.config.userId,
-            this.config.courseId,
-            chapterResult.completedChapter.keyTopics,
-          );
-          if (relatedConcepts.length > 0 && state.recalledMemory) {
-            state.recalledMemory.relatedConcepts = [
-              ...state.recalledMemory.relatedConcepts,
-              ...relatedConcepts.filter(
-                rc => !state.recalledMemory!.relatedConcepts.some(existing => existing.name === rc.name),
-              ),
-            ].slice(0, 15);
-          }
-        } catch {
-          // Non-blocking
-        }
-      }
+      // Phase 6: Inline healing (process up to 2 chapters from healing queue)
+      await phaseInlineHealing(ctx);
 
-      // 8. AI-driven agentic decision
-      if (chapterResult.agenticDecision && chapterNumber < this.config.totalChapters && state.blueprintPlan) {
-        try {
-          state.lastAgenticDecision = await evaluateChapterOutcomeWithAI(
-            this.config.userId,
-            chapterResult.completedChapter,
-            state.completedChapters,
-            state.qualityScores,
-            state.blueprintPlan,
-            state.conceptTracker,
-            this.config.courseContext,
-            this.config.runId,
-          );
-
-          this.config.onSSEEvent?.({
-            type: 'agentic_decision',
-            data: {
-              chapter: chapterNumber,
-              action: state.lastAgenticDecision.action,
-              reasoning: state.lastAgenticDecision.reasoning,
-              decisionType: 'ai_decision',
-            },
-          });
-        } catch {
-          state.lastAgenticDecision = chapterResult.agenticDecision;
-        }
-
-        // 9. Apply decision
-        applyAgenticDecision(state.lastAgenticDecision, state.strategyMonitor, state.healingQueue);
-
-        // Store decision in plan (background)
-        storeDecisionInPlan(
-          this.config.planId,
-          chapterNumber,
-          state.lastAgenticDecision as unknown as Record<string, unknown>,
-        ).catch(() => { /* non-blocking */ });
-
-        // 10. Handle inject_bridge_content
-        if (state.lastAgenticDecision.action === 'inject_bridge_content') {
-          try {
-            const nextBlueprintEntry = state.blueprintPlan?.chapterPlan.find(e => e.position === chapterNumber + 1);
-            const conceptGaps = state.lastAgenticDecision.actionPayload?.conceptGaps ?? [];
-            state.bridgeContent = await generateBridgeContent(
-              this.config.userId,
-              chapterResult.completedChapter,
-              nextBlueprintEntry,
-              conceptGaps,
-              this.config.courseContext,
-              this.config.runId,
-            );
-            this.config.onSSEEvent?.({
-              type: 'bridge_content',
-              data: {
-                chapter: chapterNumber,
-                bridgeLength: state.bridgeContent.length,
-                conceptGaps: conceptGaps.length,
-              },
-            });
-          } catch {
-            logger.warn('[CourseStateMachine] Bridge content generation failed');
-          }
-        }
-
-        // 11. Handle replan_remaining (max 2 per course)
-        if (state.lastAgenticDecision.action === 'replan_remaining') {
-          const MAX_REPLANS_PER_COURSE = 2;
-          const currentReplanCount = state.replanCount ?? 0;
-          if (currentReplanCount >= MAX_REPLANS_PER_COURSE) {
-            logger.info('[CourseStateMachine] Replan blocked — max replans reached', {
-              replanCount: currentReplanCount, chapter: chapterNumber,
-            });
-          } else {
-            state.replanCount = currentReplanCount + 1;
-            this.config.onSSEEvent?.({ type: 'replan_start', data: { reason: state.lastAgenticDecision.reasoning } });
-            try {
-              state.blueprintPlan = await replanRemainingChapters(
-                this.config.userId,
-                this.config.courseContext,
-                state.completedChapters,
-                state.conceptTracker,
-                state.blueprintPlan,
-                this.config.runId,
-              );
-              this.config.onSSEEvent?.({
-                type: 'replan_complete',
-                data: { remainingChapters: state.blueprintPlan?.chapterPlan.length ?? 0 },
-              });
-            } catch {
-              logger.warn('[CourseStateMachine] Re-planning failed, continuing with existing blueprint');
-            }
-          }
-        }
-        // 11b. Handle skip_next_chapter
-        if (state.lastAgenticDecision.action === 'skip_next_chapter') {
-          const remaining = this.config.totalChapters - chapterNumber;
-          if (remaining >= 3 && chapterNumber > 2 && !state.hasSkipped) {
-            state.skipNextChapter = true;
-            this.config.onSSEEvent?.({
-              type: 'agentic_decision',
-              data: { chapter: chapterNumber, action: 'skip_next_chapter', reasoning: state.lastAgenticDecision.reasoning },
-            });
-          } else {
-            logger.info('[CourseStateMachine] Skip blocked by guardrail', {
-              chapter: chapterNumber, remaining, hasSkipped: state.hasSkipped,
-            });
-          }
-        }
-      } else if (chapterResult.agenticDecision) {
-        state.lastAgenticDecision = chapterResult.agenticDecision;
-      }
-
-      // 12. Inline healing — process up to 2 chapters from healing queue per step
-      if (state.healingQueue.length > 0) {
-        const MAX_INLINE_HEALS_PER_STEP = 2;
-        const chaptersToHeal = state.healingQueue.splice(0, MAX_INLINE_HEALS_PER_STEP);
-        for (const healChapterNum of chaptersToHeal) {
-          const healTarget = state.completedChapters.find(ch => ch.position === healChapterNum);
-          if (!healTarget) continue;
-
-          this.config.onSSEEvent?.({ type: 'inline_healing', data: { chapter: healChapterNum } });
-          try {
-            // AI diagnosis before regeneration
-            const strategy = await diagnoseChapterIssues(
-              this.config.userId,
-              healTarget,
-              'Flagged by agentic decision for inline healing',
-              'medium',
-              this.config.courseContext,
-              this.config.runId,
-            );
-
-            this.config.onSSEEvent?.({
-              type: 'healing_diagnosis',
-              data: { position: healChapterNum, strategy: strategy.type, reasoning: strategy.reasoning },
-            });
-
-            if (strategy.type === 'skip_healing') {
-              logger.info('[CourseStateMachine] AI recommends skipping inline healing', { chapter: healChapterNum });
-              continue;
-            }
-
-            const regenOptions = {
-              userId: this.config.userId,
-              courseId: this.config.courseId,
-              chapterId: healTarget.id,
-              chapterPosition: healChapterNum,
-              onSSEEvent: this.config.onSSEEvent,
-            };
-
-            let healResult;
-            switch (strategy.type) {
-              case 'sections_only':
-                healResult = await regenerateSectionsOnly(regenOptions);
-                break;
-              case 'details_only':
-                healResult = await regenerateDetailsOnly(regenOptions);
-                break;
-              case 'targeted_sections':
-                healResult = await regenerateSectionsOnly(regenOptions);
-                break;
-              case 'full_regeneration':
-              default:
-                healResult = await regenerateChapter(regenOptions);
-                break;
-            }
-
-            this.config.onSSEEvent?.({
-              type: 'inline_healing_complete',
-              data: {
-                chapter: healChapterNum,
-                success: healResult.success,
-                qualityScore: healResult.qualityScore,
-                strategy: strategy.type,
-              },
-            });
-          } catch {
-            logger.warn('[CourseStateMachine] Inline healing failed', { chapter: healChapterNum });
-          }
-        }
-      }
-
-      // 13. Checkpoint
-      await saveCheckpointWithRetry(this.config.courseId, this.config.userId, this.config.planId, {
-        conceptTracker: state.conceptTracker,
-        bloomsProgression: state.bloomsProgression,
-        allSectionTitles: state.allSectionTitles,
-        qualityScores: state.qualityScores,
-        completedChapterCount: chapterNumber,
-        config: state.config,
-        goalId: this.config.goalId,
-        planId: this.config.planId,
-        stepIds: state.stepIds,
-        courseId: this.config.courseId,
-        completedChaptersList: state.completedChapters,
-        percentage: Math.round((chapterNumber / this.config.totalChapters) * 100),
-        status: 'in_progress',
-        lastCompletedStage: 3,
-        currentChapterNumber: chapterNumber,
-        chapterSectionCounts: state.chapterSectionCounts,
-      });
-
-      // 14. Return StepResult
-      return this.toStepResult(_step, chapterResult);
+      // Phase 7: Checkpoint and return StepResult
+      return phaseCheckpoint(ctx, chapterResult);
     });
 
     await this.machine.start(plan);
@@ -633,43 +350,6 @@ export class CourseCreationStateMachine {
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
-  }
-
-  // ==========================================================================
-  // Result Mapping
-  // ==========================================================================
-
-  private toStepResult(step: PlanStep, chapterResult: ChapterStepResult): StepResult {
-    return {
-      stepId: step.id,
-      success: true,
-      completedAt: new Date(),
-      duration: 0,
-      outputs: [
-        {
-          name: 'completedChapter',
-          type: 'result',
-          value: {
-            position: chapterResult.completedChapter.position,
-            title: chapterResult.completedChapter.title,
-            id: chapterResult.completedChapter.id,
-            sectionsCount: chapterResult.completedChapter.sections.length,
-          },
-          timestamp: new Date(),
-        },
-        {
-          name: 'qualityScores',
-          type: 'metric',
-          value: chapterResult.qualityScores.map(s => s.overall),
-          timestamp: new Date(),
-        },
-      ],
-      metrics: {
-        engagement: 100,
-        comprehension: chapterResult.qualityScores[0]?.overall ?? 70,
-        timeEfficiency: 80,
-      },
     };
   }
 }

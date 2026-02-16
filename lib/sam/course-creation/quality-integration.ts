@@ -36,6 +36,10 @@ import type {
   CourseContext,
   BloomsLevel,
 } from './types';
+import {
+  validateContentSafety,
+  type ContentSafetyResult,
+} from './safety-integration';
 
 // ============================================================================
 // Constants
@@ -106,6 +110,14 @@ export interface SAMValidationResult {
   failedGates: string[];
   /** Whether SAM validation was actually run (false if timed out / errored) */
   samValidationRan: boolean;
+  /**
+   * Content safety issues (bias, accessibility, discouraging language).
+   * Purely informational -- does NOT affect the blended quality score.
+   * Only populated when safety validation runs in parallel with quality checks.
+   */
+  safetyIssues?: string[];
+  /** Whether content passed safety checks (no high-severity issues). Undefined if safety was not run. */
+  safetyPassed?: boolean;
 }
 
 // ============================================================================
@@ -127,6 +139,7 @@ function mapBloomsLevel(level: BloomsLevel): PedagogyBloomsLevel {
 /**
  * Run SAM quality + pedagogy validation on a generated chapter.
  *
+ * Also runs content safety validation in parallel (non-blocking).
  * Returns a combined score blending the custom score with SAM scores.
  * On timeout/error, returns the custom score unchanged.
  */
@@ -138,13 +151,16 @@ export async function validateChapterWithSAM(
   try {
     const content = buildChapterContent(chapter);
     const pedagogicalContent = buildChapterPedagogicalContent(chapter, courseContext);
+    const safetyText = [chapter.description, ...chapter.learningObjectives].join('\n');
 
-    const [qualityResult, pedagogyResult] = await Promise.allSettled([
+    const [qualityResult, pedagogyResult, safetyResult] = await Promise.allSettled([
       withTimeout(getQualityPipeline().validate(content), VALIDATION_TIMEOUT_MS),
       withTimeout(getPedagogyPipeline().evaluate(pedagogicalContent), VALIDATION_TIMEOUT_MS),
+      validateContentSafety(safetyText, { difficulty: courseContext.difficulty, targetAudience: courseContext.targetAudience }),
     ]);
 
-    return buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    const result = buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    return attachSafetyResults(result, safetyResult);
   } catch (error) {
     logger.debug('[QUALITY_INTEGRATION] Chapter validation failed, using custom score only', error);
     return fallbackResult(customScore);
@@ -153,6 +169,8 @@ export async function validateChapterWithSAM(
 
 /**
  * Run SAM quality + pedagogy validation on a generated section.
+ *
+ * Also runs content safety validation in parallel (non-blocking).
  */
 export async function validateSectionWithSAM(
   section: GeneratedSection,
@@ -162,13 +180,16 @@ export async function validateSectionWithSAM(
   try {
     const content = buildSectionContent(section);
     const pedagogicalContent = buildSectionPedagogicalContent(section, courseContext);
+    const safetyText = `${section.title}\n${section.topicFocus}`;
 
-    const [qualityResult, pedagogyResult] = await Promise.allSettled([
+    const [qualityResult, pedagogyResult, safetyResult] = await Promise.allSettled([
       withTimeout(getQualityPipeline().validate(content), VALIDATION_TIMEOUT_MS),
       withTimeout(getPedagogyPipeline().evaluate(pedagogicalContent), VALIDATION_TIMEOUT_MS),
+      validateContentSafety(safetyText, { difficulty: courseContext.difficulty, targetAudience: courseContext.targetAudience }),
     ]);
 
-    return buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    const result = buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    return attachSafetyResults(result, safetyResult);
   } catch (error) {
     logger.debug('[QUALITY_INTEGRATION] Section validation failed, using custom score only', error);
     return fallbackResult(customScore);
@@ -179,6 +200,9 @@ export async function validateSectionWithSAM(
  * Run SAM quality validation on section details (content-heavy stage).
  *
  * Uses full quality pipeline + Bloom's pedagogy check.
+ * Also runs content safety validation in parallel (non-blocking).
+ * Safety is especially relevant at this stage because the description
+ * contains the most user-facing educational content.
  */
 export async function validateDetailsWithSAM(
   details: SectionDetails,
@@ -190,13 +214,16 @@ export async function validateDetailsWithSAM(
   try {
     const content = buildDetailsContent(details, section);
     const pedagogicalContent = buildDetailsPedagogicalContent(details, section, bloomsLevel, courseContext);
+    const safetyText = [details.description, details.practicalActivity, ...details.learningObjectives].join('\n');
 
-    const [qualityResult, pedagogyResult] = await Promise.allSettled([
+    const [qualityResult, pedagogyResult, safetyResult] = await Promise.allSettled([
       withTimeout(getQualityPipeline().validate(content), VALIDATION_TIMEOUT_MS),
       withTimeout(getPedagogyPipeline().evaluate(pedagogicalContent), VALIDATION_TIMEOUT_MS),
+      validateContentSafety(safetyText, { difficulty: courseContext.difficulty, targetAudience: courseContext.targetAudience }),
     ]);
 
-    return buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    const result = buildCombinedResult(customScore, qualityResult, pedagogyResult);
+    return attachSafetyResults(result, safetyResult);
   } catch (error) {
     logger.debug('[QUALITY_INTEGRATION] Details validation failed, using custom score only', error);
     return fallbackResult(customScore);
@@ -444,6 +471,34 @@ function fallbackResult(customScore: QualityScore): SAMValidationResult {
     failedGates: [],
     samValidationRan: false,
   };
+}
+
+/**
+ * Attach content safety results to a SAMValidationResult.
+ *
+ * Safety is purely informational -- it does NOT affect the blended quality score.
+ * If safety validation failed or timed out, the result is returned unchanged.
+ */
+function attachSafetyResults(
+  result: SAMValidationResult,
+  safetySettled: PromiseSettledResult<ContentSafetyResult>,
+): SAMValidationResult {
+  if (safetySettled.status === 'fulfilled' && safetySettled.value.validationRan) {
+    const sr = safetySettled.value;
+    return {
+      ...result,
+      safetyPassed: sr.passed,
+      safetyIssues: sr.issues.map(
+        i => `[${i.severity}/${i.type}] ${i.description} — Suggestion: ${i.suggestion}`,
+      ),
+    };
+  }
+
+  if (safetySettled.status === 'rejected') {
+    logger.debug('[QUALITY_INTEGRATION] Safety validation failed/timed out', safetySettled.reason);
+  }
+
+  return result;
 }
 
 // ============================================================================
