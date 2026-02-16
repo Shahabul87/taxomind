@@ -30,6 +30,9 @@ import {
   MAX_RECONNECTIONS,
   RECONNECT_DELAY_MS,
   INITIAL_PROGRESS,
+  getPartialCourseId,
+  setPartialCourseId,
+  clearPartialCourseId,
 } from './types';
 import { readSSEStream } from './sse-stream-reader';
 
@@ -61,13 +64,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
   // Hydrate resumable course ID from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PARTIAL_COURSE_KEY);
-      if (stored) {
-        setResumableCourseId(stored);
-      }
-    } catch {
-      // localStorage not available
+    const stored = getPartialCourseId();
+    if (stored) {
+      setResumableCourseId(stored);
     }
   }, []);
 
@@ -99,11 +98,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           // If localStorage doesn't have a resumable course, set it from DB
           if (!resumableCourseIdRef.current) {
             setResumableCourseId(prog.courseId);
-            try {
-              localStorage.setItem(PARTIAL_COURSE_KEY, prog.courseId);
-            } catch {
-              // localStorage not available
-            }
+            setPartialCourseId(prog.courseId);
           }
         }
       } catch {
@@ -555,11 +550,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     } catch {
       logger.debug('[SEQUENTIAL_SSE] Failed to dismiss creation in DB (non-critical)');
     }
-    try {
-      localStorage.removeItem(PARTIAL_COURSE_KEY);
-    } catch {
-      // localStorage not available
-    }
+    clearPartialCourseId();
     setResumableCourseId(null);
     setDbProgress(null);
     setProgress(INITIAL_PROGRESS);

@@ -15,6 +15,7 @@ import { getActiveExperiments, joinVariants } from '@/lib/sam/course-creation/ex
 import { getCachedPlatformAISettings } from '@/lib/ai/platform-settings-cache';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // =============================================================================
 // VALIDATION
@@ -118,6 +119,10 @@ async function getProviderPricing(provider: SupportedProvider): Promise<Provider
 
 export async function POST(request: NextRequest) {
   try {
+    // 0. Rate limit — defense-in-depth (no AI calls but hits DB for provider resolution)
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {

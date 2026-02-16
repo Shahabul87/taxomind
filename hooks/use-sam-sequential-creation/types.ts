@@ -106,6 +106,41 @@ export interface ParsedSSEEvent {
 
 export const PARTIAL_COURSE_KEY = 'taxomind_partial_course';
 
+// =============================================================================
+// Safe localStorage helpers — centralizes try/catch + validates stored values
+// =============================================================================
+
+/** Read partial course ID from localStorage with validation */
+export function getPartialCourseId(): string | null {
+  try {
+    const value = localStorage.getItem(PARTIAL_COURSE_KEY);
+    if (value && typeof value === 'string' && value.length > 0 && value.length < 200) {
+      return value;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Write partial course ID to localStorage */
+export function setPartialCourseId(courseId: string): void {
+  try {
+    localStorage.setItem(PARTIAL_COURSE_KEY, courseId);
+  } catch {
+    // localStorage not available (SSR, private browsing, quota exceeded)
+  }
+}
+
+/** Remove partial course ID from localStorage */
+export function clearPartialCourseId(): void {
+  try {
+    localStorage.removeItem(PARTIAL_COURSE_KEY);
+  } catch {
+    // localStorage not available
+  }
+}
+
 /** Max auto-reconnections before giving up (~150 min at 15 min per segment) */
 export const MAX_RECONNECTIONS = 10;
 

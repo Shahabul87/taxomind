@@ -417,6 +417,27 @@ export interface SequentialCreationConfig {
   onThinking?: (thinking: string) => void;
   onStageComplete?: (stage: CreationStage, items: unknown[]) => void;
   onError?: (error: string, canRetry: boolean) => void;
+
+  /** Enable human escalation gate — pauses pipeline on quality flags for approval */
+  enableEscalationGate?: boolean;
+}
+
+// ============================================================================
+// Human Escalation Gate Types
+// ============================================================================
+
+/** Decision options for human escalation gate */
+export type EscalationDecision = 'approve_continue' | 'approve_heal' | 'reject_abort';
+
+/** Pipeline pause request emitted when escalation gate triggers */
+export interface PipelinePauseRequest {
+  courseId: string;
+  chapterPosition: number;
+  chapterTitle: string;
+  reason: string;
+  severity: 'high' | 'critical';
+  qualityScore: number;
+  timestamp: string;
 }
 
 export interface SequentialCreationResult {
@@ -613,6 +634,8 @@ export interface ChapterStepContext {
   bridgeContent?: string;
   /** Correlation ID for end-to-end tracing across AI calls */
   runId?: string;
+  /** Optional runtime cost budget tracker */
+  budgetTracker?: import('./pipeline-budget').PipelineBudgetTracker;
 }
 
 /** Result of generating a single chapter (all 3 stages) */
@@ -798,6 +821,20 @@ export type HealingStrategyType =
   | 'details_only'          // Keep chapter + section structure, regenerate details (Stage 3)
   | 'targeted_sections'     // Regenerate specific sections by position
   | 'skip_healing';         // AI determines chapter is actually fine (false positive)
+
+// ============================================================================
+// Pipeline Budget Types
+// ============================================================================
+
+/** Snapshot of pipeline token/cost budget state */
+export interface PipelineRunBudget {
+  maxCostUSD: number;
+  maxTotalTokens: number;
+  accumulatedCostUSD: number;
+  accumulatedTokens: number;
+  callCount: number;
+  exceeded: boolean;
+}
 
 /** AI-diagnosed healing strategy for a flagged chapter */
 export interface HealingStrategy {

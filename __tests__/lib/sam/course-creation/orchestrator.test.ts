@@ -318,7 +318,15 @@ jest.mock('@/lib/sam/course-creation/category-prompts', () => {
   };
 });
 
-// Mock COURSE_CATEGORIES
+// Mock COURSE_CATEGORIES (shared lib location — canonical source)
+jest.mock('@/lib/sam/course-creation/course-categories', () => ({
+  COURSE_CATEGORIES: [
+    { value: 'artificial-intelligence', label: 'Artificial Intelligence' },
+    { value: 'web-development', label: 'Web Development' },
+  ],
+}));
+
+// Mock legacy re-export path (app-layer still re-exports from shared lib)
 jest.mock('@/app/(protected)/teacher/create/ai-creator/types/sam-creator.types', () => ({
   COURSE_CATEGORIES: [
     { value: 'artificial-intelligence', label: 'Artificial Intelligence' },

@@ -294,12 +294,13 @@ function startCleanup(): void {
   if (cleanupInterval) return;
 
   // Log production warning once
-  if (process.env.NODE_ENV === 'production' && !productionWarningLogged) {
+  if (process.env.NODE_ENV === 'production' && !productionWarningLogged && !process.env.REDIS_URL) {
     productionWarningLogged = true;
     logger.warn(
       '[RateLimiter] Using in-memory storage in production. ' +
       'Rate limits are per-instance and will NOT be shared across multiple server instances. ' +
-      'For strict rate limiting, implement a Redis-backed RateLimitStore and call setRateLimitStore().'
+      'Set REDIS_URL environment variable to enable automatic Redis-backed rate limiting, ' +
+      'or call setRateLimitStore() with a custom implementation.'
     );
   }
 

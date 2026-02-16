@@ -56,6 +56,7 @@ import type { RecalledMemory } from './memory-recall';
 import type { AdaptiveStrategyMonitor } from './adaptive-strategy';
 import type { ChapterTemplate } from './chapter-templates';
 import type { ComposedCategoryPrompt } from './category-prompts';
+import type { PipelineBudgetTracker } from './pipeline-budget';
 
 // ============================================================================
 // Types
@@ -105,6 +106,8 @@ export interface SharedPipelineState {
   replanCount?: number;
   /** Per-chapter section counts for accurate resume completedItems calculation */
   chapterSectionCounts: number[];
+  /** Optional runtime cost budget tracker */
+  budgetTracker?: PipelineBudgetTracker;
 }
 
 // ============================================================================

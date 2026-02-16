@@ -12,7 +12,6 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { getTemplateForDifficulty } from './chapter-templates';
 import {
   reactivateCourseCreation,
 } from './course-creation-controller';
@@ -264,9 +263,10 @@ export async function resumeCourseCreation(
     const completedChapterCount = checkpoint.completedChapterCount;
     const totalChapters = config.totalChapters;
 
-    // Resolve template-driven section count for resume validation
-    const resumeTemplate = getTemplateForDifficulty(config.difficulty);
-    const resumeEffectiveSections = resumeTemplate.totalSections;
+    // Use the user's configured section count for resume validation.
+    // Previously this used getTemplateForDifficulty(config.difficulty).totalSections,
+    // which could mismatch if the user chose a different section count than the template default.
+    const resumeEffectiveSections = config.sectionsPerChapter;
 
     if (completedChapterCount >= totalChapters) {
       return {

@@ -67,6 +67,8 @@ import type {
   ChapterStepContext,
   ChapterStepResult,
 } from './types';
+import { BudgetExceededError } from './pipeline-budget';
+import type { PipelineBudgetTracker } from './pipeline-budget';
 import type { OrchestrateOptions } from './orchestrator';
 
 // =============================================================================
@@ -131,6 +133,7 @@ export async function generateSingleChapter(
     categoryEnhancer: rawCategoryEnhancer,
     experimentVariant,
     runId,
+    budgetTracker,
   } = context;
   const { onSSEEvent, enableStreamingThinking } = callbacks;
 
@@ -140,6 +143,15 @@ export async function generateSingleChapter(
   const localQualityScores: QualityScore[] = [];
   let chaptersCreated = 0;
   let sectionsCreated = 0;
+
+  /** Record an AI call against the budget tracker and throw if budget exceeded */
+  const trackBudget = (estimatedTokens: number = 2000): void => {
+    if (!budgetTracker) return;
+    budgetTracker.recordCall(estimatedTokens, 0);
+    if (!budgetTracker.canProceed()) {
+      throw new BudgetExceededError(budgetTracker.getSnapshot());
+    }
+  };
 
   // =====================================================================
   // STAGE 1: Generate this chapter
@@ -305,6 +317,7 @@ export async function generateSingleChapter(
   });
 
   await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1' });
+  trackBudget(2000);
 
   // =====================================================================
   // MULTI-AGENT CRITIC: Review Stage 1 output with independent reviewer
@@ -421,6 +434,7 @@ export async function generateSingleChapter(
       }
 
       await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' });
+      trackBudget(2000);
     }
     } // end if (criticReview)
   } catch (criticError) {
@@ -603,6 +617,7 @@ export async function generateSingleChapter(
           }
 
           await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2-critic-retry' });
+          trackBudget(2000);
         }
       }
     } catch (sectionCriticError) {
@@ -653,6 +668,7 @@ export async function generateSingleChapter(
     });
 
     await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' });
+    trackBudget(2000);
   }
 
   // Chapter-section coverage validation
@@ -831,6 +847,7 @@ export async function generateSingleChapter(
           }
 
           await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3-critic-retry' });
+          trackBudget(2000);
         }
       }
     } catch (detailsCriticError) {
@@ -876,6 +893,7 @@ export async function generateSingleChapter(
     });
 
     await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' });
+    trackBudget(2000);
   }
 
   // =====================================================================

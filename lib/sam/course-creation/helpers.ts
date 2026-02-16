@@ -41,6 +41,15 @@ export function sanitizeForPrompt(input: string, maxLength = 500): string {
     .replace(/\b(system|assistant|user)\s*:/gi, '')
     .replace(/```[\s\S]*?```/g, '')
     .replace(/^#{1,6}\s/gm, '')
+    // Strip XML-like role/instruction tags (prompt injection vector)
+    .replace(/<\/?\s*(system|assistant|user|instruction|prompt|context|role|message)\b[^>]*>/gi, '')
+    // Strip template injection syntax
+    .replace(/\$\{[^}]*\}/g, '')
+    .replace(/\{\{[^}]*\}\}/g, '')
+    // Strip HTML comments
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Strip escaped newlines used to break prompt formatting
+    .replace(/\\n/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .replace(/\s{3,}/g, ' ')
     .trim()
@@ -56,6 +65,8 @@ export function sanitizeCourseContext(ctx: CourseContext): CourseContext {
     ...ctx,
     courseTitle: sanitizeForPrompt(ctx.courseTitle, 200),
     courseDescription: sanitizeForPrompt(ctx.courseDescription, 2000),
+    courseCategory: sanitizeForPrompt(ctx.courseCategory, 100),
+    courseSubcategory: ctx.courseSubcategory ? sanitizeForPrompt(ctx.courseSubcategory, 100) : undefined,
     targetAudience: sanitizeForPrompt(ctx.targetAudience, 200),
     courseLearningObjectives: ctx.courseLearningObjectives.map(
       (obj) => sanitizeForPrompt(obj, 300)

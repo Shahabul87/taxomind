@@ -46,12 +46,31 @@ import { diagnoseChapterIssues } from './healing-loop';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { PROMPT_VERSION } from './prompts';
 import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
+import { BudgetExceededError } from './pipeline-budget';
 import type {
   ChapterStepContext,
   ChapterStepResult,
   CourseQualityFlag,
+  PipelinePauseRequest,
 } from './types';
 import type { CourseStateMachineConfig, SharedPipelineState } from './course-state-machine';
+
+// ============================================================================
+// Errors
+// ============================================================================
+
+/** Thrown when the pipeline is paused for human escalation review */
+export class PipelinePausedError extends Error {
+  readonly pauseRequest: PipelinePauseRequest;
+  constructor(pauseRequest: PipelinePauseRequest) {
+    super(
+      `[PipelinePaused] Paused for human review: chapter ${pauseRequest.chapterPosition} ` +
+      `"${pauseRequest.chapterTitle}" — ${pauseRequest.reason}`,
+    );
+    this.name = 'PipelinePausedError';
+    this.pauseRequest = pauseRequest;
+  }
+}
 
 // ============================================================================
 // Types
@@ -150,8 +169,17 @@ export async function phaseGenerate(
   ctx: StepExecutorContext,
   chapterContext: ChapterStepContext,
 ): Promise<{ chapterResult: ChapterStepResult } | { earlyReturn: StepResult }> {
-  const { config, step, chapterNumber } = ctx;
+  const { config, state, step, chapterNumber } = ctx;
   const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
+
+  // Budget guard: stop before starting expensive generation
+  if (state.budgetTracker && !state.budgetTracker.canProceed()) {
+    const snapshot = state.budgetTracker.getSnapshot();
+    logger.warn('[CourseStateMachine] Budget exceeded before chapter generation', {
+      chapter: chapterNumber, ...snapshot,
+    });
+    throw new BudgetExceededError(snapshot);
+  }
 
   try {
     const chapterResult = await withTimeout(
@@ -342,6 +370,55 @@ export async function phaseDecisionMaking(
 
       // Fire-and-forget persistence
       persistQualityFlag(config.courseId, qualityFlag).catch(() => {});
+
+      // Escalation gate: pause pipeline for human approval if enabled
+      if (state.config.enableEscalationGate) {
+        const pauseRequest: PipelinePauseRequest = {
+          courseId: config.courseId,
+          chapterPosition: qualityFlag.chapterPosition,
+          chapterTitle: qualityFlag.chapterTitle,
+          reason: qualityFlag.reason,
+          severity: qualityFlag.severity === 'critical' ? 'critical' : 'high',
+          qualityScore: chapterResult.qualityScores[0]?.overall ?? 0,
+          timestamp: qualityFlag.timestamp,
+        };
+
+        config.onSSEEvent?.({
+          type: 'pipeline_paused',
+          data: {
+            ...pauseRequest,
+            message: 'Pipeline paused for human review. Use the approve endpoint to continue.',
+          },
+        });
+
+        logger.info('[CourseStateMachine] Pipeline paused for human escalation', {
+          courseId: config.courseId, chapter: chapterNumber,
+        });
+
+        // Save checkpoint before pausing
+        await saveCheckpointWithRetry(config.courseId, config.userId, config.planId, {
+          conceptTracker: state.conceptTracker,
+          bloomsProgression: state.bloomsProgression,
+          allSectionTitles: state.allSectionTitles,
+          qualityScores: state.qualityScores,
+          completedChapterCount: chapterNumber,
+          config: state.config,
+          goalId: config.goalId,
+          planId: config.planId,
+          stepIds: state.stepIds,
+          courseId: config.courseId,
+          completedChaptersList: state.completedChapters,
+          percentage: Math.round((chapterNumber / config.totalChapters) * 100),
+          status: 'paused',
+          lastCompletedStage: 3,
+          currentChapterNumber: chapterNumber,
+          chapterSectionCounts: state.chapterSectionCounts,
+          strategyHistory: state.strategyMonitor.getHistory(),
+          promptVersion: PROMPT_VERSION,
+        });
+
+        throw new PipelinePausedError(pauseRequest);
+      }
     }
 
     // Store decision in plan (background)

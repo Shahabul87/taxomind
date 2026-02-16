@@ -12,6 +12,7 @@
 import { logger } from '@/lib/logger';
 import type { CreationProgress, CreationStage } from '@/lib/sam/course-creation/types';
 import type { ParsedSSEEvent, SSEHandlerContext, SSEEventResult } from './types';
+import { clearPartialCourseId, setPartialCourseId } from './types';
 import { calculateETA } from './eta-calculator';
 
 // ============================================================================
@@ -487,12 +488,8 @@ function handleComplete(
   const averageQualityScore = (data.averageQualityScore as number) ?? 0;
 
   // Clear partial course from localStorage on success
-  try {
-    localStorage.removeItem('taxomind_partial_course');
-    setResumableCourseId(null);
-  } catch {
-    // localStorage not available
-  }
+  clearPartialCourseId();
+  setResumableCourseId(null);
 
   setProgress(prev => ({
     ...prev,
@@ -534,12 +531,8 @@ function handleError(
 
   // Store partial course ID for resume
   if (errorCourseId && chaptersCreated > 0) {
-    try {
-      localStorage.setItem('taxomind_partial_course', errorCourseId);
-      setResumableCourseId(errorCourseId);
-    } catch {
-      // localStorage not available
-    }
+    setPartialCourseId(errorCourseId);
+    setResumableCourseId(errorCourseId);
   }
 
   setError(errorMessage);

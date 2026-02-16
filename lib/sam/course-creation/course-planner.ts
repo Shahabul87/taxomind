@@ -19,7 +19,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { traceAICall } from './helpers';
+import { traceAICall, sanitizeCourseContext } from './helpers';
 import type {
   CourseContext,
   CourseBlueprintPlan,
@@ -127,6 +127,9 @@ async function doGenerateBlueprint(
   recalledMemory?: RecalledMemory,
   runId?: string,
 ): Promise<CourseBlueprintPlan> {
+  // Sanitize all user-controlled fields before prompt interpolation
+  const ctx = sanitizeCourseContext(courseContext);
+
   const memorySection = recalledMemory && recalledMemory.priorConcepts.length > 0
     ? `\n\nPRIOR KNOWLEDGE: The instructor has previously taught these concepts in related courses: ${recalledMemory.priorConcepts.map(c => c.concept).join(', ')}. Build on this experience.`
     : '';
@@ -140,14 +143,14 @@ async function doGenerateBlueprint(
   const userPrompt = `Plan the complete structure for this course:
 
 ## COURSE
-- Title: "${courseContext.courseTitle}"
-- Description: ${courseContext.courseDescription}
-- Category: ${courseContext.courseCategory}${courseContext.courseSubcategory ? ` > ${courseContext.courseSubcategory}` : ''}
-- Target Audience: ${courseContext.targetAudience}
-- Difficulty: ${courseContext.difficulty}
-- Total Chapters: ${courseContext.totalChapters}
+- Title: "${ctx.courseTitle}"
+- Description: ${ctx.courseDescription}
+- Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+- Target Audience: ${ctx.targetAudience}
+- Difficulty: ${ctx.difficulty}
+- Total Chapters: ${ctx.totalChapters}
 - Learning Objectives:
-${courseContext.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
+${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 ${memorySection}${qualitySection}
 
 ## TASK
@@ -352,7 +355,7 @@ export async function replanRemainingChapters(
 
   try {
     const plan = await withTimeout(
-      doReplanRemaining(userId, courseContext, completedChapters, conceptTracker, currentBlueprint),
+      doReplanRemaining(userId, courseContext, completedChapters, conceptTracker, currentBlueprint, runId),
       PLANNING_TIMEOUT_MS,
     );
 
@@ -377,9 +380,13 @@ async function doReplanRemaining(
   completedChapters: CompletedChapter[],
   conceptTracker: ConceptTracker,
   currentBlueprint: CourseBlueprintPlan | null,
+  runId?: string,
 ): Promise<CourseBlueprintPlan> {
+  // Sanitize all user-controlled fields before prompt interpolation
+  const ctx = sanitizeCourseContext(courseContext);
+
   const completedCount = completedChapters.length;
-  const remainingCount = courseContext.totalChapters - completedCount;
+  const remainingCount = ctx.totalChapters - completedCount;
 
   // Build summary of what has been generated so far
   const completedSummary = completedChapters.map(ch => {
@@ -403,10 +410,10 @@ async function doReplanRemaining(
   const userPrompt = `Re-plan the remaining ${remainingCount} chapters for this course:
 
 ## COURSE
-- Title: "${courseContext.courseTitle}"
-- Category: ${courseContext.courseCategory}
-- Difficulty: ${courseContext.difficulty}
-- Total Chapters: ${courseContext.totalChapters}
+- Title: "${ctx.courseTitle}"
+- Category: ${ctx.courseCategory}
+- Difficulty: ${ctx.difficulty}
+- Total Chapters: ${ctx.totalChapters}
 - Chapters Completed: ${completedCount}
 
 ## WHAT HAS BEEN GENERATED

@@ -64,8 +64,9 @@ import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { PROMPT_VERSION } from './prompts';
 import type { CourseBlueprintPlan, AgenticDecision, ChapterStepContext, ChapterStepResult, CourseQualityFlag } from './types';
 import { AdaptiveStrategyMonitor } from './adaptive-strategy';
+import { PipelineBudgetTracker, BudgetExceededError } from './pipeline-budget';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
-import { COURSE_CATEGORIES } from '@/app/(protected)/teacher/create/ai-creator/types/sam-creator.types';
+import { COURSE_CATEGORIES } from './course-categories';
 import type {
   SequentialCreationConfig,
   SequentialCreationResult,
@@ -265,6 +266,16 @@ export async function orchestrateCourseCreation(
       logger.debug('[ORCHESTRATOR] Blueprint planning skipped');
     }
   }
+
+  // Initialize pipeline budget tracker (3x the estimated token spend)
+  // Estimate: ~2000 tokens per AI call, ~3 calls per section (Stage 1/2/3),
+  // plus retries, critics, planning, reflection, and healing
+  const estimatedCallsPerChapter = 1 + config.sectionsPerChapter * 2; // S1 + S2*N + S3*N
+  const estimatedTotalCalls = config.totalChapters * estimatedCallsPerChapter + 5; // +planning/reflection
+  const estimatedTokensPerCall = 2000;
+  const estimatedTotalTokens = estimatedTotalCalls * estimatedTokensPerCall;
+  const estimatedCostUSD = estimatedTotalTokens * 0.000003; // rough $/token estimate
+  const budgetTracker = new PipelineBudgetTracker(estimatedTotalTokens, estimatedCostUSD);
 
   // Strict mode: always use user's requested chapter count
   const totalChapters = config.totalChapters;
@@ -553,6 +564,7 @@ export async function orchestrateCourseCreation(
           experimentVariant,
           config,
           chapterSectionCounts,
+          budgetTracker,
         },
       });
 
@@ -574,6 +586,7 @@ export async function orchestrateCourseCreation(
         categoryPrompt: composedCategoryPrompt,
         categoryEnhancer,
         experimentVariant,
+        budgetTracker,
       }));
 
       chaptersCreated = completedChapters.length;
@@ -653,7 +666,26 @@ export async function orchestrateCourseCreation(
           experimentVariant,
           bridgeContent: bridgeContent || undefined,
           runId,
+          budgetTracker,
         };
+
+        // Check budget before starting chapter generation
+        if (!budgetTracker.canProceed()) {
+          logger.warn('[ORCHESTRATOR] Budget exceeded, stopping generation', {
+            chapter: chNum,
+            ...budgetTracker.getSnapshot(),
+          });
+          onSSEEvent?.({
+            type: 'error',
+            data: {
+              message: `Token budget exceeded after chapter ${chNum - 1}. Partial course saved.`,
+              chaptersCreated,
+              sectionsCreated,
+              courseId,
+            },
+          });
+          break;
+        }
 
         const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
         let chapterResult: ChapterStepResult;
@@ -1017,9 +1049,14 @@ export async function orchestrateCourseCreation(
         coherenceScore: courseReflection.coherenceScore,
         flaggedChapters: courseReflection.flaggedChapters.length,
       });
-    } catch {
-      // Reflection failure is non-blocking
-      logger.debug('[ORCHESTRATOR] Course reflection skipped');
+    } catch (reflectionError) {
+      // Reflection failure is non-blocking — but emit SSE for observability
+      const reflectionMsg = reflectionError instanceof Error ? reflectionError.message : 'Unknown error';
+      logger.warn('[ORCHESTRATOR] Course reflection skipped', { error: reflectionMsg });
+      onSSEEvent?.({
+        type: 'reflection_skipped',
+        data: { reason: reflectionMsg },
+      });
     }
 
     // =========================================================================
@@ -1053,9 +1090,14 @@ export async function orchestrateCourseCreation(
             finalCoherenceScore: healingResult.finalCoherenceScore,
             improvement: healingResult.improvementDelta,
           });
-        } catch {
-          // Healing loop failure is non-blocking
-          logger.warn('[ORCHESTRATOR] Healing loop failed, continuing');
+        } catch (healingError) {
+          // Healing loop failure is non-blocking — but emit SSE for observability
+          const healingMsg = healingError instanceof Error ? healingError.message : 'Unknown error';
+          logger.warn('[ORCHESTRATOR] Healing loop failed, continuing', { error: healingMsg });
+          onSSEEvent?.({
+            type: 'healing_skipped',
+            data: { reason: healingMsg },
+          });
         }
       }
     }
@@ -1095,6 +1137,26 @@ export async function orchestrateCourseCreation(
       qualityScores.length > 0
         ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
         : 0;
+
+    // Quality gate: emit a warning if average quality is below threshold.
+    // This does not block completion but gives the frontend and logs visibility.
+    const QUALITY_WARNING_THRESHOLD = 50;
+    if (averageQualityScore > 0 && averageQualityScore < QUALITY_WARNING_THRESHOLD) {
+      logger.warn('[ORCHESTRATOR] Course completed below quality threshold', {
+        runId,
+        courseId,
+        averageQualityScore,
+        threshold: QUALITY_WARNING_THRESHOLD,
+      });
+      onSSEEvent?.({
+        type: 'quality_warning',
+        data: {
+          averageQualityScore,
+          threshold: QUALITY_WARNING_THRESHOLD,
+          message: `Course quality score (${averageQualityScore}) is below the recommended threshold (${QUALITY_WARNING_THRESHOLD}). Consider reviewing flagged chapters.`,
+        },
+      });
+    }
 
     logger.info('[ORCHESTRATOR] Course creation complete', {
       runId,

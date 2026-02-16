@@ -17,6 +17,18 @@ import { getCurrentAdminSession } from "@/lib/admin/check-admin";
 import { getCachedPlatformAISettings, type CachedPlatformAISettings } from './platform-settings-cache';
 import { sendEmail } from "@/lib/email";
 
+// =============================================================================
+// FAIL-CLOSED GRACE WINDOW
+// =============================================================================
+// Allow a limited number of enforcement errors before denying requests.
+// This prevents a transient DB blip from blocking all users, while ensuring
+// sustained DB outages don't remove all rate limits.
+
+const ENFORCEMENT_ERROR_WINDOW_MS = 60_000; // 1 minute window
+const MAX_GRACE_ERRORS_PER_WINDOW = 5;      // After 5 failures in 1 min, deny
+
+let enforcementErrorTimestamps: number[] = [];
+
 // AI Feature types that can be rate-limited
 export type AIFeatureType =
   | "chat"           // SAM AI chat messages
@@ -285,7 +297,30 @@ export async function checkAIAccess(
 
   } catch (error) {
     logger.error("[AI_ENFORCEMENT_ERROR]", error);
-    // On error, allow the request but log it
+
+    // Fail-closed with grace window: allow a limited number of enforcement
+    // errors before denying requests. This prevents a transient DB blip from
+    // blocking everyone, while ensuring sustained outages don't bypass limits.
+    const now = Date.now();
+    enforcementErrorTimestamps = enforcementErrorTimestamps.filter(
+      ts => now - ts < ENFORCEMENT_ERROR_WINDOW_MS,
+    );
+    enforcementErrorTimestamps.push(now);
+
+    if (enforcementErrorTimestamps.length > MAX_GRACE_ERRORS_PER_WINDOW) {
+      logger.warn("[AI_ENFORCEMENT] Grace window exceeded — denying request", {
+        errorsInWindow: enforcementErrorTimestamps.length,
+      });
+      return {
+        allowed: false,
+        reason: "Service temporarily unavailable. Please try again shortly.",
+      };
+    }
+
+    // Within grace window — allow but log
+    logger.warn("[AI_ENFORCEMENT] Allowing request during grace window", {
+      errorsInWindow: enforcementErrorTimestamps.length,
+    });
     return { allowed: true };
   }
 }

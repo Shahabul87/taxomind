@@ -8,22 +8,18 @@
 // Mock server-only before any imports
 jest.mock('server-only', () => ({}));
 
-// Mock the db module
-const mockUpdate = jest.fn();
-const mockFindFirst = jest.fn();
-const mockFindUnique = jest.fn();
-
+// Mock the db module — use inline jest.fn() inside factory to avoid hoisting issues
 jest.mock('@/lib/db', () => ({
   db: {
     sAMExecutionPlan: {
-      update: (...args: unknown[]) => mockUpdate(...args),
-      findFirst: (...args: unknown[]) => mockFindFirst(...args),
+      update: jest.fn(),
+      findFirst: jest.fn(),
     },
     course: {
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
+      findUnique: jest.fn(),
     },
     section: { deleteMany: jest.fn() },
-    chapter: { delete: jest.fn() },
+    chapter: { deleteMany: jest.fn() },
   },
 }));
 
@@ -38,9 +34,6 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 // Mock dependent modules that checkpoint-manager imports
-jest.mock('../chapter-templates', () => ({
-  getTemplateForDifficulty: jest.fn(() => ({ totalSections: 7, displayName: 'Intermediate Template' })),
-}));
 jest.mock('../course-creation-controller', () => ({
   reactivateCourseCreation: jest.fn(),
 }));
@@ -48,8 +41,14 @@ jest.mock('../orchestrator', () => ({
   orchestrateCourseCreation: jest.fn(),
 }));
 
+import { db } from '@/lib/db';
 import { saveCheckpointWithRetry, resumeCourseCreation, type SaveCheckpointInput } from '../checkpoint-manager';
 import type { BloomsLevel, ConceptTracker, QualityScore, CompletedChapter } from '../types';
+
+// Typed mock accessors
+const mockUpdate = jest.mocked(db.sAMExecutionPlan.update);
+const mockFindFirst = jest.mocked(db.sAMExecutionPlan.findFirst);
+const mockFindUnique = jest.mocked(db.course.findUnique);
 
 // ============================================================================
 // Fixtures
@@ -73,6 +72,7 @@ function makeCheckpointInput(overrides: Partial<SaveCheckpointInput> = {}): Save
     config: {
       courseTitle: 'Test Course',
       totalChapters: 5,
+      sectionsPerChapter: 7,
       difficulty: 'intermediate',
     } as SaveCheckpointInput['config'],
     goalId: 'goal-1',
@@ -105,7 +105,7 @@ describe('saveCheckpointWithRetry', () => {
   });
 
   it('calls db.sAMExecutionPlan.update with serialized checkpoint', async () => {
-    mockUpdate.mockResolvedValueOnce({});
+    mockUpdate.mockResolvedValueOnce({} as never);
     const input = makeCheckpointInput();
 
     await saveCheckpointWithRetry('course-1', 'user-1', 'plan-1', input);
@@ -125,7 +125,7 @@ describe('saveCheckpointWithRetry', () => {
   });
 
   it('serializes ConceptTracker.concepts Map as array of entries', async () => {
-    mockUpdate.mockResolvedValueOnce({});
+    mockUpdate.mockResolvedValueOnce({} as never);
     const input = makeCheckpointInput();
 
     await saveCheckpointWithRetry('course-1', 'user-1', 'plan-1', input);
@@ -139,7 +139,7 @@ describe('saveCheckpointWithRetry', () => {
   it('retries once on first failure', async () => {
     mockUpdate
       .mockRejectedValueOnce(new Error('DB connection lost'))
-      .mockResolvedValueOnce({});
+      .mockResolvedValueOnce({} as never);
 
     const input = makeCheckpointInput();
 
@@ -175,7 +175,7 @@ describe('saveCheckpointWithRetry', () => {
   });
 
   it('includes strategyHistory and promptVersion in checkpoint', async () => {
-    mockUpdate.mockResolvedValueOnce({});
+    mockUpdate.mockResolvedValueOnce({} as never);
     const input = makeCheckpointInput({
       strategyHistory: [{ score: 75, tokensUsed: 1000, latencyMs: 2000 }] as SaveCheckpointInput['strategyHistory'],
       promptVersion: 'v2.1.0',
@@ -190,9 +190,6 @@ describe('saveCheckpointWithRetry', () => {
 });
 
 describe('resumeCourseCreation validation', () => {
-  // These test the validation logic inside resumeCourseCreation
-  // by calling it with mocked DB responses
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -210,11 +207,9 @@ describe('resumeCourseCreation validation', () => {
   });
 
   it('rejects when checkpoint data is empty (no chapters completed)', async () => {
-    // Simulates the case where course failed before any chapter was generated:
-    // initializeCourseCreationGoal sets checkpointData: {} initially
     mockFindFirst.mockResolvedValueOnce({
       checkpointData: {},
-    });
+    } as never);
 
     const result = await resumeCourseCreation({
       userId: 'user-1',
@@ -230,7 +225,7 @@ describe('resumeCourseCreation validation', () => {
       checkpointData: {
         completedChapterCount: 2,
         courseId: 'course-1',
-        config: { totalChapters: 5, difficulty: 'intermediate' },
+        config: { totalChapters: 5, sectionsPerChapter: 7, difficulty: 'intermediate' },
         conceptEntries: [],
         vocabulary: [],
         skillsBuilt: [],
@@ -241,13 +236,13 @@ describe('resumeCourseCreation validation', () => {
         planId: 'p1',
         stepIds: [],
       },
-    });
+    } as never);
     mockFindUnique.mockResolvedValueOnce({
       id: 'course-1',
       userId: 'other-user', // Different user
       isPublished: false,
       chapters: [],
-    });
+    } as never);
 
     const result = await resumeCourseCreation({
       userId: 'user-1',
@@ -263,7 +258,7 @@ describe('resumeCourseCreation validation', () => {
       checkpointData: {
         completedChapterCount: 2,
         courseId: 'course-1',
-        config: { totalChapters: 5, difficulty: 'intermediate' },
+        config: { totalChapters: 5, sectionsPerChapter: 7, difficulty: 'intermediate' },
         conceptEntries: [],
         vocabulary: [],
         skillsBuilt: [],
@@ -274,13 +269,13 @@ describe('resumeCourseCreation validation', () => {
         planId: 'p1',
         stepIds: [],
       },
-    });
+    } as never);
     mockFindUnique.mockResolvedValueOnce({
       id: 'course-1',
       userId: 'user-1',
       isPublished: true, // Already published
       chapters: [],
-    });
+    } as never);
 
     const result = await resumeCourseCreation({
       userId: 'user-1',

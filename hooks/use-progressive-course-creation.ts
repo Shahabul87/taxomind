@@ -30,6 +30,13 @@ interface StepSuggestion {
   confidence: number;
 }
 
+interface CourseFormData {
+  preferredContentTypes?: string[];
+  chapterCount?: number;
+  difficulty?: string;
+  courseCategory?: string;
+}
+
 interface ProgressiveDisclosureState {
   currentStep: number;
   userExperience: 'beginner' | 'intermediate' | 'expert';
@@ -86,13 +93,13 @@ export const useProgressiveCourseCreation = (userId?: string) => {
           body: JSON.stringify(patterns),
         });
       }
-    } catch (error: any) {
-      logger.error('Failed to save user patterns:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to save user patterns:', error instanceof Error ? error.message : String(error));
     }
   }, [userId]);
 
   // Generate contextual suggestions for upcoming steps
-  const generateStepSuggestions = useCallback((nextStep: number, currentFormData?: any) => {
+  const generateStepSuggestions = useCallback((nextStep: number, _currentFormData?: CourseFormData) => {
     if (!userPattern) return;
 
     const suggestions: StepSuggestion[] = [];
@@ -199,8 +206,8 @@ export const useProgressiveCourseCreation = (userId?: string) => {
             adaptInterface(patterns);
           }
         }
-      } catch (error: any) {
-        logger.error('Failed to initialize user patterns:', error);
+      } catch (error: unknown) {
+        logger.error('Failed to initialize user patterns:', error instanceof Error ? error.message : String(error));
       }
     };
 
@@ -227,7 +234,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
   };
 
   // Track step completion and time
-  const completeStep = useCallback((step: number, formData?: any) => {
+  const completeStep = useCallback((step: number, formData?: CourseFormData) => {
     const now = Date.now();
     const timeOnStep = now - stepStartTime;
     
@@ -265,7 +272,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
   }, [stepStartTime, userPattern, generateStepSuggestions, savePatterns]);
 
   // Update patterns based on form data
-  const updatePatternsFromFormData = (pattern: UserPattern, formData: any) => {
+  const updatePatternsFromFormData = (pattern: UserPattern, formData: CourseFormData) => {
     if (formData.preferredContentTypes?.length > 0) {
       pattern.patterns.preferredContentTypes = formData.preferredContentTypes;
     }

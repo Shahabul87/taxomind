@@ -43,13 +43,28 @@ import type {
 } from './types';
 
 // =============================================================================
-// Schema Validation Helper (soft — warns but never rejects)
+// Schema Validation Error (strict mode rejects malformed AI output)
+// =============================================================================
+
+/** Thrown when AI response fails Zod schema validation in strict mode */
+export class SchemaValidationError extends Error {
+  readonly issues: string[];
+  constructor(stage: string, issues: string[]) {
+    super(`[SchemaValidation] ${stage} failed: ${issues.slice(0, 3).join('; ')}`);
+    this.name = 'SchemaValidationError';
+    this.issues = issues;
+  }
+}
+
+// =============================================================================
+// Schema Validation Helper (strict by default — throws on failure)
 // =============================================================================
 
 function validateWithSchema<T>(
   parsed: unknown,
   schema: z.ZodType<T>,
   stage: string,
+  strict = true,
 ): { valid: boolean; issues: string[] } {
   const result = schema.safeParse(parsed);
   if (result.success) return { valid: true, issues: [] };
@@ -57,6 +72,9 @@ function validateWithSchema<T>(
     (i) => `${i.path.join('.')}: ${i.message}`
   );
   logger.warn(`[ResponseParser] Schema validation issues in ${stage}`, { issues });
+  if (strict) {
+    throw new SchemaValidationError(stage, issues);
+  }
   return { valid: false, issues };
 }
 
@@ -155,7 +173,15 @@ export function parseChapterResponse(
 
     const qualityScore = scoreChapter(chapter, courseContext, previousChapters, blueprintEntry);
     return { chapter, thinking, qualityScore };
-  } catch {
+  } catch (error) {
+    if (error instanceof SchemaValidationError) {
+      logger.warn('[ORCHESTRATOR] Schema validation failed for chapter, using fallback', { issues: error.issues });
+      return {
+        chapter: buildFallbackChapter(chapterNumber, courseContext),
+        thinking: 'Used fallback generation due to schema validation error.',
+        qualityScore: buildDefaultQualityScore(40),
+      };
+    }
     logger.warn('[ORCHESTRATOR] Failed to parse chapter response, using fallback');
     return {
       chapter: buildFallbackChapter(chapterNumber, courseContext),
@@ -214,7 +240,15 @@ export function parseSectionResponse(
 
     const qualityScore = scoreSection(section, existingTitles, templateDef);
     return { section, thinking, qualityScore };
-  } catch {
+  } catch (error) {
+    if (error instanceof SchemaValidationError) {
+      logger.warn('[ORCHESTRATOR] Schema validation failed for section, using fallback', { issues: error.issues });
+      return {
+        section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
+        thinking: 'Used fallback generation due to schema validation error.',
+        qualityScore: buildDefaultQualityScore(40),
+      };
+    }
     logger.warn('[ORCHESTRATOR] Failed to parse section response, using fallback');
     return {
       section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
@@ -260,7 +294,15 @@ export function parseDetailsResponse(
 
     const qualityScore = scoreDetails(details, section, chapter.bloomsLevel, templateDef);
     return { details, thinking, qualityScore };
-  } catch {
+  } catch (error) {
+    if (error instanceof SchemaValidationError) {
+      logger.warn('[ORCHESTRATOR] Schema validation failed for details, using fallback', { issues: error.issues });
+      return {
+        details: buildFallbackDetails(chapter, section, courseContext, templateDef),
+        thinking: 'Used fallback generation due to schema validation error.',
+        qualityScore: buildDefaultQualityScore(40),
+      };
+    }
     logger.warn('[ORCHESTRATOR] Failed to parse details response, using fallback');
     return {
       details: buildFallbackDetails(chapter, section, courseContext, templateDef),

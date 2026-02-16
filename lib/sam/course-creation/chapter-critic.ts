@@ -21,7 +21,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { traceAICall } from './helpers';
+import { traceAICall, sanitizeCourseContext } from './helpers';
 import type {
   GeneratedChapter,
   GeneratedSection,
@@ -214,6 +214,9 @@ async function doReviewChapter(
   conceptTracker: ConceptTracker,
   runId?: string,
 ): Promise<ChapterCritique> {
+  // Sanitize user-controlled fields before prompt interpolation
+  const ctx = sanitizeCourseContext(courseContext);
+
   // Build context for the critic
   const priorChapterSummary = priorChapters.length > 0
     ? priorChapters.map(ch =>
@@ -236,11 +239,11 @@ ${chapter.learningObjectives.map(obj => `  - ${obj}`).join('\n')}
 
 ## Course Context
 
-- Title: "${courseContext.courseTitle}"
-- Category: ${courseContext.courseCategory}
-- Difficulty: ${courseContext.difficulty}
-- Target Audience: ${courseContext.targetAudience}
-- Total Chapters: ${courseContext.totalChapters}
+- Title: "${ctx.courseTitle}"
+- Category: ${ctx.courseCategory}
+- Difficulty: ${ctx.difficulty}
+- Target Audience: ${ctx.targetAudience}
+- Total Chapters: ${ctx.totalChapters}
 
 ## Prior Chapters
 
@@ -476,6 +479,9 @@ async function doReviewSection(
   courseContext: CourseContext,
   runId?: string,
 ): Promise<SectionCritique> {
+  // Sanitize user-controlled fields before prompt interpolation
+  const ctx = sanitizeCourseContext(courseContext);
+
   const priorSectionSummary = priorSections.length > 0
     ? priorSections.map(s => `S${s.position}: "${s.title}" (${s.contentType})`).join('\n')
     : 'No prior sections (this is the first)';
@@ -487,7 +493,7 @@ async function doReviewSection(
 - Content Type: ${section.contentType}
 - Topic Focus: ${section.topicFocus}
 - Duration: ${section.estimatedDuration}
-- Course: "${courseContext.courseTitle}" (${courseContext.difficulty})
+- Course: "${ctx.courseTitle}" (${ctx.difficulty})
 
 **Chapter Key Topics**: ${chapter.keyTopics.join(', ')}
 **Chapter Objectives**: ${chapter.learningObjectives.slice(0, 3).join('; ')}
@@ -696,11 +702,14 @@ async function doReviewDetails(
   courseContext: CourseContext,
   runId?: string,
 ): Promise<DetailsCritique> {
+  // Sanitize user-controlled fields before prompt interpolation
+  const ctx = sanitizeCourseContext(courseContext);
+
   const userPrompt = `## Section Details to Review
 
 **Chapter ${chapter.position}: "${chapter.title}"** (${chapter.bloomsLevel})
 **Section ${section.position}: "${section.title}"** (${section.contentType})
-**Course**: "${courseContext.courseTitle}" (${courseContext.difficulty})
+**Course**: "${ctx.courseTitle}" (${ctx.difficulty})
 
 ### Description:
 ${details.description.slice(0, 500)}${details.description.length > 500 ? '...' : ''}
