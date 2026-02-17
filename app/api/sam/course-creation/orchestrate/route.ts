@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         const checkpoint = existingPlan.checkpointData as Record<string, unknown> | null;
         const courseId = checkpoint?.courseId as string | undefined;
 
-        if (existingPlan.status === 'ACTIVE' || existingPlan.status === 'PENDING') {
+        if (existingPlan.status === 'ACTIVE' || existingPlan.status === 'DRAFT') {
           releaseInFlight(inFlightKey);
           return new Response(
             JSON.stringify({
@@ -230,12 +230,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 3c. Secondary dedup for non-requestId callers or race windows:
-    // block if a matching fingerprint is already ACTIVE/PENDING recently.
+    // block if a matching fingerprint is already ACTIVE or DRAFT recently.
     if (requestFingerprint) {
       const activeMatch = await db.sAMExecutionPlan.findFirst({
         where: {
           goal: { userId: user.id },
-          status: { in: ['ACTIVE', 'PENDING'] },
+          status: { in: ['ACTIVE', 'DRAFT'] },
           metadata: {
             path: ['requestFingerprint'],
             equals: requestFingerprint,
