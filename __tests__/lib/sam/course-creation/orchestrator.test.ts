@@ -198,6 +198,15 @@ jest.mock('@/lib/sam/course-creation/course-reflector', () => {
   };
 });
 
+// Mock chapter critic (multi-agent review — returns null to skip critic calls)
+jest.mock('@/lib/sam/course-creation/chapter-critic', () => ({
+  reviewChapterWithCritic: jest.fn().mockResolvedValue(null),
+  reviewSectionWithCritic: jest.fn().mockResolvedValue(null),
+  reviewDetailsWithCritic: jest.fn().mockResolvedValue(null),
+  buildSectionCriticFeedbackBlock: jest.fn().mockReturnValue(''),
+  buildDetailsCriticFeedbackBlock: jest.fn().mockReturnValue(''),
+}));
+
 // Mock self-critique (Phase 3: reasoning analysis)
 jest.mock('@/lib/sam/course-creation/self-critique', () => ({
   critiqueGeneration: jest.fn().mockReturnValue({
@@ -515,6 +524,8 @@ describe('orchestrateCourseCreation', () => {
 
   it('uses fallback generators on AI parse failure', async () => {
     const config = createBaseConfig();
+    // Disable fallback halt so pipeline continues despite 100% fallback rate
+    config.fallbackPolicy = { haltOnExcessiveFallbacks: false };
 
     // Return invalid JSON for all AI calls (runSAMChatWithPreference returns string)
     mockRunSAMChat.mockResolvedValue('not valid json at all!!!');
@@ -705,7 +716,7 @@ describe('orchestrateCourseCreation', () => {
   // Phase 2: Actionable Agentic Decisions
   // ==========================================================================
 
-  it('calls applyAgenticDecision after chapter completion', async () => {
+  it('calls evaluateChapterOutcome (rule-based) after chapter completion in legacy path', async () => {
     const config = createBaseConfig();
 
     await orchestrateCourseCreation({
@@ -714,51 +725,33 @@ describe('orchestrateCourseCreation', () => {
       useAgenticStateMachine: false,
     });
 
-    const { applyAgenticDecision } = jest.requireMock(
+    const { evaluateChapterOutcome } = jest.requireMock(
       '@/lib/sam/course-creation/agentic-decisions'
-    ) as { applyAgenticDecision: jest.Mock };
+    ) as { evaluateChapterOutcome: jest.Mock };
 
-    // applyAgenticDecision called once per chapter with agentic decision (ch1 only, not ch2)
-    expect(applyAgenticDecision).toHaveBeenCalledTimes(1);
-    expect(applyAgenticDecision).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'continue' }),
-      expect.any(Object), // strategyMonitor
-      expect.any(Array), // healingQueue
-    );
+    // Legacy path uses rule-based evaluateChapterOutcome (not applyAgenticDecision)
+    // Called once for ch1 (not for ch2 since it's the last chapter)
+    expect(evaluateChapterOutcome).toHaveBeenCalledTimes(1);
   });
 
-  it('triggers re-planning when agentic decision is replan_remaining', async () => {
+  it('legacy path does not trigger re-planning (agentic path only)', async () => {
+    // Re-planning requires evaluateChapterOutcomeWithAI + applyAgenticDecision
+    // which are only in the agentic state machine path (step-executor-phases.ts).
+    // See step-executor-phases.test.ts for full agentic decision coverage.
     const config = createBaseConfig();
-
-    const { evaluateChapterOutcomeWithAI } = jest.requireMock(
-      '@/lib/sam/course-creation/agentic-decisions'
-    ) as { evaluateChapterOutcomeWithAI: jest.Mock };
-
-    // Make the AI decision trigger re-planning
-    evaluateChapterOutcomeWithAI.mockResolvedValue({
-      action: 'replan_remaining',
-      reasoning: 'Concept coverage below threshold.',
-    });
-
-    const sseEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
 
     await orchestrateCourseCreation({
       userId: 'user-1',
       config,
       useAgenticStateMachine: false,
-      onSSEEvent: (event) => sseEvents.push(event),
     });
 
     const { replanRemainingChapters } = jest.requireMock(
       '@/lib/sam/course-creation/course-planner'
     ) as { replanRemainingChapters: jest.Mock };
 
-    // Re-planning should be triggered after chapter 1
-    expect(replanRemainingChapters).toHaveBeenCalledTimes(1);
-
-    // SSE events for re-planning
-    expect(sseEvents.some(e => e.type === 'replan_start')).toBe(true);
-    expect(sseEvents.some(e => e.type === 'replan_complete')).toBe(true);
+    // Legacy path uses simplified decision handling — no re-planning
+    expect(replanRemainingChapters).not.toHaveBeenCalled();
   });
 
   // ==========================================================================
@@ -837,7 +830,10 @@ describe('orchestrateCourseCreation', () => {
   // New Agentic Gap Tests
   // ==========================================================================
 
-  it('uses AI-driven decision (evaluateChapterOutcomeWithAI) in legacy path', async () => {
+  it('legacy path uses rule-based evaluation, not AI-driven decision', async () => {
+    // The legacy path uses evaluateChapterOutcome (rule-based, in chapter-generator.ts)
+    // rather than evaluateChapterOutcomeWithAI (which is in step-executor-phases.ts).
+    // See step-executor-phases.test.ts for AI-driven decision coverage.
     const config = createBaseConfig();
 
     await orchestrateCourseCreation({
@@ -846,108 +842,55 @@ describe('orchestrateCourseCreation', () => {
       useAgenticStateMachine: false,
     });
 
-    const { evaluateChapterOutcomeWithAI } = jest.requireMock(
+    const { evaluateChapterOutcomeWithAI, evaluateChapterOutcome } = jest.requireMock(
       '@/lib/sam/course-creation/agentic-decisions'
-    ) as { evaluateChapterOutcomeWithAI: jest.Mock };
+    ) as { evaluateChapterOutcomeWithAI: jest.Mock; evaluateChapterOutcome: jest.Mock };
 
-    // Called once between chapter 1 and 2
-    expect(evaluateChapterOutcomeWithAI).toHaveBeenCalledTimes(1);
+    // AI-driven decision is NOT called in legacy path
+    expect(evaluateChapterOutcomeWithAI).not.toHaveBeenCalled();
 
-    // Should receive userId, completedChapter, allCompletedChapters, etc.
-    expect(evaluateChapterOutcomeWithAI).toHaveBeenCalledWith(
-      'user-1',
-      expect.any(Object), // completedChapter
-      expect.any(Array),  // allCompletedChapters
-      expect.any(Array),  // qualityScores
-      expect.any(Object), // blueprint
-      expect.any(Object), // conceptTracker
-      expect.any(Object), // courseContext
-      undefined,          // runId (optional)
-    );
+    // Rule-based evaluation IS called (from chapter-generator.ts)
+    expect(evaluateChapterOutcome).toHaveBeenCalledTimes(1);
   });
 
-  it('generates bridge content when AI decision is inject_bridge_content', async () => {
+  it('legacy path does not generate bridge content (agentic path only)', async () => {
+    // Bridge content generation requires evaluateChapterOutcomeWithAI returning
+    // 'inject_bridge_content' action, which is only in the agentic state machine path.
+    // See step-executor-phases.test.ts for bridge content coverage.
     const config = createBaseConfig();
-
-    const { evaluateChapterOutcomeWithAI, generateBridgeContent } = jest.requireMock(
-      '@/lib/sam/course-creation/agentic-decisions'
-    ) as {
-      evaluateChapterOutcomeWithAI: jest.Mock;
-      generateBridgeContent: jest.Mock;
-    };
-
-    // Make AI decision trigger bridge content
-    evaluateChapterOutcomeWithAI.mockResolvedValue({
-      action: 'inject_bridge_content',
-      reasoning: 'Concept gap detected between chapters.',
-      actionPayload: { conceptGaps: ['neural networks', 'backpropagation'] },
-    });
-
-    generateBridgeContent.mockResolvedValue('Neural networks build on the linear models you just learned...');
-
-    const sseEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
 
     await orchestrateCourseCreation({
       userId: 'user-1',
       config,
       useAgenticStateMachine: false,
-      onSSEEvent: (event) => sseEvents.push(event),
     });
 
-    // Bridge content should be generated
-    expect(generateBridgeContent).toHaveBeenCalledTimes(1);
-    expect(generateBridgeContent).toHaveBeenCalledWith(
-      'user-1',
-      expect.any(Object), // previousChapter
-      expect.any(Object), // nextBlueprintEntry (or undefined)
-      ['neural networks', 'backpropagation'], // conceptGaps
-      expect.any(Object), // courseContext
-      undefined,          // runId (optional)
-    );
+    const { generateBridgeContent } = jest.requireMock(
+      '@/lib/sam/course-creation/agentic-decisions'
+    ) as { generateBridgeContent: jest.Mock };
 
-    // Bridge content SSE event emitted
-    expect(sseEvents.some(e => e.type === 'bridge_content')).toBe(true);
+    // Legacy path does not call generateBridgeContent
+    expect(generateBridgeContent).not.toHaveBeenCalled();
   });
 
-  it('inline healing triggers regenerateChapter when chapters are flagged', async () => {
+  it('legacy path does not perform inline healing (agentic path only)', async () => {
+    // Inline healing (phaseInlineHealing) is only in the agentic state machine path.
+    // The legacy path uses post-generation healing via runHealingLoop instead.
+    // See step-executor-phases.test.ts for inline healing coverage.
     const config = createBaseConfig();
+
+    await orchestrateCourseCreation({
+      userId: 'user-1',
+      config,
+      useAgenticStateMachine: false,
+    });
 
     const { applyAgenticDecision } = jest.requireMock(
       '@/lib/sam/course-creation/agentic-decisions'
     ) as { applyAgenticDecision: jest.Mock };
 
-    // Make applyAgenticDecision populate healing queue
-    applyAgenticDecision.mockImplementation(
-      (_decision: unknown, _monitor: unknown, healingQueue: number[]) => {
-        healingQueue.push(1); // Flag chapter 1 for healing
-      },
-    );
-
-    const sseEvents: Array<{ type: string; data: Record<string, unknown> }> = [];
-
-    await orchestrateCourseCreation({
-      userId: 'user-1',
-      config,
-      useAgenticStateMachine: false,
-      onSSEEvent: (event) => sseEvents.push(event),
-    });
-
-    const { regenerateChapter } = jest.requireMock(
-      '@/lib/sam/course-creation/chapter-regenerator'
-    ) as { regenerateChapter: jest.Mock };
-
-    // regenerateChapter should be called for the flagged chapter
-    expect(regenerateChapter).toHaveBeenCalledTimes(1);
-    expect(regenerateChapter).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 'user-1',
-        chapterPosition: 1,
-      }),
-    );
-
-    // SSE events for inline healing
-    expect(sseEvents.some(e => e.type === 'inline_healing')).toBe(true);
-    expect(sseEvents.some(e => e.type === 'inline_healing_complete')).toBe(true);
+    // Legacy path does not call applyAgenticDecision (no inline healing queue)
+    expect(applyAgenticDecision).not.toHaveBeenCalled();
   });
 
   it('falls back to rule-based decision when AI call fails', async () => {
@@ -980,30 +923,22 @@ describe('orchestrateCourseCreation', () => {
     expect(result.chaptersCreated).toBe(2);
   });
 
-  it('persistent healing queue survives across loop iterations', async () => {
+  it('legacy path completes without healing queue (agentic path only)', async () => {
+    // Persistent healing queue is managed by step-executor-phases (agentic path).
+    // Legacy path creates a healingQueue in pipeline-runner but never populates it
+    // since applyAgenticDecision is not called.
+    // See step-executor-phases.test.ts for healing queue persistence coverage.
     const config = createBaseConfig();
 
-    const { applyAgenticDecision } = jest.requireMock(
-      '@/lib/sam/course-creation/agentic-decisions'
-    ) as { applyAgenticDecision: jest.Mock };
-
-    // Track the healing queue across calls to verify it persists
-    const capturedQueues: number[][] = [];
-    applyAgenticDecision.mockImplementation(
-      (_decision: unknown, _monitor: unknown, healingQueue: number[]) => {
-        capturedQueues.push([...healingQueue]); // Snapshot the queue
-      },
-    );
-
-    await orchestrateCourseCreation({
+    const result = await orchestrateCourseCreation({
       userId: 'user-1',
       config,
       useAgenticStateMachine: false,
     });
 
-    // applyAgenticDecision should be called with the SAME array reference
-    // (not a new array each time), confirming the queue persists
-    expect(capturedQueues.length).toBe(1); // Called once for ch1 (ch2 is last)
+    // Pipeline completes normally without healing queue interaction
+    expect(result.success).toBe(true);
+    expect(result.chaptersCreated).toBe(2);
   });
 
   // ==========================================================================
