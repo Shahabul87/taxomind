@@ -8348,6 +8348,9 @@ model SAMExecutionPlan {
   // Fallback strategies (JSON array)
   fallbackStrategies Json?
 
+  // Idempotency metadata (requestId, requestFingerprint for dedup)
+  metadata        Json?
+
   // Timestamps
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
