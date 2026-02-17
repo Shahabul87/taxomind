@@ -253,6 +253,7 @@ export type CreationPhase =
   | 'idle'
   | 'creating_course'
   | 'resuming'
+  | 'generating_roadmap'
   | 'generating_chapter'
   | 'saving_chapter'
   | 'generating_section'

@@ -94,18 +94,33 @@ export async function POST(request: NextRequest) {
     const runId = crypto.randomUUID();
     logger.info('[ORCHESTRATE_ROUTE] Starting course creation run', { runId, userId: user.id });
 
-    // 5. Set up SSE stream
+    // 5. Set up SSE stream with heartbeat to prevent connection timeout
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        let streamClosed = false;
+
         function sendSSE(event: string, data: Record<string, unknown>) {
+          if (streamClosed) return;
           const payload = `event: ${event}\ndata: ${JSON.stringify({ ...data, runId })}\n\n`;
           try {
             controller.enqueue(encoder.encode(payload));
           } catch {
-            // Stream closed by client
+            streamClosed = true;
           }
         }
+
+        // Heartbeat: send SSE comment every 15s to keep connection alive
+        // during long AI calls (roadmap generation can take 60-120s)
+        const heartbeat = setInterval(() => {
+          if (streamClosed) { clearInterval(heartbeat); return; }
+          try {
+            controller.enqueue(encoder.encode(': heartbeat\n\n'));
+          } catch {
+            streamClosed = true;
+            clearInterval(heartbeat);
+          }
+        }, 15_000);
 
         sendSSE('progress', {
           percentage: 0,
@@ -156,6 +171,7 @@ export async function POST(request: NextRequest) {
           logger.error('[ORCHESTRATE_ROUTE] Stream error:', msg);
           sendSSE('error', { message: msg });
         } finally {
+          clearInterval(heartbeat);
           try {
             controller.close();
           } catch {

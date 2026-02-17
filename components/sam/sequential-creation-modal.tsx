@@ -219,6 +219,9 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
     if (state.phase === 'creating_course') {
       return 'Setting up course in database...';
     }
+    if (state.phase === 'generating_roadmap') {
+      return progress.message || 'Planning course structure...';
+    }
     if (state.phase === 'generating_chapter') {
       return `Generating Chapter ${state.currentChapter} of ${state.totalChapters}`;
     }
@@ -235,7 +238,7 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
       return 'An error occurred';
     }
     return 'Preparing...';
-  }, [state]);
+  }, [state, progress.message]);
 
   return (
     <motion.div

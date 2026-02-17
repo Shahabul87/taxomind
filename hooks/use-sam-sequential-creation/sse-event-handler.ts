@@ -107,7 +107,7 @@ export function handleSSEEvent(
 
       // Map breadth-first string stages to numeric stages
       const BF_STAGE_MAP: Record<string, { stage: CreationStage; phase: string }> = {
-        'roadmap': { stage: 1, phase: 'generating_chapter' },
+        'roadmap': { stage: 1, phase: 'generating_roadmap' },
         'chapter_details': { stage: 1, phase: 'generating_chapter' },
         'section_details': { stage: 3, phase: 'generating_details' },
       };
@@ -354,6 +354,7 @@ export function handleSSEEvent(
       const chapterCount = titles?.length ?? (data.chapters as number) ?? 0;
       setProgress(prev => ({
         ...prev,
+        state: { ...prev.state, phase: 'generating_chapter', totalChapters: chapterCount },
         message: `Course roadmap ready (${chapterCount} chapters planned)`,
       }));
       return {};
@@ -362,6 +363,7 @@ export function handleSSEEvent(
     case 'roadmap_generating': {
       setProgress(prev => ({
         ...prev,
+        state: { ...prev.state, phase: 'generating_roadmap' },
         message: (data.message as string) ?? 'Generating course roadmap...',
       }));
       return {};
@@ -370,6 +372,7 @@ export function handleSSEEvent(
     case 'roadmap_reviewing': {
       setProgress(prev => ({
         ...prev,
+        state: { ...prev.state, phase: 'generating_roadmap' },
         message: 'SAM is reviewing the course structure...',
       }));
       return {};
@@ -378,6 +381,7 @@ export function handleSSEEvent(
     case 'roadmap_refining': {
       setProgress(prev => ({
         ...prev,
+        state: { ...prev.state, phase: 'generating_roadmap' },
         message: 'Refining course structure based on review...',
       }));
       return {};
