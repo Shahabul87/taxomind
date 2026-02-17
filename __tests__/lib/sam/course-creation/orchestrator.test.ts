@@ -24,6 +24,10 @@ const mockRunSAMChat = jest.fn();
 
 jest.mock('@/lib/sam/ai-provider', () => ({
   runSAMChatWithPreference: (...args: unknown[]) => mockRunSAMChat(...args),
+  runSAMChatWithUsage: async (...args: unknown[]) => {
+    const content = await mockRunSAMChat(...args);
+    return { content, provider: 'mock', model: 'mock-model', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
+  },
   runSAMChatStream: jest.fn().mockReturnValue((async function* () { /* empty stream */ })()),
   withSubscriptionGate: jest.fn().mockResolvedValue({ allowed: true }),
   handleAIAccessError: jest.fn().mockReturnValue(null),
