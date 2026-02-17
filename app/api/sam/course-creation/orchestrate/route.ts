@@ -28,7 +28,11 @@ import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/cours
 export const runtime = 'nodejs';
 export const maxDuration = 900; // 15 min per SSE segment; auto-reconnection handles longer courses
 
-// In-memory in-flight dedup guard (per instance) to block rapid double-submits
+// In-memory in-flight dedup guard — blocks rapid double-submits within a single
+// server process. NOTE: this is per-instance only; in multi-instance deployments
+// (e.g. Railway with multiple replicas), each process has its own Map. Cross-instance
+// dedup is handled by the DB-level requestFingerprint unique constraint in
+// orchestrateCourseCreation(), forming a defense-in-depth pattern.
 const inFlightRequests = new Map<string, number>();
 const IN_FLIGHT_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -147,6 +151,23 @@ export async function POST(request: NextRequest) {
 
     const requestFingerprint = config.resumeCourseId ? undefined : buildRequestFingerprint(config);
 
+    // 3a2. In-process dedupe guard (moved BEFORE DB checks to close TOCTOU race).
+    // Establishes atomic in-memory lock first, then validates against DB.
+    const dedupeKey = config.requestId ?? requestFingerprint;
+    if (!config.resumeCourseId && dedupeKey) {
+      inFlightKey = `${user.id}:${dedupeKey}`;
+      if (!claimInFlight(inFlightKey)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Course creation already in progress',
+            code: 'ALREADY_RUNNING',
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // 3b. Idempotency check: if requestId is provided, check for existing pipeline
     if (config.requestId) {
       const existingPlan = await db.sAMExecutionPlan.findFirst({
@@ -179,6 +200,7 @@ export async function POST(request: NextRequest) {
         const courseId = checkpoint?.courseId as string | undefined;
 
         if (existingPlan.status === 'ACTIVE' || existingPlan.status === 'PENDING') {
+          releaseInFlight(inFlightKey);
           return new Response(
             JSON.stringify({
               success: false,
@@ -192,6 +214,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (existingPlan.status === 'COMPLETED' && courseId) {
+          releaseInFlight(inFlightKey);
           return new Response(
             JSON.stringify({
               success: true,
@@ -226,6 +249,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (activeMatch) {
+        releaseInFlight(inFlightKey);
         const checkpoint = activeMatch.checkpointData as Record<string, unknown> | null;
         const courseId = checkpoint?.courseId as string | undefined;
         return new Response(
@@ -235,22 +259,6 @@ export async function POST(request: NextRequest) {
             code: 'ALREADY_RUNNING',
             runId: activeMatch.id,
             courseId,
-          }),
-          { status: 409, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-    }
-
-    // 3d. In-process dedupe guard (same instance) to close the immediate double-click race
-    const dedupeKey = config.requestId ?? requestFingerprint;
-    if (!config.resumeCourseId && dedupeKey) {
-      inFlightKey = `${user.id}:${dedupeKey}`;
-      if (!claimInFlight(inFlightKey)) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Course creation already in progress',
-            code: 'ALREADY_RUNNING',
           }),
           { status: 409, headers: { 'Content-Type': 'application/json' } },
         );

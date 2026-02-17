@@ -94,9 +94,12 @@ export async function runPostProcessing(
 
     // Store reflection in Goal (background)
     if (goalId) {
+      const serializedReflection = JSON.parse(
+        JSON.stringify(rawReflection),
+      ) as Record<string, unknown>;
       storeReflectionInGoal(
         goalId,
-        rawReflection as unknown as Record<string, unknown>,
+        serializedReflection,
       ).catch(() => { /* non-blocking */ });
     }
 

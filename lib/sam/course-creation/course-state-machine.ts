@@ -40,6 +40,9 @@ import {
   phaseCheckpoint,
 } from './step-executor-phases';
 import type { StepExecutorContext } from './step-executor-phases';
+import {
+  PipelineErrorCode,
+} from './types';
 import type {
   ChapterStepContext,
   CourseContext,
@@ -197,7 +200,7 @@ export class CourseCreationStateMachine {
             data: {
               message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
                 `The AI provider may be experiencing issues.`,
-              code: 'FALLBACK_RATE_EXCEEDED',
+              code: PipelineErrorCode.FALLBACK_RATE_EXCEEDED,
               fallbackSummary: { count: summary.count, rate: summary.rate },
             },
           });
@@ -298,6 +301,7 @@ export class CourseCreationStateMachine {
         this.config.onSSEEvent?.({
           type: 'error',
           data: {
+            code: PipelineErrorCode.CHAPTER_GENERATION_FAILED,
             message: `Chapter ${chapterNumber} generation failed: ${error.message}`,
             chapter: chapterNumber,
           },
@@ -317,6 +321,7 @@ export class CourseCreationStateMachine {
         this.config.onSSEEvent?.({
           type: 'error',
           data: {
+            code: PipelineErrorCode.ORCHESTRATOR_ERROR,
             message: `Course creation failed: ${error.message}`,
             courseId: this.config.courseId,
           },

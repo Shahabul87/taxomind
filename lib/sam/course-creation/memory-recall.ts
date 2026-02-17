@@ -107,7 +107,9 @@ export async function recallCourseCreationMemory(
 
     return result;
   } catch (error) {
-    logger.debug('[MemoryRecall] Memory recall failed, proceeding without memory', {
+    logger.warn('[MemoryRecall] Memory recall failed, proceeding without memory', {
+      userId,
+      courseCategory,
       error: error instanceof Error ? error.message : String(error),
     });
     return empty;
@@ -129,7 +131,13 @@ export async function recallChapterContext(
       doRecallRelatedConcepts(userId, courseId, chapterTopics),
       RECALL_TIMEOUT_MS,
     );
-  } catch {
+  } catch (error) {
+    logger.warn('[MemoryRecall] Chapter context recall failed', {
+      userId,
+      courseId,
+      topicCount: chapterTopics.length,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
@@ -226,6 +234,38 @@ function getRelatedCategories(category: string): Set<string> {
 }
 
 // ============================================================================
+// Relevance Scoring
+// ============================================================================
+
+/**
+ * Score concept relevance to the current chapter context.
+ * Uses keyword overlap between concept topics and chapter keywords.
+ * Returns 0.0-1.0 score.
+ */
+function scoreConceptRelevance(
+  concept: { name: string; keywords?: string[]; description?: string },
+  chapterKeywords: string[],
+): number {
+  if (chapterKeywords.length === 0) return 0.5; // No context = neutral score
+
+  const conceptTerms = new Set([
+    concept.name.toLowerCase(),
+    ...(concept.keywords ?? []).map(k => k.toLowerCase()),
+    ...(concept.description ?? '').toLowerCase().split(/\s+/).filter(w => w.length > 3),
+  ]);
+
+  const matches = chapterKeywords.filter(kw => conceptTerms.has(kw.toLowerCase()));
+  const overlapRatio = matches.length / Math.max(1, chapterKeywords.length);
+
+  // Boost for exact name match
+  const nameMatch = chapterKeywords.some(
+    kw => kw.toLowerCase() === concept.name.toLowerCase(),
+  );
+
+  return Math.min(1.0, overlapRatio + (nameMatch ? 0.3 : 0));
+}
+
+// ============================================================================
 // Internal Helpers
 // ============================================================================
 
@@ -264,7 +304,10 @@ async function recallPriorConcepts(
           courseTitle: (props.courseTitle as string) ?? 'Prior Course',
         };
       });
-  } catch {
+  } catch (error) {
+    logger.debug('[MemoryRecall] recallPriorConcepts failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
@@ -326,7 +369,10 @@ async function recallQualityPatterns(userId: string): Promise<QualityPatterns | 
     }
 
     return { averageScore, weakDimensions };
-  } catch {
+  } catch (error) {
+    logger.debug('[MemoryRecall] recallQualityPatterns failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -364,8 +410,21 @@ async function doRecallRelatedConcepts(
       }
     }
 
-    return results.slice(0, MAX_RELATED_CONCEPTS);
-  } catch {
+    // Score and sort by relevance before truncation
+    const scored = results.map(r => ({
+      ...r,
+      relevance: scoreConceptRelevance(
+        { name: r.name },
+        topics,
+      ),
+    }));
+    scored.sort((a, b) => b.relevance - a.relevance);
+
+    return scored.slice(0, MAX_RELATED_CONCEPTS);
+  } catch (error) {
+    logger.debug('[MemoryRecall] doRecallRelatedConcepts failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }

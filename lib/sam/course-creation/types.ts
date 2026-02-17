@@ -684,6 +684,39 @@ export interface HealingResult {
   chaptersRegenerated: number[];
   finalCoherenceScore: number;
   improvementDelta: number;
+  /** Chapters that exhausted all healing attempts without meeting quality threshold */
+  healingExhaustedChapters?: number[];
+}
+
+// ============================================================================
+// Pipeline Error Codes
+// ============================================================================
+
+/** Canonical error codes for SSE `type: 'error'` events */
+export const PipelineErrorCode = {
+  CHAPTER_GENERATION_FAILED: 'CHAPTER_GENERATION_FAILED',
+  CHAPTER_TIMEOUT: 'CHAPTER_TIMEOUT',
+  FALLBACK_RATE_EXCEEDED: 'FALLBACK_RATE_EXCEEDED',
+  BUDGET_EXCEEDED: 'BUDGET_EXCEEDED',
+  HEALING_EXHAUSTED: 'HEALING_EXHAUSTED',
+  PIPELINE_PAUSED: 'PIPELINE_PAUSED',
+  RESUME_FAILED: 'RESUME_FAILED',
+  ORCHESTRATOR_ERROR: 'ORCHESTRATOR_ERROR',
+  ABORT_SIGNAL: 'ABORT_SIGNAL',
+} as const;
+
+export type PipelineErrorCode = (typeof PipelineErrorCode)[keyof typeof PipelineErrorCode];
+
+/** Typed payload for SSE error events */
+export interface PipelineSSEError {
+  code: PipelineErrorCode;
+  message: string;
+  chapter?: number;
+  courseId?: string;
+  chaptersCreated?: number;
+  sectionsCreated?: number;
+  canRetry?: boolean;
+  fallbackSummary?: { count: number; rate: number };
 }
 
 // ============================================================================
@@ -753,6 +786,9 @@ export interface CheckpointData {
   /** Adaptive strategy performance history for resume seeding */
   strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
 
+  /** Full adaptive strategy state (temperature/token adjustments) for precise resume */
+  strategyState?: import('./adaptive-strategy').AdaptiveStrategyState;
+
   /** Prompt template version used during generation */
   promptVersion?: string;
 
@@ -817,6 +853,8 @@ export interface ResumeState {
   sectionsWithDetails: Set<string>;
   /** Adaptive strategy history from checkpoint for seeding the monitor on resume */
   strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
+  /** Full adaptive strategy state (temperature/token adjustments) for precise resume */
+  strategyState?: import('./adaptive-strategy').AdaptiveStrategyState;
   /** Prompt template version from checkpoint for observability continuity */
   promptVersion?: string;
   /** DB chapter IDs that exist for the partial chapter (skip Stage 1+2 if present) */

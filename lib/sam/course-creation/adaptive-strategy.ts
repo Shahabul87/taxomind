@@ -104,6 +104,22 @@ const EXHAUSTED_RETRIES_BEFORE_INCREASE = 2;
 // AdaptiveStrategyMonitor
 // ============================================================================
 
+/** Serializable state for persistence/resume across pipeline runs */
+export interface AdaptiveStrategyState {
+  temperatureAdjustment: number;
+  maxTokensMultiplier: number;
+  retryBudget: number;
+  historyEntries: Array<{
+    stage: 1 | 2 | 3;
+    chapterNumber: number;
+    sectionNumber?: number;
+    score: number;
+    attempt: number;
+    timeMs: number;
+    parseError?: boolean;
+  }>;
+}
+
 export class AdaptiveStrategyMonitor {
   private history: GenerationPerformance[] = [];
   private currentStrategy: GenerationStrategy = { ...DEFAULTS };
@@ -210,6 +226,45 @@ export class AdaptiveStrategyMonitor {
     }
     this.lastAdaptationReason = 'Strategy overrides applied from agentic decision';
     this.logAdaptation('overrides', overrides);
+  }
+
+  /**
+   * Export the current monitor state for persistence in checkpoint data.
+   * Captures strategy adjustments and full history for resume.
+   */
+  exportState(): AdaptiveStrategyState {
+    return {
+      temperatureAdjustment: this.currentStrategy.temperature - DEFAULTS.temperature,
+      maxTokensMultiplier: 1.0, // Derived from history on restore
+      retryBudget: this.currentStrategy.maxRetries,
+      historyEntries: this.history.map(h => ({
+        stage: h.stage,
+        chapterNumber: h.chapterNumber,
+        sectionNumber: h.sectionNumber,
+        score: h.score,
+        attempt: h.attempt,
+        timeMs: h.timeMs,
+        parseError: h.parseError,
+      })),
+    };
+  }
+
+  /**
+   * Restore an AdaptiveStrategyMonitor from persisted checkpoint state.
+   * Re-runs adaptation rules on the restored history to rebuild currentStrategy.
+   */
+  static fromPersistedState(saved: AdaptiveStrategyState): AdaptiveStrategyMonitor {
+    const restoredHistory: GenerationPerformance[] = saved.historyEntries.map(entry => ({
+      stage: entry.stage,
+      chapterNumber: entry.chapterNumber,
+      sectionNumber: entry.sectionNumber,
+      score: entry.score,
+      attempt: entry.attempt,
+      timeMs: entry.timeMs,
+      parseError: entry.parseError,
+    }));
+    // Constructor with priorHistory re-runs adapt() to rebuild currentStrategy
+    return new AdaptiveStrategyMonitor(restoredHistory);
   }
 
   // ==========================================================================

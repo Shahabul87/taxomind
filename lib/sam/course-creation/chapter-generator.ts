@@ -16,7 +16,7 @@
  */
 
 import { db } from '@/lib/db';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, runSAMChatWithUsage } from '@/lib/sam/ai-provider';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
 import { buildStage1Prompt, buildStage2Prompt, buildStage3Prompt } from './prompts';
@@ -209,7 +209,11 @@ export async function generateSingleChapter(
         }));
         responseText = fullContent;
       } else {
-        responseText = await traceAICall(s1Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...chatParams }));
+        const s1UsageResult = await traceAICall(s1Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...chatParams }));
+        responseText = s1UsageResult.content;
+        if (budgetTracker && s1UsageResult.usage.totalTokens > 0) {
+          budgetTracker.recordActualUsage(s1UsageResult.usage.inputTokens, s1UsageResult.usage.outputTokens);
+        }
       }
       const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
       const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
@@ -522,7 +526,11 @@ export async function generateSingleChapter(
           }));
           s2ResponseText = fullContent;
         } else {
-          s2ResponseText = await traceAICall(s2Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams }));
+          const s2UsageResult = await traceAICall(s2Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...s2ChatParams }));
+          s2ResponseText = s2UsageResult.content;
+          if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
+            budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
+          }
         }
         const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
 
@@ -753,7 +761,11 @@ export async function generateSingleChapter(
           }));
           s3ResponseText = fullContent;
         } else {
-          s3ResponseText = await traceAICall(s3Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams }));
+          const s3UsageResult = await traceAICall(s3Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...s3ChatParams }));
+          s3ResponseText = s3UsageResult.content;
+          if (budgetTracker && s3UsageResult.usage.totalTokens > 0) {
+            budgetTracker.recordActualUsage(s3UsageResult.usage.inputTokens, s3UsageResult.usage.outputTokens);
+          }
         }
         const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
 

@@ -41,6 +41,9 @@ import type { PipelineBudgetTracker } from './pipeline-budget';
 import type { FallbackTracker } from './response-parsers';
 import type { ChapterTemplate } from './chapter-templates';
 import type { ComposedCategoryPrompt } from './category-prompts';
+import {
+  PipelineErrorCode,
+} from './types';
 import type {
   SequentialCreationConfig,
   CourseContext,
@@ -141,6 +144,9 @@ export async function runPipeline(
 
   if (useAgenticStateMachine) {
     // AGENTIC PATH
+    logger.info('[PIPELINE] Using agentic state machine path', {
+      courseId, userId, startChapter, totalChapters, runId,
+    });
     const { CourseCreationStateMachine } = await import('./course-state-machine');
     const remainingCount = totalChapters - (startChapter - 1);
     const chapterTitles = blueprintPlan
@@ -213,7 +219,24 @@ export async function runPipeline(
     chaptersCreated = completedChapters.length;
     sectionsCreated = completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0);
   } else {
-    // LEGACY PATH (original for-loop)
+    // LEGACY PATH — DEPRECATED
+    // This for-loop path is retained for backward compatibility and resume
+    // scenarios where the agentic state machine cannot be used (e.g., mid-
+    // chapter resume). It lacks: self-critique, chapter critic, quality
+    // feedback loop, and full agentic decision handling.
+    //
+    // Target: Remove after all production pipelines use agentic path
+    // (tracked in SAM backlog).
+    //
+    // Missing vs agentic path:
+    //   - No phaseSkipCheck (skip_next_chapter decision)
+    //   - No phaseDecisionMaking AI evaluation
+    //   - No phaseInlineHealing
+    //   - Simplified checkpoint (no strategy history)
+    logger.warn('[PIPELINE] Using LEGACY for-loop path (deprecated)', {
+      courseId, userId, startChapter, totalChapters, runId,
+      reason: 'useAgenticStateMachine=false',
+    });
     for (let chNum = startChapter; chNum <= totalChapters; chNum++) {
       if (abortSignal?.aborted) {
         break;
@@ -255,6 +278,7 @@ export async function runPipeline(
         onSSEEvent?.({
           type: 'error',
           data: {
+            code: PipelineErrorCode.BUDGET_EXCEEDED,
             message: `Token budget exceeded after chapter ${chNum - 1}. Partial course saved.`,
             chaptersCreated,
             sectionsCreated,
@@ -276,7 +300,11 @@ export async function runPipeline(
         if (timeoutErr instanceof OperationTimeoutError) {
           onSSEEvent?.({
             type: 'chapter_skipped',
-            data: { chapter: chNum, reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s` },
+            data: {
+              code: PipelineErrorCode.CHAPTER_TIMEOUT,
+              chapter: chNum,
+              reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s`,
+            },
           });
           continue;
         }
@@ -334,6 +362,7 @@ export async function runPipeline(
         currentChapterNumber: chNum,
         chapterSectionCounts,
         strategyHistory: strategyMonitor.getHistory(),
+        strategyState: strategyMonitor.exportState(),
         promptVersion: PROMPT_VERSION,
       });
 
@@ -352,7 +381,7 @@ export async function runPipeline(
           data: {
             message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
               `${chaptersCreated} chapters saved. The AI provider may be experiencing issues.`,
-            code: 'FALLBACK_RATE_EXCEEDED',
+            code: PipelineErrorCode.FALLBACK_RATE_EXCEEDED,
             chaptersCreated,
             sectionsCreated,
             courseId,

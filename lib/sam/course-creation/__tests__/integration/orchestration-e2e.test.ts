@@ -117,7 +117,7 @@ jest.mock('../../course-planner', () => ({
 }));
 
 jest.mock('../../experiments', () => ({
-  getActiveExperiments: jest.fn().mockReturnValue([]),
+  getActiveExperiments: jest.fn().mockResolvedValue([]),
   joinVariants: jest.fn().mockReturnValue(''),
 }));
 

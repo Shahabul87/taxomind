@@ -47,6 +47,9 @@ import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { PROMPT_VERSION } from './prompts';
 import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { BudgetExceededError } from './pipeline-budget';
+import {
+  PipelineErrorCode,
+} from './types';
 import type {
   ChapterStepContext,
   ChapterStepResult,
@@ -206,7 +209,11 @@ export async function phaseGenerate(
       });
       config.onSSEEvent?.({
         type: 'chapter_skipped',
-        data: { chapter: chapterNumber, reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s` },
+        data: {
+          code: PipelineErrorCode.CHAPTER_TIMEOUT,
+          chapter: chapterNumber,
+          reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s`,
+        },
       });
       return {
         earlyReturn: {
@@ -390,6 +397,7 @@ export async function phaseDecisionMaking(
         config.onSSEEvent?.({
           type: 'pipeline_paused',
           data: {
+            code: PipelineErrorCode.PIPELINE_PAUSED,
             ...pauseRequest,
             planId: config.planId,
             message: 'Pipeline paused for human review. Prefer POST /api/sam/course-creation/approve-and-resume for one-call approval+resume, or use /approve then /orchestrate with { resumeCourseId }.',
@@ -422,6 +430,7 @@ export async function phaseDecisionMaking(
           currentChapterNumber: chapterNumber,
           chapterSectionCounts: state.chapterSectionCounts,
           strategyHistory: state.strategyMonitor.getHistory(),
+          strategyState: state.strategyMonitor.exportState(),
           promptVersion: PROMPT_VERSION,
         });
 
@@ -647,6 +656,7 @@ export async function phaseCheckpoint(
     currentChapterNumber: chapterNumber,
     chapterSectionCounts: state.chapterSectionCounts,
     strategyHistory: state.strategyMonitor.getHistory(),
+    strategyState: state.strategyMonitor.exportState(),
     promptVersion: PROMPT_VERSION,
   });
 

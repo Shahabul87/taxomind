@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     const pricing = await getProviderPricing(provider);
 
     // 4. Resolve active experiment variants for accurate token estimation
-    const experimentAssignments = getActiveExperiments(user.id);
+    const experimentAssignments = await getActiveExperiments(user.id);
     const experimentVariant = joinVariants(experimentAssignments);
 
     // 5. Calculate estimate (includes core + non-core calls, variant-aware)

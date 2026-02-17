@@ -22,6 +22,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { traceAICall } from './helpers';
 import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
 import { reflectOnCourse } from './course-reflector';
@@ -99,6 +100,7 @@ export async function runHealingLoop(
   }
 
   const allRegeneratedChapters = new Set<number>();
+  const chapterFailureCounts = new Map<number, number>();
   let iterationsRun = 0;
   let previousCoherence = reflection.coherenceScore;
 
@@ -280,16 +282,22 @@ export async function runHealingLoop(
             newTitle: result.chapterTitle,
           });
         } else {
+          const current = chapterFailureCounts.get(flag.position) ?? 0;
+          chapterFailureCounts.set(flag.position, current + 1);
           logger.warn('[HealingLoop] Chapter regeneration failed', {
             position: flag.position,
             strategy: strategy.type,
             error: result.error,
+            failureCount: current + 1,
           });
         }
       } catch (error) {
+        const current = chapterFailureCounts.get(flag.position) ?? 0;
+        chapterFailureCounts.set(flag.position, current + 1);
         logger.warn('[HealingLoop] Chapter regeneration error', {
           position: flag.position,
           error: error instanceof Error ? error.message : String(error),
+          failureCount: current + 1,
         });
         // Continue with other chapters — healing is best-effort
       }
@@ -333,12 +341,25 @@ export async function runHealingLoop(
     previousCoherence = reflection.coherenceScore;
   }
 
+  // Identify chapters that exhausted all healing attempts
+  const exhaustedChapters = [...chapterFailureCounts.entries()]
+    .filter(([, failures]) => failures >= maxIterations)
+    .map(([chapterNum]) => chapterNum);
+
+  if (exhaustedChapters.length > 0) {
+    logger.warn('[HealingLoop] Chapters exhausted healing attempts', {
+      exhaustedChapters,
+      maxIterations,
+    });
+  }
+
   const result: HealingResult = {
     healed: allRegeneratedChapters.size > 0,
     iterationsRun,
     chaptersRegenerated: [...allRegeneratedChapters],
     finalCoherenceScore: reflection.coherenceScore,
     improvementDelta: reflection.coherenceScore - initialCoherence,
+    healingExhaustedChapters: exhaustedChapters.length > 0 ? exhaustedChapters : undefined,
   };
 
   onSSEEvent?.({
@@ -420,14 +441,18 @@ For "targetSections", only include if type is "targeted_sections".`;
 
     const response = await traceAICall(
       { runId, stage: 'heal', chapter: chapter.position, label: `Heal diagnosis Ch${chapter.position}` },
-      () => runSAMChatWithPreference({
-        userId,
-        capability: 'analysis',
-        messages: [{ role: 'user', content: prompt }],
-        systemPrompt: 'You are a JSON-only responder. Output valid JSON with no markdown fences or extra text.',
-        maxTokens: 500,
-        temperature: 0.3,
-      }),
+      () => withRetryableTimeout(
+        () => runSAMChatWithPreference({
+          userId,
+          capability: 'analysis',
+          messages: [{ role: 'user', content: prompt }],
+          systemPrompt: 'You are a JSON-only responder. Output valid JSON with no markdown fences or extra text.',
+          maxTokens: 500,
+          temperature: 0.3,
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'healDiagnosis',
+      ),
     );
 
     const jsonMatch = response.match(/\{[\s\S]*\}/);

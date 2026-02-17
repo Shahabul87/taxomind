@@ -55,6 +55,17 @@ interface SAMChatMetadataResult {
   model: string;
 }
 
+interface SAMChatUsageResult {
+  content: string;
+  provider: string;
+  model: string;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+}
+
 // ============================================================================
 // 1. runSAMChatWithPreference — returns string (EXISTING, unchanged)
 // ============================================================================
@@ -116,6 +127,49 @@ export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<S
     content: result.content,
     provider: result.provider,
     model: result.model,
+  };
+}
+
+// ============================================================================
+// 2b. runSAMChatWithUsage — returns {content, provider, model, usage}
+// ============================================================================
+
+/**
+ * Run SAM chat and return content, provider metadata, AND token usage.
+ * Use this when the caller needs actual token counts (e.g., pipeline budget tracking).
+ *
+ * The enterprise client already captures usage from SDK adapters — this function
+ * simply preserves it instead of discarding it like runSAMChatWithPreference.
+ */
+export async function runSAMChatWithUsage(options: SAMChatOptions): Promise<SAMChatUsageResult> {
+  const result = await aiClient.chat({
+    userId: options.userId,
+    capability: options.capability,
+    messages: options.messages,
+    systemPrompt: options.systemPrompt,
+    maxTokens: options.maxTokens ?? 2000,
+    temperature: options.temperature ?? 0.7,
+    extended: options.extended,
+  });
+
+  logger.debug('[SAM Chat] Response with usage', {
+    provider: result.provider,
+    model: result.model,
+    userId: options.userId,
+    capability: options.capability,
+    inputTokens: result.usage?.inputTokens,
+    outputTokens: result.usage?.outputTokens,
+  });
+
+  return {
+    content: result.content,
+    provider: result.provider,
+    model: result.model,
+    usage: {
+      inputTokens: result.usage?.inputTokens ?? 0,
+      outputTokens: result.usage?.outputTokens ?? 0,
+      totalTokens: (result.usage?.inputTokens ?? 0) + (result.usage?.outputTokens ?? 0),
+    },
   };
 }
 

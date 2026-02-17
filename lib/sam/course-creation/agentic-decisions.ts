@@ -14,6 +14,7 @@
  * for audit trail purposes.
  */
 
+import { z } from 'zod';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { traceAICall } from './helpers';
@@ -737,6 +738,24 @@ Respond with JSON:
   }
 }
 
+/** Zod schema for AI decision response validation */
+const AIDecisionResponseSchema = z.object({
+  action: z.enum([
+    'continue', 'adjust_strategy', 'flag_for_review',
+    'regenerate_chapter', 'inject_bridge_content',
+    'replan_remaining', 'skip_next_chapter',
+  ]).default('continue'),
+  reasoning: z.string().optional(),
+  confidence: z.number().min(0).max(100).optional(),
+  conceptGaps: z.array(z.string()).optional(),
+  bridgeContentSuggestion: z.string().optional(),
+  strategyAdjustments: z.object({
+    temperatureShift: z.number().optional(),
+    additionalGuidance: z.string().optional(),
+    conceptsToEmphasize: z.array(z.string()).optional(),
+  }).optional(),
+});
+
 /**
  * Parse an AI response into a structured AgenticDecision.
  * Returns null if the response cannot be parsed.
@@ -749,32 +768,19 @@ function parseAIDecisionResponse(
     // Extract JSON from potential markdown code blocks
     const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/) ?? [null, responseText];
     const jsonStr = (jsonMatch[1] ?? responseText).trim();
-    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+    const rawParsed: unknown = JSON.parse(jsonStr);
 
-    const validActions = ['continue', 'adjust_strategy', 'flag_for_review', 'regenerate_chapter', 'inject_bridge_content', 'replan_remaining', 'skip_next_chapter'];
-    const action = typeof parsed.action === 'string' && validActions.includes(parsed.action)
-      ? parsed.action as AIDecisionResponse['action']
-      : 'continue';
+    const result = AIDecisionResponseSchema.safeParse(rawParsed);
+    if (!result.success) return null;
 
+    const parsed = result.data;
     return {
-      action,
-      reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : `AI decision for chapter ${chapterNumber}`,
-      confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, parsed.confidence)) : 50,
-      conceptGaps: Array.isArray(parsed.conceptGaps) ? parsed.conceptGaps.filter((g): g is string => typeof g === 'string') : undefined,
-      bridgeContentSuggestion: typeof parsed.bridgeContentSuggestion === 'string' ? parsed.bridgeContentSuggestion : undefined,
-      strategyAdjustments: parsed.strategyAdjustments && typeof parsed.strategyAdjustments === 'object'
-        ? {
-            temperatureShift: typeof (parsed.strategyAdjustments as Record<string, unknown>).temperatureShift === 'number'
-              ? (parsed.strategyAdjustments as Record<string, unknown>).temperatureShift as number
-              : undefined,
-            additionalGuidance: typeof (parsed.strategyAdjustments as Record<string, unknown>).additionalGuidance === 'string'
-              ? (parsed.strategyAdjustments as Record<string, unknown>).additionalGuidance as string
-              : undefined,
-            conceptsToEmphasize: Array.isArray((parsed.strategyAdjustments as Record<string, unknown>).conceptsToEmphasize)
-              ? ((parsed.strategyAdjustments as Record<string, unknown>).conceptsToEmphasize as unknown[]).filter((c): c is string => typeof c === 'string')
-              : undefined,
-          }
-        : undefined,
+      action: parsed.action,
+      reasoning: parsed.reasoning ?? `AI decision for chapter ${chapterNumber}`,
+      confidence: parsed.confidence ?? 50,
+      conceptGaps: parsed.conceptGaps,
+      bridgeContentSuggestion: parsed.bridgeContentSuggestion,
+      strategyAdjustments: parsed.strategyAdjustments,
     };
   } catch {
     return null;

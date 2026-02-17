@@ -38,12 +38,16 @@ import type { RecalledMemory } from './memory-recall';
 import { planCourseBlueprint } from './course-planner';
 import { PROMPT_VERSION } from './prompts';
 import { AdaptiveStrategyMonitor } from './adaptive-strategy';
+import type { AdaptiveStrategyState } from './adaptive-strategy';
 import { PipelineBudgetTracker } from './pipeline-budget';
 import { FallbackTracker } from './response-parsers';
 import { initializeCourseRecord } from './course-initializer';
 import { runPipeline } from './pipeline-runner';
 import { runPostProcessing } from './post-processor';
 import { finalizeAndEmit } from './completion-handler';
+import {
+  PipelineErrorCode,
+} from './types';
 import type {
   SequentialCreationConfig,
   SequentialCreationResult,
@@ -92,7 +96,7 @@ export async function orchestrateCourseCreation(
   const isResume = !!resumeState;
 
   // Resolve A/B experiments (all active -- supports concurrent experiments)
-  const experimentAssignments = getActiveExperiments(userId);
+  const experimentAssignments = await getActiveExperiments(userId);
   const experimentVariant = joinVariants(experimentAssignments);
 
   // When resuming, seed state from checkpoint; otherwise start fresh
@@ -185,9 +189,14 @@ export async function orchestrateCourseCreation(
   }
 
   // Phase 5: Initialize adaptive strategy monitor (seed from checkpoint on resume)
-  const strategyMonitor = new AdaptiveStrategyMonitor(
-    resumeState ? resumeState.strategyHistory ?? [] : undefined
-  );
+  // Prefer full AdaptiveStrategyState (preserves temperature/token adjustments),
+  // fall back to history-only seeding for backward compatibility with older checkpoints.
+  const savedStrategyState = resumeState?.strategyState as AdaptiveStrategyState | undefined;
+  const strategyMonitor = savedStrategyState
+    ? AdaptiveStrategyMonitor.fromPersistedState(savedStrategyState)
+    : new AdaptiveStrategyMonitor(
+        resumeState ? resumeState.strategyHistory ?? [] : undefined
+      );
 
   // Phase 7: Pre-generation course blueprint planning (new courses only)
   let blueprintPlan: CourseBlueprintPlan | null = null;
@@ -541,6 +550,7 @@ export async function orchestrateCourseCreation(
     onSSEEvent?.({
       type: 'error',
       data: {
+        code: PipelineErrorCode.ORCHESTRATOR_ERROR,
         message: errorMessage,
         chaptersCreated,
         sectionsCreated,

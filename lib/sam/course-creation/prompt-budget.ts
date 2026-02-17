@@ -77,6 +77,39 @@ export const INPUT_TOKEN_BUDGETS = {
   stage3: { system: 2000, user: 5000 },
 } as const;
 
+/**
+ * Returns the effective user-prompt token budget after accounting for
+ * system prompt overflow. If the system prompt exceeds its allocated
+ * budget, the excess is deducted from the user budget.
+ *
+ * This prevents the combined (system + user) prompt from exceeding
+ * the model's context window.
+ */
+export function getEffectiveUserBudget(
+  stage: 1 | 2 | 3,
+  actualSystemTokens: number,
+): number {
+  const budgets = INPUT_TOKEN_BUDGETS[`stage${stage}`];
+  const systemOverflow = Math.max(0, actualSystemTokens - budgets.system);
+  const effectiveUser = Math.max(
+    Math.floor(budgets.user * 0.5), // Floor: never go below 50% of original
+    budgets.user - systemOverflow,
+  );
+
+  if (systemOverflow > 0) {
+    logger.debug('[PromptBudget] System prompt overflow detected', {
+      stage,
+      systemBudget: budgets.system,
+      actualSystemTokens,
+      overflow: systemOverflow,
+      originalUserBudget: budgets.user,
+      effectiveUserBudget: effectiveUser,
+    });
+  }
+
+  return effectiveUser;
+}
+
 /** Result of enforcing a token budget on prompt sections */
 export interface BudgetResult {
   /** The final assembled prompt content */

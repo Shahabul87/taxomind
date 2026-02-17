@@ -38,7 +38,8 @@ import type { RecalledMemory } from './memory-recall';
 import { buildMemoryRecallBlock } from './memory-recall';
 import {
   enforceTokenBudget,
-  INPUT_TOKEN_BUDGETS,
+  estimateTokens,
+  getEffectiveUserBudget,
   PromptPriority,
   type PromptSection,
 } from './prompt-budget';
@@ -758,6 +759,13 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
 - Bridge foundational knowledge toward advanced application`;
   }
 
+  // Position-aware priority: opening & capstone chapters get MEDIUM, others stay LOW
+  const isOpeningOrCapstone =
+    currentChapterNumber === 1 || currentChapterNumber === courseContext.totalChapters;
+  const positionPriority = isOpeningOrCapstone
+    ? PromptPriority.MEDIUM
+    : PromptPriority.LOW;
+
   // Compose domain-specific blocks (empty strings if no enhancer)
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
@@ -806,7 +814,7 @@ ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     },
     {
       label: 'domainChapterGuidance',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.MEDIUM,
       content: domainChapterGuidance,
     },
     {
@@ -816,7 +824,7 @@ ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     },
     {
       label: 'positionGuidance',
-      priority: PromptPriority.LOW,
+      priority: positionPriority,
       content: positionGuidance,
     },
     {
@@ -915,7 +923,9 @@ Return ONLY valid JSON, no markdown formatting`,
     },
   ];
 
-  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage1.user);
+  const systemTokenCount = estimateTokens(systemPrompt);
+  const effectiveUserBudget = getEffectiveUserBudget(1, systemTokenCount);
+  const budgetResult = enforceTokenBudget(userSections, effectiveUserBudget);
   const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
@@ -1073,7 +1083,7 @@ ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${
     },
     {
       label: 'domainSectionGuidance',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.MEDIUM,
       content: domainSectionGuidance,
     },
     {
@@ -1168,7 +1178,9 @@ Return ONLY valid JSON, no markdown formatting`,
     },
   ];
 
-  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage2.user);
+  const stage2SystemTokenCount = estimateTokens(systemPrompt);
+  const stage2EffectiveUserBudget = getEffectiveUserBudget(2, stage2SystemTokenCount);
+  const budgetResult = enforceTokenBudget(userSections, stage2EffectiveUserBudget);
   const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };
@@ -1443,7 +1455,7 @@ ${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Pri
     },
     {
       label: 'domainDetailGuidance',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.MEDIUM,
       content: domainDetailGuidance,
     },
     {
@@ -1520,7 +1532,9 @@ Return ONLY valid JSON, no markdown formatting`,
     },
   ];
 
-  const budgetResult = enforceTokenBudget(userSections, INPUT_TOKEN_BUDGETS.stage3.user);
+  const stage3SystemTokenCount = estimateTokens(systemPrompt);
+  const stage3EffectiveUserBudget = getEffectiveUserBudget(3, stage3SystemTokenCount);
+  const budgetResult = enforceTokenBudget(userSections, stage3EffectiveUserBudget);
   const userPrompt = budgetResult.content;
 
   return { systemPrompt, userPrompt };

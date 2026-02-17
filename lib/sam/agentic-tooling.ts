@@ -49,6 +49,9 @@ import { createCreatorAnalyticsTool } from '@/lib/sam/tools/creator-analytics';
 import { createSkillNavigatorTool } from '@/lib/sam/tools/skill-navigator';
 import { createContentGeneratorTool } from '@/lib/sam/tools/content-generator';
 import { createCourseChapterGeneratorTool, createCourseHealerTool } from '@/lib/sam/tools/course-chapter-generator';
+import { createMemoryRecallTool } from '@/lib/sam/tools/memory-recall-tool';
+import { createQualityEvaluatorTool } from '@/lib/sam/tools/quality-evaluator-tool';
+import { createCourseReplannerTool } from '@/lib/sam/tools/course-replanner-tool';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -284,6 +287,9 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createContentGeneratorTool(),
     createCourseChapterGeneratorTool(),
     createCourseHealerTool(),
+    createMemoryRecallTool(),
+    createQualityEvaluatorTool(),
+    createCourseReplannerTool(),
   ];
 
   let standaloneRegistered = 0;

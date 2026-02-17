@@ -92,6 +92,28 @@ export class PipelineBudgetTracker {
   }
 
   /**
+   * Record actual token usage from AI provider response (not heuristic estimates).
+   * Use alongside recordCall() for precise budget tracking when runSAMChatWithUsage
+   * returns real token counts from the SDK adapter.
+   */
+  recordActualUsage(inputTokens: number, outputTokens: number): void {
+    const totalTokens = inputTokens + outputTokens;
+    this.accumulatedTokens += totalTokens;
+    this.callCount++;
+
+    if (this.callCount % 10 === 0) {
+      logger.debug('[PipelineBudget] Actual usage checkpoint', {
+        callCount: this.callCount,
+        tokens: this.accumulatedTokens,
+        maxTokens: this.maxTotalTokens,
+        inputTokens,
+        outputTokens,
+        utilization: `${Math.round((this.accumulatedTokens / this.maxTotalTokens) * 100)}%`,
+      });
+    }
+  }
+
+  /**
    * Get a snapshot of the current budget state.
    */
   getSnapshot(): PipelineRunBudget {
