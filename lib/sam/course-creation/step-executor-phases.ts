@@ -392,8 +392,9 @@ export async function phaseDecisionMaking(
           data: {
             ...pauseRequest,
             planId: config.planId,
-            message: 'Pipeline paused for human review. Approve via POST /api/sam/course-creation/approve, then resume via POST /api/sam/course-creation/orchestrate with { resumeCourseId }.',
+            message: 'Pipeline paused for human review. Prefer POST /api/sam/course-creation/approve-and-resume for one-call approval+resume, or use /approve then /orchestrate with { resumeCourseId }.',
             approveUrl: '/api/sam/course-creation/approve',
+            approveAndResumeUrl: '/api/sam/course-creation/approve-and-resume',
             resumeUrl: '/api/sam/course-creation/orchestrate',
           },
         });

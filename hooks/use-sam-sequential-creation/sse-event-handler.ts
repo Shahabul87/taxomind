@@ -235,6 +235,46 @@ export function handleSSEEvent(
       return handleError(data, ctx);
     }
 
+    case 'pipeline_paused': {
+      const pauseMessage = (data.message as string) ?? 'Pipeline paused for human review.';
+      const pausedCourseId = data.courseId as string | undefined;
+      if (pausedCourseId) {
+        lastCourseIdRef.current = pausedCourseId;
+        setPartialCourseId(pausedCourseId);
+        setResumableCourseId(pausedCourseId);
+      }
+
+      setError(pauseMessage);
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'paused', error: pauseMessage },
+        message: pauseMessage,
+      }));
+
+      if (callbacks.onError) {
+        callbacks.onError(pauseMessage, true);
+      }
+
+      const chaptersCreated = progressRef.current.completedItems.chapters.length;
+      const sectionsCreated = progressRef.current.completedItems.sections.length;
+      return {
+        gotError: true,
+        result: {
+          success: false,
+          courseId: pausedCourseId,
+          chaptersCreated,
+          sectionsCreated,
+          stats: {
+            totalChapters: chaptersCreated,
+            totalSections: sectionsCreated,
+            totalTime: Date.now() - startTimeRef.current,
+            averageQualityScore: 0,
+          },
+          error: pauseMessage,
+        },
+      };
+    }
+
     // --- Informational events: update message so UI doesn't appear stuck ---
 
     case 'planning_start': {

@@ -42,6 +42,7 @@ export async function initializeCourseRecord(
   config: SequentialCreationConfig,
   blueprintPlan: CourseBlueprintPlan | null,
   requestId?: string,
+  requestFingerprint?: string,
 ): Promise<CourseInitResult> {
   let resolvedCategoryId: string | undefined;
   let resolvedSubcategoryId: string | undefined;
@@ -85,12 +86,18 @@ export async function initializeCourseRecord(
 
   const goalPlan = await initializeCourseCreationGoal(userId, config.courseTitle, course.id);
 
-  // Store requestId in execution plan metadata for idempotency dedup
-  if (requestId && goalPlan.planId) {
-    db.sAMExecutionPlan.update({
+  // Store idempotency metadata in execution plan for dedupe checks.
+  // Await this write so race windows are minimized before subsequent retries.
+  if ((requestId || requestFingerprint) && goalPlan.planId) {
+    await db.sAMExecutionPlan.update({
       where: { id: goalPlan.planId },
-      data: { metadata: { requestId } },
-    }).catch(() => { /* non-blocking */ });
+      data: {
+        metadata: {
+          ...(requestId ? { requestId } : {}),
+          ...(requestFingerprint ? { requestFingerprint } : {}),
+        },
+      },
+    });
   }
 
   // Store blueprint in Goal context for later comparison

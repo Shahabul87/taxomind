@@ -80,12 +80,14 @@ export interface OrchestrateOptions {
   runId?: string;
   /** Client-generated idempotency key to prevent duplicate course creation */
   requestId?: string;
+  /** Server-generated deterministic fingerprint of the creation payload */
+  requestFingerprint?: string;
 }
 
 export async function orchestrateCourseCreation(
   options: OrchestrateOptions
 ): Promise<SequentialCreationResult> {
-  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId, requestId } = options;
+  const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId, requestId, requestFingerprint } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
 
@@ -227,7 +229,8 @@ export async function orchestrateCourseCreation(
   }
 
   // Initialize fallback tracker for monitoring AI response parse failures
-  const fallbackTracker = new FallbackTracker(0.3); // Halt threshold: 30%
+  const fallbackThreshold = config.fallbackPolicy?.haltRateThreshold ?? 0.3;
+  const fallbackTracker = new FallbackTracker(fallbackThreshold);
 
   // Initialize pipeline budget tracker (3x the estimated token spend)
   const estimatedCallsPerChapter = 1 + config.sectionsPerChapter * 2;
@@ -340,7 +343,7 @@ export async function orchestrateCourseCreation(
       // --- NEW PATH: delegate to course-initializer ---
       emitProgress('Creating course record...');
 
-      const initResult = await initializeCourseRecord(userId, config, blueprintPlan, requestId);
+      const initResult = await initializeCourseRecord(userId, config, blueprintPlan, requestId, requestFingerprint);
       courseId = initResult.courseId;
       createdCourseId = initResult.courseId;
       goalId = initResult.goalId;

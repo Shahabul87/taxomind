@@ -70,6 +70,10 @@ export class FallbackTracker {
     this.maxFallbackRate = maxFallbackRate;
   }
 
+  get thresholdRate(): number {
+    return this.maxFallbackRate;
+  }
+
   record(stage: string, chapter: number, section: number | undefined, reason: string): void {
     this.fallbacks.push({
       stage,

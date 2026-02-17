@@ -263,7 +263,7 @@ describe('Orchestration E2E - Initialization Flow', () => {
       onSSEEvent,
     });
 
-    // initializeCourseRecord(userId, config, blueprintPlan, requestId)
+    // initializeCourseRecord(userId, config, blueprintPlan, requestId, requestFingerprint)
     expect(mockInitializeCourseRecord).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({
@@ -271,6 +271,7 @@ describe('Orchestration E2E - Initialization Flow', () => {
       }),
       null, // blueprintPlan (null when no memory recall)
       undefined, // requestId
+      undefined, // requestFingerprint
     );
   });
 

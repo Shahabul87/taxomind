@@ -308,6 +308,13 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
   const startCreation = useCallback(async (
     config: SequentialCreationConfig
   ): Promise<SequentialCreationResult> => {
+    if (abortControllerRef.current) {
+      return {
+        success: false,
+        error: 'Course creation already in progress',
+      };
+    }
+
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
     const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 

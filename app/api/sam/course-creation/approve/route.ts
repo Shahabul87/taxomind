@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
           planId,
           resumeReady: true,
           resumeToken: planId,
+          approveAndResumeEndpoint: '/api/sam/course-creation/approve-and-resume',
           resumeEndpoint: '/api/sam/course-creation/orchestrate',
           resumeMethod: 'POST',
           resumeBody: { resumeCourseId: courseId },
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
             completedChapters: completedChapterCount,
             totalChapters,
           },
-          message: `Pipeline approved. Send POST to /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" } to continue. Resume window: 30 minutes.`,
+          message: `Pipeline approved. Preferred: POST /api/sam/course-creation/approve-and-resume with the same payload for one-call resume, or POST /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" }. Resume window: 30 minutes.`,
         });
       }
 
@@ -161,6 +162,7 @@ export async function POST(req: NextRequest) {
           planId,
           resumeReady: true,
           resumeToken: planId,
+          approveAndResumeEndpoint: '/api/sam/course-creation/approve-and-resume',
           resumeEndpoint: '/api/sam/course-creation/orchestrate',
           resumeMethod: 'POST',
           resumeBody: { resumeCourseId: courseId },
@@ -169,7 +171,7 @@ export async function POST(req: NextRequest) {
             completedChapters: completedChapterCount,
             totalChapters,
           },
-          message: `Pipeline approved with healing. Send POST to /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" } to continue. Resume window: 30 minutes.`,
+          message: `Pipeline approved with healing. Preferred: POST /api/sam/course-creation/approve-and-resume with the same payload for one-call resume, or POST /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" }. Resume window: 30 minutes.`,
         });
       }
 

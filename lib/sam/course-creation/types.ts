@@ -213,6 +213,7 @@ export type CreationPhase =
   | 'idle'
   | 'creating_course'
   | 'resuming'
+  | 'paused'
   | 'generating_chapter'
   | 'saving_chapter'
   | 'generating_section'
@@ -277,6 +278,7 @@ export type SSEEventType =
   | 'quality_flag'
   | 'replan_start'
   | 'replan_complete'
+  | 'pipeline_paused'
   // Healing events (Phase 3)
   | 'healing_start'
   | 'healing_chapter'
@@ -420,6 +422,16 @@ export interface SequentialCreationConfig {
 
   /** Enable human escalation gate — pauses pipeline on quality flags for approval */
   enableEscalationGate?: boolean;
+
+  /**
+   * Fallback handling policy:
+   * - haltRateThreshold: stop pipeline when fallback usage rate exceeds this value
+   * - haltOnExcessiveFallbacks: disable hard stop (not recommended) for diagnostic runs
+   */
+  fallbackPolicy?: {
+    haltRateThreshold?: number;
+    haltOnExcessiveFallbacks?: boolean;
+  };
 }
 
 // ============================================================================

@@ -184,8 +184,10 @@ export class CourseCreationStateMachine {
         const sectionsCount = state.completedChapters.reduce((s, ch) => s + ch.sections.length, 0)
           + chapterResult.sectionsCreated;
         const totalParsedItems = chaptersCount + sectionsCount * 2;
-        if (state.fallbackTracker.shouldHalt(totalParsedItems)) {
+        const haltOnExcessiveFallbacks = state.config.fallbackPolicy?.haltOnExcessiveFallbacks ?? true;
+        if (haltOnExcessiveFallbacks && state.fallbackTracker.shouldHalt(totalParsedItems)) {
           const summary = state.fallbackTracker.getSummary(totalParsedItems);
+          const thresholdPct = Math.round(state.fallbackTracker.thresholdRate * 100);
           logger.error('[CourseStateMachine] Fallback rate exceeded threshold — halting', {
             chapter: chapterNumber, fallbackCount: summary.count,
             fallbackRate: summary.rate, totalParsedItems,
@@ -193,13 +195,13 @@ export class CourseCreationStateMachine {
           this.config.onSSEEvent?.({
             type: 'error',
             data: {
-              message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: 30%). ` +
+              message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
                 `The AI provider may be experiencing issues.`,
               code: 'FALLBACK_RATE_EXCEEDED',
               fallbackSummary: { count: summary.count, rate: summary.rate },
             },
           });
-          throw new Error(`Fallback rate ${Math.round(summary.rate * 100)}% exceeds 30% threshold — pipeline halted`);
+          throw new Error(`Fallback rate ${Math.round(summary.rate * 100)}% exceeds ${thresholdPct}% threshold — pipeline halted`);
         }
       }
 

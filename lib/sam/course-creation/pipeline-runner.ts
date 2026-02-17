@@ -339,8 +339,10 @@ export async function runPipeline(
 
       // Fallback rate gate: halt pipeline if too many parse failures
       const totalParsedItems = chaptersCreated + sectionsCreated * 2;
-      if (fallbackTracker.shouldHalt(totalParsedItems)) {
+      const haltOnExcessiveFallbacks = config.fallbackPolicy?.haltOnExcessiveFallbacks ?? true;
+      if (haltOnExcessiveFallbacks && fallbackTracker.shouldHalt(totalParsedItems)) {
         const summary = fallbackTracker.getSummary(totalParsedItems);
+        const thresholdPct = Math.round(fallbackTracker.thresholdRate * 100);
         logger.error('[PIPELINE] Fallback rate exceeded threshold — halting pipeline', {
           courseId, chapter: chNum, fallbackCount: summary.count,
           fallbackRate: summary.rate, totalParsedItems,
@@ -348,7 +350,7 @@ export async function runPipeline(
         onSSEEvent?.({
           type: 'error',
           data: {
-            message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: 30%). ` +
+            message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
               `${chaptersCreated} chapters saved. The AI provider may be experiencing issues.`,
             code: 'FALLBACK_RATE_EXCEEDED',
             chaptersCreated,

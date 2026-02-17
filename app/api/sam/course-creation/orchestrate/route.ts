@@ -28,6 +28,10 @@ import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/cours
 export const runtime = 'nodejs';
 export const maxDuration = 900; // 15 min per SSE segment; auto-reconnection handles longer courses
 
+// In-memory in-flight dedup guard (per instance) to block rapid double-submits
+const inFlightRequests = new Map<string, number>();
+const IN_FLIGHT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
 // =============================================================================
 // VALIDATION
 // =============================================================================
@@ -54,11 +58,47 @@ const OrchestrateRequestSchema = z.object({
   requestId: z.string().uuid().optional(),
 });
 
+function buildRequestFingerprint(config: z.infer<typeof OrchestrateRequestSchema>): string {
+  const canonical = JSON.stringify({
+    courseTitle: config.courseTitle.trim(),
+    courseDescription: config.courseDescription.trim(),
+    targetAudience: config.targetAudience.trim(),
+    difficulty: config.difficulty,
+    totalChapters: config.totalChapters,
+    sectionsPerChapter: config.sectionsPerChapter,
+    learningObjectivesPerChapter: config.learningObjectivesPerChapter,
+    learningObjectivesPerSection: config.learningObjectivesPerSection,
+    courseGoals: config.courseGoals.map((g) => g.trim()),
+    bloomsFocus: config.bloomsFocus,
+    preferredContentTypes: config.preferredContentTypes,
+    category: config.category ?? '',
+    subcategory: config.subcategory ?? '',
+    courseIntent: config.courseIntent ?? '',
+    includeAssessments: config.includeAssessments ?? null,
+    duration: config.duration ?? '',
+  });
+  return crypto.createHash('sha256').update(canonical).digest('hex').slice(0, 32);
+}
+
+function claimInFlight(key: string): boolean {
+  const now = Date.now();
+  const existing = inFlightRequests.get(key);
+  if (existing && now - existing < IN_FLIGHT_TTL_MS) return false;
+  inFlightRequests.set(key, now);
+  return true;
+}
+
+function releaseInFlight(key?: string): void {
+  if (!key) return;
+  inFlightRequests.delete(key);
+}
+
 // =============================================================================
 // HANDLER
 // =============================================================================
 
 export async function POST(request: NextRequest) {
+  let inFlightKey: string | undefined;
   try {
     // 0. Rate limit — prevent abuse of expensive 15-min SSE sessions
     const rateLimitResponse = await withRateLimit(request, 'ai');
@@ -92,15 +132,40 @@ export async function POST(request: NextRequest) {
     }
     const config = parseResult.data;
 
+    // New course creation requires a client-provided idempotency key.
+    // Resume requests are naturally idempotent by courseId + checkpoint state.
+    if (!config.resumeCourseId && !config.requestId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'requestId is required for new course creation',
+          code: 'MISSING_REQUEST_ID',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const requestFingerprint = config.resumeCourseId ? undefined : buildRequestFingerprint(config);
+
     // 3b. Idempotency check: if requestId is provided, check for existing pipeline
     if (config.requestId) {
       const existingPlan = await db.sAMExecutionPlan.findFirst({
         where: {
           goal: { userId: user.id },
-          metadata: {
-            path: ['requestId'],
-            equals: config.requestId,
-          },
+          OR: [
+            {
+              metadata: {
+                path: ['requestId'],
+                equals: config.requestId,
+              },
+            },
+            ...(requestFingerprint ? [{
+              metadata: {
+                path: ['requestFingerprint'],
+                equals: requestFingerprint,
+              },
+            }] : []),
+          ],
         },
         select: {
           id: true,
@@ -138,6 +203,57 @@ export async function POST(request: NextRequest) {
           );
         }
         // FAILED or PAUSED plans are allowed to retry with same requestId
+      }
+    }
+
+    // 3c. Secondary dedup for non-requestId callers or race windows:
+    // block if a matching fingerprint is already ACTIVE/PENDING recently.
+    if (requestFingerprint) {
+      const activeMatch = await db.sAMExecutionPlan.findFirst({
+        where: {
+          goal: { userId: user.id },
+          status: { in: ['ACTIVE', 'PENDING'] },
+          metadata: {
+            path: ['requestFingerprint'],
+            equals: requestFingerprint,
+          },
+        },
+        select: {
+          id: true,
+          status: true,
+          checkpointData: true,
+        },
+      });
+
+      if (activeMatch) {
+        const checkpoint = activeMatch.checkpointData as Record<string, unknown> | null;
+        const courseId = checkpoint?.courseId as string | undefined;
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Course creation already in progress',
+            code: 'ALREADY_RUNNING',
+            runId: activeMatch.id,
+            courseId,
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
+    // 3d. In-process dedupe guard (same instance) to close the immediate double-click race
+    const dedupeKey = config.requestId ?? requestFingerprint;
+    if (!config.resumeCourseId && dedupeKey) {
+      inFlightKey = `${user.id}:${dedupeKey}`;
+      if (!claimInFlight(inFlightKey)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Course creation already in progress',
+            code: 'ALREADY_RUNNING',
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        );
       }
     }
 
@@ -183,6 +299,7 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             runId,
             requestId: config.requestId,
+            requestFingerprint,
             abortSignal: request.signal,
             config: {
               ...config,
@@ -223,6 +340,7 @@ export async function POST(request: NextRequest) {
           logger.error('[ORCHESTRATE_ROUTE] Stream error:', msg);
           sendSSE('error', { message: msg });
         } finally {
+          releaseInFlight(inFlightKey);
           clearInterval(heartbeat);
           try {
             controller.close();
@@ -243,6 +361,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    releaseInFlight(inFlightKey);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATE_ROUTE] Error:', msg);
     return new Response(

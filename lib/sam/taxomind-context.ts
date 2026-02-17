@@ -2,7 +2,8 @@
  * Taxomind Integration Context (SERVER-ONLY)
  *
  * Singleton wrapper that provides centralized access to all SAM agentic stores
- * and integrations. This is the SINGLE ENTRY POINT for accessing Prisma stores.
+ * and integrations. Default runtime uses Prisma-backed stores, with optional
+ * adapter injection for portable non-Prisma runtimes.
  *
  * Architecture Goal: All SAM integration code should go through this context
  * instead of directly importing/creating stores.
@@ -299,6 +300,20 @@ type PrismaClient = typeof db;
 export interface CreateTaxomindContextOptions {
   /** Optional Prisma client override (defaults to singleton `db`). Use for testing. */
   prisma?: PrismaClient;
+  /** Optional store factory override for adapter portability (non-Prisma runtimes). */
+  storeFactory?: () => TaxomindAgenticStores;
+  /** Optional integration factory override for adapter portability. */
+  integrationFactory?: () => AdapterIntegrationContext;
+}
+
+/**
+ * Runtime profile that allows app-level adapter injection.
+ * Default behavior (when unset) uses Prisma-backed local factories.
+ */
+export interface TaxomindRuntimeProfile {
+  name?: string;
+  storeFactory?: () => TaxomindAgenticStores;
+  integrationFactory?: () => AdapterIntegrationContext;
 }
 
 // ============================================================================
@@ -306,6 +321,7 @@ export interface CreateTaxomindContextOptions {
 // ============================================================================
 
 let contextInstance: TaxomindIntegrationContext | null = null;
+let runtimeProfile: TaxomindRuntimeProfile | null = null;
 
 /**
  * Create lazy-initialized stores using Proxy
@@ -493,7 +509,7 @@ function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
   });
 }
 
-function initializeIntegrationContext(): AdapterIntegrationContext {
+function initializeIntegrationContext(prismaClient: PrismaClient = db): AdapterIntegrationContext {
   try {
     return getTaxomindIntegration();
   } catch (error) {
@@ -509,7 +525,7 @@ function initializeIntegrationContext(): AdapterIntegrationContext {
   const anthropicApiKey = isBuildPhase ? undefined : process.env.ANTHROPIC_API_KEY;
 
   const integration = bootstrapTaxomindIntegration({
-    prisma: db as unknown as Parameters<typeof bootstrapTaxomindIntegration>[0]['prisma'],
+    prisma: prismaClient as unknown as Parameters<typeof bootstrapTaxomindIntegration>[0]['prisma'],
     isDevelopment: process.env.NODE_ENV !== 'production',
     region: process.env.SAM_REGION,
     anthropicApiKey,
@@ -536,16 +552,15 @@ function initializeIntegrationContext(): AdapterIntegrationContext {
 export function getTaxomindContext(): TaxomindIntegrationContext {
   if (!contextInstance) {
     logger.info('[TaxomindContext] Creating new context instance...');
-
-    contextInstance = {
-      stores: createLazyStores(),
-      integration: initializeIntegrationContext(),
-      isInitialized: true,
-      initializationTime: new Date(),
-    };
+    contextInstance = createTaxomindContext({
+      prisma: db,
+      ...(runtimeProfile?.storeFactory ? { storeFactory: runtimeProfile.storeFactory } : {}),
+      ...(runtimeProfile?.integrationFactory ? { integrationFactory: runtimeProfile.integrationFactory } : {}),
+    });
 
     logger.info('[TaxomindContext] Context created successfully', {
       initializationTime: contextInstance.initializationTime.toISOString(),
+      runtimeProfile: runtimeProfile?.name ?? 'default-prisma',
     });
   }
 
@@ -570,10 +585,39 @@ export function createTaxomindContext(
   const prisma = options.prisma ?? db;
 
   return {
-    stores: createLazyStores(prisma),
-    integration: initializeIntegrationContext(),
+    stores: options.storeFactory ? options.storeFactory() : createLazyStores(prisma),
+    integration: options.integrationFactory ? options.integrationFactory() : initializeIntegrationContext(prisma),
     isInitialized: true,
     initializationTime: new Date(),
+  };
+}
+
+/**
+ * Configure runtime adapter profile for Taxomind context creation.
+ * Setting a profile resets the singleton so the next access uses the new factories.
+ */
+export function configureTaxomindRuntimeProfile(profile: TaxomindRuntimeProfile | null): void {
+  runtimeProfile = profile;
+  resetTaxomindContext();
+  logger.info('[TaxomindContext] Runtime profile updated', {
+    profile: profile?.name ?? 'default-prisma',
+    hasStoreFactory: !!profile?.storeFactory,
+    hasIntegrationFactory: !!profile?.integrationFactory,
+  });
+}
+
+/**
+ * Read-only runtime profile diagnostics for observability.
+ */
+export function getTaxomindRuntimeProfileInfo(): {
+  profile: string;
+  hasStoreFactory: boolean;
+  hasIntegrationFactory: boolean;
+} {
+  return {
+    profile: runtimeProfile?.name ?? 'default-prisma',
+    hasStoreFactory: !!runtimeProfile?.storeFactory,
+    hasIntegrationFactory: !!runtimeProfile?.integrationFactory,
   };
 }
 
