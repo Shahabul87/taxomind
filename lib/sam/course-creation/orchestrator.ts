@@ -78,7 +78,10 @@ export interface OrchestrateOptions {
   enableStreamingThinking?: boolean;
   /** Resume state -- when provided, skips course/goal creation and resumes from checkpoint */
   resumeState?: ResumeState;
-  /** Use AgentStateMachine for execution. Default: true for new courses. */
+  /**
+   * @deprecated Always true. The legacy for-loop path has been removed.
+   * Kept for API compatibility — callers may still pass it.
+   */
   useAgenticStateMachine?: boolean;
   /** Correlation ID for end-to-end tracing across the SSE session */
   runId?: string;
@@ -405,13 +408,18 @@ export async function orchestrateCourseCreation(
     }
 
     const startChapter = isResume ? resumeState!.completedChapterCount + 1 : 1;
-    const useStateMachine = useAgenticStateMachine ?? true;
+    // Legacy for-loop path removed — always use agentic state machine
+    const useStateMachine = true;
 
-    logger.info('[ORCHESTRATOR] Execution path selected', {
-      useStateMachine,
+    if (useAgenticStateMachine === false) {
+      logger.warn('[ORCHESTRATOR] useAgenticStateMachine=false was passed but legacy path has been removed. Using agentic path.', {
+        courseId, userId: userId,
+      });
+    }
+
+    logger.info('[ORCHESTRATOR] Execution path: agentic state machine', {
       isResume,
       startChapter,
-      finalPath: useStateMachine ? 'agentic' : 'legacy',
     });
 
     // =========================================================================

@@ -6,12 +6,38 @@
  */
 
 /**
- * Semantic version for the prompt templates in this file.
- * Bump MAJOR for breaking output schema changes, MINOR for pedagogical
- * strategy changes, PATCH for wording/formatting tweaks.
+ * Per-stage semantic versions for prompt templates.
+ *
+ * Each stage's prompts can evolve independently. Bump:
+ *   MAJOR — breaking output schema changes (blocks checkpoint resume)
+ *   MINOR — pedagogical strategy changes (warns on checkpoint resume)
+ *   PATCH — wording/formatting tweaks (silent on resume)
+ *
  * Included in SSE events and checkpoints for quality correlation.
  */
-export const PROMPT_VERSION = '2.0.0' as const;
+export const PROMPT_VERSIONS = {
+  stage1: '2.1.0',
+  stage2: '2.1.0',
+  stage3: '2.1.0',
+} as const;
+
+export type PromptStage = keyof typeof PROMPT_VERSIONS;
+
+/**
+ * Composite version string for backward-compatible checkpoint storage.
+ * Format: "stage1:X.Y.Z|stage2:X.Y.Z|stage3:X.Y.Z"
+ *
+ * Legacy checkpoints store a single "2.0.0" string — the resume gate
+ * in checkpoint-manager.ts handles both formats.
+ */
+export const PROMPT_VERSION = `stage1:${PROMPT_VERSIONS.stage1}|stage2:${PROMPT_VERSIONS.stage2}|stage3:${PROMPT_VERSIONS.stage3}` as const;
+
+/**
+ * Returns the per-stage version for a given stage number.
+ */
+export function getPromptVersion(stage: 1 | 2 | 3): string {
+  return PROMPT_VERSIONS[`stage${stage}`];
+}
 
 import {
   type CourseContext,
@@ -926,7 +952,9 @@ Return ONLY valid JSON, no markdown formatting`,
   const systemTokenCount = estimateTokens(systemPrompt);
   const effectiveUserBudget = getEffectiveUserBudget(1, systemTokenCount);
   const budgetResult = enforceTokenBudget(userSections, effectiveUserBudget);
-  const userPrompt = budgetResult.content;
+  const userPrompt = budgetResult.droppedContextNotice
+    ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
+    : budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }
@@ -1181,7 +1209,9 @@ Return ONLY valid JSON, no markdown formatting`,
   const stage2SystemTokenCount = estimateTokens(systemPrompt);
   const stage2EffectiveUserBudget = getEffectiveUserBudget(2, stage2SystemTokenCount);
   const budgetResult = enforceTokenBudget(userSections, stage2EffectiveUserBudget);
-  const userPrompt = budgetResult.content;
+  const userPrompt = budgetResult.droppedContextNotice
+    ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
+    : budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }
@@ -1535,7 +1565,9 @@ Return ONLY valid JSON, no markdown formatting`,
   const stage3SystemTokenCount = estimateTokens(systemPrompt);
   const stage3EffectiveUserBudget = getEffectiveUserBudget(3, stage3SystemTokenCount);
   const budgetResult = enforceTokenBudget(userSections, stage3EffectiveUserBudget);
-  const userPrompt = budgetResult.content;
+  const userPrompt = budgetResult.droppedContextNotice
+    ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
+    : budgetResult.content;
 
   return { systemPrompt, userPrompt };
 }

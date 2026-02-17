@@ -122,6 +122,13 @@ export interface BudgetResult {
   finalTokens: number;
   /** Labels of sections that were truncated or dropped */
   truncatedSections: string[];
+  /**
+   * Human-readable notice to inject into the user prompt when content was
+   * dropped. Tells the AI what context is missing so it can compensate
+   * (e.g., avoid referencing prior chapters if that section was dropped).
+   * Empty string when nothing was truncated.
+   */
+  droppedContextNotice: string;
 }
 
 // ============================================================================
@@ -158,6 +165,7 @@ export function enforceTokenBudget(
       originalTokens,
       finalTokens: originalTokens,
       truncatedSections: [],
+      droppedContextNotice: '',
     };
   }
 
@@ -256,11 +264,70 @@ export function enforceTokenBudget(
     });
   }
 
+  // Build a context notice so the AI knows what information was dropped
+  const droppedContextNotice = truncatedLabels.length > 0
+    ? buildDroppedContextNotice(truncatedLabels)
+    : '';
+
   return {
     content: finalContent,
     truncated: true,
     originalTokens,
     finalTokens,
     truncatedSections: truncatedLabels,
+    droppedContextNotice,
   };
+}
+
+// ============================================================================
+// Dropped Context Notice Builder
+// ============================================================================
+
+/**
+ * Build a human-readable notice that tells the AI what prompt context was
+ * dropped or truncated due to token budget limits.
+ *
+ * This notice is injected at the end of the user prompt so the AI can
+ * compensate — e.g., by not referencing prior chapters if that section
+ * was dropped, or by being more self-contained in its output.
+ */
+function buildDroppedContextNotice(truncatedLabels: string[]): string {
+  const labelDescriptions: Record<string, string> = {
+    previousChapters: 'summaries of previously completed chapters',
+    conceptFlow: 'concept flow and prerequisite chain data',
+    memoryRecall: 'recalled memory from prior courses',
+    domainChapterGuidance: 'domain-specific chapter guidance',
+    domainSectionGuidance: 'domain-specific section guidance',
+    domainDetailGuidance: 'domain-specific detail guidance',
+    templateBlock: 'chapter DNA template guidance',
+    positionGuidance: 'chapter position-specific narrative guidance',
+    scaffoldingGuidance: 'section scaffolding guidance',
+    courseWideContext: 'course-wide chapter summary and concept availability',
+    priorSections: 'completed prior sections in this chapter',
+    cumulativeKnowledge: 'cumulative knowledge state and style guidelines',
+    bridgeContent: 'concept bridge content from the prior chapter',
+    bloomsAssignment: 'Bloom\'s level assignment details',
+    previousSections: 'previous section summaries and remaining topics',
+  };
+
+  const descriptions = truncatedLabels.map(label => {
+    // Handle partial truncation labels like "previousChapters (partial)"
+    const baseLabel = label.replace(' (partial)', '');
+    const isPartial = label.includes('(partial)');
+    const desc = labelDescriptions[baseLabel] ?? label;
+    return isPartial ? `${desc} (partially truncated — only recent content retained)` : desc;
+  });
+
+  return [
+    '',
+    '## ⚠️ CONTEXT BUDGET NOTICE',
+    'The following context sections were dropped or truncated to fit within token limits:',
+    ...descriptions.map(d => `- ${d}`),
+    '',
+    'IMPORTANT: Because this context is missing, you must:',
+    '1. Be more self-contained — do NOT reference information from dropped sections',
+    '2. Focus on the CURRENT chapter/section requirements provided above',
+    '3. If prior chapter context was dropped, treat this as a standalone chapter and infer reasonable prerequisites from the course title and description',
+    '4. If concept flow was dropped, introduce concepts as if this is early in the course',
+  ].join('\n');
 }

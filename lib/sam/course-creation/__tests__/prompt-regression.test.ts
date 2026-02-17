@@ -16,6 +16,7 @@ import {
   buildStage2Prompt,
   buildStage3Prompt,
   PROMPT_VERSION,
+  PROMPT_VERSIONS,
   getContentAwareBloomsLevel,
 } from '../prompts';
 import { estimateTokens, INPUT_TOKEN_BUDGETS } from '../prompt-budget';
@@ -69,8 +70,16 @@ function containsBloomsVerbs(text: string, level: BloomsLevel): boolean {
 // ============================================================================
 
 describe('PROMPT_VERSION', () => {
-  it('is a valid semver string', () => {
-    expect(PROMPT_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+  it('composite version contains all 3 stages', () => {
+    expect(PROMPT_VERSION).toContain('stage1:');
+    expect(PROMPT_VERSION).toContain('stage2:');
+    expect(PROMPT_VERSION).toContain('stage3:');
+  });
+
+  it('each per-stage version is a valid semver string', () => {
+    for (const stage of ['stage1', 'stage2', 'stage3'] as const) {
+      expect(PROMPT_VERSIONS[stage]).toMatch(/^\d+\.\d+\.\d+$/);
+    }
   });
 });
 

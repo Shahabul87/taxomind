@@ -48,10 +48,12 @@ jest.mock('../../orchestrator', () => ({
   orchestrateCourseCreation: jest.fn().mockResolvedValue({ success: true, courseId: 'test-course' }),
 }));
 
-// Dynamic mock for PROMPT_VERSION
-let mockPromptVersion = '2.0.0';
+// Dynamic mock for PROMPT_VERSION — supports both legacy and composite formats
+let mockPromptVersion = 'stage1:2.0.0|stage2:2.0.0|stage3:2.0.0';
+let mockPromptVersions = { stage1: '2.0.0', stage2: '2.0.0', stage3: '2.0.0' };
 jest.mock('../../prompts', () => ({
   get PROMPT_VERSION() { return mockPromptVersion; },
+  get PROMPT_VERSIONS() { return mockPromptVersions; },
 }));
 
 import { db } from '@/lib/db';
@@ -61,7 +63,8 @@ const mockDb = db as jest.Mocked<typeof db>;
 describe('Pipeline Resume - Prompt Version Gate', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPromptVersion = '2.0.0';
+    mockPromptVersion = 'stage1:2.0.0|stage2:2.0.0|stage3:2.0.0';
+    mockPromptVersions = { stage1: '2.0.0', stage2: '2.0.0', stage3: '2.0.0' };
   });
 
   it('should block resume when major version differs', async () => {
@@ -95,7 +98,8 @@ describe('Pipeline Resume - Prompt Version Gate', () => {
   });
 
   it('should allow resume when only minor version differs', async () => {
-    mockPromptVersion = '2.1.0';
+    mockPromptVersion = 'stage1:2.1.0|stage2:2.1.0|stage3:2.1.0';
+    mockPromptVersions = { stage1: '2.1.0', stage2: '2.1.0', stage3: '2.1.0' };
 
     (mockDb.sAMExecutionPlan.findFirst as jest.Mock).mockResolvedValue({
       id: 'plan-1',

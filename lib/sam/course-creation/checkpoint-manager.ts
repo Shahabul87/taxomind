@@ -12,7 +12,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { PROMPT_VERSION } from './prompts';
+import { PROMPT_VERSION, PROMPT_VERSIONS } from './prompts';
 import {
   reactivateCourseCreation,
 } from './course-creation-controller';
@@ -246,31 +246,77 @@ export async function resumeCourseCreation(
     }
 
     // 1c. Prompt version compatibility gate
+    //     Supports both legacy format ("2.0.0") and composite format
+    //     ("stage1:2.1.0|stage2:2.1.0|stage3:2.1.0").
     if (checkpoint.promptVersion && checkpoint.promptVersion !== PROMPT_VERSION) {
-      const savedParts = checkpoint.promptVersion.split('.');
-      const currentParts = PROMPT_VERSION.split('.');
-      const savedMajor = parseInt(savedParts[0], 10);
-      const currentMajor = parseInt(currentParts[0], 10);
+      const isComposite = checkpoint.promptVersion.includes('stage1:');
 
-      if (savedMajor !== currentMajor) {
-        logger.warn('[ORCHESTRATOR] Prompt version major mismatch — blocking resume', {
+      if (isComposite) {
+        // Parse composite format: "stage1:X.Y.Z|stage2:X.Y.Z|stage3:X.Y.Z"
+        const savedStageVersions = Object.fromEntries(
+          checkpoint.promptVersion.split('|').map(part => {
+            const [stage, version] = part.split(':');
+            return [stage, version];
+          })
+        ) as Record<string, string>;
+
+        for (const stage of ['stage1', 'stage2', 'stage3'] as const) {
+          const savedVersion = savedStageVersions[stage];
+          const currentVersion = PROMPT_VERSIONS[stage];
+          if (!savedVersion || savedVersion === currentVersion) continue;
+
+          const savedMajor = parseInt(savedVersion.split('.')[0], 10);
+          const currentMajor = parseInt(currentVersion.split('.')[0], 10);
+
+          if (savedMajor !== currentMajor) {
+            logger.warn('[ORCHESTRATOR] Prompt version major mismatch — blocking resume', {
+              stage,
+              saved: savedVersion,
+              current: currentVersion,
+              courseId: resumeCourseId,
+            });
+            return {
+              success: false,
+              error: `Cannot resume: ${stage} prompt version changed from ${savedVersion} to ${currentVersion} (major version mismatch). ` +
+                'Resuming would produce incoherent content. Please start a new course.',
+            };
+          }
+
+          // Minor version change: warn but allow resume
+          logger.warn('[ORCHESTRATOR] Prompt version minor mismatch on resume', {
+            stage,
+            saved: savedVersion,
+            current: currentVersion,
+            courseId: resumeCourseId,
+          });
+        }
+      } else {
+        // Legacy format: single version string like "2.0.0"
+        const savedParts = checkpoint.promptVersion.split('.');
+        const savedMajor = parseInt(savedParts[0], 10);
+        // Compare against stage1 major version (representative for legacy checkpoints)
+        const currentMajor = parseInt(PROMPT_VERSIONS.stage1.split('.')[0], 10);
+
+        if (savedMajor !== currentMajor) {
+          logger.warn('[ORCHESTRATOR] Prompt version major mismatch (legacy format) — blocking resume', {
+            saved: checkpoint.promptVersion,
+            current: PROMPT_VERSION,
+            courseId: resumeCourseId,
+          });
+          return {
+            success: false,
+            error: `Cannot resume: prompt version changed from ${checkpoint.promptVersion} to ${PROMPT_VERSION} (major version mismatch). ` +
+              'Resuming would produce incoherent content. Please start a new course.',
+          };
+        }
+
+        // Minor version change: warn but allow resume
+        logger.warn('[ORCHESTRATOR] Prompt version minor mismatch on resume (legacy format)', {
           saved: checkpoint.promptVersion,
           current: PROMPT_VERSION,
           courseId: resumeCourseId,
         });
-        return {
-          success: false,
-          error: `Cannot resume: prompt version changed from ${checkpoint.promptVersion} to ${PROMPT_VERSION} (major version mismatch). ` +
-            'Resuming would produce incoherent content. Please start a new course.',
-        };
       }
-
-      // Minor version change: warn but allow resume
-      logger.warn('[ORCHESTRATOR] Prompt version minor mismatch on resume', {
-        saved: checkpoint.promptVersion,
-        current: PROMPT_VERSION,
-        courseId: resumeCourseId,
-      });
     }
 
     // 2. Verify course exists and belongs to user

@@ -157,7 +157,9 @@ jest.mock('../../course-creation-controller', () => ({
 }));
 
 jest.mock('../../prompts', () => ({
-  PROMPT_VERSION: '2.0.0',
+  PROMPT_VERSION: 'stage1:2.1.0|stage2:2.1.0|stage3:2.1.0',
+  PROMPT_VERSIONS: { stage1: '2.1.0', stage2: '2.1.0', stage3: '2.1.0' },
+  getPromptVersion: jest.fn((stage: number) => '2.1.0'),
 }));
 
 // Mock deep transitive dependencies that would pull in AI provider + auth chain
