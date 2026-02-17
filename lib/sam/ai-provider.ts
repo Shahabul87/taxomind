@@ -222,3 +222,22 @@ export async function getSAMAdapterSystem(): Promise<CoreAIAdapter | null> {
 export function invalidateAllAICaches(): void {
   aiClient.invalidateCaches();
 }
+
+// ============================================================================
+// 8. Re-exports — Legacy blueprint generator facade
+// ============================================================================
+
+/**
+ * Re-export legacy blueprint generator functions and types through the
+ * unified AI provider entry point so API routes import from here instead
+ * of directly from @/lib/course-blueprint-generator.
+ *
+ * The blueprint generator already uses runSAMChatWithPreference internally,
+ * so this re-export gives routes a single approved import path.
+ */
+export {
+  generateCourseBlueprint,
+  generateSamSuggestion,
+  type CourseGenerationRequest,
+  type AIGeneratedBlueprint,
+} from '@/lib/course-blueprint-generator';

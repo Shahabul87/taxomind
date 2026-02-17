@@ -1,5 +1,5 @@
 import { type EnhancedContentRequest } from "@/lib/ai-content-generator";
-import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/course-blueprint-generator";
+import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/sam/ai-provider";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';

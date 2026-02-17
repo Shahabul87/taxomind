@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/course-blueprint-generator";
+import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/sam/ai-provider";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AIErrorHandler } from "@/lib/error-handler";

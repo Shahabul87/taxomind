@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { generateSamSuggestion } from "@/lib/course-blueprint-generator";
+import { generateSamSuggestion } from "@/lib/sam/ai-provider";
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';

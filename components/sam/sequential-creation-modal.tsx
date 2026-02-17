@@ -244,7 +244,7 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
       return 'An error occurred';
     }
     return 'Preparing...';
-  }, [state, progress.message]);
+  }, [state]);
 
   return (
     <motion.div

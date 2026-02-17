@@ -44,10 +44,10 @@ export function useSamCache<T = unknown>(options?: CacheOptions<T>) {
   const [cacheSize, setCacheSize] = useState(0);
 
   /** Move a key to the end of the Map (most-recently-used position). */
-  const touchKey = (key: string, entry: CacheEntry<T>) => {
+  const touchKey = useCallback((key: string, entry: CacheEntry<T>) => {
     cacheRef.current.delete(key);
     cacheRef.current.set(key, entry);
-  };
+  }, []);
 
   const set = useCallback(
     (key: string, data: T) => {
@@ -118,7 +118,7 @@ export function useSamCache<T = unknown>(options?: CacheOptions<T>) {
       metricsRef.current.hits++;
       return entry.data;
     },
-    [revalidateFn, set],
+    [revalidateFn, set, touchKey],
   );
 
   const has = useCallback((key: string): boolean => {
