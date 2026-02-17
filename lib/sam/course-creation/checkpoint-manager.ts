@@ -12,6 +12,7 @@ import 'server-only';
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { PROMPT_VERSION } from './prompts';
 import {
   reactivateCourseCreation,
 } from './course-creation-controller';
@@ -213,6 +214,25 @@ export async function resumeCourseCreation(
 
     const checkpoint = plan.checkpointData as unknown as CheckpointData;
 
+    // 1a-2. Check resume deadline — auto-fail expired plans
+    if (checkpoint.resumeDeadline) {
+      const deadline = new Date(checkpoint.resumeDeadline as string);
+      if (deadline < new Date()) {
+        await db.sAMExecutionPlan.update({
+          where: { id: plan.id },
+          data: { status: 'FAILED' },
+        });
+        logger.warn('[ORCHESTRATOR] Resume deadline expired', {
+          courseId: resumeCourseId,
+          deadline: checkpoint.resumeDeadline,
+        });
+        return {
+          success: false,
+          error: 'Resume deadline expired. The approval window has closed. Please start a new course.',
+        };
+      }
+    }
+
     // 1b. Validate checkpoint has required resume data (not empty {} or completion-only)
     if (
       typeof checkpoint.completedChapterCount !== 'number' ||
@@ -220,6 +240,34 @@ export async function resumeCourseCreation(
       !checkpoint.config
     ) {
       return { success: false, error: 'Checkpoint data is incomplete — cannot resume. Please start a new course.' };
+    }
+
+    // 1c. Prompt version compatibility gate
+    if (checkpoint.promptVersion && checkpoint.promptVersion !== PROMPT_VERSION) {
+      const savedParts = checkpoint.promptVersion.split('.');
+      const currentParts = PROMPT_VERSION.split('.');
+      const savedMajor = parseInt(savedParts[0], 10);
+      const currentMajor = parseInt(currentParts[0], 10);
+
+      if (savedMajor !== currentMajor) {
+        logger.warn('[ORCHESTRATOR] Prompt version major mismatch — blocking resume', {
+          saved: checkpoint.promptVersion,
+          current: PROMPT_VERSION,
+          courseId: resumeCourseId,
+        });
+        return {
+          success: false,
+          error: `Cannot resume: prompt version changed from ${checkpoint.promptVersion} to ${PROMPT_VERSION} (major version mismatch). ` +
+            'Resuming would produce incoherent content. Please start a new course.',
+        };
+      }
+
+      // Minor version change: warn but allow resume
+      logger.warn('[ORCHESTRATOR] Prompt version minor mismatch on resume', {
+        saved: checkpoint.promptVersion,
+        current: PROMPT_VERSION,
+        courseId: resumeCourseId,
+      });
     }
 
     // 2. Verify course exists and belongs to user

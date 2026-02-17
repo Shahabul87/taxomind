@@ -128,6 +128,8 @@ export interface RateLimitStore {
   keys(): IterableIterator<string>;
   readonly size: number;
   clear(): void;
+  /** Whether this store shares state across multiple server instances */
+  isDistributed(): boolean;
 }
 
 /**
@@ -143,6 +145,7 @@ class InMemoryRateLimitStore implements RateLimitStore {
   keys(): IterableIterator<string> { return this.map.keys(); }
   get size(): number { return this.map.size; }
   clear(): void { this.map.clear(); }
+  isDistributed(): boolean { return false; }
 }
 
 /**
@@ -208,6 +211,8 @@ class RedisBackedRateLimitStore implements RateLimitStore {
     // Clear local cache; Redis entries expire via TTL
     this.localCache.clear();
   }
+
+  isDistributed(): boolean { return true; }
 
   /** Pull buckets from Redis into local cache (handles cross-instance updates) */
   private async syncFromRedis(): Promise<void> {
@@ -481,6 +486,27 @@ export async function withRateLimit(
   category: RateLimitCategory = 'standard'
 ): Promise<NextResponse | null> {
   try {
+    // Production enforcement: fail-closed categories MUST have distributed store
+    const failClosedCategories: RateLimitCategory[] = ['ai', 'tools', 'heavy'];
+    if (
+      process.env.NODE_ENV === 'production' &&
+      !bucketStore.isDistributed() &&
+      failClosedCategories.includes(category)
+    ) {
+      logger.error(
+        `[RateLimiter] CRITICAL: In-memory rate limiter used for fail-closed category "${category}" in production. ` +
+        'Rate limits are NOT enforced across instances. Set REDIS_URL to enable distributed rate limiting.',
+      );
+      return NextResponse.json(
+        {
+          error: 'Service temporarily unavailable',
+          message: 'Rate limiting infrastructure is not properly configured. Please try again later.',
+          code: 'RATE_LIMIT_STORE_NOT_DISTRIBUTED',
+        },
+        { status: 503 },
+      );
+    }
+
     // Get user ID from session
     const session = await auth();
     const userId = session?.user?.id;
@@ -627,6 +653,19 @@ export async function autoRateLimit(req: NextRequest): Promise<NextResponse | nu
 // ============================================================================
 // ADMIN UTILITIES
 // ============================================================================
+
+/**
+ * Get the current rate limit store type for health check reporting.
+ */
+export function getRateLimitStoreInfo(): {
+  type: string;
+  isDistributed: boolean;
+} {
+  return {
+    type: bucketStore.constructor.name,
+    isDistributed: bucketStore.isDistributed(),
+  };
+}
 
 /**
  * Get rate limit stats for monitoring

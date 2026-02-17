@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Integrity Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMIntegrityVerdict, SAMIntegrityRisk } from '@prisma/client';
 
 // ============================================================================
@@ -94,7 +94,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Create a new integrity check
    */
   async create(input: CreateIntegrityCheckInput): Promise<IntegrityCheck> {
-    const check = await db.sAMIntegrityCheck.create({
+    const check = await getDb().sAMIntegrityCheck.create({
       data: {
         userId: input.userId,
         assignmentId: input.assignmentId ?? null,
@@ -121,7 +121,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Get an integrity check by ID
    */
   async getById(id: string): Promise<IntegrityCheck | null> {
-    const check = await db.sAMIntegrityCheck.findUnique({
+    const check = await getDb().sAMIntegrityCheck.findUnique({
       where: { id },
     });
 
@@ -132,7 +132,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Get all integrity checks for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<IntegrityCheck[]> {
-    const checks = await db.sAMIntegrityCheck.findMany({
+    const checks = await getDb().sAMIntegrityCheck.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -145,7 +145,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Get integrity checks for an assignment
    */
   async getByAssignment(assignmentId: string): Promise<IntegrityCheck[]> {
-    const checks = await db.sAMIntegrityCheck.findMany({
+    const checks = await getDb().sAMIntegrityCheck.findMany({
       where: { assignmentId },
       orderBy: { createdAt: 'desc' },
     });
@@ -157,7 +157,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Get check by content hash (for caching)
    */
   async getByContentHash(contentHash: string): Promise<IntegrityCheck | null> {
-    const check = await db.sAMIntegrityCheck.findFirst({
+    const check = await getDb().sAMIntegrityCheck.findFirst({
       where: { contentHash },
       orderBy: { createdAt: 'desc' },
     });
@@ -173,7 +173,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
     score: number,
     matches: PlagiarismMatch[]
   ): Promise<IntegrityCheck> {
-    const check = await db.sAMIntegrityCheck.update({
+    const check = await getDb().sAMIntegrityCheck.update({
       where: { id },
       data: {
         plagiarismScore: score,
@@ -192,7 +192,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
     score: number,
     indicators: AIIndicator[]
   ): Promise<IntegrityCheck> {
-    const check = await db.sAMIntegrityCheck.update({
+    const check = await getDb().sAMIntegrityCheck.update({
       where: { id },
       data: {
         aiDetectionScore: score,
@@ -211,7 +211,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
     score: number,
     analysis: ConsistencyAnalysis
   ): Promise<IntegrityCheck> {
-    const check = await db.sAMIntegrityCheck.update({
+    const check = await getDb().sAMIntegrityCheck.update({
       where: { id },
       data: {
         consistencyScore: score,
@@ -233,7 +233,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
     // Generate recommendations based on verdict
     const recommendations = this.generateRecommendations(verdict, riskLevel);
 
-    const check = await db.sAMIntegrityCheck.update({
+    const check = await getDb().sAMIntegrityCheck.update({
       where: { id },
       data: {
         overallVerdict: verdict,
@@ -249,7 +249,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
    * Delete an integrity check
    */
   async delete(id: string): Promise<void> {
-    await db.sAMIntegrityCheck.delete({
+    await getDb().sAMIntegrityCheck.delete({
       where: { id },
     });
   }
@@ -281,7 +281,7 @@ export class PrismaIntegrityStore implements IntegrityStore {
   }
 
   private mapToCheck(
-    record: Awaited<ReturnType<typeof db.sAMIntegrityCheck.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMIntegrityCheck']['findUnique']>>
   ): IntegrityCheck {
     if (!record) {
       throw new Error('IntegrityCheck record is null');

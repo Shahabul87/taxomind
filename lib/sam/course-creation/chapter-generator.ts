@@ -137,6 +137,7 @@ export async function generateSingleChapter(
     experimentVariant,
     runId,
     budgetTracker,
+    fallbackTracker,
   } = context;
   const { onSSEEvent, enableStreamingThinking } = callbacks;
 
@@ -211,7 +212,7 @@ export async function generateSingleChapter(
         responseText = await traceAICall(s1Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...chatParams }));
       }
       const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
-      const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry);
+      const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
 
       const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
       const blended = blendScores(result.qualityScore, samResult);
@@ -391,7 +392,7 @@ export async function generateSingleChapter(
           temperature: s1Retry.temperature,
         }),
       );
-      const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters, currentBlueprintEntry);
+      const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
 
       const retrySam = await validateChapterWithSAM(retryResult.chapter, retryResult.qualityScore, courseContext);
       const retryBlended = blendScores(retryResult.qualityScore, retrySam);
@@ -523,7 +524,7 @@ export async function generateSingleChapter(
         } else {
           s2ResponseText = await traceAICall(s2Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s2ChatParams }));
         }
-        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef);
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
 
         const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
         const blendedSec = blendScores(result.qualityScore, samSecResult);
@@ -605,7 +606,7 @@ export async function generateSingleChapter(
               temperature: s2RetryStrategy.temperature,
             }),
           );
-          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef);
+          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
           const criticSam = await validateSectionWithSAM(criticResult.section, criticResult.qualityScore, courseContext);
           const criticBlended = blendScores(criticResult.qualityScore, criticSam);
 
@@ -754,7 +755,7 @@ export async function generateSingleChapter(
         } else {
           s3ResponseText = await traceAICall(s3Trace, () => runSAMChatWithPreference({ userId, capability: 'course', ...s3ChatParams }));
         }
-        const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef);
+        const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
 
         const samDetResult = await validateDetailsWithSAM(result.details, sectionPlain, chapterPlain.bloomsLevel, result.qualityScore, courseContext);
         const blendedDet = blendScores(result.qualityScore, samDetResult);
@@ -836,7 +837,7 @@ export async function generateSingleChapter(
               temperature: s3RetryStrategy.temperature,
             }),
           );
-          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3CriticTemplateDef);
+          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3CriticTemplateDef, fallbackTracker);
           const criticSam = await validateDetailsWithSAM(criticResult.details, sectionPlain, chapterPlain.bloomsLevel, criticResult.qualityScore, courseContext);
           const criticBlended = blendScores(criticResult.qualityScore, criticSam);
 

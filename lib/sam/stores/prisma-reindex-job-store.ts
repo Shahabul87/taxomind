@@ -5,7 +5,7 @@
  * Replaces InMemoryReindexJobStore for production use.
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 import type {
   ReindexJob,
@@ -82,7 +82,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
     job: Omit<ReindexJob, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ReindexJob> {
     try {
-      const created = await db.sAMReindexJob.create({
+      const created = await getDb().sAMReindexJob.create({
         data: {
           entityType: job.entityType,
           entityId: job.entityId,
@@ -103,7 +103,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
 
   async get(id: string): Promise<ReindexJob | null> {
     try {
-      const job = await db.sAMReindexJob.findUnique({
+      const job = await getDb().sAMReindexJob.findUnique({
         where: { id },
       });
 
@@ -134,7 +134,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
         updateData.processedAt = updates.completedAt;
       }
 
-      const updated = await db.sAMReindexJob.update({
+      const updated = await getDb().sAMReindexJob.update({
         where: { id },
         data: updateData,
       });
@@ -149,7 +149,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
 
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMReindexJob.delete({
+      await getDb().sAMReindexJob.delete({
         where: { id },
       });
 
@@ -163,7 +163,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
 
   async findPending(limit: number): Promise<ReindexJob[]> {
     try {
-      const jobs = await db.sAMReindexJob.findMany({
+      const jobs = await getDb().sAMReindexJob.findMany({
         where: {
           status: 'PENDING',
         },
@@ -183,7 +183,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
     entityId: string
   ): Promise<ReindexJob[]> {
     try {
-      const jobs = await db.sAMReindexJob.findMany({
+      const jobs = await getDb().sAMReindexJob.findMany({
         where: {
           entityType,
           entityId,
@@ -207,7 +207,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
     limit?: number
   ): Promise<ReindexJob[]> {
     try {
-      const jobs = await db.sAMReindexJob.findMany({
+      const jobs = await getDb().sAMReindexJob.findMany({
         where: {
           status: STATUS_MAP[status],
         },
@@ -227,7 +227,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
 
   async countByStatus(): Promise<Record<ReindexJobStatus, number>> {
     try {
-      const counts = await db.sAMReindexJob.groupBy({
+      const counts = await getDb().sAMReindexJob.groupBy({
         by: ['status'],
         _count: true,
       });
@@ -258,7 +258,7 @@ export class PrismaReindexJobStore implements ReindexJobStore {
 
   async cleanupCompleted(olderThan: Date): Promise<number> {
     try {
-      const result = await db.sAMReindexJob.deleteMany({
+      const result = await getDb().sAMReindexJob.deleteMany({
         where: {
           status: {
             in: ['COMPLETED', 'FAILED', 'CANCELLED'],

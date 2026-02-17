@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Multimodal Input Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMInputType, SAMProcessingStatus } from '@prisma/client';
 
 // ============================================================================
@@ -91,7 +91,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Create a new multimodal input record
    */
   async create(input: CreateMultimodalInput): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.create({
+    const record = await getDb().sAMMultimodalInput.create({
       data: {
         userId: input.userId,
         inputType: input.inputType,
@@ -113,7 +113,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Get a multimodal input by ID
    */
   async getById(id: string): Promise<MultimodalInput | null> {
-    const record = await db.sAMMultimodalInput.findUnique({
+    const record = await getDb().sAMMultimodalInput.findUnique({
       where: { id },
     });
 
@@ -124,7 +124,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Get all multimodal inputs for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<MultimodalInput[]> {
-    const records = await db.sAMMultimodalInput.findMany({
+    const records = await getDb().sAMMultimodalInput.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -137,7 +137,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Get inputs by type
    */
   async getByType(userId: string, type: SAMInputType): Promise<MultimodalInput[]> {
-    const records = await db.sAMMultimodalInput.findMany({
+    const records = await getDb().sAMMultimodalInput.findMany({
       where: { userId, inputType: type },
       orderBy: { createdAt: 'desc' },
     });
@@ -149,7 +149,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Get pending inputs for processing
    */
   async getPending(): Promise<MultimodalInput[]> {
-    const records = await db.sAMMultimodalInput.findMany({
+    const records = await getDb().sAMMultimodalInput.findMany({
       where: { status: 'PENDING' },
       orderBy: { createdAt: 'asc' },
       take: 100,
@@ -162,7 +162,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Update processing status
    */
   async updateStatus(id: string, status: SAMProcessingStatus): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: {
         status,
@@ -177,7 +177,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Update extracted text (for images/documents)
    */
   async updateExtractedText(id: string, text: string): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: { extractedText: text },
     });
@@ -193,7 +193,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
     transcription: string,
     confidence: number
   ): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: {
         transcription,
@@ -208,7 +208,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Update analysis results
    */
   async updateAnalysis(id: string, analysis: InputAnalysis): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: {
         analysis: analysis as unknown as Record<string, unknown>,
@@ -222,7 +222,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Update alt text (for images)
    */
   async updateAltText(id: string, altText: string): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: { altText },
     });
@@ -234,7 +234,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Set processing error
    */
   async setError(id: string, error: string): Promise<MultimodalInput> {
-    const record = await db.sAMMultimodalInput.update({
+    const record = await getDb().sAMMultimodalInput.update({
       where: { id },
       data: {
         status: 'FAILED',
@@ -249,7 +249,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
    * Delete a multimodal input
    */
   async delete(id: string): Promise<void> {
-    await db.sAMMultimodalInput.delete({
+    await getDb().sAMMultimodalInput.delete({
       where: { id },
     });
   }
@@ -259,7 +259,7 @@ export class PrismaMultimodalStore implements MultimodalStore {
   // ============================================================================
 
   private mapToInput(
-    record: Awaited<ReturnType<typeof db.sAMMultimodalInput.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMMultimodalInput']['findUnique']>>
   ): MultimodalInput {
     if (!record) {
       throw new Error('MultimodalInput record is null');

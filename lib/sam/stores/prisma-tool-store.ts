@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { ToolDefinition, ToolQueryOptions, ToolStore } from '@sam-ai/agentic';
 
 const toolRegistry = new Map<string, ToolDefinition>();
@@ -46,7 +46,7 @@ export class PrismaToolStore implements ToolStore {
   async register(tool: ToolDefinition): Promise<void> {
     toolRegistry.set(tool.id, tool);
 
-    await db.agentTool.upsert({
+    await getDb().agentTool.upsert({
       where: { id: tool.id },
       create: {
         id: tool.id,
@@ -115,7 +115,7 @@ export class PrismaToolStore implements ToolStore {
 
     toolRegistry.set(toolId, updated);
 
-    await db.agentTool.update({
+    await getDb().agentTool.update({
       where: { id: toolId },
       data: {
         name: updated.name,
@@ -143,7 +143,7 @@ export class PrismaToolStore implements ToolStore {
 
   async delete(toolId: string): Promise<void> {
     toolRegistry.delete(toolId);
-    await db.agentTool.delete({ where: { id: toolId } });
+    await getDb().agentTool.delete({ where: { id: toolId } });
   }
 
   async enable(toolId: string): Promise<void> {
@@ -152,7 +152,7 @@ export class PrismaToolStore implements ToolStore {
       tool.enabled = true;
       toolRegistry.set(toolId, tool);
     }
-    await db.agentTool.update({
+    await getDb().agentTool.update({
       where: { id: toolId },
       data: { enabled: true },
     });
@@ -164,7 +164,7 @@ export class PrismaToolStore implements ToolStore {
       tool.enabled = false;
       toolRegistry.set(toolId, tool);
     }
-    await db.agentTool.update({
+    await getDb().agentTool.update({
       where: { id: toolId },
       data: { enabled: false },
     });

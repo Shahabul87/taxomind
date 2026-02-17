@@ -3,7 +3,7 @@
  * Uses Prisma with SAMExecutionPlan, SAMPlanStep, SAMPlanState models for persistent storage
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
 import {
@@ -258,7 +258,7 @@ export class PrismaPlanStore implements PlanStore {
   async create(
     plan: Omit<ExecutionPlan, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ExecutionPlan> {
-    const newPlan = await db.sAMExecutionPlan.create({
+    const newPlan = await getDb().sAMExecutionPlan.create({
       data: {
         goalId: plan.goalId,
         userId: plan.userId,
@@ -318,7 +318,7 @@ export class PrismaPlanStore implements PlanStore {
    * Get a plan by ID
    */
   async get(planId: string): Promise<ExecutionPlan | null> {
-    const plan = await db.sAMExecutionPlan.findUnique({
+    const plan = await getDb().sAMExecutionPlan.findUnique({
       where: { id: planId },
       include: {
         steps: { orderBy: { order: 'asc' } },
@@ -349,7 +349,7 @@ export class PrismaPlanStore implements PlanStore {
       whereClause.goalId = options.goalId;
     }
 
-    const plans = await db.sAMExecutionPlan.findMany({
+    const plans = await getDb().sAMExecutionPlan.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       skip: options?.offset ?? 0,
@@ -367,7 +367,7 @@ export class PrismaPlanStore implements PlanStore {
    * Get plans by goal
    */
   async getByGoal(goalId: string): Promise<ExecutionPlan[]> {
-    const plans = await db.sAMExecutionPlan.findMany({
+    const plans = await getDb().sAMExecutionPlan.findMany({
       where: { goalId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -404,7 +404,7 @@ export class PrismaPlanStore implements PlanStore {
     if (updates.fallbackStrategies !== undefined) updateData.fallbackStrategies = updates.fallbackStrategies;
     if (updates.completedAt !== undefined) updateData.completedAt = updates.completedAt;
 
-    const plan = await db.sAMExecutionPlan.update({
+    const plan = await getDb().sAMExecutionPlan.update({
       where: { id: planId },
       data: updateData,
       include: {
@@ -421,7 +421,7 @@ export class PrismaPlanStore implements PlanStore {
    */
   async delete(planId: string): Promise<void> {
     if (!planId) return;
-    await db.sAMExecutionPlan.delete({
+    await getDb().sAMExecutionPlan.delete({
       where: { id: planId },
     });
   }
@@ -435,7 +435,7 @@ export class PrismaPlanStore implements PlanStore {
       return;
     }
 
-    await db.sAMPlanState.upsert({
+    await getDb().sAMPlanState.upsert({
       where: { planId: state.planId },
       update: {
         currentStepId: state.currentStepId,
@@ -476,7 +476,7 @@ export class PrismaPlanStore implements PlanStore {
    * Get saved plan state
    */
   async getState(planId: string): Promise<PlanState | null> {
-    const state = await db.sAMPlanState.findUnique({
+    const state = await getDb().sAMPlanState.findUnique({
       where: { planId },
     });
 
@@ -517,7 +517,7 @@ export class PrismaPlanStore implements PlanStore {
     stepId: string,
     name: string
   ): Promise<Checkpoint> {
-    const checkpoint = await db.sAMCheckpoint.create({
+    const checkpoint = await getDb().sAMCheckpoint.create({
       data: {
         planId,
         stepId,
@@ -545,7 +545,7 @@ export class PrismaPlanStore implements PlanStore {
    */
   async restoreCheckpoint(_checkpointId: string): Promise<PlanState | null> {
     // Find the checkpoint and its associated plan state
-    const checkpoint = await db.sAMCheckpoint.findUnique({
+    const checkpoint = await getDb().sAMCheckpoint.findUnique({
       where: { id: _checkpointId },
     });
 
@@ -578,13 +578,13 @@ export class PrismaPlanStore implements PlanStore {
     if (updates.outputs !== undefined) updateData.outputs = updates.outputs;
     if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
 
-    const step = await db.sAMPlanStep.update({
+    const step = await getDb().sAMPlanStep.update({
       where: { id: stepId },
       data: updateData,
     });
 
     // Update plan's updatedAt
-    await db.sAMExecutionPlan.update({
+    await getDb().sAMExecutionPlan.update({
       where: { id: planId },
       data: { updatedAt: new Date() },
     });

@@ -54,60 +54,96 @@ export async function POST(req: NextRequest) {
 
     const { courseId, decision } = parsed.data;
 
-    // 3. Find the paused plan for this course
+    // 3. Find the paused plan for this specific course + user
+    //    Filter by courseId IN the query (not post-fetch) to avoid wrong-course ambiguity
     const plan = await db.sAMExecutionPlan.findFirst({
       where: {
         goal: { userId: user.id },
         status: 'PAUSED',
-        checkpointData: { not: null },
+        checkpointData: {
+          not: null,
+          path: ['courseId'],
+          equals: courseId,
+        },
       },
-      select: { id: true, checkpointData: true },
+      select: {
+        id: true,
+        checkpointData: true,
+        goal: { select: { userId: true } },
+      },
     });
 
     if (!plan) {
       return NextResponse.json(
-        { success: false, error: 'No paused pipeline found for this course' },
+        { success: false, error: `No paused pipeline found for course ${courseId}` },
         { status: 404 },
       );
     }
 
-    // 4. Validate the checkpoint references the correct course
-    const checkpoint = plan.checkpointData as Record<string, unknown> | null;
-    if (checkpoint?.courseId !== courseId) {
+    // 4. Authorization: verify the plan owner matches the requesting user
+    if (plan.goal.userId !== user.id) {
       return NextResponse.json(
-        { success: false, error: 'Course ID does not match the paused pipeline' },
-        { status: 400 },
+        { success: false, error: 'Unauthorized: pipeline belongs to another user' },
+        { status: 403 },
       );
     }
 
+    const checkpoint = plan.checkpointData as Record<string, unknown> | null;
+
     // 5. Apply decision
+    const planId = plan.id;
+    const completedChapterCount = (checkpoint?.completedChapterCount as number) ?? 0;
+    const totalChapters = (checkpoint?.totalChapters as number) ?? 0;
+
+    const RESUME_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
     switch (decision) {
       case 'approve_continue': {
+        const resumeDeadline = new Date(Date.now() + RESUME_WINDOW_MS).toISOString();
+
         await db.sAMExecutionPlan.update({
-          where: { id: plan.id },
-          data: { status: 'ACTIVE' },
+          where: { id: planId },
+          data: {
+            status: 'ACTIVE',
+            checkpointData: { ...checkpoint, resumeDeadline },
+          },
         });
 
         logger.info('[APPROVE_API] Pipeline approved to continue', {
-          userId: user.id, courseId, planId: plan.id,
+          userId: user.id, courseId, planId, resumeDeadline,
         });
 
         return NextResponse.json({
           success: true,
           decision: 'approve_continue',
-          message: 'Pipeline will resume on next creation request.',
+          courseId,
+          planId,
+          resumeReady: true,
+          resumeToken: planId,
+          resumeEndpoint: '/api/sam/course-creation/orchestrate',
+          resumeMethod: 'POST',
+          resumeBody: { resumeCourseId: courseId },
+          resumeDeadline,
+          progress: {
+            completedChapters: completedChapterCount,
+            totalChapters,
+          },
+          message: `Pipeline approved. Send POST to /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" } to continue. Resume window: 30 minutes.`,
         });
       }
 
       case 'approve_heal': {
+        const resumeDeadline = new Date(Date.now() + RESUME_WINDOW_MS).toISOString();
+
         // Mark the flagged chapter for healing in checkpoint data
         const updatedCheckpoint = {
           ...checkpoint,
           escalationDecision: 'approve_heal',
+          resumeDeadline,
         };
 
         await db.sAMExecutionPlan.update({
-          where: { id: plan.id },
+          where: { id: planId },
           data: {
             status: 'ACTIVE',
             checkpointData: updatedCheckpoint,
@@ -115,30 +151,43 @@ export async function POST(req: NextRequest) {
         });
 
         logger.info('[APPROVE_API] Pipeline approved with healing', {
-          userId: user.id, courseId, planId: plan.id,
+          userId: user.id, courseId, planId, resumeDeadline,
         });
 
         return NextResponse.json({
           success: true,
           decision: 'approve_heal',
-          message: 'Pipeline will resume with healing on next creation request.',
+          courseId,
+          planId,
+          resumeReady: true,
+          resumeToken: planId,
+          resumeEndpoint: '/api/sam/course-creation/orchestrate',
+          resumeMethod: 'POST',
+          resumeBody: { resumeCourseId: courseId },
+          resumeDeadline,
+          progress: {
+            completedChapters: completedChapterCount,
+            totalChapters,
+          },
+          message: `Pipeline approved with healing. Send POST to /api/sam/course-creation/orchestrate with { resumeCourseId: "${courseId}" } to continue. Resume window: 30 minutes.`,
         });
       }
 
       case 'reject_abort': {
         await db.sAMExecutionPlan.update({
-          where: { id: plan.id },
+          where: { id: planId },
           data: { status: 'FAILED' },
         });
 
         logger.info('[APPROVE_API] Pipeline aborted by user', {
-          userId: user.id, courseId, planId: plan.id,
+          userId: user.id, courseId, planId,
         });
 
         return NextResponse.json({
           success: true,
           decision: 'reject_abort',
-          message: 'Pipeline has been aborted.',
+          courseId,
+          message: 'Pipeline has been aborted. The course has been saved with content generated so far.',
         });
       }
     }

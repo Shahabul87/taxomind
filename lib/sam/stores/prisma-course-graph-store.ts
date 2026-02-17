@@ -3,7 +3,7 @@
  * Implements CourseGraphStore interface from @sam-ai/agentic package
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   CourseGraphStore,
   CourseGraph,
@@ -23,7 +23,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
    */
   async getCourseGraph(courseId: string): Promise<CourseGraph | null> {
     try {
-      const course = await db.course.findUnique({
+      const course = await getDb().course.findUnique({
         where: { id: courseId },
         include: {
           chapters: {
@@ -38,7 +38,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       });
 
       // Get skills related to the course (via skill-based learning objectives)
-      const courseSkills = await db.skill.findMany({
+      const courseSkills = await getDb().skill.findMany({
         where: {
           isActive: true,
         },
@@ -159,7 +159,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
   async saveCourseGraph(graph: CourseGraph): Promise<void> {
     try {
       // Update course learning objectives
-      await db.course.update({
+      await getDb().course.update({
         where: { id: graph.courseId },
         data: {
           courseGoals: graph.learningObjectives.join('\n'),
@@ -167,7 +167,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       });
 
       // Store the full graph in CourseBloomsAnalysis for reference
-      await db.courseBloomsAnalysis.upsert({
+      await getDb().courseBloomsAnalysis.upsert({
         where: { courseId: graph.courseId },
         update: {
           learningPathway: {
@@ -206,7 +206,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       const [type, id] = conceptId.split('-');
 
       if (type === 'chapter') {
-        const chapter = await db.chapter.findUnique({
+        const chapter = await getDb().chapter.findUnique({
           where: { id },
           include: { course: true },
         });
@@ -228,7 +228,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       }
 
       if (type === 'section') {
-        const section = await db.section.findUnique({
+        const section = await getDb().section.findUnique({
           where: { id },
           include: { chapter: true },
         });
@@ -247,7 +247,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       }
 
       if (type === 'skill') {
-        const skill = await db.skill.findUnique({
+        const skill = await getDb().skill.findUnique({
           where: { id },
         });
 
@@ -277,7 +277,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       const [type, id] = conceptId.split('-');
 
       if (type === 'skill') {
-        const skill = await db.skill.findUnique({
+        const skill = await getDb().skill.findUnique({
           where: { id },
         });
 
@@ -292,7 +292,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       }
 
       if (type === 'chapter') {
-        const chapter = await db.chapter.findUnique({
+        const chapter = await getDb().chapter.findUnique({
           where: { id },
           include: {
             course: {
@@ -324,7 +324,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       }
 
       if (type === 'section') {
-        const section = await db.section.findUnique({
+        const section = await getDb().section.findUnique({
           where: { id },
         });
 
@@ -354,7 +354,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
       const [type, id] = conceptId.split('-');
 
       if (type === 'chapter') {
-        const chapter = await db.chapter.findUnique({
+        const chapter = await getDb().chapter.findUnique({
           where: { id },
           include: {
             sections: true,
@@ -390,7 +390,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
 
       if (type === 'skill') {
         // Find skills that have this skill as a prerequisite
-        const skills = await db.skill.findMany({
+        const skills = await getDb().skill.findMany({
           where: {
             prerequisites: {
               path: [],

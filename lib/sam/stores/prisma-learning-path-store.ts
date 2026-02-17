@@ -3,7 +3,7 @@
  * Implements LearningPathStore interface from @sam-ai/agentic package
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type {
   LearningPathStore,
   PersonalizedLearningPath,
@@ -28,7 +28,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
   async saveLearningPath(path: AgenticLearningPath): Promise<void> {
     try {
       // Store personalized path in SAMLearningGoal with metadata
-      await db.sAMLearningGoal.create({
+      await getDb().sAMLearningGoal.create({
         data: {
           id: path.id,
           userId: path.userId,
@@ -63,7 +63,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
 
       // Also create enrollment if course-specific
       if (path.courseId) {
-        await db.learningPathEnrollment.upsert({
+        await getDb().learningPathEnrollment.upsert({
           where: {
             userId_learningPathId: {
               userId: path.userId,
@@ -93,7 +93,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
    */
   async getLearningPath(id: string): Promise<AgenticLearningPath | null> {
     try {
-      const goal = await db.sAMLearningGoal.findUnique({
+      const goal = await getDb().sAMLearningGoal.findUnique({
         where: { id },
       });
 
@@ -118,7 +118,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
    */
   async getActiveLearningPaths(userId: string): Promise<AgenticLearningPath[]> {
     try {
-      const goals = await db.sAMLearningGoal.findMany({
+      const goals = await getDb().sAMLearningGoal.findMany({
         where: {
           userId,
           status: { in: ['ACTIVE', 'PAUSED'] },
@@ -146,7 +146,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
     courseId: string
   ): Promise<AgenticLearningPath | null> {
     try {
-      const goal = await db.sAMLearningGoal.findFirst({
+      const goal = await getDb().sAMLearningGoal.findFirst({
         where: {
           userId,
           courseId,
@@ -175,7 +175,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
    */
   async deleteLearningPath(id: string): Promise<void> {
     try {
-      await db.sAMLearningGoal.delete({
+      await getDb().sAMLearningGoal.delete({
         where: { id },
       });
     } catch (error) {
@@ -189,7 +189,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
    */
   async markStepCompleted(pathId: string, stepOrder: number): Promise<void> {
     try {
-      const goal = await db.sAMLearningGoal.findUnique({
+      const goal = await getDb().sAMLearningGoal.findUnique({
         where: { id: pathId },
       });
 
@@ -215,7 +215,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
       const progress =
         (metadata.completedSteps / metadata.totalSteps) * 100;
 
-      await db.sAMLearningGoal.update({
+      await getDb().sAMLearningGoal.update({
         where: { id: pathId },
         data: {
           metadata,
@@ -234,7 +234,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
   // ============================================================================
 
   private mapGoalToLearningPath(
-    goal: Awaited<ReturnType<typeof db.sAMLearningGoal.findUnique>>
+    goal: Awaited<ReturnType<PrismaClient['sAMLearningGoal']['findUnique']>>
   ): AgenticLearningPath {
     if (!goal) {
       throw new Error('Goal is null');

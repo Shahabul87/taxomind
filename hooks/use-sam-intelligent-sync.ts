@@ -29,6 +29,12 @@ import { useFormRegistry } from '@/lib/stores/form-registry-store';
 import { emitSAMFormData } from '@sam-ai/react';
 import type { UseSAMFormDataSyncOptions } from '@sam-ai/react';
 
+/** Maximum payload size in bytes before truncating least-relevant fields */
+const MAX_PAYLOAD_BYTES = 4096;
+
+/** Default cap for array item expansion to prevent noise */
+const DEFAULT_MAX_ARRAY_ITEMS = 5;
+
 export interface IntelligentSyncOptions {
   formName?: string;
   metadata?: Record<string, unknown>;
@@ -39,6 +45,10 @@ export interface IntelligentSyncOptions {
   isDirty?: boolean;
   isValid?: boolean;
   enabled?: boolean;
+  /** Only sync fields whose top-level key is in this set. Reduces SAM context noise. */
+  relevantFields?: Set<string>;
+  /** Maximum array items to expand per field (default: 5) */
+  maxArrayItems?: number;
 }
 
 /**
@@ -87,10 +97,13 @@ export function useIntelligentSAMSync<T = any>(
     if (!currentFormData) return;
 
     const fields: Record<string, { value: unknown; type: string }> = {};
+    const maxArrayItems = optionsRef.current.maxArrayItems ?? DEFAULT_MAX_ARRAY_ITEMS;
+    const relevantFields = optionsRef.current.relevantFields;
 
     /**
      * Recursively process any value to extract all fields
      * Handles primitives, objects, arrays, null, undefined
+     * Respects relevantFields allowlist and maxArrayItems cap
      */
     const extractFields = (
       value: any,
@@ -115,15 +128,17 @@ export function useIntelligentSAMSync<T = any>(
         return;
       }
 
-      // Handle arrays
+      // Handle arrays — cap expansion to maxArrayItems
       if (Array.isArray(value)) {
+        // Store summary metadata instead of duplicating the entire array
         fields[path] = {
-          value,
+          value: `[Array(${value.length})]`,
           type: 'array',
         };
 
-        // Also extract array items for detailed context
-        value.forEach((item, index) => {
+        // Only expand up to maxArrayItems to reduce context noise
+        const itemsToExpand = value.slice(0, maxArrayItems);
+        itemsToExpand.forEach((item, index) => {
           extractFields(item, `${path}[${index}]`, depth + 1);
         });
         return;
@@ -131,13 +146,9 @@ export function useIntelligentSAMSync<T = any>(
 
       // Handle objects (but not class instances, Dates, etc.)
       if (typeof value === 'object' && value.constructor === Object) {
-        // Store the whole object as well
-        fields[path] = {
-          value: JSON.stringify(value),
-          type: 'object',
-        };
-
-        // Recursively extract nested fields
+        // Only store leaf fields — skip parent object to avoid duplicate serialization
+        // that wastes SAM context tokens. The recursive expansion below captures
+        // every nested value as individual fields.
         Object.entries(value).forEach(([key, val]) => {
           const newPath = path ? `${path}.${key}` : key;
           extractFields(val, newPath, depth + 1);
@@ -161,14 +172,29 @@ export function useIntelligentSAMSync<T = any>(
       };
     };
 
-    // Start extraction from root
+    // Start extraction from root, filtering by relevantFields if provided
     if (typeof currentFormData === 'object' && currentFormData !== null && !Array.isArray(currentFormData)) {
       Object.entries(currentFormData as Record<string, unknown>).forEach(([key, value]) => {
+        // Skip fields not in the allowlist (if an allowlist is provided)
+        if (relevantFields && !relevantFields.has(key)) return;
         extractFields(value, key);
       });
     } else {
       // Handle non-object form data (edge case)
       extractFields(currentFormData, 'value');
+    }
+
+    // Size guard: if extracted payload exceeds MAX_PAYLOAD_BYTES, truncate
+    const payloadSize = JSON.stringify(fields).length;
+    if (payloadSize > MAX_PAYLOAD_BYTES) {
+      // Keep only top-level fields (depth 0) — remove nested expansions
+      const topLevelKeys = Object.keys(fields).filter(k => !k.includes('.') && !k.includes('['));
+      const truncated: Record<string, { value: unknown; type: string }> = {};
+      for (const key of topLevelKeys) {
+        truncated[key] = fields[key];
+      }
+      Object.keys(fields).forEach(k => { delete fields[k]; });
+      Object.assign(fields, truncated);
     }
 
     // Update SAM registry with all auto-detected fields

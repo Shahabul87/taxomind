@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { SAMRecommendationType } from '@prisma/client';
 import {
   type LearningSessionStore,
@@ -420,7 +420,7 @@ const mapRecommendation = (record: {
 
 export class PrismaLearningSessionStore implements LearningSessionStore {
   async create(session: Omit<LearningSession, 'id'>): Promise<LearningSession> {
-    const record = await db.sAMLearningSession.create({
+    const record = await getDb().sAMLearningSession.create({
       data: {
         userId: session.userId,
         topicId: session.topicId,
@@ -439,12 +439,12 @@ export class PrismaLearningSessionStore implements LearningSessionStore {
   }
 
   async get(id: string): Promise<LearningSession | null> {
-    const record = await db.sAMLearningSession.findUnique({ where: { id } });
+    const record = await getDb().sAMLearningSession.findUnique({ where: { id } });
     return record ? mapLearningSession(record) : null;
   }
 
   async getByUser(userId: string, limit?: number): Promise<LearningSession[]> {
-    const records = await db.sAMLearningSession.findMany({
+    const records = await getDb().sAMLearningSession.findMany({
       where: { userId },
       take: limit,
       orderBy: { startTime: 'desc' },
@@ -453,7 +453,7 @@ export class PrismaLearningSessionStore implements LearningSessionStore {
   }
 
   async getByUserAndTopic(userId: string, topicId: string): Promise<LearningSession[]> {
-    const records = await db.sAMLearningSession.findMany({
+    const records = await getDb().sAMLearningSession.findMany({
       where: { userId, topicId },
       orderBy: { startTime: 'desc' },
     });
@@ -461,7 +461,7 @@ export class PrismaLearningSessionStore implements LearningSessionStore {
   }
 
   async getByPeriod(userId: string, start: Date, end: Date): Promise<LearningSession[]> {
-    const records = await db.sAMLearningSession.findMany({
+    const records = await getDb().sAMLearningSession.findMany({
       where: {
         userId,
         startTime: {
@@ -475,7 +475,7 @@ export class PrismaLearningSessionStore implements LearningSessionStore {
   }
 
   async update(id: string, updates: Partial<LearningSession>): Promise<LearningSession> {
-    const record = await db.sAMLearningSession.update({
+    const record = await getDb().sAMLearningSession.update({
       where: { id },
       data: {
         startTime: updates.startTime,
@@ -495,14 +495,14 @@ export class PrismaLearningSessionStore implements LearningSessionStore {
 
 export class PrismaTopicProgressStore implements TopicProgressStore {
   async get(userId: string, topicId: string): Promise<TopicProgress | null> {
-    const record = await db.sAMTopicProgress.findUnique({
+    const record = await getDb().sAMTopicProgress.findUnique({
       where: { userId_topicId: { userId, topicId } },
     });
     return record ? mapTopicProgress(record) : null;
   }
 
   async getByUser(userId: string): Promise<TopicProgress[]> {
-    const records = await db.sAMTopicProgress.findMany({
+    const records = await getDb().sAMTopicProgress.findMany({
       where: { userId },
       orderBy: { lastAccessedAt: 'desc' },
     });
@@ -510,7 +510,7 @@ export class PrismaTopicProgressStore implements TopicProgressStore {
   }
 
   async upsert(progress: TopicProgress): Promise<TopicProgress> {
-    const record = await db.sAMTopicProgress.upsert({
+    const record = await getDb().sAMTopicProgress.upsert({
       where: { userId_topicId: { userId: progress.userId, topicId: progress.topicId } },
       update: {
         topicName: progress.topicName,
@@ -549,7 +549,7 @@ export class PrismaTopicProgressStore implements TopicProgressStore {
   }
 
   async getByMasteryLevel(userId: string, level: MasteryLevel): Promise<TopicProgress[]> {
-    const records = await db.sAMTopicProgress.findMany({
+    const records = await getDb().sAMTopicProgress.findMany({
       where: {
         userId,
         masteryLevel: mapMasteryToPrisma(level),
@@ -561,7 +561,7 @@ export class PrismaTopicProgressStore implements TopicProgressStore {
 
 export class PrismaLearningGapStore implements LearningGapStore {
   async create(gap: Omit<LearningGap, 'id'>): Promise<LearningGap> {
-    const record = await db.sAMLearningGap.create({
+    const record = await getDb().sAMLearningGap.create({
       data: {
         userId: gap.userId,
         conceptId: gap.conceptId,
@@ -580,12 +580,12 @@ export class PrismaLearningGapStore implements LearningGapStore {
   }
 
   async get(id: string): Promise<LearningGap | null> {
-    const record = await db.sAMLearningGap.findUnique({ where: { id } });
+    const record = await getDb().sAMLearningGap.findUnique({ where: { id } });
     return record ? mapLearningGap(record) : null;
   }
 
   async getByUser(userId: string, includeResolved = false): Promise<LearningGap[]> {
-    const records = await db.sAMLearningGap.findMany({
+    const records = await getDb().sAMLearningGap.findMany({
       where: {
         userId,
         isResolved: includeResolved ? undefined : false,
@@ -597,7 +597,7 @@ export class PrismaLearningGapStore implements LearningGapStore {
   }
 
   async resolve(id: string): Promise<LearningGap> {
-    const record = await db.sAMLearningGap.update({
+    const record = await getDb().sAMLearningGap.update({
       where: { id },
       data: {
         isResolved: true,
@@ -609,7 +609,7 @@ export class PrismaLearningGapStore implements LearningGapStore {
   }
 
   async getBySeverity(userId: string, severity: LearningGap['severity']): Promise<LearningGap[]> {
-    const records = await db.sAMLearningGap.findMany({
+    const records = await getDb().sAMLearningGap.findMany({
       where: {
         userId,
         severity: mapGapSeverityToPrisma(severity),
@@ -623,7 +623,7 @@ export class PrismaLearningGapStore implements LearningGapStore {
 
 export class PrismaSkillAssessmentStore implements SkillAssessmentStore {
   async create(assessment: Omit<SkillAssessment, 'id'>): Promise<SkillAssessment> {
-    const record = await db.sAMSkillAssessment.create({
+    const record = await getDb().sAMSkillAssessment.create({
       data: {
         userId: assessment.userId,
         skillId: assessment.skillId,
@@ -644,12 +644,12 @@ export class PrismaSkillAssessmentStore implements SkillAssessmentStore {
   }
 
   async get(id: string): Promise<SkillAssessment | null> {
-    const record = await db.sAMSkillAssessment.findUnique({ where: { id } });
+    const record = await getDb().sAMSkillAssessment.findUnique({ where: { id } });
     return record ? mapSkillAssessment(record) : null;
   }
 
   async getByUserAndSkill(userId: string, skillId: string): Promise<SkillAssessment | null> {
-    const record = await db.sAMSkillAssessment.findFirst({
+    const record = await getDb().sAMSkillAssessment.findFirst({
       where: { userId, skillId },
       orderBy: { assessedAt: 'desc' },
     });
@@ -657,7 +657,7 @@ export class PrismaSkillAssessmentStore implements SkillAssessmentStore {
   }
 
   async getByUser(userId: string): Promise<SkillAssessment[]> {
-    const records = await db.sAMSkillAssessment.findMany({
+    const records = await getDb().sAMSkillAssessment.findMany({
       where: { userId },
       orderBy: { assessedAt: 'desc' },
     });
@@ -665,7 +665,7 @@ export class PrismaSkillAssessmentStore implements SkillAssessmentStore {
   }
 
   async getHistory(userId: string, skillId: string, limit?: number): Promise<SkillAssessment[]> {
-    const records = await db.sAMSkillAssessment.findMany({
+    const records = await getDb().sAMSkillAssessment.findMany({
       where: { userId, skillId },
       orderBy: { assessedAt: 'desc' },
       take: limit,
@@ -676,7 +676,7 @@ export class PrismaSkillAssessmentStore implements SkillAssessmentStore {
 
 export class PrismaRecommendationStore implements RecommendationStore {
   async create(recommendation: Omit<Recommendation, 'id'>): Promise<Recommendation> {
-    const record = await db.sAMRecommendation.create({
+    const record = await getDb().sAMRecommendation.create({
       data: {
         userId: recommendation.userId,
         type: mapContentTypeToPrisma(recommendation.type),
@@ -704,12 +704,12 @@ export class PrismaRecommendationStore implements RecommendationStore {
   }
 
   async get(id: string): Promise<Recommendation | null> {
-    const record = await db.sAMRecommendation.findUnique({ where: { id } });
+    const record = await getDb().sAMRecommendation.findUnique({ where: { id } });
     return record ? mapRecommendation(record) : null;
   }
 
   async getByUser(userId: string, limit?: number): Promise<Recommendation[]> {
-    const records = await db.sAMRecommendation.findMany({
+    const records = await getDb().sAMRecommendation.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -719,7 +719,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
 
   async getActive(userId: string): Promise<Recommendation[]> {
     const now = new Date();
-    const records = await db.sAMRecommendation.findMany({
+    const records = await getDb().sAMRecommendation.findMany({
       where: {
         userId,
         isCompleted: false,
@@ -734,7 +734,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
   }
 
   async markViewed(id: string): Promise<Recommendation> {
-    const record = await db.sAMRecommendation.update({
+    const record = await getDb().sAMRecommendation.update({
       where: { id },
       data: { isViewed: true },
     });
@@ -742,7 +742,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
   }
 
   async markCompleted(id: string, rating?: number): Promise<Recommendation> {
-    const record = await db.sAMRecommendation.update({
+    const record = await getDb().sAMRecommendation.update({
       where: { id },
       data: { isCompleted: true, userRating: rating ?? null },
     });
@@ -750,7 +750,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
   }
 
   async expire(id: string): Promise<void> {
-    await db.sAMRecommendation.update({
+    await getDb().sAMRecommendation.update({
       where: { id },
       data: { expiresAt: new Date() },
     });
@@ -806,7 +806,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
       }
     }
 
-    const records = await db.sAMRecommendation.findMany({
+    const records = await getDb().sAMRecommendation.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -865,7 +865,7 @@ export class PrismaRecommendationStore implements RecommendationStore {
       }
     }
 
-    return db.sAMRecommendation.count({ where });
+    return getDb().sAMRecommendation.count({ where });
   }
 }
 
@@ -920,19 +920,19 @@ const buildContentItemFromSection = (section: { id: string; title: string; type:
 
 export class PrismaContentStore implements ContentStore {
   async get(id: string): Promise<ContentItem | null> {
-    const course = await db.course.findUnique({
+    const course = await getDb().course.findUnique({
       where: { id },
       select: { id: true, title: true, description: true, categoryId: true },
     });
     if (course) return buildContentItemFromCourse(course);
 
-    const chapter = await db.chapter.findUnique({
+    const chapter = await getDb().chapter.findUnique({
       where: { id },
       select: { id: true, title: true, description: true, courseId: true },
     });
     if (chapter) return buildContentItemFromChapter(chapter);
 
-    const section = await db.section.findUnique({
+    const section = await getDb().section.findUnique({
       where: { id },
       select: { id: true, title: true, type: true, chapterId: true },
     });
@@ -942,7 +942,7 @@ export class PrismaContentStore implements ContentStore {
   }
 
   async getByTopic(topicId: string): Promise<ContentItem[]> {
-    const chapters = await db.chapter.findMany({
+    const chapters = await getDb().chapter.findMany({
       where: { courseId: topicId },
       select: { id: true, title: true, description: true, courseId: true },
       take: 20,
@@ -956,7 +956,7 @@ export class PrismaContentStore implements ContentStore {
 
   async getByType(type: ContentType): Promise<ContentItem[]> {
     if (type === ContentType.TUTORIAL || type === ContentType.ARTICLE) {
-      const courses = await db.course.findMany({
+      const courses = await getDb().course.findMany({
         select: { id: true, title: true, description: true, categoryId: true },
         take: 20,
       });
@@ -964,7 +964,7 @@ export class PrismaContentStore implements ContentStore {
     }
 
     if (type === ContentType.VIDEO || type === ContentType.QUIZ) {
-      const sections = await db.section.findMany({
+      const sections = await getDb().section.findMany({
         select: { id: true, title: true, type: true, chapterId: true },
         take: 20,
       });
@@ -982,13 +982,13 @@ export class PrismaContentStore implements ContentStore {
       ],
     };
 
-    const courses = await db.course.findMany({
+    const courses = await getDb().course.findMany({
       where: whereFilter,
       select: { id: true, title: true, description: true, categoryId: true },
       take: 10,
     });
 
-    const chapters = await db.chapter.findMany({
+    const chapters = await getDb().chapter.findMany({
       where: whereFilter,
       select: { id: true, title: true, description: true, courseId: true },
       take: 10,

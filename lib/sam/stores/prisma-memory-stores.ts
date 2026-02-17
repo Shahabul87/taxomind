@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import {
   cosineSimilarity,
   euclideanDistance,
@@ -118,7 +118,7 @@ const clearVectorCache = () => {
 
 export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   async save(vectorEmbedding: VectorEmbedding): Promise<void> {
-    await db.sAMVectorEmbedding.create({
+    await getDb().sAMVectorEmbedding.create({
       data: {
         id: vectorEmbedding.id,
         embedding: vectorEmbedding.vector,
@@ -144,7 +144,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
 
   async saveBatch(vectorEmbeddings: VectorEmbedding[]): Promise<void> {
     if (vectorEmbeddings.length === 0) return;
-    await db.sAMVectorEmbedding.createMany({
+    await getDb().sAMVectorEmbedding.createMany({
       data: vectorEmbeddings.map((vectorEmbedding) => ({
         id: vectorEmbedding.id,
         embedding: vectorEmbedding.vector,
@@ -166,12 +166,12 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async load(id: string): Promise<VectorEmbedding | null> {
-    const record = await db.sAMVectorEmbedding.findUnique({ where: { id } });
+    const record = await getDb().sAMVectorEmbedding.findUnique({ where: { id } });
     return record ? mapVectorEmbedding(record) : null;
   }
 
   async loadAll(filter?: VectorFilter): Promise<VectorEmbedding[]> {
-    const records = await db.sAMVectorEmbedding.findMany({
+    const records = await getDb().sAMVectorEmbedding.findMany({
       where: applyVectorFilter(filter),
     });
     return records.map(mapVectorEmbedding);
@@ -229,7 +229,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
 
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMVectorEmbedding.delete({ where: { id } });
+      await getDb().sAMVectorEmbedding.delete({ where: { id } });
       clearVectorCache();
       return true;
     } catch {
@@ -238,7 +238,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async deleteBatch(ids: string[]): Promise<number> {
-    const result = await db.sAMVectorEmbedding.deleteMany({
+    const result = await getDb().sAMVectorEmbedding.deleteMany({
       where: { id: { in: ids } },
     });
     clearVectorCache();
@@ -246,7 +246,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async deleteByFilter(filter: VectorFilter): Promise<number> {
-    const result = await db.sAMVectorEmbedding.deleteMany({
+    const result = await getDb().sAMVectorEmbedding.deleteMany({
       where: applyVectorFilter(filter),
     });
     clearVectorCache();
@@ -254,7 +254,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async update(id: string, updates: Partial<VectorEmbedding>): Promise<VectorEmbedding | null> {
-    const record = await db.sAMVectorEmbedding.update({
+    const record = await getDb().sAMVectorEmbedding.update({
       where: { id },
       data: {
         sourceId: updates.metadata?.sourceId,
@@ -275,7 +275,7 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async count(filter?: VectorFilter): Promise<number> {
-    return db.sAMVectorEmbedding.count({ where: applyVectorFilter(filter) });
+    return getDb().sAMVectorEmbedding.count({ where: applyVectorFilter(filter) });
   }
 }
 
@@ -319,7 +319,7 @@ const mapKnowledgeEdge = (record: {
 
 export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
   async createEntity(entity: Omit<GraphEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<GraphEntity> {
-    const record = await db.sAMKnowledgeNode.create({
+    const record = await getDb().sAMKnowledgeNode.create({
       data: {
         type: entity.type,
         name: entity.name,
@@ -333,12 +333,12 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
   }
 
   async getEntity(id: string): Promise<GraphEntity | null> {
-    const record = await db.sAMKnowledgeNode.findUnique({ where: { id } });
+    const record = await getDb().sAMKnowledgeNode.findUnique({ where: { id } });
     return record ? mapKnowledgeNode(record) : null;
   }
 
   async updateEntity(id: string, updates: Partial<GraphEntity>): Promise<GraphEntity> {
-    const record = await db.sAMKnowledgeNode.update({
+    const record = await getDb().sAMKnowledgeNode.update({
       where: { id },
       data: {
         type: updates.type,
@@ -353,7 +353,7 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
 
   async deleteEntity(id: string): Promise<boolean> {
     try {
-      await db.sAMKnowledgeNode.delete({ where: { id } });
+      await getDb().sAMKnowledgeNode.delete({ where: { id } });
       return true;
     } catch {
       return false;
@@ -368,7 +368,7 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
         { description: { contains: query, mode: 'insensitive' } },
       ];
     }
-    const records = await db.sAMKnowledgeNode.findMany({
+    const records = await getDb().sAMKnowledgeNode.findMany({
       where,
       take: limit,
     });
@@ -376,7 +376,7 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
   }
 
   async createRelationship(relationship: Omit<GraphRelationship, 'id' | 'createdAt'>): Promise<GraphRelationship> {
-    const record = await db.sAMKnowledgeEdge.create({
+    const record = await getDb().sAMKnowledgeEdge.create({
       data: {
         type: relationship.type,
         sourceId: relationship.sourceId,
@@ -389,13 +389,13 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
   }
 
   async getRelationship(id: string): Promise<GraphRelationship | null> {
-    const record = await db.sAMKnowledgeEdge.findUnique({ where: { id } });
+    const record = await getDb().sAMKnowledgeEdge.findUnique({ where: { id } });
     return record ? mapKnowledgeEdge(record) : null;
   }
 
   async deleteRelationship(id: string): Promise<boolean> {
     try {
-      await db.sAMKnowledgeEdge.delete({ where: { id } });
+      await getDb().sAMKnowledgeEdge.delete({ where: { id } });
       return true;
     } catch {
       return false;
@@ -420,7 +420,7 @@ export class PrismaKnowledgeGraphStore implements KnowledgeGraphStore {
       filters.weight = { gte: options.minWeight };
     }
 
-    const records = await db.sAMKnowledgeEdge.findMany({
+    const records = await getDb().sAMKnowledgeEdge.findMany({
       where: filters,
       take: options?.limit,
     });
@@ -557,7 +557,7 @@ const mapSessionContext = (record: {
 
 export class PrismaSessionContextStore implements SessionContextStore {
   async get(userId: string, courseId?: string): Promise<SessionContext | null> {
-    const record = await db.sAMSessionContext.findFirst({
+    const record = await getDb().sAMSessionContext.findFirst({
       where: {
         userId,
         courseId: courseId ?? null,
@@ -567,7 +567,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
   }
 
   async create(context: Omit<SessionContext, 'id' | 'createdAt' | 'updatedAt'>): Promise<SessionContext> {
-    const record = await db.sAMSessionContext.create({
+    const record = await getDb().sAMSessionContext.create({
       data: {
         userId: context.userId,
         courseId: context.courseId ?? null,
@@ -582,7 +582,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
   }
 
   async update(id: string, updates: Partial<SessionContext>): Promise<SessionContext> {
-    const record = await db.sAMSessionContext.update({
+    const record = await getDb().sAMSessionContext.update({
       where: { id },
       data: {
         lastActiveAt: updates.lastActiveAt,
@@ -597,7 +597,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
 
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMSessionContext.delete({ where: { id } });
+      await getDb().sAMSessionContext.delete({ where: { id } });
       return true;
     } catch {
       return false;
@@ -605,7 +605,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
   }
 
   async addHistoryEntry(id: string, entry: Omit<ContextHistoryEntry, 'timestamp'>): Promise<void> {
-    const record = await db.sAMSessionContext.findUnique({ where: { id } });
+    const record = await getDb().sAMSessionContext.findUnique({ where: { id } });
     if (!record) {
       throw new Error(`Session context not found: ${id}`);
     }
@@ -613,7 +613,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
     const history = (record.history as unknown as ContextHistoryEntry[]) ?? [];
     history.push({ ...entry, timestamp: new Date() });
 
-    await db.sAMSessionContext.update({
+    await getDb().sAMSessionContext.update({
       where: { id },
       data: {
         history,
@@ -623,7 +623,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
   }
 
   async getRecentHistory(id: string, limit: number): Promise<ContextHistoryEntry[]> {
-    const record = await db.sAMSessionContext.findUnique({ where: { id } });
+    const record = await getDb().sAMSessionContext.findUnique({ where: { id } });
     if (!record) return [];
     const history = (record.history as unknown as ContextHistoryEntry[]) ?? [];
     return history.slice(-limit).reverse();

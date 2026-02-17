@@ -7,7 +7,7 @@
  * Falls back to the existing PrismaVectorAdapter if pgvector is not available.
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 import type {
   VectorEmbedding,
@@ -30,7 +30,7 @@ export async function isPgvectorAvailable(): Promise<boolean> {
   if (pgvectorAvailable !== null) return pgvectorAvailable;
 
   try {
-    const result = await db.$queryRawUnsafe<Array<{ installed: boolean }>>(
+    const result = await getDb().$queryRawUnsafe<Array<{ installed: boolean }>>(
       `SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS installed`
     );
     pgvectorAvailable = result[0]?.installed ?? false;
@@ -159,7 +159,7 @@ export async function pgvectorSearch(
   `;
 
   try {
-    const rows = await db.$queryRawUnsafe<PgvectorSearchRow[]>(query, ...params);
+    const rows = await getDb().$queryRawUnsafe<PgvectorSearchRow[]>(query, ...params);
 
     return rows
       .filter((row) => row.score >= minScore)
@@ -212,7 +212,7 @@ export async function writeEmbeddingVector(
   const vectorStr = toPgvectorString(vector);
 
   try {
-    await db.$executeRawUnsafe(
+    await getDb().$executeRawUnsafe(
       `UPDATE "${table}" SET embedding_vector = $1::vector WHERE id = $2`,
       vectorStr,
       id
@@ -241,9 +241,9 @@ export async function batchWriteEmbeddingVectors(
 
     try {
       // Use a single transaction for the batch
-      await db.$transaction(
+      await getDb().$transaction(
         batch.map((record) =>
-          db.$executeRawUnsafe(
+          getDb().$executeRawUnsafe(
             `UPDATE "${table}" SET embedding_vector = $1::vector WHERE id = $2`,
             toPgvectorString(record.vector),
             record.id

@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Metacognition Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMReflectionType } from '@prisma/client';
 
 // ============================================================================
@@ -76,7 +76,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Create a new metacognition session
    */
   async create(input: CreateMetacognitionInput): Promise<MetacognitionSession> {
-    const session = await db.sAMMetacognitionSession.create({
+    const session = await getDb().sAMMetacognitionSession.create({
       data: {
         userId: input.userId,
         sessionId: input.sessionId,
@@ -93,7 +93,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Get a metacognition session by ID
    */
   async getById(id: string): Promise<MetacognitionSession | null> {
-    const session = await db.sAMMetacognitionSession.findUnique({
+    const session = await getDb().sAMMetacognitionSession.findUnique({
       where: { id },
     });
 
@@ -104,7 +104,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Get all metacognition sessions for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<MetacognitionSession[]> {
-    const sessions = await db.sAMMetacognitionSession.findMany({
+    const sessions = await getDb().sAMMetacognitionSession.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -117,7 +117,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Get metacognition sessions for a specific learning session
    */
   async getBySession(sessionId: string): Promise<MetacognitionSession[]> {
-    const sessions = await db.sAMMetacognitionSession.findMany({
+    const sessions = await getDb().sAMMetacognitionSession.findMany({
       where: { sessionId },
       orderBy: { createdAt: 'asc' },
     });
@@ -129,7 +129,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Get metacognition sessions by reflection type
    */
   async getByType(userId: string, type: SAMReflectionType): Promise<MetacognitionSession[]> {
-    const sessions = await db.sAMMetacognitionSession.findMany({
+    const sessions = await getDb().sAMMetacognitionSession.findMany({
       where: { userId, reflectionType: type },
       orderBy: { createdAt: 'desc' },
     });
@@ -141,7 +141,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Update analysis results
    */
   async updateAnalysis(id: string, analysis: MetacognitionAnalysis): Promise<MetacognitionSession> {
-    const session = await db.sAMMetacognitionSession.update({
+    const session = await getDb().sAMMetacognitionSession.update({
       where: { id },
       data: {
         analysis: analysis as unknown as Record<string, unknown>,
@@ -158,7 +158,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
     id: string,
     scores: { selfAwareness?: number; strategyEffectiveness?: number }
   ): Promise<MetacognitionSession> {
-    const session = await db.sAMMetacognitionSession.update({
+    const session = await getDb().sAMMetacognitionSession.update({
       where: { id },
       data: {
         selfAwareness: scores.selfAwareness,
@@ -173,7 +173,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
    * Delete a metacognition session
    */
   async delete(id: string): Promise<void> {
-    await db.sAMMetacognitionSession.delete({
+    await getDb().sAMMetacognitionSession.delete({
       where: { id },
     });
   }
@@ -183,7 +183,7 @@ export class PrismaMetacognitionStore implements MetacognitionStore {
   // ============================================================================
 
   private mapToSession(
-    record: Awaited<ReturnType<typeof db.sAMMetacognitionSession.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMMetacognitionSession']['findUnique']>>
   ): MetacognitionSession {
     if (!record) {
       throw new Error('MetacognitionSession record is null');

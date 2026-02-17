@@ -5,7 +5,7 @@
  * within courses they instruct. All queries are course-scoped.
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 
 // =============================================================================
@@ -50,7 +50,7 @@ export async function isTeacherOfStudent(
   studentId: string,
 ): Promise<boolean> {
   // Find courses where teacherId is the instructor and studentId is enrolled
-  const teacherCourses = await db.course.findMany({
+  const teacherCourses = await getDb().course.findMany({
     where: { userId: teacherId },
     select: { id: true },
     take: 200,
@@ -60,7 +60,7 @@ export async function isTeacherOfStudent(
 
   const courseIds = teacherCourses.map((c) => c.id);
 
-  const enrollment = await db.enrollment.findFirst({
+  const enrollment = await getDb().enrollment.findFirst({
     where: {
       userId: studentId,
       courseId: { in: courseIds },
@@ -78,7 +78,7 @@ export async function isTeacherOfCourse(
   teacherId: string,
   courseId: string,
 ): Promise<boolean> {
-  const course = await db.course.findFirst({
+  const course = await getDb().course.findFirst({
     where: { id: courseId, userId: teacherId },
     select: { id: true },
   });
@@ -105,7 +105,7 @@ export async function getStudentSessions(
 
   try {
     // Get courses this teacher instructs
-    const teacherCourses = await db.course.findMany({
+    const teacherCourses = await getDb().course.findMany({
       where: {
         userId: teacherId,
         ...(options.courseId ? { id: options.courseId } : {}),
@@ -121,7 +121,7 @@ export async function getStudentSessions(
     const courseIds = teacherCourses.map((c) => c.id);
 
     // Get enrolled student IDs
-    const enrollments = await db.enrollment.findMany({
+    const enrollments = await getDb().enrollment.findMany({
       where: { courseId: { in: courseIds } },
       select: { userId: true },
       take: 500,
@@ -134,12 +134,12 @@ export async function getStudentSessions(
     }
 
     // Get total count
-    const total = await db.sAMAgenticSession.count({
+    const total = await getDb().sAMAgenticSession.count({
       where: { userId: { in: studentIds } },
     });
 
     // Get sessions with cursor pagination
-    const sessions = await db.sAMAgenticSession.findMany({
+    const sessions = await getDb().sAMAgenticSession.findMany({
       where: {
         userId: { in: studentIds },
         ...(options.cursor ? { id: { lt: options.cursor } } : {}),
@@ -187,7 +187,7 @@ export async function getSessionMessages(
   sessionId: string,
 ): Promise<SessionMessage[]> {
   try {
-    const memories = await db.sAMConversationMemory.findMany({
+    const memories = await getDb().sAMConversationMemory.findMany({
       where: { sessionId },
       select: {
         id: true,

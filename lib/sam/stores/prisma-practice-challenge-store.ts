@@ -3,7 +3,7 @@
  * Handles challenge creation, participation, leaderboards, and rewards
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { Prisma } from '@prisma/client';
 
 // ============================================================================
@@ -232,7 +232,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   // ---------------------------------------------------------------------------
 
   async create(input: CreateChallengeInput): Promise<PracticeChallenge> {
-    const challenge = await db.practiceChallenge.create({
+    const challenge = await getDb().practiceChallenge.create({
       data: {
         title: input.title,
         description: input.description,
@@ -265,7 +265,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async getById(id: string): Promise<PracticeChallenge | null> {
-    const challenge = await db.practiceChallenge.findUnique({
+    const challenge = await getDb().practiceChallenge.findUnique({
       where: { id },
       include: {
         _count: { select: { participants: true } },
@@ -277,7 +277,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async update(id: string, input: UpdateChallengeInput): Promise<PracticeChallenge> {
-    const challenge = await db.practiceChallenge.update({
+    const challenge = await getDb().practiceChallenge.update({
       where: { id },
       data: {
         title: input.title,
@@ -306,7 +306,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async delete(id: string): Promise<void> {
-    await db.practiceChallenge.delete({
+    await getDb().practiceChallenge.delete({
       where: { id },
     });
   }
@@ -354,7 +354,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
       whereClause.organizationId = filters.organizationId;
     }
 
-    const challenges = await db.practiceChallenge.findMany({
+    const challenges = await getDb().practiceChallenge.findMany({
       where: whereClause,
       include: {
         _count: { select: { participants: true } },
@@ -366,7 +366,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async getUserChallenges(userId: string): Promise<PracticeChallenge[]> {
-    const participants = await db.practiceChallengeParticipant.findMany({
+    const participants = await getDb().practiceChallengeParticipant.findMany({
       where: { userId },
       include: {
         challenge: {
@@ -382,7 +382,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async getCreatedChallenges(userId: string): Promise<PracticeChallenge[]> {
-    const challenges = await db.practiceChallenge.findMany({
+    const challenges = await getDb().practiceChallenge.findMany({
       where: { createdById: userId },
       include: {
         _count: { select: { participants: true } },
@@ -394,7 +394,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async getChallengeLeaderboard(challengeId: string, limit = 50): Promise<ChallengeParticipant[]> {
-    const participants = await db.practiceChallengeParticipant.findMany({
+    const participants = await getDb().practiceChallengeParticipant.findMany({
       where: { challengeId },
       include: {
         user: { select: { name: true, image: true } },
@@ -423,7 +423,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     autoCreateGoal = true
   ): Promise<ChallengeParticipant> {
     // Check if challenge exists and is joinable
-    const challenge = await db.practiceChallenge.findUnique({
+    const challenge = await getDb().practiceChallenge.findUnique({
       where: { id: challengeId },
       include: { _count: { select: { participants: true } } },
     });
@@ -441,7 +441,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     }
 
     // Check if already joined
-    const existing = await db.practiceChallengeParticipant.findUnique({
+    const existing = await getDb().practiceChallengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
     });
 
@@ -473,7 +473,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
 
       // Only create goal if there's a valid target
       if (targetValue > 0) {
-        const goal = await db.practiceGoal.create({
+        const goal = await getDb().practiceGoal.create({
           data: {
             userId,
             title: `Challenge: ${challenge.title}`,
@@ -492,7 +492,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
       }
     }
 
-    const participant = await db.practiceChallengeParticipant.create({
+    const participant = await getDb().practiceChallengeParticipant.create({
       data: {
         challengeId,
         userId,
@@ -507,13 +507,13 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async leaveChallenge(challengeId: string, userId: string): Promise<void> {
-    await db.practiceChallengeParticipant.delete({
+    await getDb().practiceChallengeParticipant.delete({
       where: { challengeId_userId: { challengeId, userId } },
     });
   }
 
   async getParticipant(challengeId: string, userId: string): Promise<ChallengeParticipant | null> {
-    const participant = await db.practiceChallengeParticipant.findUnique({
+    const participant = await getDb().practiceChallengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
       include: {
         user: { select: { name: true, image: true } },
@@ -529,7 +529,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     userId: string,
     data: UpdateParticipantProgressInput
   ): Promise<ChallengeParticipant> {
-    const participant = await db.practiceChallengeParticipant.update({
+    const participant = await getDb().practiceChallengeParticipant.update({
       where: { challengeId_userId: { challengeId, userId } },
       data: {
         hoursCompleted: data.hoursCompleted,
@@ -557,7 +557,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
 
   async syncProgressToLinkedGoal(challengeId: string, userId: string): Promise<void> {
     // Get participant with linked goal
-    const participant = await db.practiceChallengeParticipant.findUnique({
+    const participant = await getDb().practiceChallengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
       include: {
         challenge: true,
@@ -595,7 +595,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     const isCompleted = currentValue >= goal.targetValue;
 
     // Update the linked goal
-    await db.practiceGoal.update({
+    await getDb().practiceGoal.update({
       where: { id: goal.id },
       data: {
         currentValue,
@@ -609,7 +609,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     challengeId: string,
     userId: string
   ): Promise<{ goalId: string; progress: number; isCompleted: boolean } | null> {
-    const participant = await db.practiceChallengeParticipant.findUnique({
+    const participant = await getDb().practiceChallengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
       include: {
         linkedGoal: true,
@@ -635,7 +635,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   // ---------------------------------------------------------------------------
 
   async claimReward(challengeId: string, userId: string): Promise<ChallengeParticipant> {
-    const participant = await db.practiceChallengeParticipant.findUnique({
+    const participant = await getDb().practiceChallengeParticipant.findUnique({
       where: { challengeId_userId: { challengeId, userId } },
     });
 
@@ -651,7 +651,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
       throw new Error('Reward already claimed');
     }
 
-    const updated = await db.practiceChallengeParticipant.update({
+    const updated = await getDb().practiceChallengeParticipant.update({
       where: { id: participant.id },
       data: {
         rewardClaimed: true,
@@ -667,8 +667,8 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
 
   async checkCompletion(challengeId: string, userId: string): Promise<boolean> {
     const [challenge, participant] = await Promise.all([
-      db.practiceChallenge.findUnique({ where: { id: challengeId } }),
-      db.practiceChallengeParticipant.findUnique({
+      getDb().practiceChallenge.findUnique({ where: { id: challengeId } }),
+      getDb().practiceChallengeParticipant.findUnique({
         where: { challengeId_userId: { challengeId, userId } },
       }),
     ]);
@@ -707,7 +707,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     let updatedCount = 0;
 
     // Activate scheduled challenges that have started
-    const activated = await db.practiceChallenge.updateMany({
+    const activated = await getDb().practiceChallenge.updateMany({
       where: {
         status: 'SCHEDULED',
         startsAt: { lte: now },
@@ -718,7 +718,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     updatedCount += activated.count;
 
     // Complete active challenges that have ended
-    const completed = await db.practiceChallenge.updateMany({
+    const completed = await getDb().practiceChallenge.updateMany({
       where: {
         status: 'ACTIVE',
         endsAt: { lte: now },
@@ -731,7 +731,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
   }
 
   async updateParticipantRanks(challengeId: string): Promise<void> {
-    const participants = await db.practiceChallengeParticipant.findMany({
+    const participants = await getDb().practiceChallengeParticipant.findMany({
       where: { challengeId },
       orderBy: [
         { qualityHoursCompleted: 'desc' },
@@ -743,7 +743,7 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     // Update ranks
     await Promise.all(
       participants.map((p, index) =>
-        db.practiceChallengeParticipant.update({
+        getDb().practiceChallengeParticipant.update({
           where: { id: p.id },
           data: { rank: index + 1 },
         })
@@ -759,12 +759,12 @@ export class PrismaPracticeChallengeStore implements PracticeChallengeStore {
     const isComplete = await this.checkCompletion(challengeId, userId);
 
     if (isComplete) {
-      const participant = await db.practiceChallengeParticipant.findUnique({
+      const participant = await getDb().practiceChallengeParticipant.findUnique({
         where: { challengeId_userId: { challengeId, userId } },
       });
 
       if (participant && !participant.completedAt) {
-        await db.practiceChallengeParticipant.update({
+        await getDb().practiceChallengeParticipant.update({
           where: { id: participant.id },
           data: { completedAt: new Date() },
         });

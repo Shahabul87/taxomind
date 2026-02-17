@@ -3,6 +3,9 @@
  * Provides database persistence for @sam-ai/agentic package
  */
 
+// Injectable DB provider (used by all stores)
+export { getDb, withScopedDb, type PrismaClient } from './db-provider';
+
 // Goal Store
 export { PrismaGoalStore, createPrismaGoalStore } from './prisma-goal-store';
 

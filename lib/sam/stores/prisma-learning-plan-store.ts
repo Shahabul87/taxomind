@@ -7,7 +7,7 @@
  * - durationWeeks, currentWeek, currentDay → stored in `checkpointData` JSON
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import {
   type LearningPlanStore,
   type LearningPlan,
@@ -163,7 +163,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Get a learning plan by ID
    */
   async get(id: string): Promise<LearningPlan | null> {
-    const plan = await db.sAMExecutionPlan.findUnique({
+    const plan = await getDb().sAMExecutionPlan.findUnique({
       where: { id },
     });
 
@@ -175,7 +175,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Get all learning plans for a user
    */
   async getByUser(userId: string): Promise<LearningPlan[]> {
-    const plans = await db.sAMExecutionPlan.findMany({
+    const plans = await getDb().sAMExecutionPlan.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
@@ -187,7 +187,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Get active learning plan for a user
    */
   async getActive(userId: string): Promise<LearningPlan | null> {
-    const plan = await db.sAMExecutionPlan.findFirst({
+    const plan = await getDb().sAMExecutionPlan.findFirst({
       where: {
         userId,
         status: 'ACTIVE',
@@ -220,7 +220,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
       description: plan.description,
     };
 
-    const newPlan = await db.sAMExecutionPlan.create({
+    const newPlan = await getDb().sAMExecutionPlan.create({
       data: {
         goalId: plan.goalId,
         userId: plan.userId,
@@ -240,7 +240,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Update a learning plan
    */
   async update(id: string, updates: Partial<LearningPlan>): Promise<LearningPlan> {
-    const existingPlan = await db.sAMExecutionPlan.findUnique({
+    const existingPlan = await getDb().sAMExecutionPlan.findUnique({
       where: { id },
     });
 
@@ -307,7 +307,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
       updateData.checkpointData = newTracking as unknown as Record<string, unknown>;
     }
 
-    const updatedPlan = await db.sAMExecutionPlan.update({
+    const updatedPlan = await getDb().sAMExecutionPlan.update({
       where: { id },
       data: updateData,
     });
@@ -320,7 +320,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    */
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMExecutionPlan.delete({
+      await getDb().sAMExecutionPlan.delete({
         where: { id },
       });
       return true;
@@ -333,7 +333,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Get daily target for a specific date
    */
   async getDailyTarget(planId: string, date: Date): Promise<DailyTarget | null> {
-    const plan = await db.sAMExecutionPlan.findUnique({
+    const plan = await getDb().sAMExecutionPlan.findUnique({
       where: { id: planId },
     });
 
@@ -359,7 +359,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
     date: Date,
     updates: Partial<DailyTarget>
   ): Promise<DailyTarget> {
-    const plan = await db.sAMExecutionPlan.findUnique({
+    const plan = await getDb().sAMExecutionPlan.findUnique({
       where: { id: planId },
     });
 
@@ -406,7 +406,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
       scheduleData.dailyTargets.push(updatedTarget);
     }
 
-    await db.sAMExecutionPlan.update({
+    await getDb().sAMExecutionPlan.update({
       where: { id: planId },
       data: {
         schedule: scheduleData as unknown as Record<string, unknown>,
@@ -420,7 +420,7 @@ export class PrismaLearningPlanStore implements LearningPlanStore {
    * Get weekly breakdown for a specific week
    */
   async getWeeklyBreakdown(planId: string, weekNumber: number): Promise<WeeklyBreakdown | null> {
-    const plan = await db.sAMExecutionPlan.findUnique({
+    const plan = await getDb().sAMExecutionPlan.findUnique({
       where: { id: planId },
     });
 

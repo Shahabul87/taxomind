@@ -4,7 +4,7 @@
  * Uses SAMSessionContext model with JSON fields for tutoring-specific data
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   TutoringSession,
   TutoringSessionStore,
@@ -62,7 +62,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    */
   async getOrCreate(userId: string, planId?: string): Promise<TutoringSession> {
     // Try to find an active session
-    const existing = await db.sAMSessionContext.findFirst({
+    const existing = await getDb().sAMSessionContext.findFirst({
       where: {
         userId,
         // Look for sessions where currentState contains sessionType: 'tutoring'
@@ -81,7 +81,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
         const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
         if (existing.lastActiveAt > hourAgo) {
           // Update last active time
-          await db.sAMSessionContext.update({
+          await getDb().sAMSessionContext.update({
             where: { id: existing.id },
             data: { lastActiveAt: new Date() },
           });
@@ -102,7 +102,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
       metadata: {},
     };
 
-    const record = await db.sAMSessionContext.create({
+    const record = await getDb().sAMSessionContext.create({
       data: {
         userId,
         courseId: null,
@@ -134,7 +134,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
     sessionId: string,
     updates: Partial<TutoringSession>
   ): Promise<TutoringSession> {
-    const existing = await db.sAMSessionContext.findUnique({
+    const existing = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -154,7 +154,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
       metadata: { ...currentState.metadata, ...updates.metadata },
     };
 
-    const record = await db.sAMSessionContext.update({
+    const record = await getDb().sAMSessionContext.update({
       where: { id: sessionId },
       data: {
         currentState: newState as unknown as Record<string, unknown>,
@@ -173,7 +173,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * End a tutoring session
    */
   async end(sessionId: string): Promise<TutoringSession> {
-    const existing = await db.sAMSessionContext.findUnique({
+    const existing = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -189,7 +189,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
       endedAt: new Date().toISOString(),
     };
 
-    const record = await db.sAMSessionContext.update({
+    const record = await getDb().sAMSessionContext.update({
       where: { id: sessionId },
       data: {
         currentState: endedState as unknown as Record<string, unknown>,
@@ -214,7 +214,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Get the active session for a user
    */
   async getActive(userId: string): Promise<TutoringSession | null> {
-    const record = await db.sAMSessionContext.findFirst({
+    const record = await getDb().sAMSessionContext.findFirst({
       where: {
         userId,
         currentState: {
@@ -243,7 +243,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Get recent sessions for a user
    */
   async getRecent(userId: string, limit?: number): Promise<TutoringSession[]> {
-    const records = await db.sAMSessionContext.findMany({
+    const records = await getDb().sAMSessionContext.findMany({
       where: {
         userId,
         currentState: {
@@ -264,7 +264,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Get a session by ID
    */
   async get(sessionId: string): Promise<TutoringSession | null> {
-    const record = await db.sAMSessionContext.findUnique({
+    const record = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -276,7 +276,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Record a step completion
    */
   async recordStepCompletion(sessionId: string, stepId: string): Promise<void> {
-    const existing = await db.sAMSessionContext.findUnique({
+    const existing = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -289,7 +289,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
       currentState.stepsCompleted.push(stepId);
     }
 
-    await db.sAMSessionContext.update({
+    await getDb().sAMSessionContext.update({
       where: { id: sessionId },
       data: {
         currentState: currentState as unknown as Record<string, unknown>,
@@ -302,7 +302,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Record a tool execution
    */
   async recordToolExecution(sessionId: string, toolId: string): Promise<void> {
-    const existing = await db.sAMSessionContext.findUnique({
+    const existing = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -313,7 +313,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
     const currentState = existing.currentState as unknown as TutoringSessionState;
     currentState.toolsExecuted.push(toolId);
 
-    await db.sAMSessionContext.update({
+    await getDb().sAMSessionContext.update({
       where: { id: sessionId },
       data: {
         currentState: currentState as unknown as Record<string, unknown>,
@@ -326,7 +326,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
    * Increment message count
    */
   async incrementMessageCount(sessionId: string): Promise<void> {
-    const existing = await db.sAMSessionContext.findUnique({
+    const existing = await getDb().sAMSessionContext.findUnique({
       where: { id: sessionId },
     });
 
@@ -337,7 +337,7 @@ export class PrismaTutoringSessionStore implements TutoringSessionStore {
     const currentState = existing.currentState as unknown as TutoringSessionState;
     currentState.messageCount += 1;
 
-    await db.sAMSessionContext.update({
+    await getDb().sAMSessionContext.update({
       where: { id: sessionId },
       data: {
         currentState: currentState as unknown as Record<string, unknown>,

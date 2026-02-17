@@ -3,7 +3,7 @@
  * Handles 10,000 hour practice tracking with quality metrics
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { Prisma } from '@prisma/client';
 
 // ============================================================================
@@ -229,7 +229,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   // ---------------------------------------------------------------------------
 
   async create(input: CreatePracticeSessionInput): Promise<PracticeSession> {
-    const session = await db.practiceSession.create({
+    const session = await getDb().practiceSession.create({
       data: {
         userId: input.userId,
         skillId: input.skillId,
@@ -254,7 +254,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async getById(id: string): Promise<PracticeSession | null> {
-    const session = await db.practiceSession.findUnique({
+    const session = await getDb().practiceSession.findUnique({
       where: { id },
     });
 
@@ -263,7 +263,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async update(id: string, input: UpdatePracticeSessionInput): Promise<PracticeSession> {
-    const session = await db.practiceSession.update({
+    const session = await getDb().practiceSession.update({
       where: { id },
       data: {
         focusLevel: input.focusLevel,
@@ -283,7 +283,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async delete(id: string): Promise<void> {
-    await db.practiceSession.delete({
+    await getDb().practiceSession.delete({
       where: { id },
     });
   }
@@ -293,7 +293,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   // ---------------------------------------------------------------------------
 
   async pauseSession(id: string): Promise<PracticeSession> {
-    const session = await db.practiceSession.update({
+    const session = await getDb().practiceSession.update({
       where: { id },
       data: {
         status: 'PAUSED',
@@ -305,7 +305,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async resumeSession(id: string): Promise<PracticeSession> {
-    const existing = await db.practiceSession.findUnique({
+    const existing = await getDb().practiceSession.findUnique({
       where: { id },
     });
 
@@ -321,7 +321,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
       );
     }
 
-    const session = await db.practiceSession.update({
+    const session = await getDb().practiceSession.update({
       where: { id },
       data: {
         status: 'ACTIVE',
@@ -334,7 +334,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async endSession(id: string, input?: EndPracticeSessionInput): Promise<PracticeSession> {
-    const existing = await db.practiceSession.findUnique({
+    const existing = await getDb().practiceSession.findUnique({
       where: { id },
     });
 
@@ -373,7 +373,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
 
     const qualityHours = rawHours * qualityMultiplier;
 
-    const session = await db.practiceSession.update({
+    const session = await getDb().practiceSession.update({
       where: { id },
       data: {
         status: 'COMPLETED',
@@ -396,7 +396,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   }
 
   async abandonSession(id: string): Promise<PracticeSession> {
-    const session = await db.practiceSession.update({
+    const session = await getDb().practiceSession.update({
       where: { id },
       data: {
         status: 'ABANDONED',
@@ -413,7 +413,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
   // ---------------------------------------------------------------------------
 
   async getActiveSession(userId: string): Promise<PracticeSession | null> {
-    const session = await db.practiceSession.findFirst({
+    const session = await getDb().practiceSession.findFirst({
       where: {
         userId,
         status: { in: ['ACTIVE', 'PAUSED'] },
@@ -429,7 +429,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
     userId: string,
     filters?: PracticeSessionFilters
   ): Promise<PracticeSession[]> {
-    const sessions = await db.practiceSession.findMany({
+    const sessions = await getDb().practiceSession.findMany({
       where: {
         userId,
         ...(filters?.skillId && { skillId: filters.skillId }),
@@ -451,7 +451,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
     startDate: Date,
     endDate: Date
   ): Promise<PracticeSession[]> {
-    const sessions = await db.practiceSession.findMany({
+    const sessions = await getDb().practiceSession.findMany({
       where: {
         userId,
         startedAt: {
@@ -475,7 +475,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Get all completed sessions
-    const allSessions = await db.practiceSession.findMany({
+    const allSessions = await getDb().practiceSession.findMany({
       where: {
         userId,
         status: 'COMPLETED',

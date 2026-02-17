@@ -4,7 +4,7 @@
  * Stores behavior patterns in SAMAnalytics with PATTERN metric type
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   PatternStore,
   BehaviorPattern,
@@ -24,7 +24,7 @@ export class PrismaPatternStore implements PatternStore {
    * Get a pattern by ID
    */
   async get(id: string): Promise<BehaviorPattern | null> {
-    const analytics = await db.sAMAnalytics.findUnique({
+    const analytics = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -40,7 +40,7 @@ export class PrismaPatternStore implements PatternStore {
    * Get all patterns for a user
    */
   async getByUser(userId: string): Promise<BehaviorPattern[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         userId,
         metricType: this.metricType,
@@ -55,7 +55,7 @@ export class PrismaPatternStore implements PatternStore {
    * Get patterns of a specific type for a user
    */
   async getByType(userId: string, type: PatternType): Promise<BehaviorPattern[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         userId,
         metricType: this.metricType,
@@ -72,7 +72,7 @@ export class PrismaPatternStore implements PatternStore {
    * Create a new pattern
    */
   async create(pattern: Omit<BehaviorPattern, 'id'>): Promise<BehaviorPattern> {
-    const analytics = await db.sAMAnalytics.create({
+    const analytics = await getDb().sAMAnalytics.create({
       data: {
         userId: pattern.userId,
         metricType: this.metricType,
@@ -101,7 +101,7 @@ export class PrismaPatternStore implements PatternStore {
    * Update an existing pattern
    */
   async update(id: string, updates: Partial<BehaviorPattern>): Promise<BehaviorPattern> {
-    const existing = await db.sAMAnalytics.findUnique({
+    const existing = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -128,7 +128,7 @@ export class PrismaPatternStore implements PatternStore {
       ...(updates.occurrences !== undefined && { occurrences: updates.occurrences }),
     };
 
-    const analytics = await db.sAMAnalytics.update({
+    const analytics = await getDb().sAMAnalytics.update({
       where: { id },
       data: {
         metricValue: updates.confidence ?? existing.metricValue,
@@ -144,7 +144,7 @@ export class PrismaPatternStore implements PatternStore {
    */
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMAnalytics.delete({
+      await getDb().sAMAnalytics.delete({
         where: { id },
       });
       return true;
@@ -157,7 +157,7 @@ export class PrismaPatternStore implements PatternStore {
    * Record an occurrence of a pattern
    */
   async recordOccurrence(id: string): Promise<void> {
-    const existing = await db.sAMAnalytics.findUnique({
+    const existing = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -168,7 +168,7 @@ export class PrismaPatternStore implements PatternStore {
     const context = existing.context as Record<string, unknown>;
     const occurrences = (context.occurrences as number) ?? 0;
 
-    await db.sAMAnalytics.update({
+    await getDb().sAMAnalytics.update({
       where: { id },
       data: {
         context: {

@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Microlearning Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMMicrolessonStatus, SAMDifficulty } from '@prisma/client';
 
 // ============================================================================
@@ -85,7 +85,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Create a new microlesson
    */
   async create(input: CreateMicrolessonInput): Promise<Microlesson> {
-    const microlesson = await db.sAMMicrolesson.create({
+    const microlesson = await getDb().sAMMicrolesson.create({
       data: {
         userId: input.userId,
         topicId: input.topicId,
@@ -113,7 +113,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Get a microlesson by ID
    */
   async getById(id: string): Promise<Microlesson | null> {
-    const microlesson = await db.sAMMicrolesson.findUnique({
+    const microlesson = await getDb().sAMMicrolesson.findUnique({
       where: { id },
     });
 
@@ -124,7 +124,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Get all microlessons for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<Microlesson[]> {
-    const microlessons = await db.sAMMicrolesson.findMany({
+    const microlessons = await getDb().sAMMicrolesson.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -137,7 +137,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Get microlessons for a specific topic
    */
   async getByTopic(userId: string, topicId: string): Promise<Microlesson[]> {
-    const microlessons = await db.sAMMicrolesson.findMany({
+    const microlessons = await getDb().sAMMicrolesson.findMany({
       where: { userId, topicId },
       orderBy: { createdAt: 'desc' },
     });
@@ -149,7 +149,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Get in-progress microlessons
    */
   async getInProgress(userId: string): Promise<Microlesson[]> {
-    const microlessons = await db.sAMMicrolesson.findMany({
+    const microlessons = await getDb().sAMMicrolesson.findMany({
       where: { userId, status: 'IN_PROGRESS' },
       orderBy: { startedAt: 'desc' },
     });
@@ -161,7 +161,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Get completed microlessons
    */
   async getCompleted(userId: string, limit: number = 20): Promise<Microlesson[]> {
-    const microlessons = await db.sAMMicrolesson.findMany({
+    const microlessons = await getDb().sAMMicrolesson.findMany({
       where: { userId, status: 'COMPLETED' },
       orderBy: { completedAt: 'desc' },
       take: limit,
@@ -176,7 +176,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
   async updateProgress(id: string, progress: number): Promise<Microlesson> {
     const clampedProgress = Math.max(0, Math.min(100, progress));
 
-    const microlesson = await db.sAMMicrolesson.update({
+    const microlesson = await getDb().sAMMicrolesson.update({
       where: { id },
       data: {
         progress: clampedProgress,
@@ -192,7 +192,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Mark microlesson as completed
    */
   async complete(id: string, streakBonus: number = 0): Promise<Microlesson> {
-    const microlesson = await db.sAMMicrolesson.update({
+    const microlesson = await getDb().sAMMicrolesson.update({
       where: { id },
       data: {
         status: 'COMPLETED',
@@ -209,7 +209,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
    * Delete a microlesson
    */
   async delete(id: string): Promise<void> {
-    await db.sAMMicrolesson.delete({
+    await getDb().sAMMicrolesson.delete({
       where: { id },
     });
   }
@@ -219,7 +219,7 @@ export class PrismaMicrolearningStore implements MicrolearningStore {
   // ============================================================================
 
   private mapToMicrolesson(
-    record: Awaited<ReturnType<typeof db.sAMMicrolesson.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMMicrolesson']['findUnique']>>
   ): Microlesson {
     if (!record) {
       throw new Error('Microlesson record is null');

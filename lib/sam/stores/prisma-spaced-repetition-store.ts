@@ -3,7 +3,7 @@
  * Implements SM-2 algorithm for optimal skill review scheduling
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 import type { SpacedRepetitionSchedule, Prisma } from '@prisma/client';
 
@@ -222,7 +222,7 @@ export class PrismaSpacedRepetitionStore {
     const { userId, conceptId, score } = input;
 
     // Check for existing schedule
-    const existing = await db.spacedRepetitionSchedule.findUnique({
+    const existing = await getDb().spacedRepetitionSchedule.findUnique({
       where: { userId_conceptId: { userId, conceptId } },
     });
 
@@ -245,7 +245,7 @@ export class PrismaSpacedRepetitionStore {
 
       const priority = calculatePriority(score, interval);
 
-      const updated = await db.spacedRepetitionSchedule.update({
+      const updated = await getDb().spacedRepetitionSchedule.update({
         where: { id: existing.id },
         data: {
           nextReviewDate,
@@ -283,7 +283,7 @@ export class PrismaSpacedRepetitionStore {
 
       const priority = calculatePriority(score, interval);
 
-      const created = await db.spacedRepetitionSchedule.create({
+      const created = await getDb().spacedRepetitionSchedule.create({
         data: {
           userId,
           conceptId,
@@ -327,7 +327,7 @@ export class PrismaSpacedRepetitionStore {
       where.nextReviewDate = { lte: new Date() };
     }
 
-    const records = await db.spacedRepetitionSchedule.findMany({
+    const records = await getDb().spacedRepetitionSchedule.findMany({
       where,
       orderBy: { nextReviewDate: 'asc' },
       take: limit,
@@ -340,7 +340,7 @@ export class PrismaSpacedRepetitionStore {
    * Get overdue reviews
    */
   async getOverdueReviews(userId: string, limit?: number): Promise<ReviewScheduleEntry[]> {
-    const records = await db.spacedRepetitionSchedule.findMany({
+    const records = await getDb().spacedRepetitionSchedule.findMany({
       where: {
         userId,
         nextReviewDate: { lt: new Date() },
@@ -362,7 +362,7 @@ export class PrismaSpacedRepetitionStore {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    const records = await db.spacedRepetitionSchedule.findMany({
+    const records = await getDb().spacedRepetitionSchedule.findMany({
       where: {
         userId,
         nextReviewDate: {
@@ -374,7 +374,7 @@ export class PrismaSpacedRepetitionStore {
     });
 
     // Also include overdue
-    const overdue = await db.spacedRepetitionSchedule.findMany({
+    const overdue = await getDb().spacedRepetitionSchedule.findMany({
       where: {
         userId,
         nextReviewDate: { lt: startOfDay },
@@ -389,7 +389,7 @@ export class PrismaSpacedRepetitionStore {
    * Get a specific review by ID
    */
   async getById(id: string): Promise<ReviewScheduleEntry | null> {
-    const record = await db.spacedRepetitionSchedule.findUnique({
+    const record = await getDb().spacedRepetitionSchedule.findUnique({
       where: { id },
     });
 
@@ -407,7 +407,7 @@ export class PrismaSpacedRepetitionStore {
     id: string,
     input: CompleteReviewInput
   ): Promise<{ current: ReviewScheduleEntry; next: ReviewScheduleEntry }> {
-    const existing = await db.spacedRepetitionSchedule.findUnique({
+    const existing = await getDb().spacedRepetitionSchedule.findUnique({
       where: { id },
     });
 
@@ -429,7 +429,7 @@ export class PrismaSpacedRepetitionStore {
 
     const retention = calculateRetention(new Date(), interval, easeFactor);
 
-    const updated = await db.spacedRepetitionSchedule.update({
+    const updated = await getDb().spacedRepetitionSchedule.update({
       where: { id },
       data: {
         nextReviewDate,
@@ -456,7 +456,7 @@ export class PrismaSpacedRepetitionStore {
    * Skip a review (reschedule for tomorrow)
    */
   async skipReview(id: string): Promise<ReviewScheduleEntry> {
-    const existing = await db.spacedRepetitionSchedule.findUnique({
+    const existing = await getDb().spacedRepetitionSchedule.findUnique({
       where: { id },
     });
 
@@ -467,7 +467,7 @@ export class PrismaSpacedRepetitionStore {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const updated = await db.spacedRepetitionSchedule.update({
+    const updated = await getDb().spacedRepetitionSchedule.update({
       where: { id },
       data: {
         nextReviewDate: tomorrow,
@@ -501,7 +501,7 @@ export class PrismaSpacedRepetitionStore {
     endOfWeek.setDate(endOfWeek.getDate() + 7);
 
     // Get all schedules for the user
-    const allSchedules = await db.spacedRepetitionSchedule.findMany({
+    const allSchedules = await getDb().spacedRepetitionSchedule.findMany({
       where: { userId },
     });
 
@@ -563,7 +563,7 @@ export class PrismaSpacedRepetitionStore {
    * Update retention estimates for all user schedules
    */
   async updateRetentionEstimates(userId: string): Promise<number> {
-    const schedules = await db.spacedRepetitionSchedule.findMany({
+    const schedules = await getDb().spacedRepetitionSchedule.findMany({
       where: { userId },
     });
 
@@ -577,7 +577,7 @@ export class PrismaSpacedRepetitionStore {
       );
 
       if (Math.abs(retention - schedule.retentionEstimate) > 1) {
-        await db.spacedRepetitionSchedule.update({
+        await getDb().spacedRepetitionSchedule.update({
           where: { id: schedule.id },
           data: { retentionEstimate: retention },
         });
@@ -592,14 +592,14 @@ export class PrismaSpacedRepetitionStore {
    * Delete a review schedule
    */
   async delete(id: string): Promise<void> {
-    await db.spacedRepetitionSchedule.delete({ where: { id } });
+    await getDb().spacedRepetitionSchedule.delete({ where: { id } });
   }
 
   /**
    * Delete all schedules for a concept
    */
   async deleteForConcept(userId: string, conceptId: string): Promise<void> {
-    await db.spacedRepetitionSchedule.delete({
+    await getDb().spacedRepetitionSchedule.delete({
       where: { userId_conceptId: { userId, conceptId } },
     });
   }

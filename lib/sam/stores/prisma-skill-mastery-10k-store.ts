@@ -6,7 +6,7 @@
  * day boundary detection.
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { Prisma } from '@prisma/client';
 import {
   getDateInTimezone,
@@ -283,7 +283,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   // ---------------------------------------------------------------------------
 
   async create(input: CreateSkillMasteryInput): Promise<SkillMastery10K> {
-    const mastery = await db.skillMastery10K.create({
+    const mastery = await getDb().skillMastery10K.create({
       data: {
         userId: input.userId,
         skillId: input.skillId,
@@ -296,7 +296,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async getById(id: string): Promise<SkillMastery10K | null> {
-    const mastery = await db.skillMastery10K.findUnique({
+    const mastery = await getDb().skillMastery10K.findUnique({
       where: { id },
     });
 
@@ -305,7 +305,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async getByUserAndSkill(userId: string, skillId: string): Promise<SkillMastery10K | null> {
-    const mastery = await db.skillMastery10K.findUnique({
+    const mastery = await getDb().skillMastery10K.findUnique({
       where: { userId_skillId: { userId, skillId } },
     });
 
@@ -314,7 +314,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async update(id: string, input: UpdateSkillMasteryInput): Promise<SkillMastery10K> {
-    const mastery = await db.skillMastery10K.update({
+    const mastery = await getDb().skillMastery10K.update({
       where: { id },
       data: {
         totalRawHours: input.totalRawHours,
@@ -339,7 +339,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async delete(id: string): Promise<void> {
-    await db.skillMastery10K.delete({
+    await getDb().skillMastery10K.delete({
       where: { id },
     });
   }
@@ -349,7 +349,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   // ---------------------------------------------------------------------------
 
   async getUserMasteries(userId: string): Promise<SkillMastery10K[]> {
-    const masteries = await db.skillMastery10K.findMany({
+    const masteries = await getDb().skillMastery10K.findMany({
       where: { userId },
       orderBy: { totalQualityHours: 'desc' },
     });
@@ -358,7 +358,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async getUserTopSkills(userId: string, limit = 5): Promise<SkillMastery10K[]> {
-    const masteries = await db.skillMastery10K.findMany({
+    const masteries = await getDb().skillMastery10K.findMany({
       where: { userId },
       orderBy: { totalQualityHours: 'desc' },
       take: limit,
@@ -368,7 +368,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async getMasteryOverview(userId: string): Promise<MasteryOverview> {
-    const masteries = await db.skillMastery10K.findMany({
+    const masteries = await getDb().skillMastery10K.findMany({
       where: { userId },
     });
 
@@ -446,7 +446,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     timezone: string = DEFAULT_TIMEZONE // User timezone for accurate streak tracking
   ): Promise<SkillMastery10K> {
     // Get or create mastery record
-    let mastery = await db.skillMastery10K.findUnique({
+    let mastery = await getDb().skillMastery10K.findUnique({
       where: { userId_skillId: { userId, skillId } },
     });
 
@@ -457,7 +457,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
 
     if (!mastery) {
       // Create new mastery record with correct targetHours
-      mastery = await db.skillMastery10K.create({
+      mastery = await getDb().skillMastery10K.create({
         data: {
           userId,
           skillId,
@@ -545,7 +545,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       // Use timezone-aware period boundaries for accurate user-local calculations
       const periodHours = await this.computeCurrentPeriodHours(userId, skillId, timezone);
 
-      mastery = await db.skillMastery10K.update({
+      mastery = await getDb().skillMastery10K.update({
         where: { id: mastery.id },
         data: {
           totalRawHours: newTotalRawHours,
@@ -582,7 +582,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     // Compute rolling averages after session update
     const rollingAverages = await this.computeRollingAverages(userId, skillId);
     if (rollingAverages) {
-      mastery = await db.skillMastery10K.update({
+      mastery = await getDb().skillMastery10K.update({
         where: { id: mastery.id },
         data: {
           avgWeeklyHours: rollingAverages.avgWeeklyHours,
@@ -600,7 +600,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   // ---------------------------------------------------------------------------
 
   async getMilestones(userId: string): Promise<PracticeMilestone[]> {
-    const milestones = await db.practiceMilestone.findMany({
+    const milestones = await getDb().practiceMilestone.findMany({
       where: { userId },
       orderBy: [{ unlockedAt: 'desc' }],
     });
@@ -609,7 +609,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async getSkillMilestones(skillMasteryId: string): Promise<PracticeMilestone[]> {
-    const milestones = await db.practiceMilestone.findMany({
+    const milestones = await getDb().practiceMilestone.findMany({
       where: { skillMasteryId },
       orderBy: [{ hoursRequired: 'asc' }],
     });
@@ -618,7 +618,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async claimMilestone(milestoneId: string): Promise<PracticeMilestone> {
-    const milestone = await db.practiceMilestone.update({
+    const milestone = await getDb().practiceMilestone.update({
       where: { id: milestoneId },
       data: {
         claimed: true,
@@ -630,7 +630,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   }
 
   async markCelebrationShown(milestoneId: string): Promise<void> {
-    await db.practiceMilestone.update({
+    await getDb().practiceMilestone.update({
       where: { id: milestoneId },
       data: { celebrationShown: true },
     });
@@ -645,7 +645,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     skillId: string,
     timezone: string = DEFAULT_TIMEZONE
   ): Promise<{ current: number; longest: number }> {
-    const mastery = await db.skillMastery10K.findUnique({
+    const mastery = await getDb().skillMastery10K.findUnique({
       where: { userId_skillId: { userId, skillId } },
     });
 
@@ -660,7 +660,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
 
       // If more than 1 day has passed, streak is broken
       if (daysSinceLastPractice > 1 && mastery.currentStreak > 0) {
-        await db.skillMastery10K.update({
+        await getDb().skillMastery10K.update({
           where: { id: mastery.id },
           data: {
             currentStreak: 0,
@@ -682,7 +682,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     timezone: string = DEFAULT_TIMEZONE
   ): Promise<void> {
     // Get all masteries with active streaks for this user
-    const masteriesWithStreaks = await db.skillMastery10K.findMany({
+    const masteriesWithStreaks = await getDb().skillMastery10K.findMany({
       where: {
         userId,
         currentStreak: { gt: 0 },
@@ -717,7 +717,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
 
     // Reset all broken streaks in a single batch update
     if (idsToReset.length > 0) {
-      await db.skillMastery10K.updateMany({
+      await getDb().skillMastery10K.updateMany({
         where: {
           id: { in: idsToReset },
         },
@@ -753,7 +753,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     const monthStart = getMonthStartInTimezone(now, timezone);
 
     // Get all completed sessions for this skill since month start
-    const sessions = await db.practiceSession.findMany({
+    const sessions = await getDb().practiceSession.findMany({
       where: {
         userId,
         skillId,
@@ -795,7 +795,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   } | null> {
     try {
       // Get the mastery record to know the target
-      const mastery = await db.skillMastery10K.findUnique({
+      const mastery = await getDb().skillMastery10K.findUnique({
         where: { userId_skillId: { userId, skillId } },
       });
 
@@ -807,7 +807,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       // Get sessions from the last 30 days for this skill
-      const recentSessions = await db.practiceSession.findMany({
+      const recentSessions = await getDb().practiceSession.findMany({
         where: {
           userId,
           skillId,
@@ -883,7 +883,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       // Check if this milestone was just crossed
       if (previousHours < requiredHours && currentHours >= requiredHours) {
         // Check if milestone already exists
-        const existing = await db.practiceMilestone.findUnique({
+        const existing = await getDb().practiceMilestone.findUnique({
           where: {
             userId_skillId_milestoneType: {
               userId,
@@ -895,7 +895,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
 
         if (!existing) {
           // Create new milestone
-          await db.practiceMilestone.create({
+          await getDb().practiceMilestone.create({
             data: {
               userId,
               skillMasteryId: masteryId,

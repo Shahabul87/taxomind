@@ -3,7 +3,7 @@
  * Handles rankings for practice hours across different scopes and timeframes
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { Prisma } from '@prisma/client';
 
 // ============================================================================
@@ -152,7 +152,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     const limit = filters.limit || 50;
     const offset = filters.offset || 0;
 
-    const entries = await db.practiceLeaderboard.findMany({
+    const entries = await getDb().practiceLeaderboard.findMany({
       where: {
         scope,
         scopeId: filters.scopeId ?? null,
@@ -179,7 +179,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     const periodStart = this.getCurrentPeriodStart(timeframe);
 
     // Use findFirst instead of findUnique to handle nullable scopeId correctly
-    const entry = await db.practiceLeaderboard.findFirst({
+    const entry = await getDb().practiceLeaderboard.findFirst({
       where: {
         userId,
         scope,
@@ -214,7 +214,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
   ): Promise<PracticeLeaderboardEntry> {
     const periodStart = this.getCurrentPeriodStart(timeframe);
 
-    const entry = await db.practiceLeaderboard.upsert({
+    const entry = await getDb().practiceLeaderboard.upsert({
       where: {
         userId_scope_scopeId_timeframe_periodStart: {
           userId,
@@ -281,7 +281,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     }
 
     // Group sessions by user
-    const sessions = await db.practiceSession.findMany({
+    const sessions = await getDb().practiceSession.findMany({
       where: sessionsQuery,
       select: {
         userId: true,
@@ -331,7 +331,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     // Update leaderboard entries
     for (const [userId, stats] of userStats) {
       // Get user's streak from mastery records
-      const masteries = await db.skillMastery10K.findMany({
+      const masteries = await getDb().skillMastery10K.findMany({
         where: { userId },
         select: { currentStreak: true },
       });
@@ -363,7 +363,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     const periodStart = this.getCurrentPeriodStart(timeframe);
 
     // Get all entries sorted by quality hours
-    const entries = await db.practiceLeaderboard.findMany({
+    const entries = await getDb().practiceLeaderboard.findMany({
       where: {
         scope,
         scopeId,
@@ -386,7 +386,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
         ? ((totalEntries - newRank + 1) / totalEntries) * 100
         : 100;
 
-      await db.practiceLeaderboard.update({
+      await getDb().practiceLeaderboard.update({
         where: { id: entry.id },
         data: {
           previousRank: entry.rank,

@@ -130,6 +130,20 @@ module.exports = {
     'sonarjs/no-duplicate-string': ['error', { threshold: 5 }],
     'sonarjs/no-identical-functions': 'error',
     
+    // SAM store facade enforcement — prevent direct imports from individual store files
+    // in API routes. Use @/lib/sam/taxomind-context for store instances (getStore(),
+    // getPracticeStores(), etc.) and @/lib/sam/stores barrel for types/constants.
+    // The lib/sam/ internal files are excluded via overrides below.
+    '@typescript-eslint/no-restricted-imports': ['warn', {
+      'patterns': [
+        {
+          'group': ['@/lib/sam/stores/prisma-*'],
+          'message': 'Import types/constants from @/lib/sam/stores (barrel). Use getStore()/getPracticeStores() from @/lib/sam/taxomind-context for store instances.',
+          'allowTypeImports': true,
+        },
+      ],
+    }],
+
     // General best practices
     'eqeqeq': ['error', 'always'],
     'no-eval': 'error',
@@ -184,6 +198,13 @@ module.exports = {
       rules: {
         'no-console': 'off',
         '@typescript-eslint/no-var-requires': 'off',
+      }
+    },
+    {
+      // SAM internal files may import from individual store files
+      files: ['lib/sam/**/*.ts', 'lib/sam/**/*.tsx'],
+      rules: {
+        '@typescript-eslint/no-restricted-imports': 'off',
       }
     }
   ],

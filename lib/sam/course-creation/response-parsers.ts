@@ -43,6 +43,70 @@ import type {
 } from './types';
 
 // =============================================================================
+// Fallback Tracking (monitors fallback rate across the pipeline)
+// =============================================================================
+
+interface FallbackRecord {
+  stage: string;
+  chapter: number;
+  section?: number;
+  reason: string;
+  timestamp: string;
+}
+
+/**
+ * Tracks fallback usage across the course creation pipeline.
+ *
+ * When AI responses fail validation and fallback objects are returned,
+ * FallbackTracker records each occurrence and can signal when the
+ * overall fallback rate exceeds a threshold — indicating the course
+ * is being built primarily from fallback content.
+ */
+export class FallbackTracker {
+  private fallbacks: FallbackRecord[] = [];
+  private readonly maxFallbackRate: number;
+
+  constructor(maxFallbackRate = 0.3) {
+    this.maxFallbackRate = maxFallbackRate;
+  }
+
+  record(stage: string, chapter: number, section: number | undefined, reason: string): void {
+    this.fallbacks.push({
+      stage,
+      chapter,
+      section,
+      reason,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  getFallbackRate(totalItems: number): number {
+    if (totalItems <= 0) return 0;
+    return this.fallbacks.length / totalItems;
+  }
+
+  shouldHalt(totalItems: number): boolean {
+    return this.getFallbackRate(totalItems) > this.maxFallbackRate;
+  }
+
+  getSummary(totalItems: number): {
+    count: number;
+    rate: number;
+    details: FallbackRecord[];
+  } {
+    return {
+      count: this.fallbacks.length,
+      rate: Math.round(this.getFallbackRate(totalItems) * 100) / 100,
+      details: this.fallbacks,
+    };
+  }
+
+  get count(): number {
+    return this.fallbacks.length;
+  }
+}
+
+// =============================================================================
 // Schema Validation Error (strict mode rejects malformed AI output)
 // =============================================================================
 
@@ -144,6 +208,7 @@ export function parseChapterResponse(
   courseContext: CourseContext,
   previousChapters: (GeneratedChapter & { id: string })[],
   blueprintEntry?: ChapterPlanEntry | null,
+  fallbackTracker?: FallbackTracker,
 ): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -176,13 +241,16 @@ export function parseChapterResponse(
   } catch (error) {
     if (error instanceof SchemaValidationError) {
       logger.warn('[ORCHESTRATOR] Schema validation failed for chapter, using fallback', { issues: error.issues });
+      fallbackTracker?.record('chapter', chapterNumber, undefined, `Schema validation: ${error.issues.slice(0, 2).join('; ')}`);
       return {
         chapter: buildFallbackChapter(chapterNumber, courseContext),
         thinking: 'Used fallback generation due to schema validation error.',
         qualityScore: buildDefaultQualityScore(40),
       };
     }
+    const reason = error instanceof Error ? error.message : 'Parse error';
     logger.warn('[ORCHESTRATOR] Failed to parse chapter response, using fallback');
+    fallbackTracker?.record('chapter', chapterNumber, undefined, reason);
     return {
       chapter: buildFallbackChapter(chapterNumber, courseContext),
       thinking: 'Used fallback generation due to parsing error.',
@@ -203,7 +271,8 @@ export function parseSectionResponse(
   sectionNumber: number,
   chapter: GeneratedChapter,
   existingTitles: string[],
-  templateDef?: TemplateSectionDef
+  templateDef?: TemplateSectionDef,
+  fallbackTracker?: FallbackTracker,
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -243,13 +312,16 @@ export function parseSectionResponse(
   } catch (error) {
     if (error instanceof SchemaValidationError) {
       logger.warn('[ORCHESTRATOR] Schema validation failed for section, using fallback', { issues: error.issues });
+      fallbackTracker?.record('section', chapter.position, sectionNumber, `Schema validation: ${error.issues.slice(0, 2).join('; ')}`);
       return {
         section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
         thinking: 'Used fallback generation due to schema validation error.',
         qualityScore: buildDefaultQualityScore(40),
       };
     }
+    const reason = error instanceof Error ? error.message : 'Parse error';
     logger.warn('[ORCHESTRATOR] Failed to parse section response, using fallback');
+    fallbackTracker?.record('section', chapter.position, sectionNumber, reason);
     return {
       section: buildFallbackSection(sectionNumber, chapter, existingTitles, templateDef),
       thinking: 'Used fallback generation due to parsing error.',
@@ -270,7 +342,8 @@ export function parseDetailsResponse(
   chapter: GeneratedChapter,
   section: GeneratedSection,
   courseContext: CourseContext,
-  templateDef?: TemplateSectionDef
+  templateDef?: TemplateSectionDef,
+  fallbackTracker?: FallbackTracker,
 ): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
@@ -297,13 +370,16 @@ export function parseDetailsResponse(
   } catch (error) {
     if (error instanceof SchemaValidationError) {
       logger.warn('[ORCHESTRATOR] Schema validation failed for details, using fallback', { issues: error.issues });
+      fallbackTracker?.record('details', chapter.position, section.position, `Schema validation: ${error.issues.slice(0, 2).join('; ')}`);
       return {
         details: buildFallbackDetails(chapter, section, courseContext, templateDef),
         thinking: 'Used fallback generation due to schema validation error.',
         qualityScore: buildDefaultQualityScore(40),
       };
     }
+    const reason = error instanceof Error ? error.message : 'Parse error';
     logger.warn('[ORCHESTRATOR] Failed to parse details response, using fallback');
+    fallbackTracker?.record('details', chapter.position, section.position, reason);
     return {
       details: buildFallbackDetails(chapter, section, courseContext, templateDef),
       thinking: 'Used fallback generation due to parsing error.',

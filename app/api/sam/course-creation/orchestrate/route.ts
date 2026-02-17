@@ -18,6 +18,7 @@
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
@@ -49,6 +50,8 @@ const OrchestrateRequestSchema = z.object({
   includeAssessments: z.boolean().optional(),
   duration: z.string().max(50).optional(),
   resumeCourseId: z.string().optional(),
+  /** Client-generated idempotency key to prevent duplicate course creation */
+  requestId: z.string().uuid().optional(),
 });
 
 // =============================================================================
@@ -88,6 +91,55 @@ export async function POST(request: NextRequest) {
       );
     }
     const config = parseResult.data;
+
+    // 3b. Idempotency check: if requestId is provided, check for existing pipeline
+    if (config.requestId) {
+      const existingPlan = await db.sAMExecutionPlan.findFirst({
+        where: {
+          goal: { userId: user.id },
+          metadata: {
+            path: ['requestId'],
+            equals: config.requestId,
+          },
+        },
+        select: {
+          id: true,
+          status: true,
+          checkpointData: true,
+        },
+      });
+
+      if (existingPlan) {
+        const checkpoint = existingPlan.checkpointData as Record<string, unknown> | null;
+        const courseId = checkpoint?.courseId as string | undefined;
+
+        if (existingPlan.status === 'ACTIVE' || existingPlan.status === 'PENDING') {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Course creation already in progress',
+              code: 'ALREADY_RUNNING',
+              runId: existingPlan.id,
+              courseId,
+            }),
+            { status: 409, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+
+        if (existingPlan.status === 'COMPLETED' && courseId) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              code: 'ALREADY_COMPLETE',
+              courseId,
+              planId: existingPlan.id,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+        // FAILED or PAUSED plans are allowed to retry with same requestId
+      }
+    }
 
     // 4. Generate correlation ID for end-to-end tracing across the 15-min SSE session
     const runId = crypto.randomUUID();
@@ -130,6 +182,7 @@ export async function POST(request: NextRequest) {
           const orchestrateOptions = {
             userId: user.id,
             runId,
+            requestId: config.requestId,
             abortSignal: request.signal,
             config: {
               ...config,

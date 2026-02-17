@@ -72,6 +72,16 @@ export function useSamWizard() {
 
   const fieldMeta = useMemo(() => getCourseWizardFieldMeta(), []);
 
+  // Only sync fields SAM needs for context — excludes array fields (courseGoals,
+  // bloomsFocus, preferredContentTypes) that generate noisy recursive expansions
+  const relevantFields = useMemo(() => new Set([
+    'courseTitle', 'courseShortOverview', 'courseCategory', 'courseSubcategory',
+    'courseIntent', 'targetAudience', 'difficulty', 'duration',
+    'chapterCount', 'sectionsPerChapter',
+    'learningObjectivesPerChapter', 'learningObjectivesPerSection',
+    'includeAssessments',
+  ]), []);
+
   // Intelligent SAM sync - automatically detects ALL form changes without hardcoding
   useIntelligentSAMSync('ai-course-creator-wizard', formData, {
     formName: 'AI Course Creator Wizard',
@@ -83,6 +93,7 @@ export function useSamWizard() {
     },
     fieldMeta,
     formType: 'course-creator-wizard',
+    relevantFields,
   });
 
   // Auto-save functionality

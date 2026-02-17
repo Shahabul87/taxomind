@@ -3,7 +3,7 @@
  * Uses Prisma with SAMSubGoal model for persistent storage
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { Prisma } from '@prisma/client';
 import {
   type SubGoalStore,
@@ -140,7 +140,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Create a new sub-goal
    */
   async create(input: CreateSubGoalInput): Promise<SubGoal> {
-    const subGoal = await db.sAMSubGoal.create({
+    const subGoal = await getDb().sAMSubGoal.create({
       data: {
         goalId: input.goalId,
         title: input.title,
@@ -164,9 +164,9 @@ export class PrismaSubGoalStore implements SubGoalStore {
    */
   async createMany(inputs: CreateSubGoalInput[]): Promise<SubGoal[]> {
     // Use transaction to ensure all or nothing
-    const subGoals = await db.$transaction(
+    const subGoals = await getDb().$transaction(
       inputs.map((input) =>
-        db.sAMSubGoal.create({
+        getDb().sAMSubGoal.create({
           data: {
             goalId: input.goalId,
             title: input.title,
@@ -191,7 +191,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Get a sub-goal by ID
    */
   async get(subGoalId: string): Promise<SubGoal | null> {
-    const subGoal = await db.sAMSubGoal.findUnique({
+    const subGoal = await getDb().sAMSubGoal.findUnique({
       where: { id: subGoalId },
     });
 
@@ -220,7 +220,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
       };
     }
 
-    const subGoals = await db.sAMSubGoal.findMany({
+    const subGoals = await getDb().sAMSubGoal.findMany({
       where: whereClause,
       orderBy: {
         [options?.orderBy ?? 'order']: options?.orderDir ?? 'asc',
@@ -257,7 +257,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
       updateData.completedAt = input.completedAt;
     if (input.metadata !== undefined) updateData.metadata = input.metadata;
 
-    const subGoal = await db.sAMSubGoal.update({
+    const subGoal = await getDb().sAMSubGoal.update({
       where: { id: subGoalId },
       data: updateData,
     });
@@ -269,7 +269,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Delete a sub-goal
    */
   async delete(subGoalId: string): Promise<void> {
-    await db.sAMSubGoal.delete({
+    await getDb().sAMSubGoal.delete({
       where: { id: subGoalId },
     });
   }
@@ -278,7 +278,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Delete all sub-goals for a goal
    */
   async deleteByGoal(goalId: string): Promise<void> {
-    await db.sAMSubGoal.deleteMany({
+    await getDb().sAMSubGoal.deleteMany({
       where: { goalId },
     });
   }
@@ -287,7 +287,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Mark a sub-goal as complete
    */
   async markComplete(subGoalId: string): Promise<SubGoal> {
-    const subGoal = await db.sAMSubGoal.update({
+    const subGoal = await getDb().sAMSubGoal.update({
       where: { id: subGoalId },
       data: {
         status: 'COMPLETED',
@@ -302,7 +302,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Mark a sub-goal as failed
    */
   async markFailed(subGoalId: string): Promise<SubGoal> {
-    const subGoal = await db.sAMSubGoal.update({
+    const subGoal = await getDb().sAMSubGoal.update({
       where: { id: subGoalId },
       data: {
         status: 'FAILED',
@@ -316,7 +316,7 @@ export class PrismaSubGoalStore implements SubGoalStore {
    * Mark a sub-goal as skipped
    */
   async markSkipped(subGoalId: string): Promise<SubGoal> {
-    const subGoal = await db.sAMSubGoal.update({
+    const subGoal = await getDb().sAMSubGoal.update({
       where: { id: subGoalId },
       data: {
         status: 'SKIPPED',

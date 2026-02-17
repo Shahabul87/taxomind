@@ -6,7 +6,7 @@
  * daily logs, streaks, and heatmaps based on the user's local day boundaries.
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { Prisma } from '@prisma/client';
 import type { PracticeSessionType } from './prisma-practice-session-store';
 import {
@@ -176,7 +176,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   ): Promise<DailyPracticeLog | null> {
     const dateOnly = getDateOnly(date, timezone);
 
-    const log = await db.dailyPracticeLog.findUnique({
+    const log = await getDb().dailyPracticeLog.findUnique({
       where: {
         userId_date: {
           userId,
@@ -195,7 +195,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     endDate: Date,
     timezone: string = DEFAULT_TIMEZONE
   ): Promise<DailyPracticeLog[]> {
-    const logs = await db.dailyPracticeLog.findMany({
+    const logs = await getDb().dailyPracticeLog.findMany({
       where: {
         userId,
         date: {
@@ -222,7 +222,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     const dateOnly = getDateOnly(date, timezone);
 
     // Get existing log or create new
-    let log = await db.dailyPracticeLog.findUnique({
+    let log = await getDb().dailyPracticeLog.findUnique({
       where: {
         userId_date: {
           userId,
@@ -254,7 +254,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
         [sessionTypeField]: 1,
       };
 
-      log = await db.dailyPracticeLog.create({
+      log = await getDb().dailyPracticeLog.create({
         data: createData,
       });
     } else {
@@ -281,7 +281,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
       const sessionTypeField = this.getSessionTypeField(update.sessionType);
       const currentTypeCount = (log as Record<string, unknown>)[sessionTypeField] as number || 0;
 
-      log = await db.dailyPracticeLog.update({
+      log = await getDb().dailyPracticeLog.update({
         where: { id: log.id },
         data: {
           totalMinutes: newTotalMinutes,
@@ -312,7 +312,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   ): Promise<void> {
     const dateOnly = getDateOnly(date, timezone);
 
-    await db.dailyPracticeLog.updateMany({
+    await getDb().dailyPracticeLog.updateMany({
       where: {
         userId,
         date: dateOnly,
@@ -336,7 +336,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
 
-    const logs = await db.dailyPracticeLog.findMany({
+    const logs = await getDb().dailyPracticeLog.findMany({
       where: {
         userId,
         date: {
@@ -394,7 +394,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     const today = new Date();
     const effectiveEndDate = endDate > today ? today : endDate;
 
-    const logs = await db.dailyPracticeLog.findMany({
+    const logs = await getDb().dailyPracticeLog.findMany({
       where: {
         userId,
         date: {

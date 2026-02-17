@@ -311,6 +311,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
     const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 
+    // Generate idempotency key to prevent duplicate course creation on double-click
+    const requestId = crypto.randomUUID();
+
     startTimeRef.current = Date.now();
     itemTimestampsRef.current = [];
     reconnectCountRef.current = 0;
@@ -350,6 +353,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          requestId,
           courseTitle: courseData.courseTitle,
           courseDescription: courseData.courseDescription,
           targetAudience: courseData.targetAudience,

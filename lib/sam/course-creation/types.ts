@@ -636,6 +636,8 @@ export interface ChapterStepContext {
   runId?: string;
   /** Optional runtime cost budget tracker */
   budgetTracker?: import('./pipeline-budget').PipelineBudgetTracker;
+  /** Tracks fallback usage — halts pipeline when rate exceeds threshold */
+  fallbackTracker?: import('./response-parsers').FallbackTracker;
 }
 
 /** Result of generating a single chapter (all 3 stages) */

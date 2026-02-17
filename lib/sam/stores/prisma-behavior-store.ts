@@ -4,7 +4,7 @@
  * Uses SAMInteraction model as the underlying storage
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   BehaviorEventStore,
   BehaviorEvent,
@@ -27,7 +27,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
   async add(
     event: Omit<BehaviorEvent, 'id' | 'processed' | 'processedAt'>
   ): Promise<BehaviorEvent> {
-    const interaction = await db.sAMInteraction.create({
+    const interaction = await getDb().sAMInteraction.create({
       data: {
         userId: event.userId,
         interactionType: this.interactionType,
@@ -60,7 +60,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
     const results: BehaviorEvent[] = [];
 
     // Use transaction for batch insert
-    await db.$transaction(async (tx) => {
+    await getDb().$transaction(async (tx) => {
       for (const event of events) {
         const interaction = await tx.sAMInteraction.create({
           data: {
@@ -93,7 +93,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
    * Get a single behavior event by ID
    */
   async get(id: string): Promise<BehaviorEvent | null> {
-    const interaction = await db.sAMInteraction.findUnique({
+    const interaction = await getDb().sAMInteraction.findUnique({
       where: { id },
     });
 
@@ -124,7 +124,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
       where.createdAt = { ...(where.createdAt as object), lte: options.until };
     }
 
-    const interactions = await db.sAMInteraction.findMany({
+    const interactions = await getDb().sAMInteraction.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip: options?.offset,
@@ -167,7 +167,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
    * Get behavior events for a session
    */
   async getBySession(sessionId: string): Promise<BehaviorEvent[]> {
-    const interactions = await db.sAMInteraction.findMany({
+    const interactions = await getDb().sAMInteraction.findMany({
       where: {
         interactionType: this.interactionType,
       },
@@ -183,7 +183,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
    * Get unprocessed behavior events
    */
   async getUnprocessed(limit: number): Promise<BehaviorEvent[]> {
-    const interactions = await db.sAMInteraction.findMany({
+    const interactions = await getDb().sAMInteraction.findMany({
       where: {
         interactionType: this.interactionType,
       },
@@ -203,9 +203,9 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
   async markProcessed(ids: string[]): Promise<void> {
     const now = new Date();
 
-    await db.$transaction(
+    await getDb().$transaction(
       ids.map((id) =>
-        db.sAMInteraction.update({
+        getDb().sAMInteraction.update({
           where: { id },
           data: {
             context: {
@@ -239,7 +239,7 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
       where.createdAt = { gte: since };
     }
 
-    return db.sAMInteraction.count({
+    return getDb().sAMInteraction.count({
       where,
     });
   }

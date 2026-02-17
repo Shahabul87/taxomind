@@ -23,6 +23,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { withScopedDb } from './stores/db-provider';
 import {
   bootstrapTaxomindIntegration,
   getTaxomindIntegration,
@@ -288,6 +289,19 @@ export interface TaxomindIntegrationContext {
 }
 
 // ============================================================================
+// DI TYPES
+// ============================================================================
+
+/** Prisma client type used for dependency injection */
+type PrismaClient = typeof db;
+
+/** Options for creating a TaxomindContext with optional DI overrides */
+export interface CreateTaxomindContextOptions {
+  /** Optional Prisma client override (defaults to singleton `db`). Use for testing. */
+  prisma?: PrismaClient;
+}
+
+// ============================================================================
 // SINGLETON IMPLEMENTATION
 // ============================================================================
 
@@ -302,15 +316,20 @@ let contextInstance: TaxomindIntegrationContext | null = null;
  *
  * Batch-created stores (observability, self-evaluation, meta-learning)
  * are initialized as a group when any store from that group is accessed.
+ *
+ * @param prisma - Prisma client instance for DI (defaults to singleton `db`)
  */
-function createLazyStores(): TaxomindAgenticStores {
+function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
   const cache = new Map<string, unknown>();
+
+  // Cast helper for adapter-prisma stores that expect their own Prisma type
+  const prismaArg = prisma as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'];
 
   // Lazy batch initializers - create all stores in a group on first access
   let observabilityStores: ReturnType<typeof createPrismaObservabilityStores> | null = null;
   const getObservabilityStores = () => {
     if (!observabilityStores) {
-      observabilityStores = createPrismaObservabilityStores({ prisma: db as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'] });
+      observabilityStores = createPrismaObservabilityStores({ prisma: prismaArg });
     }
     return observabilityStores;
   };
@@ -318,7 +337,7 @@ function createLazyStores(): TaxomindAgenticStores {
   let selfEvaluationStores: ReturnType<typeof createPrismaSelfEvaluationStores> | null = null;
   const getSelfEvaluationStores = () => {
     if (!selfEvaluationStores) {
-      selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: db as Parameters<typeof createPrismaSelfEvaluationStores>[0]['prisma'] });
+      selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: prismaArg });
     }
     return selfEvaluationStores;
   };
@@ -326,12 +345,16 @@ function createLazyStores(): TaxomindAgenticStores {
   let metaLearningStores: ReturnType<typeof createPrismaMetaLearningStores> | null = null;
   const getMetaLearningStores = () => {
     if (!metaLearningStores) {
-      metaLearningStores = createPrismaMetaLearningStores({ prisma: db as Parameters<typeof createPrismaMetaLearningStores>[0]['prisma'] });
+      metaLearningStores = createPrismaMetaLearningStores({ prisma: prismaArg });
     }
     return metaLearningStores;
   };
 
   // Per-store factory map: storeName → factory function
+  // NOTE: Local stores (goal, subGoal, plan, etc.) use `getDb()` from db-provider,
+  // which returns the scoped override (for tests) or the default singleton.
+  // Adapter-prisma stores accept a `{ prisma }` options object for DI.
+  // The injected `prisma` parameter is threaded to all adapter-prisma factories.
   const storeFactories: Record<string, () => unknown> = {
     // Goal Planning
     goal: () => createPrismaGoalStore(),
@@ -393,19 +416,19 @@ function createLazyStores(): TaxomindAgenticStores {
     learningEvent: () => getMetaLearningStores().learningEvent,
 
     // Journey Timeline (from adapter-prisma)
-    journeyTimeline: () => createPrismaJourneyTimelineStore({ prisma: db as Parameters<typeof createPrismaJourneyTimelineStore>[0]['prisma'] }),
+    journeyTimeline: () => createPrismaJourneyTimelineStore({ prisma: prismaArg }),
 
     // Presence (realtime user tracking)
-    presence: () => createPrismaPresenceStore({ prisma: db as Parameters<typeof createPrismaPresenceStore>[0]['prisma'] }),
+    presence: () => createPrismaPresenceStore({ prisma: prismaArg }),
 
     // Student Profile (mastery tracking)
-    studentProfile: () => createPrismaStudentProfileStore({ prisma: db as Parameters<typeof createPrismaStudentProfileStore>[0]['prisma'] }),
+    studentProfile: () => createPrismaStudentProfileStore({ prisma: prismaArg }),
 
     // Review Schedule (spaced repetition)
-    reviewSchedule: () => createPrismaReviewScheduleStore({ prisma: db as Parameters<typeof createPrismaReviewScheduleStore>[0]['prisma'] }),
+    reviewSchedule: () => createPrismaReviewScheduleStore({ prisma: prismaArg }),
 
     // Push Queue (persistent push notification queue)
-    pushQueue: () => createPrismaPushQueueStore({ prisma: db as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
+    pushQueue: () => createPrismaPushQueueStore({ prisma: prismaArg as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
 
     // Phase 6: Educational Engine Stores
     microlearning: () => createPrismaMicrolearningStore(),
@@ -527,6 +550,49 @@ export function getTaxomindContext(): TaxomindIntegrationContext {
   }
 
   return contextInstance;
+}
+
+/**
+ * Create a standalone TaxomindIntegrationContext with optional DI overrides.
+ *
+ * Unlike getTaxomindContext(), this does NOT use the singleton — each call
+ * returns a fresh context. Useful for:
+ *   - Integration tests with mock Prisma
+ *   - Worker processes that need isolated contexts
+ *   - Benchmarks that need clean state
+ *
+ * @param options - Optional DI overrides (prisma client)
+ * @returns A new TaxomindIntegrationContext (not cached)
+ */
+export function createTaxomindContext(
+  options: CreateTaxomindContextOptions = {},
+): TaxomindIntegrationContext {
+  const prisma = options.prisma ?? db;
+
+  return {
+    stores: createLazyStores(prisma),
+    integration: initializeIntegrationContext(),
+    isInitialized: true,
+    initializationTime: new Date(),
+  };
+}
+
+/**
+ * Create a test context with a mock Prisma client.
+ *
+ * Wraps `createTaxomindContext` inside `withScopedDb` so that local stores
+ * (which use `getDb()` from db-provider) resolve to the mock client during
+ * lazy initialization. Adapter-prisma stores receive the mock via DI options.
+ *
+ * The returned context is NOT cached in the singleton — safe for parallel tests.
+ *
+ * @param mockPrisma - Mock Prisma client (e.g., from jest-mock-extended)
+ * @returns An isolated TaxomindIntegrationContext for testing
+ */
+export function createTestContext(
+  mockPrisma: PrismaClient,
+): TaxomindIntegrationContext {
+  return withScopedDb(mockPrisma, () => createTaxomindContext({ prisma: mockPrisma }));
 }
 
 /**

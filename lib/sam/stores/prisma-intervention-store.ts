@@ -4,7 +4,7 @@
  * Stores AI-suggested interventions in the database
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   InterventionStore,
   Intervention,
@@ -30,7 +30,7 @@ export class PrismaInterventionStore implements InterventionStore {
    * Get an intervention by ID
    */
   async get(id: string): Promise<Intervention | null> {
-    const analytics = await db.sAMAnalytics.findUnique({
+    const analytics = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -46,7 +46,7 @@ export class PrismaInterventionStore implements InterventionStore {
    * Get interventions for a user
    */
   async getByUser(userId: string, pending?: boolean): Promise<Intervention[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         userId,
         metricType: this.metricType,
@@ -77,7 +77,7 @@ export class PrismaInterventionStore implements InterventionStore {
       throw new Error('userId is required for creating interventions');
     }
 
-    const analytics = await db.sAMAnalytics.create({
+    const analytics = await getDb().sAMAnalytics.create({
       data: {
         userId,
         metricType: this.metricType,
@@ -108,7 +108,7 @@ export class PrismaInterventionStore implements InterventionStore {
    * Update an existing intervention
    */
   async update(id: string, updates: Partial<Intervention>): Promise<Intervention> {
-    const existing = await db.sAMAnalytics.findUnique({
+    const existing = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -128,7 +128,7 @@ export class PrismaInterventionStore implements InterventionStore {
       ...(updates.result && { result: updates.result }),
     };
 
-    const analytics = await db.sAMAnalytics.update({
+    const analytics = await getDb().sAMAnalytics.update({
       where: { id },
       data: {
         metricValue: updates.priority
@@ -145,7 +145,7 @@ export class PrismaInterventionStore implements InterventionStore {
    * Record the result of an intervention
    */
   async recordResult(id: string, result: InterventionResult): Promise<void> {
-    const existing = await db.sAMAnalytics.findUnique({
+    const existing = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -155,7 +155,7 @@ export class PrismaInterventionStore implements InterventionStore {
 
     const context = existing.context as Record<string, unknown>;
 
-    await db.sAMAnalytics.update({
+    await getDb().sAMAnalytics.update({
       where: { id },
       data: {
         context: {

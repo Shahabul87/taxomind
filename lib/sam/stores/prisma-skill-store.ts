@@ -3,7 +3,7 @@
  * Implements SkillStore interface from @sam-ai/agentic package
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type {
   SkillStore,
   UserSkillProfile,
@@ -21,7 +21,7 @@ export class PrismaSkillStore implements SkillStore {
    */
   async getSkillProfile(userId: string): Promise<UserSkillProfile | null> {
     try {
-      const skillProgress = await db.skillProgress.findMany({
+      const skillProgress = await getDb().skillProgress.findMany({
         where: { userId },
         include: { skill: true },
       });
@@ -92,7 +92,7 @@ export class PrismaSkillStore implements SkillStore {
    */
   async getSkill(userId: string, conceptId: string): Promise<UserSkill | null> {
     try {
-      const skillProgress = await db.skillProgress.findFirst({
+      const skillProgress = await getDb().skillProgress.findFirst({
         where: {
           userId,
           skillId: conceptId,
@@ -116,7 +116,7 @@ export class PrismaSkillStore implements SkillStore {
    */
   async updateSkill(userId: string, skill: UserSkill): Promise<void> {
     try {
-      await db.skillProgress.upsert({
+      await getDb().skillProgress.upsert({
         where: {
           userId_skillId: {
             userId,
@@ -172,7 +172,7 @@ export class PrismaSkillStore implements SkillStore {
   ): Promise<UserSkill[]> {
     try {
       // Get skill IDs associated with this course via CourseSkill mapping
-      const courseSkills = await db.courseSkill.findMany({
+      const courseSkills = await getDb().courseSkill.findMany({
         where: { courseId },
         select: { skillId: true },
         orderBy: { order: 'asc' },
@@ -186,7 +186,7 @@ export class PrismaSkillStore implements SkillStore {
       }
 
       // Get user's progress for these specific skills
-      const skillProgress = await db.skillProgress.findMany({
+      const skillProgress = await getDb().skillProgress.findMany({
         where: {
           userId,
           skillId: { in: courseSkillIds },
@@ -202,7 +202,7 @@ export class PrismaSkillStore implements SkillStore {
 
       // Get skill names for unstarted skills
       const unstartedSkills = unstartedSkillIds.length > 0
-        ? await db.skill.findMany({
+        ? await getDb().skill.findMany({
             where: { id: { in: unstartedSkillIds } },
             select: { id: true, name: true },
           })
@@ -243,7 +243,7 @@ export class PrismaSkillStore implements SkillStore {
     limit: number = 5
   ): Promise<UserSkill[]> {
     try {
-      const skillProgress = await db.skillProgress.findMany({
+      const skillProgress = await getDb().skillProgress.findMany({
         where: {
           userId,
           mastery: { lt: 40 },
@@ -270,7 +270,7 @@ export class PrismaSkillStore implements SkillStore {
     try {
       const now = new Date();
 
-      const skillProgress = await db.skillProgress.findMany({
+      const skillProgress = await getDb().skillProgress.findMany({
         where: {
           userId,
           mastery: { gt: 0 },
@@ -302,7 +302,7 @@ export class PrismaSkillStore implements SkillStore {
   // ============================================================================
 
   private mapSkillProgressToUserSkill(
-    sp: Awaited<ReturnType<typeof db.skillProgress.findFirst>> & {
+    sp: Awaited<ReturnType<PrismaClient['skillProgress']['findFirst']>> & {
       skill: { id: string; name: string };
     }
   ): UserSkill {

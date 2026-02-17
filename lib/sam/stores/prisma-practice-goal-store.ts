@@ -3,7 +3,7 @@
  * Handles goal CRUD and automatic progress updates when practice sessions end
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { logger } from '@/lib/logger';
 import type { PracticeGoal as PrismaGoal, PracticeGoalType, Prisma } from '@prisma/client';
 
@@ -126,7 +126,7 @@ export class PrismaPracticeGoalStore {
   // --------------------------------------------------------------------------
 
   async create(input: CreatePracticeGoalInput): Promise<PracticeGoal> {
-    const goal = await db.practiceGoal.create({
+    const goal = await getDb().practiceGoal.create({
       data: {
         userId: input.userId,
         title: input.title,
@@ -144,7 +144,7 @@ export class PrismaPracticeGoalStore {
   }
 
   async getById(id: string): Promise<PracticeGoal | null> {
-    const goal = await db.practiceGoal.findUnique({
+    const goal = await getDb().practiceGoal.findUnique({
       where: { id },
     });
     return goal ? mapPrismaGoal(goal) : null;
@@ -156,7 +156,7 @@ export class PrismaPracticeGoalStore {
     let completedAt: Date | undefined;
 
     if (input.currentValue !== undefined) {
-      const existing = await db.practiceGoal.findUnique({ where: { id } });
+      const existing = await getDb().practiceGoal.findUnique({ where: { id } });
       if (existing) {
         const targetValue = input.targetValue ?? existing.targetValue;
         if (input.currentValue >= targetValue && !existing.isCompleted) {
@@ -166,7 +166,7 @@ export class PrismaPracticeGoalStore {
       }
     }
 
-    const goal = await db.practiceGoal.update({
+    const goal = await getDb().practiceGoal.update({
       where: { id },
       data: {
         title: input.title,
@@ -184,7 +184,7 @@ export class PrismaPracticeGoalStore {
   }
 
   async delete(id: string): Promise<void> {
-    await db.practiceGoal.delete({ where: { id } });
+    await getDb().practiceGoal.delete({ where: { id } });
   }
 
   // --------------------------------------------------------------------------
@@ -208,7 +208,7 @@ export class PrismaPracticeGoalStore {
       where.goalType = filters.goalType as PracticeGoalType;
     }
 
-    const goals = await db.practiceGoal.findMany({
+    const goals = await getDb().practiceGoal.findMany({
       where,
       orderBy: [
         { isCompleted: 'asc' },
@@ -282,7 +282,7 @@ export class PrismaPracticeGoalStore {
         const wasCompleted = newValue >= goal.targetValue && !goal.isCompleted;
 
         // Update the goal
-        const updatedGoal = await db.practiceGoal.update({
+        const updatedGoal = await getDb().practiceGoal.update({
           where: { id: goal.id },
           data: {
             currentValue: newValue,
@@ -313,7 +313,7 @@ export class PrismaPracticeGoalStore {
    * Update streak-based goals (called by daily cron job)
    */
   async updateStreakGoals(userId: string, currentStreak: number): Promise<UpdatedGoalResult[]> {
-    const streakGoals = await db.practiceGoal.findMany({
+    const streakGoals = await getDb().practiceGoal.findMany({
       where: {
         userId,
         goalType: 'STREAK',
@@ -327,7 +327,7 @@ export class PrismaPracticeGoalStore {
       const previousValue = goal.currentValue;
       const wasCompleted = currentStreak >= goal.targetValue;
 
-      const updatedGoal = await db.practiceGoal.update({
+      const updatedGoal = await getDb().practiceGoal.update({
         where: { id: goal.id },
         data: {
           currentValue: currentStreak,
@@ -352,7 +352,7 @@ export class PrismaPracticeGoalStore {
    * Reset weekly goals at the start of each week (called by weekly cron job)
    */
   async resetWeeklyGoals(): Promise<number> {
-    const result = await db.practiceGoal.updateMany({
+    const result = await getDb().practiceGoal.updateMany({
       where: {
         goalType: 'WEEKLY_HOURS',
         isCompleted: false,
@@ -378,7 +378,7 @@ export class PrismaPracticeGoalStore {
     byType: Record<string, number>;
     recentlyCompleted: PracticeGoal[];
   }> {
-    const allGoals = await db.practiceGoal.findMany({
+    const allGoals = await getDb().practiceGoal.findMany({
       where: { userId },
     });
 

@@ -35,7 +35,7 @@ interface HealthStatus {
     };
   };
   version: string;
-  enterpriseAPI?: any;
+  enterpriseAPI?: Record<string, unknown>;
   aiNews?: {
     mode: string;
     willFetchRealNews: boolean;
@@ -194,6 +194,30 @@ export async function GET(req: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  // Rate limiter store info
+  try {
+    const { getRateLimitStoreInfo, getRateLimitStats } = await import('@/lib/sam/middleware/rate-limiter');
+    const storeInfo = getRateLimitStoreInfo();
+    const stats = getRateLimitStats();
+    (health as Record<string, unknown>).rateLimiter = {
+      storeType: storeInfo.type,
+      isDistributed: storeInfo.isDistributed,
+      totalBuckets: stats.totalBuckets,
+      bucketsByPrefix: stats.bucketsByPrefix,
+    };
+    if (!storeInfo.isDistributed && process.env.NODE_ENV === 'production') {
+      (health as Record<string, unknown>).rateLimiterWarning =
+        'Non-distributed store in production — fail-closed categories (ai, tools, heavy) will be rejected';
+      // Degrade overall health: non-distributed rate limiter in production
+      // means fail-closed categories will reject all requests (503)
+      if (health.status === 'healthy') {
+        health.status = 'degraded';
+      }
+    }
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] Rate limiter info unavailable:', error);
   }
 
   // SAM Pipeline Health

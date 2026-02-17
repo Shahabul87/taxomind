@@ -62,13 +62,17 @@ import type { CourseStateMachineConfig, SharedPipelineState } from './course-sta
 /** Thrown when the pipeline is paused for human escalation review */
 export class PipelinePausedError extends Error {
   readonly pauseRequest: PipelinePauseRequest;
-  constructor(pauseRequest: PipelinePauseRequest) {
+  readonly courseId: string;
+  readonly planId: string;
+  constructor(pauseRequest: PipelinePauseRequest, courseId: string, planId: string) {
     super(
       `[PipelinePaused] Paused for human review: chapter ${pauseRequest.chapterPosition} ` +
       `"${pauseRequest.chapterTitle}" — ${pauseRequest.reason}`,
     );
     this.name = 'PipelinePausedError';
     this.pauseRequest = pauseRequest;
+    this.courseId = courseId;
+    this.planId = planId;
   }
 }
 
@@ -387,12 +391,15 @@ export async function phaseDecisionMaking(
           type: 'pipeline_paused',
           data: {
             ...pauseRequest,
-            message: 'Pipeline paused for human review. Use the approve endpoint to continue.',
+            planId: config.planId,
+            message: 'Pipeline paused for human review. Approve via POST /api/sam/course-creation/approve, then resume via POST /api/sam/course-creation/orchestrate with { resumeCourseId }.',
+            approveUrl: '/api/sam/course-creation/approve',
+            resumeUrl: '/api/sam/course-creation/orchestrate',
           },
         });
 
         logger.info('[CourseStateMachine] Pipeline paused for human escalation', {
-          courseId: config.courseId, chapter: chapterNumber,
+          courseId: config.courseId, chapter: chapterNumber, planId: config.planId,
         });
 
         // Save checkpoint before pausing
@@ -417,7 +424,7 @@ export async function phaseDecisionMaking(
           promptVersion: PROMPT_VERSION,
         });
 
-        throw new PipelinePausedError(pauseRequest);
+        throw new PipelinePausedError(pauseRequest, config.courseId, config.planId);
       }
     }
 

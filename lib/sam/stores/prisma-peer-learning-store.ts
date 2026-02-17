@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Peer Learning Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMPeerActivityType, SAMPeerActivityStatus } from '@prisma/client';
 
 // ============================================================================
@@ -81,7 +81,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Create a new peer learning activity
    */
   async create(input: CreatePeerActivityInput): Promise<PeerLearningActivity> {
-    const activity = await db.sAMPeerLearningActivity.create({
+    const activity = await getDb().sAMPeerLearningActivity.create({
       data: {
         userId: input.userId,
         courseId: input.courseId ?? null,
@@ -102,7 +102,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Get a peer learning activity by ID
    */
   async getById(id: string): Promise<PeerLearningActivity | null> {
-    const activity = await db.sAMPeerLearningActivity.findUnique({
+    const activity = await getDb().sAMPeerLearningActivity.findUnique({
       where: { id },
     });
 
@@ -113,7 +113,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Get all peer learning activities for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<PeerLearningActivity[]> {
-    const activities = await db.sAMPeerLearningActivity.findMany({
+    const activities = await getDb().sAMPeerLearningActivity.findMany({
       where: {
         OR: [{ userId }, { peerIds: { has: userId } }],
       },
@@ -128,7 +128,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Get peer learning activities for a course
    */
   async getByCourse(courseId: string): Promise<PeerLearningActivity[]> {
-    const activities = await db.sAMPeerLearningActivity.findMany({
+    const activities = await getDb().sAMPeerLearningActivity.findMany({
       where: { courseId },
       orderBy: { createdAt: 'desc' },
     });
@@ -140,7 +140,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Get activities by type
    */
   async getByType(userId: string, type: SAMPeerActivityType): Promise<PeerLearningActivity[]> {
-    const activities = await db.sAMPeerLearningActivity.findMany({
+    const activities = await getDb().sAMPeerLearningActivity.findMany({
       where: {
         activityType: type,
         OR: [{ userId }, { peerIds: { has: userId } }],
@@ -155,7 +155,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Get active activities for a user
    */
   async getActive(userId: string): Promise<PeerLearningActivity[]> {
-    const activities = await db.sAMPeerLearningActivity.findMany({
+    const activities = await getDb().sAMPeerLearningActivity.findMany({
       where: {
         status: { in: ['DRAFT', 'SCHEDULED', 'ACTIVE'] },
         OR: [{ userId }, { peerIds: { has: userId } }],
@@ -170,7 +170,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Add a peer to the activity
    */
   async addPeer(id: string, peerId: string): Promise<PeerLearningActivity> {
-    const current = await db.sAMPeerLearningActivity.findUnique({
+    const current = await getDb().sAMPeerLearningActivity.findUnique({
       where: { id },
       select: { peerIds: true, maxParticipants: true },
     });
@@ -187,7 +187,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
       throw new Error('Peer already in activity');
     }
 
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: {
         peerIds: [...current.peerIds, peerId],
@@ -201,7 +201,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Remove a peer from the activity
    */
   async removePeer(id: string, peerId: string): Promise<PeerLearningActivity> {
-    const current = await db.sAMPeerLearningActivity.findUnique({
+    const current = await getDb().sAMPeerLearningActivity.findUnique({
       where: { id },
       select: { peerIds: true },
     });
@@ -210,7 +210,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
       throw new Error('Activity not found');
     }
 
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: {
         peerIds: current.peerIds.filter((p) => p !== peerId),
@@ -224,7 +224,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Start the activity
    */
   async start(id: string): Promise<PeerLearningActivity> {
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: {
         status: 'ACTIVE',
@@ -239,7 +239,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Complete the activity
    */
   async complete(id: string, outcomes: ActivityOutcomes): Promise<PeerLearningActivity> {
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: {
         status: 'COMPLETED',
@@ -255,7 +255,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Cancel the activity
    */
   async cancel(id: string): Promise<PeerLearningActivity> {
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: {
         status: 'CANCELLED',
@@ -272,7 +272,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
   async rate(id: string, rating: number): Promise<PeerLearningActivity> {
     const clampedRating = Math.max(1, Math.min(5, rating));
 
-    const activity = await db.sAMPeerLearningActivity.update({
+    const activity = await getDb().sAMPeerLearningActivity.update({
       where: { id },
       data: { rating: clampedRating },
     });
@@ -284,7 +284,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
    * Delete an activity
    */
   async delete(id: string): Promise<void> {
-    await db.sAMPeerLearningActivity.delete({
+    await getDb().sAMPeerLearningActivity.delete({
       where: { id },
     });
   }
@@ -294,7 +294,7 @@ export class PrismaPeerLearningStore implements PeerLearningStore {
   // ============================================================================
 
   private mapToActivity(
-    record: Awaited<ReturnType<typeof db.sAMPeerLearningActivity.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMPeerLearningActivity']['findUnique']>>
   ): PeerLearningActivity {
     if (!record) {
       throw new Error('PeerLearningActivity record is null');

@@ -3,7 +3,7 @@
  * Uses Prisma with SAMLearningGoal model for persistent storage
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import { Prisma } from '@prisma/client';
 import {
   type GoalStore,
@@ -164,7 +164,7 @@ export class PrismaGoalStore implements GoalStore {
    * Create a new learning goal
    */
   async create(input: CreateGoalInput): Promise<LearningGoal> {
-    const goal = await db.sAMLearningGoal.create({
+    const goal = await getDb().sAMLearningGoal.create({
       data: {
         userId: input.userId,
         title: input.title,
@@ -191,7 +191,7 @@ export class PrismaGoalStore implements GoalStore {
    * Get a goal by ID
    */
   async get(goalId: string): Promise<LearningGoal | null> {
-    const goal = await db.sAMLearningGoal.findUnique({
+    const goal = await getDb().sAMLearningGoal.findUnique({
       where: { id: goalId },
     });
 
@@ -224,7 +224,7 @@ export class PrismaGoalStore implements GoalStore {
       whereClause.courseId = options.courseId;
     }
 
-    const goals = await db.sAMLearningGoal.findMany({
+    const goals = await getDb().sAMLearningGoal.findMany({
       where: whereClause,
       orderBy: {
         [options?.orderBy ?? 'createdAt']: options?.orderDir ?? 'desc',
@@ -268,7 +268,7 @@ export class PrismaGoalStore implements GoalStore {
         updateData.skillIds = input.context.skillIds;
     }
 
-    const goal = await db.sAMLearningGoal.update({
+    const goal = await getDb().sAMLearningGoal.update({
       where: { id: goalId },
       data: updateData,
     });
@@ -280,7 +280,7 @@ export class PrismaGoalStore implements GoalStore {
    * Delete a goal
    */
   async delete(goalId: string): Promise<void> {
-    await db.sAMLearningGoal.delete({
+    await getDb().sAMLearningGoal.delete({
       where: { id: goalId },
     });
   }
@@ -303,7 +303,7 @@ export class PrismaGoalStore implements GoalStore {
    * Complete a goal
    */
   async complete(goalId: string): Promise<LearningGoal> {
-    const goal = await db.sAMLearningGoal.update({
+    const goal = await getDb().sAMLearningGoal.update({
       where: { id: goalId },
       data: {
         status: 'COMPLETED',

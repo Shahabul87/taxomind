@@ -4,7 +4,7 @@
  * Stores proactive check-ins in the database
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   CheckInStore,
   ScheduledCheckIn,
@@ -34,7 +34,7 @@ export class PrismaCheckInStore implements CheckInStore {
    * Get a check-in by ID
    */
   async get(id: string): Promise<ScheduledCheckIn | null> {
-    const analytics = await db.sAMAnalytics.findUnique({
+    const analytics = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -50,7 +50,7 @@ export class PrismaCheckInStore implements CheckInStore {
    * Get check-ins for a user with optional status filter
    */
   async getByUser(userId: string, status?: CheckInStatus): Promise<ScheduledCheckIn[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         userId,
         metricType: this.metricType,
@@ -71,7 +71,7 @@ export class PrismaCheckInStore implements CheckInStore {
    * Get scheduled check-ins within a date range for a specific user
    */
   async getScheduled(userId: string, from: Date, to: Date): Promise<ScheduledCheckIn[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         userId,
         metricType: this.metricType,
@@ -101,7 +101,7 @@ export class PrismaCheckInStore implements CheckInStore {
    * This is used by cron jobs to process pending check-ins.
    */
   async getAllScheduled(from: Date, to: Date): Promise<ScheduledCheckIn[]> {
-    const analytics = await db.sAMAnalytics.findMany({
+    const analytics = await getDb().sAMAnalytics.findMany({
       where: {
         metricType: this.metricType,
         recordedAt: {
@@ -124,7 +124,7 @@ export class PrismaCheckInStore implements CheckInStore {
     checkIn: Omit<ScheduledCheckIn, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ScheduledCheckIn> {
     const now = new Date();
-    const analytics = await db.sAMAnalytics.create({
+    const analytics = await getDb().sAMAnalytics.create({
       data: {
         userId: checkIn.userId,
         metricType: this.metricType,
@@ -156,7 +156,7 @@ export class PrismaCheckInStore implements CheckInStore {
    * Update an existing check-in
    */
   async update(id: string, updates: Partial<ScheduledCheckIn>): Promise<ScheduledCheckIn> {
-    const existing = await db.sAMAnalytics.findUnique({
+    const existing = await getDb().sAMAnalytics.findUnique({
       where: { id },
     });
 
@@ -183,7 +183,7 @@ export class PrismaCheckInStore implements CheckInStore {
       updatedAt: new Date().toISOString(),
     };
 
-    const analytics = await db.sAMAnalytics.update({
+    const analytics = await getDb().sAMAnalytics.update({
       where: { id },
       data: {
         metricValue: updates.priority
@@ -201,7 +201,7 @@ export class PrismaCheckInStore implements CheckInStore {
    */
   async delete(id: string): Promise<boolean> {
     try {
-      await db.sAMAnalytics.delete({
+      await getDb().sAMAnalytics.delete({
         where: { id },
       });
       this.responses.delete(id);

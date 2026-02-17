@@ -3,13 +3,13 @@
  * Uses Prisma with SAMPageContextSnapshot model for persistent storage
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type { ContextMemoryAdapter } from '@sam-ai/core';
 import type { PageContextSnapshot } from '@sam-ai/core';
 
 export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
   async storeSnapshot(userId: string, snapshot: PageContextSnapshot): Promise<string> {
-    const record = await db.sAMPageContextSnapshot.create({
+    const record = await getDb().sAMPageContextSnapshot.create({
       data: {
         userId,
         pageType: snapshot.page.type,
@@ -24,7 +24,7 @@ export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
   }
 
   async getLatestSnapshot(userId: string): Promise<PageContextSnapshot | null> {
-    const record = await db.sAMPageContextSnapshot.findFirst({
+    const record = await getDb().sAMPageContextSnapshot.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
@@ -33,7 +33,7 @@ export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
   }
 
   async getSnapshotHistory(userId: string, limit = 10): Promise<PageContextSnapshot[]> {
-    const records = await db.sAMPageContextSnapshot.findMany({
+    const records = await getDb().sAMPageContextSnapshot.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -45,7 +45,7 @@ export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
     userId: string,
     pagePath: string,
   ): Promise<PageContextSnapshot | null> {
-    const record = await db.sAMPageContextSnapshot.findFirst({
+    const record = await getDb().sAMPageContextSnapshot.findFirst({
       where: { userId, pagePath },
       orderBy: { createdAt: 'desc' },
     });
@@ -58,14 +58,14 @@ export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
     summary: string,
     confidence: number,
   ): Promise<void> {
-    await db.sAMPageContextSnapshot.update({
+    await getDb().sAMPageContextSnapshot.update({
       where: { id: snapshotId },
       data: { summary, confidence },
     });
   }
 
   async cleanupOldSnapshots(userId: string, keepLast = 50): Promise<number> {
-    const snapshots = await db.sAMPageContextSnapshot.findMany({
+    const snapshots = await getDb().sAMPageContextSnapshot.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       skip: keepLast,
@@ -74,7 +74,7 @@ export class PrismaContextSnapshotStore implements ContextMemoryAdapter {
 
     if (snapshots.length === 0) return 0;
 
-    const result = await db.sAMPageContextSnapshot.deleteMany({
+    const result = await getDb().sAMPageContextSnapshot.deleteMany({
       where: { id: { in: snapshots.map((s) => s.id) } },
     });
 

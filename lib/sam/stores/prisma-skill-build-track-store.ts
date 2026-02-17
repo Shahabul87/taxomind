@@ -3,7 +3,7 @@
  * Implements SkillBuildTrackStore interface with Prisma persistence
  */
 
-import { db } from '@/lib/db';
+import { getDb } from './db-provider';
 import type {
   SkillBuildTrackStore,
   SkillBuildDefinition,
@@ -128,7 +128,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async getSkillDefinition(skillId: string): Promise<SkillBuildDefinition | null> {
-    const skill = await db.skillBuildDefinition.findUnique({
+    const skill = await getDb().skillBuildDefinition.findUnique({
       where: { id: skillId },
     });
 
@@ -138,7 +138,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async getSkillDefinitions(filters?: SkillDefinitionFilters): Promise<SkillBuildDefinition[]> {
-    const skills = await db.skillBuildDefinition.findMany({
+    const skills = await getDb().skillBuildDefinition.findMany({
       where: {
         ...(filters?.category && { category: filters.category }),
         ...(filters?.demandLevel && { demandLevel: filters.demandLevel }),
@@ -159,7 +159,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async saveSkillDefinition(skill: SkillBuildDefinition): Promise<void> {
-    await db.skillBuildDefinition.upsert({
+    await getDb().skillBuildDefinition.upsert({
       where: { id: skill.id },
       create: {
         id: skill.id,
@@ -212,7 +212,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async getSkillProfile(userId: string, skillId: string): Promise<SkillBuildProfile | null> {
-    const profile = await db.skillBuildProfile.findUnique({
+    const profile = await getDb().skillBuildProfile.findUnique({
       where: { userId_skillId: { userId, skillId } },
       include: {
         skill: true,
@@ -238,7 +238,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
       levelFilter = levelOrder.slice(minIdx, maxIdx + 1);
     }
 
-    const profiles = await db.skillBuildProfile.findMany({
+    const profiles = await getDb().skillBuildProfile.findMany({
       where: {
         userId,
         ...(filters?.category && {
@@ -260,13 +260,13 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   async saveSkillProfile(profile: SkillBuildProfile): Promise<void> {
     // Ensure the referenced skill definition exists to prevent FK constraint violations.
     // Auto-create a minimal definition if missing (e.g. for dynamically generated skill IDs).
-    const skillExists = await db.skillBuildDefinition.findUnique({
+    const skillExists = await getDb().skillBuildDefinition.findUnique({
       where: { id: profile.skillId },
       select: { id: true },
     });
 
     if (!skillExists) {
-      await db.skillBuildDefinition.create({
+      await getDb().skillBuildDefinition.create({
         data: {
           id: profile.skillId,
           name: profile.skillId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -279,7 +279,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
       });
     }
 
-    await db.skillBuildProfile.upsert({
+    await getDb().skillBuildProfile.upsert({
       where: { userId_skillId: { userId: profile.userId, skillId: profile.skillId } },
       create: {
         id: profile.id,
@@ -411,7 +411,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
     if (update.targetLevel) updateData.targetLevel = update.targetLevel;
     if (update.progressToTarget !== undefined) updateData.progressToTarget = update.progressToTarget;
 
-    await db.skillBuildProfile.update({
+    await getDb().skillBuildProfile.update({
       where: { userId_skillId: { userId, skillId } },
       data: updateData,
     });
@@ -422,7 +422,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async addEvidence(userId: string, skillId: string, evidence: SkillBuildEvidence): Promise<void> {
-    await db.skillBuildEvidence.create({
+    await getDb().skillBuildEvidence.create({
       data: {
         id: evidence.id,
         profile: {
@@ -448,7 +448,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async getEvidence(userId: string, skillId: string): Promise<SkillBuildEvidence[]> {
-    const profile = await db.skillBuildProfile.findUnique({
+    const profile = await getDb().skillBuildProfile.findUnique({
       where: { userId_skillId: { userId, skillId } },
       include: { evidence: true },
     });
@@ -463,7 +463,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async getRoadmap(roadmapId: string): Promise<SkillBuildRoadmap | null> {
-    const roadmap = await db.skillBuildRoadmap.findUnique({
+    const roadmap = await getDb().skillBuildRoadmap.findUnique({
       where: { id: roadmapId },
       include: { milestones: { orderBy: { order: 'asc' } } },
     });
@@ -477,7 +477,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
     userId: string,
     status?: SkillBuildRoadmapStatus
   ): Promise<SkillBuildRoadmap[]> {
-    const roadmaps = await db.skillBuildRoadmap.findMany({
+    const roadmaps = await getDb().skillBuildRoadmap.findMany({
       where: {
         userId,
         ...(status && { status }),
@@ -490,7 +490,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async saveRoadmap(roadmap: SkillBuildRoadmap): Promise<void> {
-    await db.$transaction(async (tx) => {
+    await getDb().$transaction(async (tx) => {
       // Upsert roadmap
       await tx.skillBuildRoadmap.upsert({
         where: { id: roadmap.id },
@@ -564,7 +564,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
     if (update.completedAt) updateData.completedAt = update.completedAt;
     if (update.adjustments) updateData.adjustments = update.adjustments;
 
-    await db.skillBuildRoadmap.update({
+    await getDb().skillBuildRoadmap.update({
       where: { id: roadmapId },
       data: updateData,
     });
@@ -578,7 +578,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
     skillId: string,
     source: SkillBuildBenchmarkSource
   ): Promise<SkillBuildBenchmark | null> {
-    const benchmark = await db.skillBuildBenchmarkData.findUnique({
+    const benchmark = await getDb().skillBuildBenchmarkData.findUnique({
       where: { skillId_source: { skillId, source } },
       include: { skill: true },
     });
@@ -608,7 +608,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
 
   async saveBenchmarkData(benchmark: SkillBuildBenchmark | RoleBuildBenchmark): Promise<void> {
     if ('skillId' in benchmark && !('roleId' in benchmark)) {
-      await db.skillBuildBenchmarkData.upsert({
+      await getDb().skillBuildBenchmarkData.upsert({
         where: { skillId_source: { skillId: benchmark.skillId, source: benchmark.source } },
         create: {
           skillId: benchmark.skillId,
@@ -635,7 +635,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async savePracticeLog(log: PracticeLog): Promise<void> {
-    const profile = await db.skillBuildProfile.findUnique({
+    const profile = await getDb().skillBuildProfile.findUnique({
       where: { userId_skillId: { userId: log.userId, skillId: log.skillId } },
     });
 
@@ -643,7 +643,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
       throw new Error(`Profile not found for user ${log.userId} and skill ${log.skillId}`);
     }
 
-    await db.skillBuildPracticeLog.create({
+    await getDb().skillBuildPracticeLog.create({
       data: {
         id: log.id,
         userId: log.userId,
@@ -665,7 +665,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async getPracticeLogs(userId: string, skillId: string, limit = 50): Promise<PracticeLog[]> {
-    const logs = await db.skillBuildPracticeLog.findMany({
+    const logs = await getDb().skillBuildPracticeLog.findMany({
       where: { userId, skillId },
       orderBy: { timestamp: 'desc' },
       take: limit,
@@ -694,7 +694,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   // ---------------------------------------------------------------------------
 
   async saveAchievement(userId: string, achievement: SkillBuildAchievement): Promise<void> {
-    await db.skillBuildAchievement.create({
+    await getDb().skillBuildAchievement.create({
       data: {
         id: achievement.id,
         userId,
@@ -711,7 +711,7 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async getUserAchievements(userId: string): Promise<SkillBuildAchievement[]> {
-    const achievements = await db.skillBuildAchievement.findMany({
+    const achievements = await getDb().skillBuildAchievement.findMany({
       where: { userId },
       orderBy: { earnedAt: 'desc' },
     });

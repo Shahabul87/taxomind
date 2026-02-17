@@ -3,7 +3,7 @@
  * Provides database persistence for SAM Competency Engine
  */
 
-import { db } from '@/lib/db';
+import { getDb, type PrismaClient } from './db-provider';
 import type { SAMCompetencyLevel } from '@prisma/client';
 
 // ============================================================================
@@ -81,7 +81,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Create a new competency assessment
    */
   async create(input: CreateCompetencyInput): Promise<CompetencyAssessment> {
-    const assessment = await db.sAMCompetencyAssessment.create({
+    const assessment = await getDb().sAMCompetencyAssessment.create({
       data: {
         userId: input.userId,
         competencyFramework: input.competencyFramework,
@@ -103,7 +103,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Get a competency assessment by ID
    */
   async getById(id: string): Promise<CompetencyAssessment | null> {
-    const assessment = await db.sAMCompetencyAssessment.findUnique({
+    const assessment = await getDb().sAMCompetencyAssessment.findUnique({
       where: { id },
     });
 
@@ -114,7 +114,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Get all competency assessments for a user
    */
   async getByUserId(userId: string, limit: number = 20): Promise<CompetencyAssessment[]> {
-    const assessments = await db.sAMCompetencyAssessment.findMany({
+    const assessments = await getDb().sAMCompetencyAssessment.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -127,7 +127,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Get the latest assessment for a specific framework
    */
   async getLatestByFramework(userId: string, framework: string): Promise<CompetencyAssessment | null> {
-    const assessment = await db.sAMCompetencyAssessment.findFirst({
+    const assessment = await getDb().sAMCompetencyAssessment.findFirst({
       where: { userId, competencyFramework: framework },
       orderBy: { createdAt: 'desc' },
     });
@@ -143,7 +143,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
     strengths: string[],
     gaps: string[]
   ): Promise<CompetencyAssessment> {
-    const assessment = await db.sAMCompetencyAssessment.update({
+    const assessment = await getDb().sAMCompetencyAssessment.update({
       where: { id },
       data: { strengths, gaps },
     });
@@ -155,7 +155,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Update recommendations
    */
   async updateRecommendations(id: string, recommendations: string[]): Promise<CompetencyAssessment> {
-    const assessment = await db.sAMCompetencyAssessment.update({
+    const assessment = await getDb().sAMCompetencyAssessment.update({
       where: { id },
       data: { recommendations },
     });
@@ -167,7 +167,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Update career paths
    */
   async updateCareerPaths(id: string, careerPaths: CareerPath[]): Promise<CompetencyAssessment> {
-    const assessment = await db.sAMCompetencyAssessment.update({
+    const assessment = await getDb().sAMCompetencyAssessment.update({
       where: { id },
       data: {
         careerPaths: careerPaths as unknown as Record<string, unknown>[],
@@ -181,14 +181,14 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Add a portfolio item
    */
   async addPortfolioItem(id: string, item: PortfolioItem): Promise<CompetencyAssessment> {
-    const current = await db.sAMCompetencyAssessment.findUnique({
+    const current = await getDb().sAMCompetencyAssessment.findUnique({
       where: { id },
       select: { portfolioItems: true },
     });
 
     const currentItems = (current?.portfolioItems as unknown as PortfolioItem[]) ?? [];
 
-    const assessment = await db.sAMCompetencyAssessment.update({
+    const assessment = await getDb().sAMCompetencyAssessment.update({
       where: { id },
       data: {
         portfolioItems: [...currentItems, item] as unknown as Record<string, unknown>[],
@@ -202,7 +202,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
    * Delete a competency assessment
    */
   async delete(id: string): Promise<void> {
-    await db.sAMCompetencyAssessment.delete({
+    await getDb().sAMCompetencyAssessment.delete({
       where: { id },
     });
   }
@@ -212,7 +212,7 @@ export class PrismaCompetencyStore implements CompetencyStore {
   // ============================================================================
 
   private mapToAssessment(
-    record: Awaited<ReturnType<typeof db.sAMCompetencyAssessment.findUnique>>
+    record: Awaited<ReturnType<PrismaClient['sAMCompetencyAssessment']['findUnique']>>
   ): CompetencyAssessment {
     if (!record) {
       throw new Error('CompetencyAssessment record is null');

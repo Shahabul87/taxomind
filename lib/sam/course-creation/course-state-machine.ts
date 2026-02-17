@@ -108,6 +108,8 @@ export interface SharedPipelineState {
   chapterSectionCounts: number[];
   /** Optional runtime cost budget tracker */
   budgetTracker?: PipelineBudgetTracker;
+  /** Tracks fallback usage — halts pipeline when rate exceeds threshold */
+  fallbackTracker?: import('./response-parsers').FallbackTracker;
   /** Breadth-first roadmap (populated only in BF mode) */
   roadmap?: import('./types').CourseRoadmap;
 }
@@ -175,6 +177,31 @@ export class CourseCreationStateMachine {
       const generateResult = await phaseGenerate(ctx, chapterContext);
       if ('earlyReturn' in generateResult) return generateResult.earlyReturn;
       const { chapterResult } = generateResult;
+
+      // Phase 2b: Fallback rate gate — halt if too many parse failures
+      if (state.fallbackTracker) {
+        const chaptersCount = state.completedChapters.length + 1;
+        const sectionsCount = state.completedChapters.reduce((s, ch) => s + ch.sections.length, 0)
+          + chapterResult.sectionsCreated;
+        const totalParsedItems = chaptersCount + sectionsCount * 2;
+        if (state.fallbackTracker.shouldHalt(totalParsedItems)) {
+          const summary = state.fallbackTracker.getSummary(totalParsedItems);
+          logger.error('[CourseStateMachine] Fallback rate exceeded threshold — halting', {
+            chapter: chapterNumber, fallbackCount: summary.count,
+            fallbackRate: summary.rate, totalParsedItems,
+          });
+          this.config.onSSEEvent?.({
+            type: 'error',
+            data: {
+              message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: 30%). ` +
+                `The AI provider may be experiencing issues.`,
+              code: 'FALLBACK_RATE_EXCEEDED',
+              fallbackSummary: { count: summary.count, rate: summary.rate },
+            },
+          });
+          throw new Error(`Fallback rate ${Math.round(summary.rate * 100)}% exceeds 30% threshold — pipeline halted`);
+        }
+      }
 
       // Phase 3: Lifecycle complete (clear bridge, complete SubGoal)
       await phaseLifecycleComplete(ctx, chapterSubGoalId, chapterResult);
