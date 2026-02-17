@@ -366,7 +366,6 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           courseIntent: courseData.courseIntent,
           includeAssessments: courseData.includeAssessments,
           duration: courseData.duration,
-          useBreadthFirst: courseData.useBreadthFirst ?? true,
         }),
         signal: abortController.signal,
       });

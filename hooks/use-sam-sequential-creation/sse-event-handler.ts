@@ -105,24 +105,9 @@ export function handleSSEEvent(
         lastCourseIdRef.current = data.courseId as string;
       }
 
-      // Map breadth-first string stages to numeric stages
-      const BF_STAGE_MAP: Record<string, { stage: CreationStage; phase: string }> = {
-        'roadmap': { stage: 1, phase: 'generating_roadmap' },
-        'chapter_details': { stage: 1, phase: 'generating_chapter' },
-        'section_details': { stage: 3, phase: 'generating_details' },
-      };
-
-      let numericStage: CreationStage;
-      let phase: string;
-
-      if (typeof rawStage === 'string' && BF_STAGE_MAP[rawStage]) {
-        numericStage = BF_STAGE_MAP[rawStage].stage;
-        phase = BF_STAGE_MAP[rawStage].phase;
-      } else {
-        const stageNum = Number(rawStage);
-        numericStage = (Math.max(1, Math.min(3, isNaN(stageNum) ? 1 : stageNum)) as CreationStage);
-        phase = stageNum === 1 ? 'generating_chapter' : stageNum === 2 ? 'generating_section' : 'generating_details';
-      }
+      const stageNum = Number(rawStage);
+      const numericStage = (Math.max(1, Math.min(3, isNaN(stageNum) ? 1 : stageNum)) as CreationStage);
+      const phase = stageNum === 1 ? 'generating_chapter' : stageNum === 2 ? 'generating_section' : 'generating_details';
 
       setProgress(prev => ({
         ...prev,
@@ -140,18 +125,36 @@ export function handleSSEEvent(
       const stage = data.stage as number;
       const chapter = data.chapter as number | undefined;
       const section = data.section as number | undefined;
+      const title = data.title as string | undefined;
       const message = data.message as string;
+
+      // Determine phase based on stage and whether section is present:
+      // - Stage 1 or (Stage 2 without section) = generating_chapter
+      // - Stage 2 with section = generating_section
+      // - Stage 3 = generating_details
+      let phase: string;
+      if (stage === 3) {
+        phase = 'generating_details';
+      } else if (stage === 2 && !section) {
+        phase = 'generating_chapter';
+      } else if (stage === 2 && section) {
+        phase = 'generating_section';
+      } else {
+        phase = 'generating_chapter';
+      }
 
       setProgress(prev => ({
         ...prev,
         state: {
           ...prev.state,
           stage: (Math.max(1, Math.min(3, stage)) as CreationStage),
-          phase: stage === 1 ? 'generating_chapter' : stage === 2 ? 'generating_section' : 'generating_details',
+          phase,
           currentChapter: chapter ?? prev.state.currentChapter,
           currentSection: section ?? prev.state.currentSection,
         },
-        currentItem: message,
+        currentItem: title
+          ? (stage === 3 && chapter ? `Section ${section ?? ''} of Chapter ${chapter}: ${title}` : `${title}`)
+          : message,
       }));
       return {};
     }
@@ -180,15 +183,13 @@ export function handleSSEEvent(
         totalItemsRef.current = serverTotalItems;
       }
       const serverTotalChapters = data.totalChapters as number | undefined;
-      if (serverTotalChapters) {
-        setProgress(prev => ({
-          ...prev,
-          state: {
-            ...prev.state,
-            totalChapters: serverTotalChapters,
-          },
-        }));
-      }
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          ...(serverTotalChapters ? { totalChapters: serverTotalChapters } : {}),
+        },
+      }));
       return {};
     }
 
@@ -347,46 +348,6 @@ export function handleSSEEvent(
       return {};
     }
 
-    // ── Breadth-first pipeline events ──
-
-    case 'roadmap_complete': {
-      const titles = data.titles as Array<{ title: string; bloomsLevel: string; sections: string[] }>;
-      const chapterCount = titles?.length ?? (data.chapters as number) ?? 0;
-      setProgress(prev => ({
-        ...prev,
-        state: { ...prev.state, phase: 'generating_chapter', totalChapters: chapterCount },
-        message: `Course roadmap ready (${chapterCount} chapters planned)`,
-      }));
-      return {};
-    }
-
-    case 'roadmap_generating': {
-      setProgress(prev => ({
-        ...prev,
-        state: { ...prev.state, phase: 'generating_roadmap' },
-        message: (data.message as string) ?? 'Generating course roadmap...',
-      }));
-      return {};
-    }
-
-    case 'roadmap_reviewing': {
-      setProgress(prev => ({
-        ...prev,
-        state: { ...prev.state, phase: 'generating_roadmap' },
-        message: 'SAM is reviewing the course structure...',
-      }));
-      return {};
-    }
-
-    case 'roadmap_refining': {
-      setProgress(prev => ({
-        ...prev,
-        state: { ...prev.state, phase: 'generating_roadmap' },
-        message: 'Refining course structure based on review...',
-      }));
-      return {};
-    }
-
     case 'agentic_decision':
     case 'bridge_content':
     case 'chapter_skipped':
@@ -491,12 +452,35 @@ function handleItemComplete(
     totalItems: totalItemsRef.current,
   });
 
-  if (stage === 1 && chapter && title) {
-    // Deduplicate: skip if chapter with same id already exists
+  // Determine item type:
+  // - Chapter completion: stage === 1 && chapter && !section
+  // - Section completion: (stage === 2 || stage === 3) && chapter && section
+  const isChapter = stage === 1 && chapter && !section && title;
+  const isSection = (stage === 2 || stage === 3) && chapter && section && title;
+
+  if (isChapter) {
     setProgress(prev => {
-      if (id && prev.completedItems.chapters.some(ch => ch.id === id)) {
-        return { ...prev, timing };
+      // Check if this chapter already exists (from earlier event)
+      const existingIdx = prev.completedItems.chapters.findIndex(ch =>
+        (id && ch.id === id) || ch.position === chapter
+      );
+
+      if (existingIdx >= 0) {
+        // UPDATE existing entry with new data (id, qualityScore, title)
+        // Roadmap entries have position+title but no id/qualityScore — enrich them
+        const existing = prev.completedItems.chapters[existingIdx];
+        const updated = {
+          ...existing,
+          title: title || existing.title,
+          ...(id ? { id } : {}),
+          ...(qualityScore != null ? { qualityScore } : {}),
+        };
+        const chapters = [...prev.completedItems.chapters];
+        chapters[existingIdx] = updated;
+        return { ...prev, timing, completedItems: { ...prev.completedItems, chapters } };
       }
+
+      // New chapter — add it
       return {
         ...prev,
         timing,
@@ -509,12 +493,28 @@ function handleItemComplete(
         },
       };
     });
-  } else if ((stage === 2 || stage === 3) && chapter && section && title) {
-    // Deduplicate: skip if section with same id already exists
+  } else if (isSection) {
     setProgress(prev => {
-      if (id && prev.completedItems.sections.some(s => s.id === id)) {
-        return { ...prev, timing };
+      // Check if this section already exists (from earlier event)
+      const existingIdx = prev.completedItems.sections.findIndex(s =>
+        (id && s.id === id) || (s.chapterPosition === chapter && s.position === section)
+      );
+
+      if (existingIdx >= 0) {
+        // UPDATE existing entry with new data (id, qualityScore, title)
+        const existing = prev.completedItems.sections[existingIdx];
+        const updated = {
+          ...existing,
+          title: title || existing.title,
+          ...(id ? { id } : {}),
+          ...(qualityScore != null ? { qualityScore } : {}),
+        };
+        const sections = [...prev.completedItems.sections];
+        sections[existingIdx] = updated;
+        return { ...prev, timing, completedItems: { ...prev.completedItems, sections } };
       }
+
+      // New section — add it
       return {
         ...prev,
         timing,

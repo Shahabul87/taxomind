@@ -19,7 +19,7 @@ import { db } from '@/lib/db';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
-import { buildStage1Prompt, buildStage2Prompt, buildStage3Prompt, buildBreadthFirstChapterPrompt, buildBreadthFirstSectionPrompt } from './prompts';
+import { buildStage1Prompt, buildStage2Prompt, buildStage3Prompt } from './prompts';
 import { composeTemplatePromptBlocks, selectTemplateSections } from './chapter-templates';
 import { streamWithThinkingExtraction } from './streaming-accumulator';
 import { composeCategoryPrompt } from './category-prompts';
@@ -57,8 +57,6 @@ import { retryWithQualityGate } from './retry-quality-gate';
 import { validateAndFixMath } from './math-validator';
 import type {
   CourseContext,
-  CourseRoadmap,
-  RoadmapSection,
   GeneratedChapter,
   GeneratedSection,
   CompletedSection,
@@ -934,175 +932,4 @@ export async function generateSingleChapter(
     chaptersCreated,
     sectionsCreated,
   };
-}
-
-// =============================================================================
-// BREADTH-FIRST PIPELINE: Chapter Details from Roadmap (Stage 2)
-// =============================================================================
-
-export interface BreadthFirstChapterCallbacks {
-  onSSEEvent?: OrchestrateOptions['onSSEEvent'];
-  enableStreamingThinking?: boolean;
-  runId?: string;
-}
-
-/**
- * Generate chapter details (description, objectives, etc.) for a single chapter
- * from the roadmap. Used in Stage 2 of the breadth-first pipeline.
- *
- * The chapter title and Bloom's level come from the roadmap (immutable).
- * The AI fills in everything else knowing the full course structure.
- */
-export async function generateChapterDetailsFromRoadmap(
-  userId: string,
-  chapterNumber: number,
-  roadmap: CourseRoadmap,
-  courseContext: CourseContext,
-  previousChapterDetails: GeneratedChapter[],
-  conceptTracker: ConceptTracker,
-  callbacks: BreadthFirstChapterCallbacks,
-): Promise<{ chapter: GeneratedChapter; qualityScore: QualityScore }> {
-  const { onSSEEvent, enableStreamingThinking, runId } = callbacks;
-  const roadmapChapter = roadmap.chapters[chapterNumber - 1];
-
-  const { systemPrompt, userPrompt } = buildBreadthFirstChapterPrompt({
-    courseContext,
-    roadmap,
-    chapterNumber,
-    previousChapterDetails,
-    conceptTracker,
-  });
-
-  const responseText = await traceAICall(
-    { runId, stage: 1, chapter: chapterNumber, label: `BF-Stage2 Ch${chapterNumber}` },
-    () => runSAMChatWithPreference({
-      userId,
-      capability: 'course',
-      messages: [{ role: 'user', content: userPrompt }],
-      systemPrompt,
-      maxTokens: 4000,
-      temperature: 0.7,
-      extended: true,
-    }),
-  );
-
-  const result = parseChapterResponse(responseText, chapterNumber, courseContext, previousChapterDetails.map(ch => ({ ...ch })), null);
-
-  // Override title and bloomsLevel from roadmap (immutable)
-  result.chapter.title = roadmapChapter.title;
-  result.chapter.bloomsLevel = roadmapChapter.bloomsLevel;
-
-  // Validate with SAM
-  const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
-  const blended = blendScores(result.qualityScore, samResult);
-
-  // Critic review for borderline quality
-  try {
-    const criticReview = await reviewChapterWithCritic({
-      userId,
-      chapter: result.chapter,
-      courseContext,
-      priorChapters: [],
-      conceptTracker,
-      qualityScore: blended.overall,
-      runId,
-    });
-
-    if (criticReview?.verdict === 'revise' && criticReview.actionableImprovements.length > 0) {
-      onSSEEvent?.({
-        type: 'critic_review',
-        data: { chapter: chapterNumber, verdict: 'revise', improvements: criticReview.actionableImprovements.length },
-      });
-    }
-  } catch {
-    // Critic failure is non-blocking
-  }
-
-  return { chapter: result.chapter, qualityScore: blended };
-}
-
-// =============================================================================
-// BREADTH-FIRST PIPELINE: Section Details from Roadmap (Stage 3)
-// =============================================================================
-
-export interface BreadthFirstSectionOptions {
-  userId: string;
-  roadmap: CourseRoadmap;
-  chapter: GeneratedChapter & { id: string };
-  sectionFromRoadmap: RoadmapSection & { id: string };
-  allChapterDetails: GeneratedChapter[];
-  completedSectionsInChapter: CompletedSection[];
-  conceptTracker: ConceptTracker;
-  callbacks: BreadthFirstChapterCallbacks;
-}
-
-/**
- * Generate section details (objectives FIRST, then description) for a single
- * section from the roadmap. Used in Stage 3 of the breadth-first pipeline.
- *
- * Key difference from depth-first: objectives are generated FIRST and
- * explicitly drive the description content.
- */
-export async function generateSectionDetailsFromRoadmap(
-  courseContext: CourseContext,
-  options: BreadthFirstSectionOptions,
-): Promise<SectionDetails> {
-  const {
-    userId, roadmap, chapter, sectionFromRoadmap,
-    allChapterDetails, completedSectionsInChapter,
-    conceptTracker, callbacks,
-  } = options;
-  const { runId } = callbacks;
-
-  const { systemPrompt, userPrompt } = buildBreadthFirstSectionPrompt({
-    courseContext,
-    roadmap,
-    chapter,
-    sectionFromRoadmap,
-    sectionPosition: sectionFromRoadmap.position,
-    allChapterDetails,
-    completedSectionsInChapter,
-    conceptTracker,
-  });
-
-  const responseText = await traceAICall(
-    { runId, stage: 3, chapter: chapter.position, section: sectionFromRoadmap.position, label: `BF-Stage3 Ch${chapter.position}S${sectionFromRoadmap.position}` },
-    () => runSAMChatWithPreference({
-      userId,
-      capability: 'course',
-      messages: [{ role: 'user', content: userPrompt }],
-      systemPrompt,
-      maxTokens: 4000,
-      temperature: 0.7,
-      extended: true,
-    }),
-  );
-
-  // Build a GeneratedSection stub for the parser
-  const sectionStub: GeneratedSection = {
-    position: sectionFromRoadmap.position,
-    title: sectionFromRoadmap.title,
-    contentType: (sectionFromRoadmap.contentType ?? 'reading') as GeneratedSection['contentType'],
-    estimatedDuration: '15-30 minutes',
-    topicFocus: sectionFromRoadmap.title,
-    parentChapterContext: {
-      title: chapter.title,
-      bloomsLevel: chapter.bloomsLevel,
-      relevantObjectives: chapter.learningObjectives.slice(0, 2),
-    },
-  };
-
-  const result = parseDetailsResponse(responseText, chapter, sectionStub, courseContext, undefined);
-
-  // Apply math validation
-  const mathResult = validateAndFixMath(result.details.description);
-  result.details.description = mathResult.html;
-
-  // Validate with SAM
-  const samResult = await validateDetailsWithSAM(
-    result.details, sectionStub, chapter.bloomsLevel, result.qualityScore, courseContext,
-  );
-  const blended = blendScores(result.qualityScore, samResult);
-
-  return result.details;
 }

@@ -256,7 +256,6 @@ export default function AICreatorPage() {
         courseIntent: formData.courseIntent,
         includeAssessments: formData.includeAssessments,
         duration: formData.duration,
-        useBreadthFirst: formData.useBreadthFirst,
       });
 
       if (result.success && result.courseId) {
@@ -338,7 +337,6 @@ export default function AICreatorPage() {
         courseIntent: formData.courseIntent,
         includeAssessments: formData.includeAssessments,
         duration: formData.duration,
-        useBreadthFirst: formData.useBreadthFirst,
       });
 
       if (result.success && result.courseId) {

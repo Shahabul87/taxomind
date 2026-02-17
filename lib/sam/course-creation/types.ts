@@ -66,46 +66,6 @@ export const CONTENT_TYPES = ['video', 'reading', 'assignment', 'quiz', 'project
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
 // ============================================================================
-// Breadth-First Pipeline: Roadmap Types
-// ============================================================================
-
-/** ARROW-driven section role assigned during roadmap generation */
-export type ArrowRole =
-  | 'hook' | 'reverse-engineer' | 'intuition' | 'formalization'
-  | 'failure-analysis' | 'design-challenge' | 'practice' | 'reflection';
-
-/** Full course roadmap — generated in Stage 1 (single AI call) */
-export interface CourseRoadmap {
-  chapters: RoadmapChapter[];
-  selfReviewScore: number;
-  refinementRounds: number;
-  structuralReasoning: string;
-}
-
-export interface RoadmapChapter {
-  position: number;
-  title: string;
-  focusSummary: string;
-  bloomsLevel: BloomsLevel;
-  keyConcepts: string[];
-  sections: RoadmapSection[];
-}
-
-export interface RoadmapSection {
-  position: number;
-  title: string;
-  arrowRole?: ArrowRole;
-  contentType?: ContentType;
-}
-
-/** Resume point for breadth-first pipeline */
-export interface BreadthFirstResumePoint {
-  stage: 1 | 2 | 3;
-  startChapter?: number;
-  startSection?: number;
-}
-
-// ============================================================================
 // Chapter DNA Template Types
 // ============================================================================
 
@@ -253,7 +213,6 @@ export type CreationPhase =
   | 'idle'
   | 'creating_course'
   | 'resuming'
-  | 'generating_roadmap'
   | 'generating_chapter'
   | 'saving_chapter'
   | 'generating_section'
@@ -461,9 +420,6 @@ export interface SequentialCreationConfig {
 
   /** Enable human escalation gate — pauses pipeline on quality flags for approval */
   enableEscalationGate?: boolean;
-
-  /** Use breadth-first (roadmap) pipeline instead of depth-first. Default: true. */
-  useBreadthFirst?: boolean;
 }
 
 // ============================================================================
@@ -814,19 +770,6 @@ export interface CheckpointData {
   /** Timestamp when failure occurred */
   failedAt?: string;
 
-  // === Breadth-first pipeline fields ===
-  /** Pipeline mode: depth-first (legacy) or breadth-first (roadmap) */
-  pipelineMode?: 'depth-first' | 'breadth-first';
-  /** Full course roadmap (breadth-first only) */
-  roadmap?: CourseRoadmap;
-  /** Current breadth-first stage: 1=roadmap, 2=chapter details, 3=section details */
-  breadthFirstStage?: 1 | 2 | 3;
-  /** Number of chapters with details generated (Stage 2 progress) */
-  detailedChapterCount?: number;
-  /** Current chapter being detailed in Stage 3 */
-  currentDetailChapter?: number;
-  /** Current section being detailed in Stage 3 */
-  currentDetailSection?: number;
 }
 
 /**
@@ -866,12 +809,6 @@ export interface ResumeState {
   partialChapterDbId?: string;
   /** DB section records for the partial chapter (skip Stage 2 if all present) */
   partialChapterSectionIds?: string[];
-
-  // === Breadth-first pipeline resume fields ===
-  /** Roadmap from checkpoint (breadth-first only) */
-  roadmap?: CourseRoadmap;
-  /** Resume point within breadth-first pipeline */
-  breadthFirstResumePoint?: BreadthFirstResumePoint;
 }
 
 // ============================================================================

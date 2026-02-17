@@ -26,8 +26,6 @@ import type {
   QualityScore,
   CheckpointData,
   ResumeState,
-  CourseRoadmap,
-  BreadthFirstResumePoint,
 } from './types';
 import type { OrchestrateOptions } from './orchestrator';
 import { orchestrateCourseCreation } from './orchestrator';
@@ -61,19 +59,6 @@ export interface SaveCheckpointInput {
   strategyHistory?: import('./adaptive-strategy').GenerationPerformance[];
   /** Prompt template version used during generation */
   promptVersion?: string;
-  // ── Breadth-first pipeline fields ──
-  /** Pipeline mode: 'depth-first' (default) or 'breadth-first' */
-  pipelineMode?: 'depth-first' | 'breadth-first';
-  /** Full course roadmap (Stage 1 output) */
-  roadmap?: CourseRoadmap;
-  /** Current breadth-first stage: 1=roadmap, 2=chapter details, 3=section details */
-  breadthFirstStage?: 1 | 2 | 3;
-  /** Number of chapters with details generated (Stage 2 progress) */
-  detailedChapterCount?: number;
-  /** Current chapter being detailed in Stage 3 */
-  currentDetailChapter?: number;
-  /** Current section being detailed in Stage 3 */
-  currentDetailSection?: number;
 }
 
 // =============================================================================
@@ -96,8 +81,6 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
     completedChaptersList, percentage, status,
     lastCompletedStage, lastCompletedSectionIndex, currentChapterNumber,
     chapterSectionCounts, strategyHistory, promptVersion,
-    pipelineMode, roadmap, breadthFirstStage, detailedChapterCount,
-    currentDetailChapter, currentDetailSection,
   } = input;
 
   const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } = config;
@@ -143,13 +126,6 @@ export async function saveCheckpoint(cId: string, planId: string, input: SaveChe
         id: sec.id,
       }))
     ),
-    // Breadth-first pipeline fields (only populated in BF mode)
-    ...(pipelineMode && { pipelineMode }),
-    ...(roadmap && { roadmap }),
-    ...(breadthFirstStage != null && { breadthFirstStage }),
-    ...(detailedChapterCount != null && { detailedChapterCount }),
-    ...(currentDetailChapter != null && { currentDetailChapter }),
-    ...(currentDetailSection != null && { currentDetailSection }),
   };
 
   await db.sAMExecutionPlan.update({
@@ -419,40 +395,6 @@ export async function resumeCourseCreation(
       strategyHistory: checkpoint.strategyHistory,
       promptVersion: checkpoint.promptVersion,
     };
-
-    // 8b. Breadth-first resume detection
-    if (checkpoint.pipelineMode === 'breadth-first') {
-      const bfRoadmap = checkpoint.roadmap;
-
-      let bfResumePoint: BreadthFirstResumePoint;
-
-      if (!bfRoadmap || checkpoint.breadthFirstStage === 1) {
-        // Roadmap incomplete — restart from Stage 1 (fast, ~30s)
-        bfResumePoint = { stage: 1 };
-      } else if (checkpoint.breadthFirstStage === 2) {
-        // Resume Stage 2 from next undetailed chapter
-        bfResumePoint = {
-          stage: 2,
-          startChapter: (checkpoint.detailedChapterCount ?? 0) + 1,
-        };
-      } else {
-        // Resume Stage 3 from current chapter/section
-        bfResumePoint = {
-          stage: 3,
-          startChapter: checkpoint.currentDetailChapter ?? 1,
-          startSection: (checkpoint.currentDetailSection ?? 0) + 1,
-        };
-      }
-
-      resume.roadmap = bfRoadmap;
-      resume.breadthFirstResumePoint = bfResumePoint;
-
-      logger.info('[ORCHESTRATOR] Breadth-first resume detected', {
-        stage: bfResumePoint.stage,
-        startChapter: bfResumePoint.startChapter,
-        startSection: bfResumePoint.startSection,
-      });
-    }
 
     logger.info('[ORCHESTRATOR] Resume state built', {
       courseId: resumeCourseId,

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StepComponentProps } from '../../types/sam-creator.types';
-import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers, Pencil, GitBranch } from 'lucide-react';
+import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
@@ -366,48 +366,6 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
                   className="flex-shrink-0 sm:ml-3"
                 />
               </div>
-            </div>
-
-            {/* Pipeline Mode Toggle */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-white/60 dark:bg-slate-900/60 border-2 border-white/30 dark:border-slate-700/50 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
-                    <Label className="text-[10px] xs:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Generation Pipeline</Label>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                    {formData.useBreadthFirst
-                      ? 'Breadth-First: Plans entire course roadmap first, then generates content with full context'
-                      : 'Depth-First: Generates each chapter completely before moving to the next'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0 sm:ml-3">
-                  <span className={cn(
-                    "text-[10px] xs:text-xs font-medium transition-colors",
-                    !formData.useBreadthFirst ? "text-slate-800 dark:text-slate-100" : "text-slate-400 dark:text-slate-500"
-                  )}>
-                    Depth
-                  </span>
-                  <Switch
-                    checked={formData.useBreadthFirst}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, useBreadthFirst: checked }))}
-                  />
-                  <span className={cn(
-                    "text-[10px] xs:text-xs font-medium transition-colors",
-                    formData.useBreadthFirst ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
-                  )}>
-                    Breadth
-                  </span>
-                </div>
-              </div>
-              {formData.useBreadthFirst && (
-                <div className="mt-2.5 p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800">
-                  <p className="text-[10px] xs:text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
-                    Breadth-first generates all titles first for better consistency, enforces Bloom&apos;s progression across chapters, and uses ~40% fewer AI tokens.
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Course Structure Summary */}

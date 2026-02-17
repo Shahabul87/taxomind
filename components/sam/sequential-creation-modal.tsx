@@ -26,7 +26,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Sparkles,
   Brain,
   BookOpen,
   Layers,
@@ -84,7 +83,7 @@ interface StageConfig {
 // Stage Configuration
 // ============================================================================
 
-const STAGE_CONFIG: Record<1 | 2 | 3, StageConfig> = {
+const DF_STAGE_CONFIG: Record<1 | 2 | 3, StageConfig> = {
   1: {
     icon: BookOpen,
     title: 'Stage 1: Chapter Generation',
@@ -108,6 +107,10 @@ const STAGE_CONFIG: Record<1 | 2 | 3, StageConfig> = {
   },
 };
 
+function getStageConfig(): Record<1 | 2 | 3, StageConfig> {
+  return DF_STAGE_CONFIG;
+}
+
 // ============================================================================
 // Stage Progress Bar
 // ============================================================================
@@ -119,21 +122,26 @@ const StageProgressBar = memo(function StageProgressBar({
   currentStage: 1 | 2 | 3;
   percentage: number;
 }) {
+  const stageConfig = getStageConfig();
+
+  const s1End = 30;
+  const s2End = 60;
+
   // Calculate which segments are complete
-  const stage1Complete = percentage >= 30;
-  const stage2Complete = percentage >= 60;
+  const stage1Complete = percentage >= s1End;
+  const stage2Complete = percentage >= s2End;
   const stage3Complete = percentage >= 100;
 
   // Calculate segment progress
   const getSegmentProgress = (stage: 1 | 2 | 3) => {
     if (stage === 1) {
-      return Math.min(100, (percentage / 30) * 100);
+      return Math.min(100, (percentage / s1End) * 100);
     } else if (stage === 2) {
-      if (percentage < 30) return 0;
-      return Math.min(100, ((percentage - 30) / 30) * 100);
+      if (percentage < s1End) return 0;
+      return Math.min(100, ((percentage - s1End) / (s2End - s1End)) * 100);
     } else {
-      if (percentage < 60) return 0;
-      return Math.min(100, ((percentage - 60) / 40) * 100);
+      if (percentage < s2End) return 0;
+      return Math.min(100, ((percentage - s2End) / (100 - s2End)) * 100);
     }
   };
 
@@ -141,7 +149,7 @@ const StageProgressBar = memo(function StageProgressBar({
     <div className="space-y-3 w-full overflow-hidden">
       <div className="flex items-center gap-2 w-full">
         {[1, 2, 3].map((stage) => {
-          const config = STAGE_CONFIG[stage as 1 | 2 | 3];
+          const config = stageConfig[stage as 1 | 2 | 3];
           const Icon = config.icon;
           const isActive = currentStage === stage;
           const isComplete =
@@ -212,15 +220,13 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
   progress: CreationProgress;
 }) {
   const { state } = progress;
-  const config = STAGE_CONFIG[state.stage] ?? STAGE_CONFIG[1];
+  const stageConfig = getStageConfig();
+  const config = stageConfig[state.stage] ?? stageConfig[1];
   const Icon = config.icon;
 
   const activityText = useMemo(() => {
     if (state.phase === 'creating_course') {
       return 'Setting up course in database...';
-    }
-    if (state.phase === 'generating_roadmap') {
-      return progress.message || 'Planning course structure...';
     }
     if (state.phase === 'generating_chapter') {
       return `Generating Chapter ${state.currentChapter} of ${state.totalChapters}`;
@@ -229,7 +235,7 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
       return `Creating Section ${state.currentSection} of ${state.totalSections}`;
     }
     if (state.phase === 'generating_details') {
-      return `Adding details to Section ${state.currentSection}`;
+      return `Adding details to Section ${state.currentSection} of Chapter ${state.currentChapter}`;
     }
     if (state.phase === 'complete') {
       return 'Course creation complete!';
@@ -421,77 +427,56 @@ const CompletedItemsList = memo(function CompletedItemsList({
           {chapters.length} chapters, {sections.length} sections
         </Badge>
       </div>
-      <ScrollArea className="h-32 rounded-lg border bg-card p-2">
+      <ScrollArea className="h-48 rounded-lg border bg-card p-2">
         <div className="space-y-1">
           {chapters.map((chapter, idx) => {
             const canRegenerate =
-              isComplete &&
-              onRegenerate &&
-              chapter.id &&
-              chapter.qualityScore != null &&
-              chapter.qualityScore < QUALITY_REGENERATE_THRESHOLD;
+              isComplete && onRegenerate && chapter.id &&
+              chapter.qualityScore != null && chapter.qualityScore < QUALITY_REGENERATE_THRESHOLD;
             const isRegenerating = regeneratingChapterId === chapter.id;
 
             return (
-              <div
-                key={`chapter-${idx}`}
+              <div key={`chapter-${idx}`}
                 className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50"
               >
                 <BookOpen className="h-3 w-3 text-blue-500" />
                 <span className="flex-1 truncate">{chapter.title}</span>
                 {chapter.qualityScore != null && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'text-[10px]',
-                      chapter.qualityScore >= 80
-                        ? 'text-green-600 border-green-500/30'
-                        : chapter.qualityScore >= 60
-                          ? 'text-amber-600 border-amber-500/30'
-                          : 'text-red-600 border-red-500/30'
-                    )}
-                  >
+                  <Badge variant="outline" className={cn(
+                    'text-[10px]',
+                    chapter.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
+                      : chapter.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
+                        : 'text-red-600 border-red-500/30'
+                  )}>
                     {chapter.qualityScore}%
                   </Badge>
                 )}
                 {canRegenerate && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
+                  <Button variant="ghost" size="icon"
                     className="h-5 w-5 text-muted-foreground hover:text-amber-600"
                     disabled={!!regeneratingChapterId}
                     onClick={() => onRegenerate(chapter.id!, chapter.position)}
                     title="Regenerate this chapter (quality below 70%)"
                   >
-                    {isRegenerating ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <RotateCcw className="h-3 w-3" />
-                    )}
+                    {isRegenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
                   </Button>
                 )}
               </div>
             );
           })}
           {sections.slice(-5).map((section, idx) => (
-            <div
-              key={`section-${idx}`}
+            <div key={`section-${idx}`}
               className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/30 ml-4"
             >
               <Layers className="h-3 w-3 text-purple-500" />
               <span className="flex-1 truncate">{section.title}</span>
               {section.qualityScore != null && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'text-[10px]',
-                    section.qualityScore >= 80
-                      ? 'text-green-600 border-green-500/30'
-                      : section.qualityScore >= 60
-                        ? 'text-amber-600 border-amber-500/30'
-                        : 'text-red-600 border-red-500/30'
-                  )}
-                >
+                <Badge variant="outline" className={cn(
+                  'text-[10px]',
+                  section.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
+                    : section.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
+                      : 'text-red-600 border-red-500/30'
+                )}>
                   {section.qualityScore}%
                 </Badge>
               )}
