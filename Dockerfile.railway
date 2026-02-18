@@ -80,7 +80,7 @@ COPY public/ ./public/
 # Root config files (Next.js build, TypeScript, styling)
 COPY next.config.js tsconfig.json tsconfig.build.json tsconfig.node.json ./
 COPY routes.ts tailwind.config.ts postcss.config.mjs postcss.config.js ./
-COPY next-env.d.ts next-auth.d.ts admin.d.ts components.json ./
+COPY next-auth.d.ts admin.d.ts components.json ./
 # Auth config files (user + admin auth systems)
 COPY auth.ts auth.json auth.admin.ts ./
 COPY auth.config.ts auth.config.edge.ts ./
