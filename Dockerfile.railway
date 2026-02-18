@@ -77,6 +77,8 @@ COPY types/ ./types/
 COPY utils/ ./utils/
 COPY store/ ./store/
 COPY public/ ./public/
+# Package manifest (pnpm needs package.json to run scripts)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Root config files (Next.js build, TypeScript, styling)
 COPY next.config.js tsconfig.json tsconfig.build.json tsconfig.node.json ./
 COPY routes.ts tailwind.config.ts postcss.config.mjs postcss.config.js ./
