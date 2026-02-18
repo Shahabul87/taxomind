@@ -339,6 +339,7 @@ export async function POST(request: NextRequest) {
           if (!result.success) {
             sendSSE('error', {
               message: result.error ?? 'Course creation failed',
+              courseId: result.courseId,
               chaptersCreated: result.chaptersCreated,
               sectionsCreated: result.sectionsCreated,
             });

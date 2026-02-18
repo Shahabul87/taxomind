@@ -307,11 +307,12 @@ export default function AICreatorPage() {
     }
   }, [formData, startSequentialCreation, router]);
 
-  // Handle retry for sequential creation
-  const handleRetrySequentialCreation = React.useCallback(() => {
-    resetSequentialCreation();
+  // Handle retry for sequential creation — dismiss stale plans first so the
+  // dedup check doesn't block the new attempt with "already in progress".
+  const handleRetrySequentialCreation = React.useCallback(async () => {
+    await dismissCreation();
     handleStartSequentialCreation();
-  }, [resetSequentialCreation, handleStartSequentialCreation]);
+  }, [dismissCreation, handleStartSequentialCreation]);
 
   // Handle resume from failed creation
   const handleResumeCreation = React.useCallback(async () => {

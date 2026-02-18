@@ -384,6 +384,13 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
       // Handle non-SSE error responses
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+
+        // 409 ALREADY_RUNNING: extract courseId so Resume button can appear
+        if (response.status === 409 && errorData.code === 'ALREADY_RUNNING' && errorData.courseId) {
+          setPartialCourseId(errorData.courseId);
+          setResumableCourseId(errorData.courseId);
+        }
+
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 

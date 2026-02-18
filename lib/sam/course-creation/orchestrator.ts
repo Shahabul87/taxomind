@@ -568,6 +568,7 @@ export async function orchestrateCourseCreation(
 
     return {
       success: false,
+      courseId: createdCourseId || undefined,
       chaptersCreated,
       sectionsCreated,
       error: errorMessage,

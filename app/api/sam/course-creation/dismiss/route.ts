@@ -24,11 +24,12 @@ export async function POST() {
       );
     }
 
-    // 2. Find all active/paused plans with checkpoint data for this user
+    // 2. Find all active/paused/draft plans with checkpoint data for this user
+    //    DRAFT is included because the dedup check blocks on both ACTIVE and DRAFT.
     const activePlans = await db.sAMExecutionPlan.findMany({
       where: {
         goal: { userId: user.id },
-        status: { in: ['ACTIVE', 'PAUSED'] },
+        status: { in: ['ACTIVE', 'PAUSED', 'DRAFT'] },
         checkpointData: { not: null },
       },
       select: { id: true },
