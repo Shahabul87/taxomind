@@ -77,6 +77,10 @@ COPY types/ ./types/
 COPY utils/ ./utils/
 COPY store/ ./store/
 COPY scripts/ ./scripts/
+COPY styles/ ./styles/
+COPY assets/ ./assets/
+COPY fileupload/ ./fileupload/
+COPY theme_color/ ./theme_color/
 COPY public/ ./public/
 # Package manifest (pnpm needs package.json to run scripts)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
