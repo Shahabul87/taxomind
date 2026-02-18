@@ -616,17 +616,24 @@ function handleComplete(
 
 /**
  * Handle the `error` terminal event: store partial course ID, set error state.
+ *
+ * Falls back to lastCourseIdRef.current when the server error event doesn't
+ * include courseId (e.g. route-level catch, uncaught exception). The ref is
+ * populated from earlier stage_start / item_complete events, so if the course
+ * was created before the failure, we can still offer Resume.
  */
 function handleError(
   data: Record<string, unknown>,
   ctx: SSEHandlerContext,
 ): SSEEventResult {
-  const { setProgress, setError, setResumableCourseId, startTimeRef, callbacks } = ctx;
+  const { setProgress, setError, setResumableCourseId, startTimeRef, lastCourseIdRef, callbacks } = ctx;
 
   const errorMessage = (data.message as string) ?? 'Unknown error';
   const chaptersCreated = (data.chaptersCreated as number) ?? 0;
   const sectionsCreated = (data.sectionsCreated as number) ?? 0;
-  const errorCourseId = data.courseId as string | undefined;
+  // Prefer courseId from error event data, fall back to the last courseId
+  // captured from earlier SSE events (stage_start, item_complete).
+  const errorCourseId = (data.courseId as string | undefined) ?? lastCourseIdRef.current ?? undefined;
 
   // Store partial course ID for resume — seed checkpoint ensures the backend
   // can resume even with 0 completed chapters, so always offer Resume.

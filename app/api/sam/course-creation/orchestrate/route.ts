@@ -157,11 +157,34 @@ export async function POST(request: NextRequest) {
     if (!config.resumeCourseId && dedupeKey) {
       inFlightKey = `${user.id}:${dedupeKey}`;
       if (!claimInFlight(inFlightKey)) {
+        // Look up the active course so the client can show a Resume button
+        // instead of a dead-end error. This is an error path, so the extra
+        // query is acceptable.
+        let activeCourseId: string | undefined;
+        try {
+          const activePlan = await db.sAMExecutionPlan.findFirst({
+            where: {
+              goal: { userId: user.id },
+              status: { in: ['ACTIVE', 'DRAFT'] },
+              checkpointData: { not: null },
+            },
+            orderBy: { updatedAt: 'desc' },
+            select: { checkpointData: true },
+          });
+          if (activePlan?.checkpointData) {
+            const checkpoint = activePlan.checkpointData as Record<string, unknown>;
+            activeCourseId = checkpoint.courseId as string | undefined;
+          }
+        } catch {
+          // Non-critical — proceed without courseId
+        }
+
         return new Response(
           JSON.stringify({
             success: false,
             error: 'Course creation already in progress',
             code: 'ALREADY_RUNNING',
+            courseId: activeCourseId,
           }),
           { status: 409, headers: { 'Content-Type': 'application/json' } },
         );
@@ -275,6 +298,10 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         let streamClosed = false;
 
+        // Track courseId at stream scope so the catch block can include it
+        // in error events. Updated by intercepting SSE events from the orchestrator.
+        let lastKnownCourseId: string | undefined = config.resumeCourseId;
+
         function sendSSE(event: string, data: Record<string, unknown>) {
           if (streamClosed) return;
           const payload = `event: ${event}\ndata: ${JSON.stringify({ ...data, runId })}\n\n`;
@@ -319,10 +346,14 @@ export async function POST(request: NextRequest) {
                 });
               },
               onError: (error: string, canRetry: boolean) => {
-                sendSSE('error', { message: error, canRetry });
+                sendSSE('error', { message: error, canRetry, courseId: lastKnownCourseId });
               },
             },
             onSSEEvent: (event: { type: string; data: Record<string, unknown> }) => {
+              // Intercept courseId from orchestrator events for error recovery
+              if (event.data.courseId && typeof event.data.courseId === 'string') {
+                lastKnownCourseId = event.data.courseId;
+              }
               sendSSE(event.type, event.data);
             },
           };
@@ -339,7 +370,7 @@ export async function POST(request: NextRequest) {
           if (!result.success) {
             sendSSE('error', {
               message: result.error ?? 'Course creation failed',
-              courseId: result.courseId,
+              courseId: result.courseId ?? lastKnownCourseId,
               chaptersCreated: result.chaptersCreated,
               sectionsCreated: result.sectionsCreated,
             });
@@ -347,7 +378,7 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Unknown error';
           logger.error('[ORCHESTRATE_ROUTE] Stream error:', msg);
-          sendSSE('error', { message: msg });
+          sendSSE('error', { message: msg, courseId: lastKnownCourseId });
         } finally {
           releaseInFlight(inFlightKey);
           clearInterval(heartbeat);

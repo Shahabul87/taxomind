@@ -376,7 +376,10 @@ export async function orchestrateCourseCreation(
 
     await advanceCourseStage(planId, stepIds, 1);
     if (!isResume) {
-      onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...' } });
+      // Include courseId so the client's lastCourseIdRef is populated early.
+      // This ensures the Resume button can appear even if the pipeline fails
+      // before any item_complete event is sent.
+      onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...', courseId } });
     }
 
     // Seed completedChapters/generatedChapters from resume state

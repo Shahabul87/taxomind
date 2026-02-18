@@ -70,7 +70,10 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     }
   }, []);
 
-  // Check DB for active/resumable creation on mount (cross-device resume)
+  // Check DB for active/resumable creation on mount (cross-device resume).
+  // Also validates localStorage-based resumableCourseId: if the DB has no
+  // active creation with checkpoint data, clear the stale localStorage entry
+  // to prevent showing a resume banner that leads to "No checkpoint found".
   useEffect(() => {
     let cancelled = false;
 
@@ -99,6 +102,19 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           if (!resumableCourseIdRef.current) {
             setResumableCourseId(prog.courseId);
             setPartialCourseId(prog.courseId);
+          }
+        } else {
+          // DB has no active creation with checkpoint data. If localStorage
+          // has a stale courseId (e.g. from a creation that failed before any
+          // checkpoint was saved), clear it to prevent a resume banner that
+          // would fail with "No checkpoint found".
+          const staleId = getPartialCourseId();
+          if (staleId) {
+            logger.debug('[SEQUENTIAL_SSE] Clearing stale localStorage courseId — no DB checkpoint', {
+              courseId: staleId,
+            });
+            clearPartialCourseId();
+            setResumableCourseId(null);
           }
         }
       } catch {
