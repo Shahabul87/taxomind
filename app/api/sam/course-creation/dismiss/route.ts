@@ -24,15 +24,17 @@ export async function POST() {
       );
     }
 
-    // 2. Find all active/paused/draft plans for this user.
+    // 2. Find all active/paused/draft/failed plans for this user.
     //    DRAFT is included because the dedup check blocks on both ACTIVE and DRAFT.
+    //    FAILED is included because the progress API finds FAILED plans with checkpoints
+    //    (showing the resume banner), so dismiss must also cancel them to stop the banner.
     //    NOTE: We intentionally do NOT filter on checkpointData — plans that failed
     //    before any checkpoint was saved still have status ACTIVE/DRAFT and will block
     //    new creation attempts via the fingerprint dedup check (409 ALREADY_RUNNING).
     const activePlans = await db.sAMExecutionPlan.findMany({
       where: {
         goal: { userId: user.id },
-        status: { in: ['ACTIVE', 'PAUSED', 'DRAFT'] },
+        status: { in: ['ACTIVE', 'PAUSED', 'DRAFT', 'FAILED'] },
       },
       select: { id: true },
     });

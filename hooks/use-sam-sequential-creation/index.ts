@@ -263,10 +263,33 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           return resumeCreation(lastCourseIdRef.current, config);
         }
 
+        // Max reconnections exhausted — set error state so Resume button appears
+        const exhaustedMsg = 'Connection lost after multiple retries. You can resume where you left off.';
         logger.warn('[SEQUENTIAL_SSE] Max reconnections reached', {
           maxReconnections: MAX_RECONNECTIONS,
           courseId: lastCourseIdRef.current,
         });
+
+        setPartialCourseId(lastCourseIdRef.current);
+        setResumableCourseId(lastCourseIdRef.current);
+        setError(exhaustedMsg);
+        setProgress(prev => ({
+          ...prev,
+          state: { ...prev.state, phase: 'error', error: exhaustedMsg },
+          message: exhaustedMsg,
+        }));
+
+        return {
+          success: false,
+          courseId: lastCourseIdRef.current,
+          error: exhaustedMsg,
+          stats: {
+            totalChapters: 0,
+            totalSections: 0,
+            totalTime: Date.now() - startTimeRef.current,
+            averageQualityScore: 0,
+          },
+        };
       }
 
       return result;
@@ -451,6 +474,34 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           // Switch to resumeCreation for subsequent segments
           return resumeCreation(lastCourseIdRef.current, config);
         }
+
+        // Max reconnections exhausted — set error state so Resume button appears
+        const exhaustedMsg = 'Connection lost after multiple retries. You can resume where you left off.';
+        logger.warn('[SEQUENTIAL_SSE] Max reconnections reached', {
+          maxReconnections: MAX_RECONNECTIONS,
+          courseId: lastCourseIdRef.current,
+        });
+
+        setPartialCourseId(lastCourseIdRef.current);
+        setResumableCourseId(lastCourseIdRef.current);
+        setError(exhaustedMsg);
+        setProgress(prev => ({
+          ...prev,
+          state: { ...prev.state, phase: 'error', error: exhaustedMsg },
+          message: exhaustedMsg,
+        }));
+
+        return {
+          success: false,
+          courseId: lastCourseIdRef.current,
+          error: exhaustedMsg,
+          stats: {
+            totalChapters: 0,
+            totalSections: 0,
+            totalTime: Date.now() - startTimeRef.current,
+            averageQualityScore: 0,
+          },
+        };
       }
 
       return result;
