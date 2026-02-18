@@ -76,6 +76,7 @@ COPY config/ ./config/
 COPY types/ ./types/
 COPY utils/ ./utils/
 COPY store/ ./store/
+COPY scripts/ ./scripts/
 COPY public/ ./public/
 # Package manifest (pnpm needs package.json to run scripts)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
