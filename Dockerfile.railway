@@ -73,6 +73,9 @@ COPY hooks/ ./hooks/
 COPY schemas/ ./schemas/
 COPY server/ ./server/
 COPY config/ ./config/
+COPY types/ ./types/
+COPY utils/ ./utils/
+COPY store/ ./store/
 COPY public/ ./public/
 # Root config files (Next.js build, TypeScript, styling)
 COPY next.config.js tsconfig.json tsconfig.build.json tsconfig.node.json ./
