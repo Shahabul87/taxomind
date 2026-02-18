@@ -67,6 +67,7 @@ import {
   estimateTokens,
   getEffectiveUserBudget,
   PromptPriority,
+  type PromptBudgetAlert,
   type PromptSection,
 } from './prompt-budget';
 
@@ -662,6 +663,7 @@ export function buildStage1Prompt(
   variant?: string,
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
+  onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const bloomsLevel = getContentAwareBloomsLevel({
@@ -951,12 +953,26 @@ Return ONLY valid JSON, no markdown formatting`,
 
   const systemTokenCount = estimateTokens(systemPrompt);
   const effectiveUserBudget = getEffectiveUserBudget(1, systemTokenCount);
-  const budgetResult = enforceTokenBudget(userSections, effectiveUserBudget);
+  const budgetResult = enforceTokenBudget(userSections, effectiveUserBudget, {
+    stage: 1,
+    onAlert: onPromptBudgetAlert,
+  });
   const userPrompt = budgetResult.droppedContextNotice
     ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
     : budgetResult.content;
 
-  return { systemPrompt, userPrompt };
+  return {
+    systemPrompt,
+    userPrompt,
+    budgetTelemetry: {
+      stage: 1,
+      truncated: budgetResult.truncated,
+      droppedHighPrioritySections: budgetResult.droppedHighPrioritySections,
+      truncatedSections: budgetResult.truncatedSections,
+      originalTokens: budgetResult.originalTokens,
+      finalTokens: budgetResult.finalTokens,
+    },
+  };
 }
 
 // ============================================================================
@@ -974,6 +990,7 @@ export function buildStage2Prompt(
   variant?: string,
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
+  onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const previousSectionsSummary = previousSections.length > 0
@@ -1208,12 +1225,26 @@ Return ONLY valid JSON, no markdown formatting`,
 
   const stage2SystemTokenCount = estimateTokens(systemPrompt);
   const stage2EffectiveUserBudget = getEffectiveUserBudget(2, stage2SystemTokenCount);
-  const budgetResult = enforceTokenBudget(userSections, stage2EffectiveUserBudget);
+  const budgetResult = enforceTokenBudget(userSections, stage2EffectiveUserBudget, {
+    stage: 2,
+    onAlert: onPromptBudgetAlert,
+  });
   const userPrompt = budgetResult.droppedContextNotice
     ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
     : budgetResult.content;
 
-  return { systemPrompt, userPrompt };
+  return {
+    systemPrompt,
+    userPrompt,
+    budgetTelemetry: {
+      stage: 2,
+      truncated: budgetResult.truncated,
+      droppedHighPrioritySections: budgetResult.droppedHighPrioritySections,
+      truncatedSections: budgetResult.truncatedSections,
+      originalTokens: budgetResult.originalTokens,
+      finalTokens: budgetResult.finalTokens,
+    },
+  };
 }
 
 // ============================================================================
@@ -1251,6 +1282,8 @@ export interface Stage3PromptOptions {
   recalledMemory?: RecalledMemory;
   /** Bridge content from prior chapter concept gap analysis */
   bridgeContent?: string;
+  /** Callback fired when HIGH-priority prompt context is dropped */
+  onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void;
 }
 
 export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
@@ -1266,6 +1299,7 @@ export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
     completedSections,
     recalledMemory,
     bridgeContent,
+    onPromptBudgetAlert,
   } = options;
 
   const ctx = sanitizeCourseContext(courseContext);
@@ -1574,12 +1608,26 @@ Return ONLY valid JSON, no markdown formatting`,
 
   const stage3SystemTokenCount = estimateTokens(systemPrompt);
   const stage3EffectiveUserBudget = getEffectiveUserBudget(3, stage3SystemTokenCount);
-  const budgetResult = enforceTokenBudget(userSections, stage3EffectiveUserBudget);
+  const budgetResult = enforceTokenBudget(userSections, stage3EffectiveUserBudget, {
+    stage: 3,
+    onAlert: onPromptBudgetAlert,
+  });
   const userPrompt = budgetResult.droppedContextNotice
     ? `${budgetResult.content}\n${budgetResult.droppedContextNotice}`
     : budgetResult.content;
 
-  return { systemPrompt, userPrompt };
+  return {
+    systemPrompt,
+    userPrompt,
+    budgetTelemetry: {
+      stage: 3,
+      truncated: budgetResult.truncated,
+      droppedHighPrioritySections: budgetResult.droppedHighPrioritySections,
+      truncatedSections: budgetResult.truncatedSections,
+      originalTokens: budgetResult.originalTokens,
+      finalTokens: budgetResult.finalTokens,
+    },
+  };
 }
 
 // ============================================================================

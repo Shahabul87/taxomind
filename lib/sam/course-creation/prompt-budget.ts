@@ -129,6 +129,17 @@ export interface BudgetResult {
    * Empty string when nothing was truncated.
    */
   droppedContextNotice: string;
+  /** HIGH-priority sections that had to be dropped (should trigger alerts) */
+  droppedHighPrioritySections: string[];
+}
+
+export interface PromptBudgetAlert {
+  stage?: 1 | 2 | 3;
+  maxTokens: number;
+  originalTokens: number;
+  finalTokens: number;
+  truncatedSections: string[];
+  droppedHighPrioritySections: string[];
 }
 
 // ============================================================================
@@ -151,6 +162,10 @@ export interface BudgetResult {
 export function enforceTokenBudget(
   sections: PromptSection[],
   maxTokens: number,
+  options?: {
+    stage?: 1 | 2 | 3;
+    onAlert?: (alert: PromptBudgetAlert) => void;
+  },
 ): BudgetResult {
   // Filter out empty sections
   const nonEmpty = sections.filter(s => s.content.trim().length > 0);
@@ -166,6 +181,7 @@ export function enforceTokenBudget(
       finalTokens: originalTokens,
       truncatedSections: [],
       droppedContextNotice: '',
+      droppedHighPrioritySections: [],
     };
   }
 
@@ -254,6 +270,9 @@ export function enforceTokenBudget(
   const finalSections = nonEmpty.filter(s => !droppedLabels.has(s.label));
   const finalContent = finalSections.map(s => s.content).join('\n');
   const finalTokens = estimateTokens(finalContent);
+  const droppedHighPrioritySections = nonEmpty
+    .filter(s => droppedLabels.has(s.label) && s.priority === PromptPriority.HIGH)
+    .map(s => s.label);
 
   if (truncatedLabels.length > 0) {
     logger.warn('[PROMPT_BUDGET] Token budget enforced', {
@@ -261,7 +280,28 @@ export function enforceTokenBudget(
       originalTokens,
       finalTokens,
       truncatedSections: truncatedLabels,
+      droppedHighPrioritySections,
     });
+  }
+
+  if (droppedHighPrioritySections.length > 0) {
+    const alert: PromptBudgetAlert = {
+      stage: options?.stage,
+      maxTokens,
+      originalTokens,
+      finalTokens,
+      truncatedSections: truncatedLabels,
+      droppedHighPrioritySections,
+    };
+
+    logger.error('[PROMPT_BUDGET_ALERT] High-priority context dropped', {
+      stage: options?.stage,
+      droppedHighPrioritySections,
+      originalTokens,
+      finalTokens,
+      maxTokens,
+    });
+    options?.onAlert?.(alert);
   }
 
   // Build a context notice so the AI knows what information was dropped
@@ -276,6 +316,7 @@ export function enforceTokenBudget(
     finalTokens,
     truncatedSections: truncatedLabels,
     droppedContextNotice,
+    droppedHighPrioritySections,
   };
 }
 

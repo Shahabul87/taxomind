@@ -41,6 +41,10 @@ import { AdaptiveStrategyMonitor } from './adaptive-strategy';
 import type { AdaptiveStrategyState } from './adaptive-strategy';
 import { PipelineBudgetTracker } from './pipeline-budget';
 import { FallbackTracker } from './response-parsers';
+import {
+  CourseCreationSLOTracker,
+  recordCourseCreationSLOSnapshot,
+} from './slo-telemetry';
 import { initializeCourseRecord } from './course-initializer';
 import { runPipeline } from './pipeline-runner';
 import { runPostProcessing } from './post-processor';
@@ -138,7 +142,7 @@ export async function orchestrateCourseCreation(
     bloomsFocus: config.bloomsFocus as BloomsLevel[],
     learningObjectivesPerChapter: config.learningObjectivesPerChapter,
     learningObjectivesPerSection: config.learningObjectivesPerSection,
-    preferredContentTypes: config.preferredContentTypes ?? [],
+    preferredContentTypes: (config.preferredContentTypes ?? []) as CourseContext['preferredContentTypes'],
     courseIntent: config.courseIntent,
     includeAssessments: config.includeAssessments,
     duration: config.duration,
@@ -243,6 +247,7 @@ export async function orchestrateCourseCreation(
   // Initialize fallback tracker for monitoring AI response parse failures
   const fallbackThreshold = config.fallbackPolicy?.haltRateThreshold ?? 0.3;
   const fallbackTracker = new FallbackTracker(fallbackThreshold);
+  const sloTracker = new CourseCreationSLOTracker(runId);
 
   // Initialize pipeline budget tracker (3x the estimated token spend)
   // Accurate call count per chapter:
@@ -282,35 +287,38 @@ export async function orchestrateCourseCreation(
     formula: `${totalChapters} + ${totalSections} + ${totalSections} = ${totalItems}`,
   });
 
-  const trackingOnSSEEvent = onSSEEvent
-    ? (event: { type: string; data: Record<string, unknown> }) => {
-        if (event.type === 'item_complete') {
-          const stage = event.data.stage as number;
-          if (stage === 1 || stage === 2 || stage === 3) {
-            const isHealing = event.data.isHealing as boolean | undefined;
-            const isResumeReplay = event.data.isResumeReplay as boolean | undefined;
-            if (!isHealing && !isResumeReplay) {
-              completedItems++;
-              logger.debug('[ORCHESTRATOR] Item completed', {
-                stage,
-                completedItems,
-                totalItems,
-                percentage: Math.round((completedItems / totalItems) * 100),
-                chapter: event.data.chapter,
-                section: event.data.section,
-              });
-            }
-          }
-          // Enrich item_complete events with progress counters for client-side tracking
-          onSSEEvent({
-            type: event.type,
-            data: { ...event.data, completedItems, totalItems },
+  const trackingOnSSEEvent = (event: { type: string; data: Record<string, unknown> }) => {
+    sloTracker.observeEvent(event);
+
+    if (event.type === 'item_complete') {
+      const stage = event.data.stage as number;
+      if (stage === 1 || stage === 2 || stage === 3) {
+        const isHealing = event.data.isHealing as boolean | undefined;
+        const isResumeReplay = event.data.isResumeReplay as boolean | undefined;
+        if (!isHealing && !isResumeReplay) {
+          completedItems++;
+          logger.debug('[ORCHESTRATOR] Item completed', {
+            stage,
+            completedItems,
+            totalItems,
+            percentage: Math.round((completedItems / totalItems) * 100),
+            chapter: event.data.chapter,
+            section: event.data.section,
           });
-          return;
         }
-        onSSEEvent(event);
       }
-    : undefined;
+
+      if (onSSEEvent) {
+        onSSEEvent({
+          type: event.type,
+          data: { ...event.data, completedItems, totalItems },
+        });
+      }
+      return;
+    }
+
+    onSSEEvent?.(event);
+  };
 
   const progress: CreationProgress = {
     state: {
@@ -502,7 +510,7 @@ export async function orchestrateCourseCreation(
       chapterTemplate,
       categoryPrompt: composedCategoryPrompt,
       categoryEnhancer,
-      experimentVariant,
+      experimentVariant: experimentVariant ?? '',
       chapterSectionCounts,
       budgetTracker,
       fallbackTracker,
@@ -551,14 +559,14 @@ export async function orchestrateCourseCreation(
     // POST-PROCESSING: Delegate to post-processor (reflection + healing)
     // =========================================================================
 
-    await runPostProcessing(
+    const postProcessResult = (await runPostProcessing(
       { userId, courseId, goalId, runId, onSSEEvent: trackingOnSSEEvent },
       completedChapters,
       conceptTracker,
       courseContext,
       qualityScores,
       blueprintPlan,
-    );
+    )) ?? { courseReflection: null, healingPerformed: false };
 
     // =========================================================================
     // COMPLETION: Delegate to completion-handler
@@ -589,6 +597,8 @@ export async function orchestrateCourseCreation(
         qualityScores,
         experimentAssignments,
         fallbackTracker,
+        sloTracker,
+        coherenceScore: postProcessResult.courseReflection?.coherenceScore,
       },
       config,
       generatedChapters,
@@ -616,6 +626,21 @@ export async function orchestrateCourseCreation(
         courseId: createdCourseId || undefined,
       },
     });
+
+    if (planId) {
+      const totalTime = Date.now() - startTime;
+      const averageQualityScore = qualityScores.length > 0
+        ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
+        : 0;
+      const snapshot = sloTracker.buildSnapshot({
+        status: abortSignal?.aborted ? 'cancelled' : 'failed',
+        totalTimeMs: totalTime,
+        chaptersCreated,
+        sectionsCreated,
+        averageQualityScore,
+      });
+      recordCourseCreationSLOSnapshot(planId, snapshot).catch(() => { /* non-critical */ });
+    }
 
     return {
       success: false,

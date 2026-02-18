@@ -17,6 +17,10 @@ import {
 import { recordExperimentOutcome, type ExperimentAssignment } from './experiments';
 import { runPostCreationEnrichmentBackground } from './post-creation-enrichment';
 import { PROMPT_VERSION } from './prompts';
+import {
+  CourseCreationSLOTracker,
+  recordCourseCreationSLOSnapshot,
+} from './slo-telemetry';
 import type { SequentialCreationConfig, SequentialCreationResult, QualityScore } from './types';
 import type { FallbackTracker } from './response-parsers';
 
@@ -38,6 +42,8 @@ export interface CompletionStats {
   qualityScores: QualityScore[];
   experimentAssignments: ExperimentAssignment[];
   fallbackTracker?: FallbackTracker;
+  sloTracker?: CourseCreationSLOTracker;
+  coherenceScore?: number;
 }
 
 /**
@@ -52,7 +58,16 @@ export async function finalizeAndEmit(
   allSections: Map<string, unknown[]>,
 ): Promise<SequentialCreationResult> {
   const { courseId, goalId, planId, stepIds, runId, userId, courseTitle, onSSEEvent } = options;
-  const { chaptersCreated, sectionsCreated, totalTime, qualityScores, experimentAssignments, fallbackTracker } = stats;
+  const {
+    chaptersCreated,
+    sectionsCreated,
+    totalTime,
+    qualityScores,
+    experimentAssignments,
+    fallbackTracker,
+    sloTracker,
+    coherenceScore,
+  } = stats;
 
   // Emit stage completion events
   onSSEEvent?.({
@@ -117,6 +132,7 @@ export async function finalizeAndEmit(
         totalTimeMs: totalTime,
         chaptersCreated,
         sectionsCreated,
+        coherenceScore,
         promptVersion: PROMPT_VERSION,
       }).catch(() => { /* non-critical */ });
     }
@@ -133,6 +149,19 @@ export async function finalizeAndEmit(
     });
   }
 
+  // Persist course-creation SLO snapshot (fire-and-forget)
+  if (sloTracker && planId) {
+    const snapshot = sloTracker.buildSnapshot({
+      status: 'completed',
+      totalTimeMs: totalTime,
+      chaptersCreated,
+      sectionsCreated,
+      averageQualityScore,
+      fallbackSummary: fallbackSummaryData,
+    });
+    recordCourseCreationSLOSnapshot(planId, snapshot).catch(() => { /* non-critical */ });
+  }
+
   onSSEEvent?.({
     type: 'complete',
     data: {
@@ -141,6 +170,7 @@ export async function finalizeAndEmit(
       sectionsCreated,
       totalTime,
       averageQualityScore,
+      coherenceScore,
       promptVersion: PROMPT_VERSION,
       fallbackSummary: fallbackSummaryData,
     },

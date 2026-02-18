@@ -40,6 +40,7 @@ export interface ExperimentOutcome {
   totalTimeMs: number;
   chaptersCreated: number;
   sectionsCreated: number;
+  coherenceScore?: number;
   /** Prompt template version (from PROMPT_VERSION) used during this experiment run */
   promptVersion?: string;
 }
@@ -53,6 +54,17 @@ export interface ExperimentOutcome {
  * Default: all inactive → exact current behavior (ARROW framework).
  */
 const COURSE_CREATION_EXPERIMENTS_ENABLED = process.env.ENABLE_COURSE_CREATION_EXPERIMENTS === 'true';
+const ENTERPRISE_CANARY_ENABLED = process.env.ENABLE_COURSE_CREATION_ENTERPRISE_CANARY === 'true';
+
+function resolveCanaryWeight(): number {
+  const raw = Number(process.env.COURSE_CREATION_CANARY_PERCENT ?? '20');
+  if (!Number.isFinite(raw)) return 0.2;
+  // Enterprise rollout requirement: keep canary in 10-20% by default guardrails
+  const bounded = Math.min(20, Math.max(10, raw));
+  return bounded / 100;
+}
+
+const ENTERPRISE_CANARY_WEIGHT = resolveCanaryWeight();
 
 export const EXPERIMENTS: ExperimentDefinition[] = [
   {
@@ -71,6 +83,15 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     variants: ['control', 'optimized-v1'],
     weights: [0.8, 0.2],
     autoGraduateAfterSamples: 20,
+  },
+  {
+    id: 'enterprise-rollout-canary-v1',
+    name: 'Enterprise Course Creation Canary',
+    description: 'Controlled canary rollout for enterprise course-creation pipeline changes.',
+    active: ENTERPRISE_CANARY_ENABLED,
+    variants: ['control', 'enterprise-v1'],
+    weights: [1 - ENTERPRISE_CANARY_WEIGHT, ENTERPRISE_CANARY_WEIGHT],
+    autoGraduateAfterSamples: 50,
   },
 ];
 
@@ -250,6 +271,16 @@ export interface ExperimentStats {
 
 const MIN_SAMPLES_PER_VARIANT = 10;
 
+export interface CanaryComparisonStats {
+  experimentId: string;
+  variants: Array<{
+    name: string;
+    sampleSize: number;
+    averageQualityScore: number;
+    averageCoherenceScore: number | null;
+  }>;
+}
+
 /**
  * Compute experiment statistics with Welch's t-test.
  * Returns null if the experiment doesn't exist.
@@ -329,6 +360,53 @@ export async function getExperimentStats(
     significant,
     minSamplesRequired: MIN_SAMPLES_PER_VARIANT,
     message,
+  };
+}
+
+export async function getCanaryComparisonStats(
+  experimentId: string,
+): Promise<CanaryComparisonStats | null> {
+  const plans = await db.sAMExecutionPlan.findMany({
+    where: {
+      schedule: {
+        path: [`experiment:${experimentId}`],
+        not: 'null',
+      },
+    },
+    select: { schedule: true },
+  });
+
+  if (plans.length === 0) return null;
+
+  const grouped = new Map<string, { quality: number[]; coherence: number[] }>();
+  for (const plan of plans) {
+    const schedule = plan.schedule as Record<string, unknown>;
+    const expData = schedule[`experiment:${experimentId}`] as {
+      variant?: string;
+      outcome?: { averageQualityScore?: number; coherenceScore?: number };
+    } | undefined;
+
+    if (!expData?.variant || typeof expData.outcome?.averageQualityScore !== 'number') continue;
+    const existing = grouped.get(expData.variant) ?? { quality: [], coherence: [] };
+    existing.quality.push(expData.outcome.averageQualityScore);
+    if (typeof expData.outcome.coherenceScore === 'number') {
+      existing.coherence.push(expData.outcome.coherenceScore);
+    }
+    grouped.set(expData.variant, existing);
+  }
+
+  if (grouped.size === 0) return null;
+
+  return {
+    experimentId,
+    variants: [...grouped.entries()].map(([name, values]) => ({
+      name,
+      sampleSize: values.quality.length,
+      averageQualityScore: Math.round((values.quality.reduce((a, b) => a + b, 0) / values.quality.length) * 100) / 100,
+      averageCoherenceScore: values.coherence.length > 0
+        ? Math.round((values.coherence.reduce((a, b) => a + b, 0) / values.coherence.length) * 100) / 100
+        : null,
+    })),
   };
 }
 

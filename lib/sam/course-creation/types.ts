@@ -281,6 +281,8 @@ export type SSEEventType =
   | 'state_change'
   | 'agentic_decision'
   | 'quality_flag'
+  | 'prompt_budget_alert'
+  | 'semantic_duplicate_detected'
   | 'replan_start'
   | 'replan_complete'
   | 'pipeline_paused'
@@ -525,6 +527,14 @@ export interface EnrichedChapterContext {
 export interface StagePrompt {
   systemPrompt: string;
   userPrompt: string;
+  budgetTelemetry?: {
+    stage: 1 | 2 | 3;
+    truncated: boolean;
+    droppedHighPrioritySections: string[];
+    truncatedSections: string[];
+    originalTokens: number;
+    finalTokens: number;
+  };
 }
 
 // ============================================================================

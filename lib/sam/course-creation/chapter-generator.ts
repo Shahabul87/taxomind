@@ -23,6 +23,7 @@ import { buildStage1Prompt, buildStage2Prompt, buildStage3Prompt } from './promp
 import { composeTemplatePromptBlocks, selectTemplateSections } from './chapter-templates';
 import { streamWithThinkingExtraction } from './streaming-accumulator';
 import { composeCategoryPrompt } from './category-prompts';
+import type { PromptBudgetAlert } from './prompt-budget';
 import {
   validateChapterWithSAM,
   validateSectionWithSAM,
@@ -55,6 +56,7 @@ import {
 } from './helpers';
 import { retryWithQualityGate } from './retry-quality-gate';
 import { validateAndFixMath } from './math-validator';
+import { SemanticDuplicateGate } from './semantic-duplicate-gate';
 import type {
   CourseContext,
   GeneratedChapter,
@@ -147,6 +149,28 @@ export async function generateSingleChapter(
   let chaptersCreated = 0;
   let sectionsCreated = 0;
 
+  const emitPromptBudgetAlert = (
+    alert: PromptBudgetAlert,
+    stage: 1 | 2 | 3,
+    section?: number,
+  ): void => {
+    if (alert.droppedHighPrioritySections.length === 0) return;
+    onSSEEvent?.({
+      type: 'prompt_budget_alert',
+      data: {
+        stage,
+        chapter: chNum,
+        section,
+        droppedHighPriorityCount: alert.droppedHighPrioritySections.length,
+        droppedHighPrioritySections: alert.droppedHighPrioritySections,
+        truncatedSections: alert.truncatedSections,
+        originalTokens: alert.originalTokens,
+        finalTokens: alert.finalTokens,
+        maxTokens: alert.maxTokens,
+      },
+    });
+  };
+
   /** Record an AI call against the budget tracker and throw if budget exceeded */
   const trackBudget = (estimatedTokens: number = 5000): void => {
     if (!budgetTracker) return;
@@ -186,6 +210,7 @@ export async function generateSingleChapter(
         composedCategoryPrompt, completedChapters, experimentVariant,
         s1TemplatePrompt,
         recalledMemory ?? undefined,
+        (alert) => emitPromptBudgetAlert(alert, 1),
       );
 
       const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
@@ -392,6 +417,8 @@ export async function generateSingleChapter(
         courseContext, chNum, previousPlain, conceptTracker,
         composedCategoryPrompt, completedChapters, experimentVariant,
         s1CriticTemplatePrompt,
+        recalledMemory ?? undefined,
+        (alert) => emitPromptBudgetAlert(alert, 1),
       );
       const augmentedRetryUser = `${retryUser}${criticFeedback}`;
 
@@ -493,6 +520,7 @@ export async function generateSingleChapter(
   const chapterCategoryPrompt = rawCategoryEnhancer
     ? composeCategoryPrompt(rawCategoryEnhancer, chapterPlain.bloomsLevel)
     : composedCategoryPrompt;
+  const semanticDuplicateGate = new SemanticDuplicateGate(completedChapters, chNum);
 
   const generateSectionDetails = async (
     section: GeneratedSection & { id: string },
@@ -547,6 +575,7 @@ export async function generateSingleChapter(
           templatePrompt: s3TemplatePrompt, completedSections,
           recalledMemory: recalledMemory ?? undefined,
           bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
+          onPromptBudgetAlert: (alert) => emitPromptBudgetAlert(alert, 3, section.position),
         });
         const augmentedS3User = feedback ? `${s3User}\n\n${buildQualityFeedbackBlock(feedback)}` : s3User;
 
@@ -633,6 +662,7 @@ export async function generateSingleChapter(
             categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
             templatePrompt: s3CriticTemplatePrompt, completedSections,
             recalledMemory: recalledMemory ?? undefined,
+            onPromptBudgetAlert: (alert) => emitPromptBudgetAlert(alert, 3, section.position),
           });
           const augmentedCriticUser = `${s3CriticUser}${criticFeedback}`;
 
@@ -744,7 +774,19 @@ export async function generateSingleChapter(
       strategy: s2Strategy,
       buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
-        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
+          courseContext,
+          chapterPlain,
+          secNum,
+          previousPlainSections,
+          allSectionTitles,
+          enrichedContext,
+          chapterCategoryPrompt,
+          experimentVariant,
+          s2TemplatePrompt,
+          recalledMemory ?? undefined,
+          (alert) => emitPromptBudgetAlert(alert, 2, secNum),
+        );
         const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
 
         const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
@@ -765,14 +807,39 @@ export async function generateSingleChapter(
         }
         const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
         const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
-        const blendedSec = blendScores(result.qualityScore, samSecResult);
+        let blendedSec = blendScores(result.qualityScore, samSecResult);
+        const semanticDuplicate = await semanticDuplicateGate.assess({
+          title: result.section.title,
+          topicFocus: result.section.topicFocus,
+          concepts: result.section.conceptsIntroduced,
+        });
+        if (semanticDuplicate) {
+          blendedSec = {
+            ...blendedSec,
+            uniqueness: Math.max(0, blendedSec.uniqueness - 40),
+            overall: Math.max(0, blendedSec.overall - 25),
+          };
+          (result as Record<string, unknown>)._semanticDuplicate = semanticDuplicate;
+        }
         (result as Record<string, unknown>)._samResult = samSecResult;
 
         return { result: { ...result, qualityScore: blendedSec }, score: blendedSec.overall };
       },
       extractFeedback: (result, _score, nextAttempt) => {
         const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
-        return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+        const feedback = extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+        const semanticDuplicate = (result as Record<string, unknown>)._semanticDuplicate as import('./semantic-duplicate-gate').SemanticDuplicateAssessment | undefined;
+        if (semanticDuplicate) {
+          feedback.criticalIssues = [
+            `Section overlaps with "${semanticDuplicate.match.title}" (Ch${semanticDuplicate.match.chapter} Sec${semanticDuplicate.match.section}, similarity ${semanticDuplicate.similarity})`,
+            ...feedback.criticalIssues,
+          ];
+          feedback.suggestions = [
+            'Choose a clearly different topic angle than prior chapters',
+            ...feedback.suggestions,
+          ].slice(0, 5);
+        }
+        return feedback;
       },
       onRetry: (attempt, previousScore, topIssue) => {
         onSSEEvent?.({ type: 'quality_retry', data: {
@@ -829,6 +896,7 @@ export async function generateSingleChapter(
             courseContext, chapterPlain, secNum, previousPlainSectionsForCritic, allSectionTitles,
             enrichedContext, chapterCategoryPrompt, experimentVariant, s2CriticTemplatePrompt,
             recalledMemory ?? undefined,
+            (alert) => emitPromptBudgetAlert(alert, 2, secNum),
           );
           const augmentedCriticUser = `${s2CriticUser}${criticFeedback}`;
 
@@ -872,6 +940,35 @@ export async function generateSingleChapter(
     secQuality.stage = 2;
     localQualityScores.push(secQuality);
     qualityScores.push(secQuality);
+
+    const finalSemanticDuplicate = await semanticDuplicateGate.assess({
+      title: section.title,
+      topicFocus: section.topicFocus,
+      concepts: section.conceptsIntroduced,
+    });
+    if (finalSemanticDuplicate) {
+      onSSEEvent?.({
+        type: 'semantic_duplicate_detected',
+        data: {
+          chapter: chNum,
+          section: secNum,
+          mode: finalSemanticDuplicate.mode,
+          similarity: finalSemanticDuplicate.similarity,
+          matchedChapter: finalSemanticDuplicate.match.chapter,
+          matchedSection: finalSemanticDuplicate.match.section,
+          matchedTitle: finalSemanticDuplicate.match.title,
+        },
+      });
+
+      const chapterQualifier = chapterPlain.title.split(':')[0].trim();
+      if (!section.title.toLowerCase().includes(chapterQualifier.toLowerCase())) {
+        section.title = `${section.title} (${chapterQualifier})`;
+      }
+      if (!section.topicFocus.toLowerCase().includes(chapterQualifier.toLowerCase())) {
+        section.topicFocus = `${section.topicFocus} in ${chapterQualifier}`;
+      }
+    }
+
     allSectionTitles.push(section.title);
 
     const sectionConcepts = section.conceptsIntroduced ?? [];
