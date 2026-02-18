@@ -140,6 +140,44 @@ npm run typecheck:parallel:watch   # Watch mode
 npm run typecheck:parallel:clean   # Clear cache
 ```
 
+## 🚀 Railway Deployment (BuildKit-Optimized)
+
+**IMPORTANT**: Builds are optimized with Docker BuildKit cache mounts for ~70% faster deploys.
+
+**Full Documentation**: `codebase-memory/build-optimization/RAILWAY_DOCKER_CACHE_OPTIMIZATION.md`
+
+### How It Works
+- `Dockerfile.railway` uses **manifest-only copy** for the install layer (only `package.json` from each of the 17 workspace packages)
+- Source code changes do NOT invalidate the `pnpm install` layer
+- **BuildKit cache mounts** persist the pnpm store and `.next/cache` between builds
+- Railway service ID `a5806e45-63e0-4877-a422-d32ba4db7551` is hardcoded in cache mount IDs (Railway requirement)
+
+### Deploy Commands
+```bash
+# Auto-deploy (push triggers Railway build)
+git push origin main
+
+# Manual deploy via CLI
+railway up --detach
+
+# Check status
+railway status
+railway logs
+```
+
+### Build Times
+| Scenario | Time |
+|----------|------|
+| Source-only change (cached) | ~1.5-3.5 min |
+| Lockfile change | ~4-5 min |
+| Full cold build | ~8-13 min |
+
+### Critical Rules
+- **NEVER** remove or change cache mount IDs without updating the Railway service ID prefix
+- **NEVER** use `railway up` if builds are paused — unpause from Railway dashboard first
+- **ALWAYS** test Dockerfile changes locally before pushing: `DOCKER_BUILDKIT=1 docker build -f Dockerfile.railway -t taxomind-test .`
+- The `# syntax=docker/dockerfile:1` directive is NOT needed (Docker 23+ has native BuildKit)
+
 ## 🔐 Test Credentials
 
 **For testing features that require authentication:**
@@ -596,6 +634,8 @@ const result = await db.$transaction(async (tx) => {
 - `lib/sam/middleware/rate-limiter.ts` - In-memory rate limiting
 - `components/react-error-boundary.tsx` - React ErrorBoundary for component isolation
 - `app/api/health/route.ts` - Health check (DB, SAM, pool metrics)
+- `Dockerfile.railway` - Optimized multi-stage Docker build with BuildKit cache mounts
+- `railway.json` - Railway builder config (DOCKERFILE mode)
 
 ## Icons (Lucide React)
 
