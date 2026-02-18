@@ -167,6 +167,14 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
     const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 
+    // Reset reconnect counter for user-initiated resume (error/idle/paused state).
+    // Auto-reconnects increment the counter BEFORE calling resumeCreation recursively,
+    // so the counter may be >0 from a prior attempt if the user clicks "Resume" manually.
+    const currentPhase = progressRef.current.state.phase;
+    if (currentPhase === 'error' || currentPhase === 'idle' || currentPhase === 'paused') {
+      reconnectCountRef.current = 0;
+    }
+
     // Only reset timing on first call (not auto-reconnect)
     if (reconnectCountRef.current === 0) {
       startTimeRef.current = Date.now();
@@ -294,8 +302,35 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         return resumeCreation(lastCourseIdRef.current, config);
       }
 
+      // Persist courseId for resume
+      const resumeCourseId = lastCourseIdRef.current ?? courseId;
+      if (resumeCourseId) {
+        setPartialCourseId(resumeCourseId);
+        setResumableCourseId(resumeCourseId);
+      }
+
       setError(errorMessage);
-      return { success: false, error: errorMessage };
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'error', error: errorMessage },
+        message: errorMessage,
+      }));
+
+      if (callbacks.onError) {
+        callbacks.onError(errorMessage, true);
+      }
+
+      return {
+        success: false,
+        courseId: resumeCourseId ?? undefined,
+        error: errorMessage,
+        stats: {
+          totalChapters: 0,
+          totalSections: 0,
+          totalTime: Date.now() - startTimeRef.current,
+          averageQualityScore: 0,
+        },
+      };
     } finally {
       abortControllerRef.current = null;
     }
@@ -458,6 +493,12 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
       }
 
       logger.error('[SEQUENTIAL_SSE] Creation failed:', err);
+
+      // Persist courseId for resume if the course was created before the error
+      if (lastCourseIdRef.current) {
+        setPartialCourseId(lastCourseIdRef.current);
+        setResumableCourseId(lastCourseIdRef.current);
+      }
 
       setError(errorMessage);
       setProgress(prev => ({

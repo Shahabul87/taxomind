@@ -732,7 +732,7 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
             {isError && onRetry && (
               <Button onClick={onRetry} variant={onResume && resumableCourseId ? 'outline' : 'default'}>
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Try Again
+                {onResume && resumableCourseId ? 'Start Over' : 'Try Again'}
               </Button>
             )}
             {isComplete && (
