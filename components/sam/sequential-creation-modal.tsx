@@ -721,10 +721,12 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 Cancel
               </Button>
             )}
-            {isError && onResume && resumableCourseId && progress.completedItems.chapters.length > 0 && (
+            {isError && onResume && resumableCourseId && (
               <Button onClick={onResume} variant="default">
                 <ChevronRight className="h-4 w-4 mr-2" />
-                Resume from Chapter {progress.completedItems.chapters.length + 1}
+                {progress.completedItems.chapters.length > 0
+                  ? `Resume from Chapter ${progress.completedItems.chapters.length + 1}`
+                  : 'Resume Course Creation'}
               </Button>
             )}
             {isError && onRetry && (

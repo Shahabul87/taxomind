@@ -23,6 +23,9 @@
 import * as jwt from "jsonwebtoken";
 import type { JWT } from "next-auth/jwt";
 
+const IS_DEV = process.env.NODE_ENV === 'development';
+const debugLog = IS_DEV ? (...args: unknown[]) => console.log(...args) : () => {};
+
 // Admin-specific JWT secret (can be different from user secret)
 // In production, use ADMIN_JWT_SECRET environment variable for maximum separation
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (process.env.AUTH_SECRET + '-admin');
@@ -37,14 +40,12 @@ const ADMIN_JWT_ALGORITHM = 'HS512';
 // Admin JWT max age: 4 hours (14400 seconds)
 const ADMIN_JWT_MAX_AGE = 4 * 60 * 60; // 4 hours
 
-// Log secret configuration on startup
-if (process.env.NODE_ENV === 'development') {
-  console.log('[admin-jwt] Configuration loaded:');
-  console.log('[admin-jwt]   ADMIN_JWT_SECRET present:', !!process.env.ADMIN_JWT_SECRET);
-  console.log('[admin-jwt]   Using fallback secret:', !process.env.ADMIN_JWT_SECRET);
-  console.log('[admin-jwt]   Algorithm:', ADMIN_JWT_ALGORITHM);
-  console.log('[admin-jwt]   Max age:', ADMIN_JWT_MAX_AGE / 3600, 'hours');
-}
+// Log secret configuration on startup (dev only via debugLog)
+debugLog('[admin-jwt] Configuration loaded:');
+debugLog('[admin-jwt]   ADMIN_JWT_SECRET present:', !!process.env.ADMIN_JWT_SECRET);
+debugLog('[admin-jwt]   Using fallback secret:', !process.env.ADMIN_JWT_SECRET);
+debugLog('[admin-jwt]   Algorithm:', ADMIN_JWT_ALGORITHM);
+debugLog('[admin-jwt]   Max age:', ADMIN_JWT_MAX_AGE / 3600, 'hours');
 
 /**
  * Admin JWT Configuration
@@ -57,11 +58,11 @@ export const adminJwtConfig = {
    */
   async encode({ secret, token, maxAge }: { secret: string; token?: JWT; maxAge?: number }): Promise<string | null> {
     if (!token) {
-      console.log('[admin-jwt] No token provided to encode');
+      debugLog('[admin-jwt] No token provided to encode');
       return null;
     }
 
-    console.log('[admin-jwt] Encoding admin JWT for:', token.sub);
+    debugLog('[admin-jwt] Encoding admin JWT for:', token.sub);
 
     // Add admin-specific claims
     const adminToken = {
@@ -86,7 +87,7 @@ export const adminJwtConfig = {
         expiresIn: maxAge || ADMIN_JWT_MAX_AGE,
       });
 
-      console.log('[admin-jwt] Admin JWT encoded successfully');
+      debugLog('[admin-jwt] Admin JWT encoded successfully');
       return encodedToken;
     } catch (error) {
       console.error('[admin-jwt] Error encoding admin JWT:', error);
@@ -106,13 +107,13 @@ export const adminJwtConfig = {
    */
   async decode({ secret, token }: { secret: string; token?: string }): Promise<JWT | null> {
     if (!token) {
-      console.log('[admin-jwt] No token provided to decode');
+      debugLog('[admin-jwt] No token provided to decode');
       return null;
     }
 
-    console.log('[admin-jwt] Starting JWT decode process');
-    console.log('[admin-jwt] Input token type:', typeof token);
-    console.log('[admin-jwt] Input token length:', token.length);
+    debugLog('[admin-jwt] Starting JWT decode process');
+    debugLog('[admin-jwt] Input token type:', typeof token);
+    debugLog('[admin-jwt] Input token length:', token.length);
 
     // Step 1: Try to extract JWT from various formats
     let jwtToken = token;
@@ -135,7 +136,7 @@ export const adminJwtConfig = {
     for (const pattern of cookiePatterns) {
       const match = jwtToken.match(pattern);
       if (match?.[1]) {
-        console.log('[admin-jwt] Extracted JWT from cookie pattern');
+        debugLog('[admin-jwt] Extracted JWT from cookie pattern');
         jwtToken = match[1];
         break;
       }
@@ -149,24 +150,24 @@ export const adminJwtConfig = {
     for (const prefix of prefixes) {
       if (jwtToken.startsWith(prefix)) {
         jwtToken = jwtToken.substring(prefix.length);
-        console.log('[admin-jwt] Removed prefix:', prefix);
+        debugLog('[admin-jwt] Removed prefix:', prefix);
       }
     }
 
     // Step 2: Validate JWT format (3 parts separated by dots)
     const jwtParts = jwtToken.split('.');
     if (jwtParts.length !== 3) {
-      console.log('[admin-jwt] Invalid JWT format - expected 3 parts, got:', jwtParts.length);
+      debugLog('[admin-jwt] Invalid JWT format - expected 3 parts, got:', jwtParts.length);
 
       // Last resort: Try to find JWT pattern in the string
       const jwtPattern = /[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/;
       const jwtMatch = jwtToken.match(jwtPattern);
 
       if (jwtMatch) {
-        console.log('[admin-jwt] Found JWT pattern in input string');
+        debugLog('[admin-jwt] Found JWT pattern in input string');
         jwtToken = jwtMatch[0];
       } else {
-        console.log('[admin-jwt] Could not find valid JWT in input');
+        debugLog('[admin-jwt] Could not find valid JWT in input');
         return null;
       }
     }
@@ -176,7 +177,7 @@ export const adminJwtConfig = {
       const payloadBase64 = jwtParts[1];
       const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
 
-      console.log('[admin-jwt] JWT payload preview:', {
+      debugLog('[admin-jwt] JWT payload preview:', {
         aud: payload?.aud,
         iss: payload?.iss,
         role: payload?.role,
@@ -194,16 +195,16 @@ export const adminJwtConfig = {
       );
 
       if (!isAdminToken) {
-        console.log('[admin-jwt] Not an admin JWT - skipping verification');
+        debugLog('[admin-jwt] Not an admin JWT - skipping verification');
         return null;
       }
     } catch (e) {
-      console.log('[admin-jwt] Could not decode JWT payload for preview:', e);
+      debugLog('[admin-jwt] Could not decode JWT payload for preview:', e);
       // Continue with verification anyway
     }
 
     // Step 4: Verify the JWT with the admin secret (with legacy fallback)
-    console.log('[admin-jwt] Attempting JWT verification with admin secret');
+    debugLog('[admin-jwt] Attempting JWT verification with admin secret');
 
     // Try with the new ADMIN_JWT_SECRET first
     let decoded: JWT | null = null;
@@ -216,10 +217,10 @@ export const adminJwtConfig = {
         issuer: 'taxomind-admin-auth',
       }) as JWT;
 
-      console.log('[admin-jwt] ✓ JWT verified with current ADMIN_JWT_SECRET');
+      debugLog('[admin-jwt] ✓ JWT verified with current ADMIN_JWT_SECRET');
     } catch (primaryError) {
       // If verification fails with new secret, try legacy secret for graceful migration
-      console.log('[admin-jwt] Verification with current secret failed, trying legacy secret...');
+      debugLog('[admin-jwt] Verification with current secret failed, trying legacy secret...');
 
       try {
         decoded = jwt.verify(jwtToken, LEGACY_ADMIN_SECRET, {
@@ -229,23 +230,23 @@ export const adminJwtConfig = {
         }) as JWT;
 
         usedLegacySecret = true;
-        console.log('[admin-jwt] ⚠️  JWT verified with LEGACY secret (old token detected)');
-        console.log('[admin-jwt] 🔄 User should log out and log in again for new token');
+        debugLog('[admin-jwt] ⚠️  JWT verified with LEGACY secret (old token detected)');
+        debugLog('[admin-jwt] 🔄 User should log out and log in again for new token');
       } catch (legacyError) {
         // Both secrets failed
         if (primaryError instanceof jwt.TokenExpiredError) {
-          console.log('[admin-jwt] Admin JWT has expired');
-          console.log('[admin-jwt] Expiry:', primaryError.expiredAt);
-          console.log('[admin-jwt] 💡 Clear browser cookies and log in again');
+          debugLog('[admin-jwt] Admin JWT has expired');
+          debugLog('[admin-jwt] Expiry:', primaryError.expiredAt);
+          debugLog('[admin-jwt] 💡 Clear browser cookies and log in again');
         } else if (primaryError instanceof jwt.JsonWebTokenError) {
-          console.log('[admin-jwt] JWT verification failed with both secrets');
-          console.log('[admin-jwt] Primary error:', primaryError.message);
-          console.log('[admin-jwt] Legacy error:', legacyError instanceof Error ? legacyError.message : 'unknown');
-          console.log('[admin-jwt] 💡 SOLUTION: Clear browser cookies and restart server');
-          console.log('[admin-jwt]   1. Open DevTools (F12) → Application → Cookies');
-          console.log('[admin-jwt]   2. Delete: admin-session-token, __Secure-admin-session-token');
-          console.log('[admin-jwt]   3. Restart server: npm run dev');
-          console.log('[admin-jwt]   4. Log in again at /admin/auth/login');
+          debugLog('[admin-jwt] JWT verification failed with both secrets');
+          debugLog('[admin-jwt] Primary error:', primaryError.message);
+          debugLog('[admin-jwt] Legacy error:', legacyError instanceof Error ? legacyError.message : 'unknown');
+          debugLog('[admin-jwt] 💡 SOLUTION: Clear browser cookies and restart server');
+          debugLog('[admin-jwt]   1. Open DevTools (F12) → Application → Cookies');
+          debugLog('[admin-jwt]   2. Delete: admin-session-token, __Secure-admin-session-token');
+          debugLog('[admin-jwt]   3. Restart server: npm run dev');
+          debugLog('[admin-jwt]   4. Log in again at /admin/auth/login');
         } else {
           console.error('[admin-jwt] Unexpected error during JWT verification:', primaryError);
         }
@@ -273,11 +274,11 @@ export const adminJwtConfig = {
       return null;
     }
 
-    console.log('[admin-jwt] ✓ Admin JWT decoded and verified successfully');
-    console.log('[admin-jwt] User ID:', decoded.sub?.substring(0, 8) + '...');
-    console.log('[admin-jwt] Session type:', decoded.sessionType);
+    debugLog('[admin-jwt] ✓ Admin JWT decoded and verified successfully');
+    debugLog('[admin-jwt] User ID:', decoded.sub?.substring(0, 8) + '...');
+    debugLog('[admin-jwt] Session type:', decoded.sessionType);
     if (usedLegacySecret) {
-      console.log('[admin-jwt] ⚠️  Using legacy token - recommend re-authentication');
+      debugLog('[admin-jwt] ⚠️  Using legacy token - recommend re-authentication');
     }
 
     return decoded;

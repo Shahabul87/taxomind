@@ -628,8 +628,9 @@ function handleError(
   const sectionsCreated = (data.sectionsCreated as number) ?? 0;
   const errorCourseId = data.courseId as string | undefined;
 
-  // Store partial course ID for resume
-  if (errorCourseId && chaptersCreated > 0) {
+  // Store partial course ID for resume — seed checkpoint ensures the backend
+  // can resume even with 0 completed chapters, so always offer Resume.
+  if (errorCourseId) {
     setPartialCourseId(errorCourseId);
     setResumableCourseId(errorCourseId);
   }

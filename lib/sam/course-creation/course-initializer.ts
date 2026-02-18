@@ -14,7 +14,8 @@ import {
   storeBlueprintInGoal,
 } from './course-creation-controller';
 import { COURSE_CATEGORIES } from './course-categories';
-import type { SequentialCreationConfig, CourseBlueprintPlan } from './types';
+import type { SequentialCreationConfig, CourseBlueprintPlan, CheckpointData } from './types';
+import { PROMPT_VERSION } from './prompts';
 
 /**
  * Resolve a category value (slug like 'artificial-intelligence') to its display label.
@@ -86,9 +87,36 @@ export async function initializeCourseRecord(
 
   const goalPlan = await initializeCourseCreationGoal(userId, config.courseTitle, course.id);
 
-  // Store idempotency metadata in execution plan for dedupe checks.
-  // Await this write so race windows are minimized before subsequent retries.
-  if ((requestId || requestFingerprint) && goalPlan.planId) {
+  // Store idempotency metadata AND seed checkpoint in execution plan.
+  // The seed checkpoint ensures that if a failure occurs before the first
+  // full chapter completes (the 60-120s gap), resumeCourseCreation() still
+  // has valid checkpoint data (courseId, config, completedChapterCount: 0).
+  if (goalPlan.planId) {
+    const { onProgress, onThinking, onStageComplete, onError, ...serializableConfig } =
+      config as SequentialCreationConfig & Record<string, unknown>;
+
+    const seedCheckpoint: CheckpointData = {
+      courseId: course.id,
+      config: serializableConfig as CheckpointData['config'],
+      completedChapterCount: 0,
+      conceptEntries: [],
+      vocabulary: [],
+      skillsBuilt: [],
+      bloomsProgression: [],
+      allSectionTitles: [],
+      qualityScores: [],
+      goalId: goalPlan.goalId,
+      planId: goalPlan.planId,
+      stepIds: goalPlan.stepIds,
+      savedAt: new Date().toISOString(),
+      promptVersion: PROMPT_VERSION,
+      status: 'in_progress',
+      totalChapters: config.totalChapters,
+      percentage: 0,
+      completedChapters: [],
+      completedSections: [],
+    };
+
     await db.sAMExecutionPlan.update({
       where: { id: goalPlan.planId },
       data: {
@@ -96,6 +124,7 @@ export async function initializeCourseRecord(
           ...(requestId ? { requestId } : {}),
           ...(requestFingerprint ? { requestFingerprint } : {}),
         },
+        checkpointData: seedCheckpoint as unknown as Record<string, unknown>,
       },
     });
   }
