@@ -457,6 +457,7 @@ export function scoreDetails(
   if (det.learningObjectives.length < 2) completeness -= 25;
   if (det.keyConceptsCovered.length < 2) completeness -= 15;
   if (!det.practicalActivity || det.practicalActivity.length < 20) completeness -= 15;
+  if (!det.creatorGuidelines || det.creatorGuidelines.length < 80) completeness -= 20;
   completeness = Math.max(0, completeness);
 
   // Specificity (15%)
@@ -502,6 +503,7 @@ export function scoreDetails(
   if (avgObjWords < 8) depth -= 20;
   if (det.practicalActivity.length < 50) depth -= 15;
   if (det.practicalActivity.length < 100) depth -= 10;
+  if (det.creatorGuidelines.length < 180) depth -= 10;
   if (det.keyConceptsCovered.length < 3) depth -= 15;
   if (!det.resources || det.resources.length === 0) depth -= 5;
 
@@ -664,6 +666,25 @@ export function buildFallbackDetails(
   const topic = section.topicFocus;
   const audience = ctx.targetAudience;
   const difficulty = ctx.difficulty;
+  const creatorGuidelines = [
+    `<h3>Creator Guidelines for "${section.title}"</h3>`,
+    `<h4>Instructional Goal</h4>`,
+    `<p>Help learners understand <strong>${topic}</strong> and apply it confidently in real scenarios at the ${difficulty} level.</p>`,
+    `<h4>Delivery Plan</h4>`,
+    `<ul>`,
+    `<li>Open with a concrete problem where ${topic} is required.</li>`,
+    `<li>Connect the explanation to Chapter ${chapter.position}: "${chapter.title}".</li>`,
+    `<li>Use one worked example, then one independent practice prompt.</li>`,
+    `<li>Explicitly highlight one common mistake and how to avoid it.</li>`,
+    `<li>Close with a clear call-to-action aligned to the section activity.</li>`,
+    `</ul>`,
+    `<h4>Production Notes</h4>`,
+    `<ul>`,
+    `<li>Keep language direct and specific for ${audience}.</li>`,
+    `<li>Match pacing to section duration: ${section.estimatedDuration}.</li>`,
+    `<li>Ensure terminology is consistent with earlier chapter sections.</li>`,
+    `</ul>`,
+  ].join('\n');
 
   let description: string;
 
@@ -978,5 +999,6 @@ export function buildFallbackDetails(
     ),
     keyConceptsCovered: [topic, `${topic} fundamentals`, 'Practical applications'],
     practicalActivity: `Complete the ${section.contentType} exercises on ${topic}.`,
+    creatorGuidelines,
   };
 }

@@ -154,6 +154,7 @@ export async function finalizeAndEmit(
     courseId,
     chaptersCreated,
     sectionsCreated,
+    fallbackSummary: fallbackSummaryData,
     stats: {
       totalChapters: chaptersCreated,
       totalSections: sectionsCreated,

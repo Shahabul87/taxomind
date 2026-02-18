@@ -264,6 +264,7 @@ export async function runHealingLoop(
                       learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
                       keyConceptsCovered: (sec.keyConceptsCovered ?? '').split('\n').filter(Boolean),
                       practicalActivity: sec.practicalActivity ?? '',
+                      creatorGuidelines: sec.creatorGuidelines ?? '',
                     } : undefined,
                   })),
                 };

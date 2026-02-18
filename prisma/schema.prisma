@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-15T09:42:04.948Z
+// Generated: 2026-02-18T00:15:47.384Z
 // Source: 27 domain files
 // ==========================================
 
@@ -2403,6 +2403,9 @@ model Course {
   // Cognitive Quality (Bloom's Taxonomy Experience - January 2026)
   cognitiveQuality         CourseCognitiveQuality? @relation("CourseCognitiveQuality")
 
+  // Quality flags from AI course creation pipeline (agentic decisions)
+  qualityFlags             Json?
+
   @@index([categoryId])
   @@index([organizationId])
 }
@@ -3500,6 +3503,8 @@ model LearningActivityLog {
   @@index([courseId])
   @@index([activityType])
   @@index([createdAt])
+  @@index([courseId, userId, createdAt])
+  @@index([courseId, createdAt])
 }
 
 // Progress Intervention (alerts and recommendations)
@@ -4705,6 +4710,9 @@ model learning_metrics {
   updatedAt               DateTime
   Course                  Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   User                    User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, courseId])
+  @@index([userId])
 }
 
 model learning_sessions {
@@ -4807,6 +4815,7 @@ model realtime_activities {
   @@index([courseId, timestamp])
   @@index([sessionId])
   @@index([userId, timestamp])
+  @@index([userId, courseId, timestamp])
 }
 
 model study_streaks {

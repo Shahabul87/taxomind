@@ -347,14 +347,17 @@ export async function resumeCourseCreation(
     // 3. Reconstruct config — checkpoint config is authoritative for resume.
     //    Only take callbacks from options.config; do NOT let client-side formData
     //    override totalChapters, sectionsPerChapter, etc.
-    const optConfig = options.config ?? {} as Partial<SequentialCreationConfig>;
+    const optCallbacks = (options.config ?? {}) as Partial<Pick<
+      SequentialCreationConfig,
+      'onProgress' | 'onThinking' | 'onStageComplete' | 'onError'
+    >>;
     const config = {
       ...checkpoint.config,
       // Only merge callbacks — not structural course fields
-      onProgress: optConfig.onProgress ?? checkpoint.config.onProgress,
-      onThinking: optConfig.onThinking ?? checkpoint.config.onThinking,
-      onStageComplete: optConfig.onStageComplete ?? checkpoint.config.onStageComplete,
-      onError: optConfig.onError ?? checkpoint.config.onError,
+      onProgress: optCallbacks.onProgress,
+      onThinking: optCallbacks.onThinking,
+      onStageComplete: optCallbacks.onStageComplete,
+      onError: optCallbacks.onError,
     } as SequentialCreationConfig;
 
     const completedChapterCount = checkpoint.completedChapterCount;
@@ -412,6 +415,7 @@ export async function resumeCourseCreation(
           learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
           keyConceptsCovered: [],
           practicalActivity: '',
+          creatorGuidelines: sec.creatorGuidelines ?? '',
         } : undefined,
       })),
     }));

@@ -79,6 +79,13 @@ export function handleSSEEvent(
       const phase = (data.phase as string) ?? 'generating_chapter';
       const percentage = (data.percentage as number) ?? 0;
       const message = (data.message as string) ?? '';
+      const serverCompleted = data.completedItems as number | undefined;
+      const serverTotal = data.totalItems as number | undefined;
+
+      // Update totalItemsRef if server provides authoritative count
+      if (serverTotal && serverTotal > 0) {
+        totalItemsRef.current = serverTotal;
+      }
 
       setProgress(prev => ({
         ...prev,
@@ -89,6 +96,9 @@ export function handleSSEEvent(
         },
         percentage: Math.min(100, percentage),
         message,
+        // Store server-side item counters for UI display
+        ...(serverCompleted != null ? { serverCompletedItems: serverCompleted } : {}),
+        ...(serverTotal != null ? { serverTotalItems: serverTotal } : {}),
       }));
 
       if (callbacks.onProgress) {
@@ -132,7 +142,7 @@ export function handleSSEEvent(
       // - Stage 1 or (Stage 2 without section) = generating_chapter
       // - Stage 2 with section = generating_section
       // - Stage 3 = generating_details
-      let phase: string;
+      let phase: CreationProgress['state']['phase'];
       if (stage === 3) {
         phase = 'generating_details';
       } else if (stage === 2 && !section) {
@@ -473,6 +483,13 @@ function handleItemComplete(
   const chapter = data.chapter as number | undefined;
   const section = data.section as number | undefined;
 
+  // Server now sends accurate completedItems/totalItems with every item_complete event
+  const serverCompletedItems = data.completedItems as number | undefined;
+  const serverTotalItems = data.totalItems as number | undefined;
+  if (serverTotalItems && serverTotalItems > 0) {
+    totalItemsRef.current = serverTotalItems;
+  }
+
   // Track courseId for auto-reconnect (stage 0 events include courseId)
   if (data.courseId) {
     lastCourseIdRef.current = data.courseId as string;
@@ -492,6 +509,11 @@ function handleItemComplete(
     totalItems: totalItemsRef.current,
   });
 
+  // Compute accurate percentage from server-side counters
+  const accuratePercentage = (serverCompletedItems != null && serverTotalItems)
+    ? Math.min(100, Math.round((serverCompletedItems / serverTotalItems) * 100))
+    : undefined;
+
   // Determine item type:
   // - Chapter completion: stage === 1 && chapter && !section
   // - Section completion: (stage === 2 || stage === 3) && chapter && section
@@ -505,9 +527,14 @@ function handleItemComplete(
         (id && ch.id === id) || ch.position === chapter
       );
 
+      const base = {
+        ...prev,
+        timing,
+        // Use server-side percentage when available (fixes 0% bug)
+        ...(accuratePercentage != null ? { percentage: accuratePercentage } : {}),
+      };
+
       if (existingIdx >= 0) {
-        // UPDATE existing entry with new data (id, qualityScore, title)
-        // Roadmap entries have position+title but no id/qualityScore — enrich them
         const existing = prev.completedItems.chapters[existingIdx];
         const updated = {
           ...existing,
@@ -517,13 +544,12 @@ function handleItemComplete(
         };
         const chapters = [...prev.completedItems.chapters];
         chapters[existingIdx] = updated;
-        return { ...prev, timing, completedItems: { ...prev.completedItems, chapters } };
+        return { ...base, completedItems: { ...prev.completedItems, chapters } };
       }
 
       // New chapter — add it
       return {
-        ...prev,
-        timing,
+        ...base,
         completedItems: {
           ...prev.completedItems,
           chapters: [
@@ -540,8 +566,14 @@ function handleItemComplete(
         (id && s.id === id) || (s.chapterPosition === chapter && s.position === section)
       );
 
+      const base = {
+        ...prev,
+        timing,
+        // Use server-side percentage when available (fixes 0% bug)
+        ...(accuratePercentage != null ? { percentage: accuratePercentage } : {}),
+      };
+
       if (existingIdx >= 0) {
-        // UPDATE existing entry with new data (id, qualityScore, title)
         const existing = prev.completedItems.sections[existingIdx];
         const updated = {
           ...existing,
@@ -551,13 +583,12 @@ function handleItemComplete(
         };
         const sections = [...prev.completedItems.sections];
         sections[existingIdx] = updated;
-        return { ...prev, timing, completedItems: { ...prev.completedItems, sections } };
+        return { ...base, completedItems: { ...prev.completedItems, sections } };
       }
 
       // New section — add it
       return {
-        ...prev,
-        timing,
+        ...base,
         completedItems: {
           ...prev.completedItems,
           sections: [
@@ -585,6 +616,7 @@ function handleComplete(
   const sectionsCreated = (data.sectionsCreated as number) ?? 0;
   const totalTime = (data.totalTime as number) ?? (Date.now() - startTimeRef.current);
   const averageQualityScore = (data.averageQualityScore as number) ?? 0;
+  const fallbackSummary = data.fallbackSummary as { count: number; rate: number } | undefined;
 
   // Clear partial course from localStorage on success
   clearPartialCourseId();
@@ -594,7 +626,9 @@ function handleComplete(
     ...prev,
     state: { ...prev.state, phase: 'complete' },
     percentage: 100,
-    message: 'Course creation complete!',
+    message: fallbackSummary && fallbackSummary.count > 0
+      ? `Course creation complete (with ${fallbackSummary.count} fallback items).`
+      : 'Course creation complete!',
   }));
 
   return {
@@ -604,6 +638,7 @@ function handleComplete(
       courseId,
       chaptersCreated,
       sectionsCreated,
+      fallbackSummary,
       stats: {
         totalChapters: chaptersCreated,
         totalSections: sectionsCreated,

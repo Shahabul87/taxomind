@@ -305,6 +305,10 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
             <div className="text-xs text-slate-500 dark:text-slate-400">Est. study time</div>
           </div>
         </div>
+        <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-slate-700/50 text-xs text-slate-500 dark:text-slate-400 text-center">
+          AI will generate <span className="font-semibold text-slate-700 dark:text-slate-300">{formData.chapterCount + totalLessons + totalLessons}</span> items
+          ({formData.chapterCount} chapters + {totalLessons} sections + {totalLessons} section details)
+        </div>
       </div>
 
       {/* Bloom's Taxonomy Focus Section — select cognitive levels BEFORE generating objectives */}

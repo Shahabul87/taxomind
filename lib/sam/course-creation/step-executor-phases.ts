@@ -7,7 +7,7 @@
  *
  * 1. phaseSkipCheck        — Steps 0: skip check
  * 2. phaseLifecycleSetup   — Steps 1, 2: SubGoal init, context build
- * 3. phaseGenerate         — Step 3: generateSingleChapter with timeout
+ * 3. phaseGenerate         — Step 3: generateSingleChapter (all 3 stages, no timeout)
  * 4. phaseLifecycleComplete — Steps 4, 5: Clear bridge, complete SubGoal
  * 5. phaseMemory           — Steps 6, 7: Persist concepts, between-chapter recall
  * 6. phaseDecisionMaking   — Steps 8-11b: Evaluate, apply, quality flag, bridge, replan, skip
@@ -45,7 +45,6 @@ import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from
 import { diagnoseChapterIssues } from './healing-loop';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { PROMPT_VERSION } from './prompts';
-import { withTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { BudgetExceededError } from './pipeline-budget';
 import {
   PipelineErrorCode,
@@ -168,16 +167,28 @@ export async function phaseLifecycleSetup(ctx: StepExecutorContext): Promise<{
 // ============================================================================
 
 /**
- * Generate a single chapter (all 3 stages) with a per-chapter timeout.
+ * Generate a single chapter (all 3 stages: structure → sections → details).
  *
- * @returns The chapter result, or a failed StepResult on timeout
+ * NOTE: The per-chapter timeout was REMOVED because:
+ *   1. `withTimeout` uses `Promise.race()` which does NOT cancel the inner promise.
+ *      When the timeout fired, `generateSingleChapter()` kept running in the background,
+ *      corrupting shared mutable state (completedChapters, conceptTracker, qualityScores)
+ *      and writing to the DB from an orphaned context.
+ *   2. Stage 1 alone takes 3-6 minutes (retries + self-critique + critic review),
+ *      leaving no time for Stage 3 within any reasonable per-chapter timeout.
+ *   3. Safety is already provided by:
+ *      - PipelineBudgetTracker (prevents infinite token spend)
+ *      - AbortSignal (user cancellation)
+ *      - Per-AI-call timeouts at the provider/SDK level
+ *      - The API route's maxDuration (SSE connection limit)
+ *
+ * @returns The chapter result (always completes all 3 stages before returning)
  */
 export async function phaseGenerate(
   ctx: StepExecutorContext,
   chapterContext: ChapterStepContext,
 ): Promise<{ chapterResult: ChapterStepResult } | { earlyReturn: StepResult }> {
-  const { config, state, step, chapterNumber } = ctx;
-  const PER_CHAPTER_TIMEOUT_MS = 300_000; // 5 minutes
+  const { config, state, chapterNumber } = ctx;
 
   // Budget guard: stop before starting expensive generation
   if (state.budgetTracker && !state.budgetTracker.canProceed()) {
@@ -188,46 +199,25 @@ export async function phaseGenerate(
     throw new BudgetExceededError(snapshot);
   }
 
-  try {
-    const chapterResult = await withTimeout(
-      () => generateSingleChapter(
-        config.userId,
-        chapterContext,
-        {
-          onSSEEvent: config.onSSEEvent,
-          enableStreamingThinking: config.enableStreamingThinking,
-        },
-      ),
-      PER_CHAPTER_TIMEOUT_MS,
-      `chapter-${chapterNumber}-generation`,
-    );
-    return { chapterResult };
-  } catch (timeoutErr) {
-    if (timeoutErr instanceof OperationTimeoutError) {
-      logger.warn('[CourseStateMachine] Chapter generation timed out', {
-        chapter: chapterNumber, timeoutMs: PER_CHAPTER_TIMEOUT_MS,
-      });
-      config.onSSEEvent?.({
-        type: 'chapter_skipped',
-        data: {
-          code: PipelineErrorCode.CHAPTER_TIMEOUT,
-          chapter: chapterNumber,
-          reason: `Generation timed out after ${PER_CHAPTER_TIMEOUT_MS / 1000}s`,
-        },
-      });
-      return {
-        earlyReturn: {
-          stepId: step.id,
-          success: false,
-          completedAt: new Date(),
-          duration: PER_CHAPTER_TIMEOUT_MS,
-          outputs: [],
-          error: `Chapter ${chapterNumber} generation timed out`,
-        } as StepResult,
-      };
-    }
-    throw timeoutErr;
-  }
+  const startTime = Date.now();
+  const chapterResult = await generateSingleChapter(
+    config.userId,
+    chapterContext,
+    {
+      onSSEEvent: config.onSSEEvent,
+      enableStreamingThinking: config.enableStreamingThinking,
+    },
+  );
+
+  const elapsedMs = Date.now() - startTime;
+  logger.info('[CourseStateMachine] Chapter generation complete (all 3 stages)', {
+    chapter: chapterNumber,
+    elapsedMs,
+    elapsedSec: Math.round(elapsedMs / 1000),
+    sectionsCreated: chapterResult.sectionsCreated,
+  });
+
+  return { chapterResult };
 }
 
 // ============================================================================

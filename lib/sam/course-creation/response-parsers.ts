@@ -18,7 +18,6 @@ import {
   ensureArray,
   ensureOptionalArray,
   normalizeContentType,
-  cleanAIResponse,
   buildDefaultQualityScore,
   scoreChapter,
   scoreSection,
@@ -32,6 +31,9 @@ import {
   AIChapterResponseSchema,
   AISectionResponseSchema,
   AIDetailsResponseSchema,
+  type AIChapterResponse,
+  type AISectionResponse,
+  type AIDetailsResponse,
 } from './response-schemas';
 import type {
   CourseContext,
@@ -41,6 +43,7 @@ import type {
   QualityScore,
   ChapterPlanEntry,
 } from './types';
+import { parseAIJsonResponse } from '@/lib/ai/parse-ai-json';
 
 // =============================================================================
 // Fallback Tracking (monitors fallback rate across the pipeline)
@@ -194,6 +197,12 @@ function validateCriticalFields(
       if (objectives.length === 0) {
         throw new Error('[CriticalValidation] Details have zero learning objectives');
       }
+      const creatorGuidelines = typeof det.creatorGuidelines === 'string'
+        ? det.creatorGuidelines.trim()
+        : '';
+      if (creatorGuidelines.length < 30) {
+        throw new Error(`[CriticalValidation] Creator guidelines too short (${creatorGuidelines.length} chars, need ≥30)`);
+      }
       break;
     }
   }
@@ -215,7 +224,8 @@ export function parseChapterResponse(
   fallbackTracker?: FallbackTracker,
 ): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
   try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
+    const parsed = parseAIJsonResponse<AIChapterResponse>(responseText, undefined, `course-creation-stage1-ch${chapterNumber}`);
+    if (!parsed) throw new Error('Invalid JSON in chapter response');
     validateCriticalFields(parsed, 'chapter');
     validateWithSchema(parsed, AIChapterResponseSchema, 'Stage 1 (chapter)');
     const thinking = parsed.thinking ?? 'Generated chapter based on course context.';
@@ -233,10 +243,10 @@ export function parseChapterResponse(
       description: ch.description ?? buildFallbackDescription(courseContext),
       bloomsLevel: ch.bloomsLevel ?? 'UNDERSTAND',
       learningObjectives: ensureArray(ch.learningObjectives, requestedObjectives).slice(0, requestedObjectives),
-      keyTopics: ensureArray(ch.keyTopics, Math.min(requestedTopics, 3)).slice(0, requestedTopics),
+      keyTopics: ensureArray(ch.keyTopics, requestedTopics).slice(0, requestedTopics),
       prerequisites: ch.prerequisites ?? 'None',
       estimatedTime: ch.estimatedTime ?? '1-2 hours',
-      topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, Math.min(requestedTopics, 3)).slice(0, requestedTopics),
+      topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, requestedTopics).slice(0, requestedTopics),
       conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 7),
     };
 
@@ -279,7 +289,8 @@ export function parseSectionResponse(
   fallbackTracker?: FallbackTracker,
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
+    const parsed = parseAIJsonResponse<AISectionResponse>(responseText, undefined, `course-creation-stage2-ch${chapter.position}-sec${sectionNumber}`);
+    if (!parsed) throw new Error('Invalid JSON in section response');
     validateCriticalFields(parsed, 'section');
     validateWithSchema(parsed, AISectionResponseSchema, 'Stage 2 (section)');
     const thinking = parsed.thinking ?? 'Generated section based on chapter context.';
@@ -350,7 +361,8 @@ export function parseDetailsResponse(
   fallbackTracker?: FallbackTracker,
 ): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
   try {
-    const parsed = JSON.parse(cleanAIResponse(responseText));
+    const parsed = parseAIJsonResponse<AIDetailsResponse>(responseText, undefined, `course-creation-stage3-ch${chapter.position}-sec${section.position}`);
+    if (!parsed) throw new Error('Invalid JSON in details response');
     validateCriticalFields(parsed, 'details');
     validateWithSchema(parsed, AIDetailsResponseSchema, 'Stage 3 (details)');
     const thinking = parsed.thinking ?? 'Generated section details based on context.';
@@ -364,8 +376,9 @@ export function parseDetailsResponse(
     const details: SectionDetails = {
       description: det.description ?? `This section covers ${section.topicFocus}.`,
       learningObjectives: ensureArray(det.learningObjectives, requestedSectionObjectives).slice(0, requestedSectionObjectives),
-      keyConceptsCovered: ensureArray(det.keyConceptsCovered ?? det.conceptsIntroduced, 3).slice(0, 5),
+      keyConceptsCovered: ensureArray(det.keyConceptsCovered, 3).slice(0, 5),
       practicalActivity: det.practicalActivity ?? `Practice the concepts from "${section.title}".`,
+      creatorGuidelines: det.creatorGuidelines ?? `Create lesson media for "${section.title}" by explaining ${section.topicFocus} with practical examples and clear delivery pacing.`,
       resources: det.resources,
     };
 

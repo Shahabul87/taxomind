@@ -848,15 +848,30 @@ export function getTemplateSectionDef(difficulty: string, position: number): Tem
  */
 export function composeTemplatePromptBlocks(
   template: ChapterTemplate,
-  sectionPosition: number
+  sectionPosition: number,
+  options?: {
+    totalSectionsOverride?: number;
+    sectionDefOverride?: TemplateSectionDef;
+    sequenceOverride?: TemplateSectionDef[];
+  },
 ): ComposedTemplatePrompt {
-  const sectionDef = template.sections.find(s => s.position === sectionPosition);
+  const effectiveTotalSections = Math.max(
+    1,
+    Math.min(options?.totalSectionsOverride ?? template.totalSections, template.sections.length),
+  );
+  const effectiveSequence = options?.sequenceOverride?.length
+    ? options.sequenceOverride
+    : template.sections.slice(0, effectiveTotalSections);
+
+  const sectionDef = options?.sectionDefOverride
+    ?? effectiveSequence.find(s => s.position === sectionPosition)
+    ?? template.sections.find(s => s.position === sectionPosition);
   if (!sectionDef) {
-    return { stage1Block: '', stage2Block: '', stage3Block: '', totalSections: template.totalSections };
+    return { stage1Block: '', stage2Block: '', stage3Block: '', totalSections: effectiveTotalSections };
   }
 
   // Stage 1: Chapter-level awareness of section DNA
-  const sectionList = template.sections
+  const sectionList = effectiveSequence
     .map(s => `  ${s.position}. ${s.displayName} (${s.contentType}) — ${s.purpose.split('.')[0]}`)
     .join('\n');
 
@@ -865,7 +880,7 @@ export function composeTemplatePromptBlocks(
 
 ${template.designPhilosophy}
 
-This chapter MUST contain exactly ${template.totalSections} sections following the Chapter DNA structure.
+This chapter MUST contain exactly ${effectiveTotalSections} sections following the Chapter DNA structure.
 Design your chapter topics and learning arc to work with this fixed structure:
 
 ${sectionList}
@@ -884,14 +899,14 @@ ${template.chapterChecklist.map((item, i) => `${i + 1}. ${item}`).join('\n')}
 **Universal Consistency Rules:**
 ${UNIVERSAL_CONSISTENCY_RULES.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}
 
-Your \`topicsToExpand\` should list 3-5 key concepts that will be woven through these ${template.totalSections} sections.
+Your \`topicsToExpand\` should list 3-5 key concepts that will be woven through these ${effectiveTotalSections} sections.
 They are NOT section titles — the section structure is fixed by the template.`;
 
   // Stage 2: Section role + format constraints
   const stage2Block = `
 ## CHAPTER DNA — SECTION ROLE
 
-This is section ${sectionDef.position} of ${template.totalSections}: **${sectionDef.displayName}**
+This is section ${sectionDef.position} of ${effectiveTotalSections}: **${sectionDef.displayName}**
 **Role:** ${sectionDef.purpose}
 **Fixed Content Type:** ${sectionDef.contentType}
 **Bloom&apos;s Level:** ${sectionDef.bloomsLevels.join(', ')}
@@ -920,7 +935,7 @@ ${sectionDef.formatRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}`;
   const stage3Block = `
 ## CHAPTER DNA — CONTENT FORMAT FOR ${sectionDef.displayName}
 
-**Section Type:** ${sectionDef.displayName} (Position ${sectionDef.position}/${template.totalSections})
+**Section Type:** ${sectionDef.displayName} (Position ${sectionDef.position}/${effectiveTotalSections})
 **Purpose:** ${sectionDef.purpose}
 **Word Count:** ${sectionDef.wordCountRange.min}-${sectionDef.wordCountRange.max} words
 **Bloom&apos;s Level:** ${sectionDef.bloomsLevels.join(', ')}
@@ -944,7 +959,7 @@ ${template.teachingLaws.map((law, i) => `${i + 1}. ${law}`).join('\n')}
 IMPORTANT: The description HTML must follow the format rules and HTML structure above.
 Do NOT use the generic 5-h2 lesson structure — use the section-type-specific structure for ${sectionDef.displayName}.`;
 
-  return { stage1Block, stage2Block, stage3Block, totalSections: template.totalSections };
+  return { stage1Block, stage2Block, stage3Block, totalSections: effectiveTotalSections };
 }
 
 // ============================================================================
@@ -952,7 +967,7 @@ Do NOT use the generic 5-h2 lesson structure — use the section-type-specific s
 // ============================================================================
 
 /** Minimum number of sections allowed per chapter (hard floor) */
-const MIN_SECTIONS = 5;
+const MIN_SECTIONS = 1;
 /** Maximum number of sections allowed per chapter (hard ceiling) */
 const MAX_SECTIONS = 10;
 
@@ -999,7 +1014,10 @@ export function selectTemplateSections(
 
   // If target is at or below required count, just use required
   if (targetCount <= requiredSections.length) {
-    return requiredSections.map((s, i) => ({ ...s, position: i + 1 }));
+    return requiredSections
+      .sort((a, b) => a.position - b.position)
+      .slice(0, targetCount)
+      .map((s, i) => ({ ...s, position: i + 1 }));
   }
 
   // Rank optional sections by relevance to Bloom's level
@@ -1026,4 +1044,3 @@ export function selectTemplateSections(
 // ============================================================================
 
 export { TEACHING_LAWS };
-export type { ChapterTemplate, TemplateSectionDef };

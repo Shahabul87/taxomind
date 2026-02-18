@@ -560,7 +560,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
     const record = await getDb().sAMSessionContext.findFirst({
       where: {
         userId,
-        courseId: courseId ?? null,
+        courseId: courseId || null,
       },
     });
     return record ? mapSessionContext(record) : null;
@@ -570,7 +570,7 @@ export class PrismaSessionContextStore implements SessionContextStore {
     const record = await getDb().sAMSessionContext.create({
       data: {
         userId: context.userId,
-        courseId: context.courseId ?? null,
+        courseId: context.courseId || null,
         lastActiveAt: context.lastActiveAt,
         currentState: context.currentState,
         history: context.history ?? [],

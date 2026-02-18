@@ -76,7 +76,7 @@ export async function runMemoryStage(
       // Memory session context
       try {
         const memorySystem = await getAgenticMemorySystem();
-        const courseIdForContext = ctx.pageContext.entityId ?? undefined;
+        const courseIdForContext = ctx.pageContext.entityId || undefined;
         memorySessionContext = await memorySystem.sessionContext.getOrCreateContext(
           ctx.user.id,
           courseIdForContext,
@@ -84,9 +84,9 @@ export async function runMemoryStage(
         logger.debug('[SAM_UNIFIED] Retrieved memory session context:', {
           userId: ctx.user.id,
           contextId: memorySessionContext.id,
-          sessionCount: memorySessionContext.currentState.sessionCount,
-          masteredConcepts: memorySessionContext.insights.masteredConcepts.length,
-          strugglingConcepts: memorySessionContext.insights.strugglingConcepts.length,
+          sessionCount: memorySessionContext.currentState?.sessionCount ?? 0,
+          masteredConcepts: memorySessionContext.insights?.masteredConcepts?.length ?? 0,
+          strugglingConcepts: memorySessionContext.insights?.strugglingConcepts?.length ?? 0,
         });
       } catch (memError) {
         logger.warn('[SAM_UNIFIED] Failed to get memory session context:', memError);
@@ -162,8 +162,8 @@ export async function runMemoryStage(
           stepObjectivesCount: prepared.stepObjectives?.length || 0,
           hasInjection: !!planContextInjection,
           hasMemoryContext: !!memorySessionContext,
-          memoryMasteredConcepts: prepared.memoryContext.masteredConcepts.length,
-          memoryStrugglingConcepts: prepared.memoryContext.strugglingConcepts.length,
+          memoryMasteredConcepts: prepared.memoryContext?.masteredConcepts?.length ?? 0,
+          memoryStrugglingConcepts: prepared.memoryContext?.strugglingConcepts?.length ?? 0,
           hasSessionResumption: !!sessionResumptionContext,
         });
       }
@@ -179,12 +179,12 @@ export async function runMemoryStage(
   try {
     if (ctx.user.id) {
       const courseId =
-        ctx.entityContext.course?.id ??
-        ctx.entityContext.chapter?.courseId ??
-        ctx.entityContext.section?.courseId ??
-        (ctx.pageContext.entityType === 'course' ? ctx.pageContext.entityId : undefined);
+        ctx.entityContext.course?.id ||
+        ctx.entityContext.chapter?.courseId ||
+        ctx.entityContext.section?.courseId ||
+        (ctx.pageContext.entityType === 'course' && ctx.pageContext.entityId ? ctx.pageContext.entityId : undefined);
 
-      const crossSessionHistory = await loadCrossSessionHistory(ctx.user.id, courseId);
+      const crossSessionHistory = await loadCrossSessionHistory(ctx.user.id, courseId || undefined);
 
       if (crossSessionHistory.messages.length > 0) {
         const crossSessionSummary = buildCrossSessionSummary(crossSessionHistory.messages);
@@ -226,13 +226,13 @@ export async function runMemoryStage(
     try {
       const memorySystem = await getAgenticMemorySystem();
       const courseIdForMemory =
-        ctx.entityContext.course?.id ??
-        ctx.entityContext.chapter?.courseId ??
-        ctx.entityContext.section?.courseId ??
-        (ctx.pageContext.entityType === 'course' ? ctx.pageContext.entityId : undefined);
+        ctx.entityContext.course?.id ||
+        ctx.entityContext.chapter?.courseId ||
+        ctx.entityContext.section?.courseId ||
+        (ctx.pageContext.entityType === 'course' && ctx.pageContext.entityId ? ctx.pageContext.entityId : undefined);
 
-      await memorySystem.sessionContext.getOrCreateContext(ctx.user.id, courseIdForMemory);
-      await memorySystem.sessionContext.recordQuestion(ctx.user.id, ctx.message, courseIdForMemory);
+      await memorySystem.sessionContext.getOrCreateContext(ctx.user.id, courseIdForMemory || undefined);
+      await memorySystem.sessionContext.recordQuestion(ctx.user.id, ctx.message, courseIdForMemory || undefined);
 
       const memoryRetrievalStartTime = Date.now();
       const agenticMemorySnippets = await memorySystem.memoryRetriever.retrieveForContext(

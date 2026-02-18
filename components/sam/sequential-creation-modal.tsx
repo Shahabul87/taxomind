@@ -86,22 +86,22 @@ interface StageConfig {
 const DF_STAGE_CONFIG: Record<1 | 2 | 3, StageConfig> = {
   1: {
     icon: BookOpen,
-    title: 'Stage 1: Chapter Generation',
-    description: 'Creating chapters with Bloom\'s taxonomy progression',
+    title: 'Chapter Structure',
+    description: 'Creating chapter with Bloom&apos;s taxonomy',
     color: 'text-blue-600',
     bgColor: 'bg-blue-500/10',
   },
   2: {
     icon: Layers,
-    title: 'Stage 2: Section Generation',
-    description: 'Building unique sections for each chapter',
+    title: 'Sections',
+    description: 'Building sections for this chapter',
     color: 'text-purple-600',
     bgColor: 'bg-purple-500/10',
   },
   3: {
     icon: FileText,
-    title: 'Stage 3: Detail Generation',
-    description: 'Filling in learning objectives and descriptions',
+    title: 'Details',
+    description: 'Filling in learning objectives and content',
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-500/10',
   },
@@ -112,100 +112,127 @@ function getStageConfig(): Record<1 | 2 | 3, StageConfig> {
 }
 
 // ============================================================================
-// Stage Progress Bar
+// Chapter Progress Display (replaces linear StageProgressBar)
+// Shows depth-first progress: which chapter is being built, and what
+// sub-stage (structure → sections → details) within that chapter.
 // ============================================================================
 
-const StageProgressBar = memo(function StageProgressBar({
-  currentStage,
-  percentage,
+const ChapterProgressDisplay = memo(function ChapterProgressDisplay({
+  progress,
 }: {
-  currentStage: 1 | 2 | 3;
-  percentage: number;
+  progress: CreationProgress;
 }) {
-  const stageConfig = getStageConfig();
+  const { state, completedItems } = progress;
+  const totalChapters = state.totalChapters || 1;
+  const currentChapter = state.currentChapter || 0;
+  const currentStage = state.stage;
 
-  const s1End = 30;
-  const s2End = 60;
+  // Determine completed chapter count from completedItems
+  // A chapter is "complete" when it has been through all 3 stages
+  // In depth-first: if currentChapter is N and stage > 1, chapter N is still in progress
+  const completedChapterCount = completedItems.chapters.filter(ch => {
+    // A chapter is fully done if there are section details for it (stage 3 done)
+    // We can approximate: chapters before currentChapter are done
+    return ch.position < currentChapter;
+  }).length;
 
-  // Calculate which segments are complete
-  const stage1Complete = percentage >= s1End;
-  const stage2Complete = percentage >= s2End;
-  const stage3Complete = percentage >= 100;
+  // Current chapter title from completedItems (stage 1 adds it)
+  const currentChapterData = completedItems.chapters.find(
+    ch => ch.position === currentChapter
+  );
+  const currentChapterTitle = currentChapterData?.title;
 
-  // Calculate segment progress
-  const getSegmentProgress = (stage: 1 | 2 | 3) => {
-    if (stage === 1) {
-      return Math.min(100, (percentage / s1End) * 100);
-    } else if (stage === 2) {
-      if (percentage < s1End) return 0;
-      return Math.min(100, ((percentage - s1End) / (s2End - s1End)) * 100);
-    } else {
-      if (percentage < s2End) return 0;
-      return Math.min(100, ((percentage - s2End) / (100 - s2End)) * 100);
-    }
-  };
+  // Items counter
+  const serverCompleted = progress.serverCompletedItems ?? 0;
+  const serverTotal = progress.serverTotalItems ?? 0;
 
   return (
     <div className="space-y-3 w-full overflow-hidden">
-      <div className="flex items-center gap-2 w-full">
-        {[1, 2, 3].map((stage) => {
-          const config = stageConfig[stage as 1 | 2 | 3];
-          const Icon = config.icon;
-          const isActive = currentStage === stage;
-          const isComplete =
-            (stage === 1 && stage1Complete) ||
-            (stage === 2 && stage2Complete) ||
-            (stage === 3 && stage3Complete);
+      {/* Chapter timeline */}
+      <div className="flex items-center gap-1 w-full">
+        {Array.from({ length: totalChapters }, (_, i) => i + 1).map((chNum) => {
+          const isDone = chNum < currentChapter || (chNum === currentChapter && currentStage === 3 && state.phase === 'complete');
+          const isCurrent = chNum === currentChapter;
 
           return (
-            <div key={stage} className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className={cn(
-                    'p-1.5 rounded-lg transition-all duration-300 flex-shrink-0',
-                    isComplete
-                      ? 'bg-green-500 text-white'
-                      : isActive
-                        ? config.bgColor + ' ' + config.color
-                        : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {isComplete ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : isActive ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Icon className="h-4 w-4" />
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    'text-xs font-medium truncate',
-                    isActive ? config.color : 'text-muted-foreground'
-                  )}
-                >
-                  Stage {stage}
-                </span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden w-full">
-                <motion.div
-                  className={cn(
-                    'h-full rounded-full max-w-full',
-                    stage === 1
-                      ? 'bg-blue-500'
-                      : stage === 2
-                        ? 'bg-purple-500'
-                        : 'bg-emerald-500'
-                  )}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, getSegmentProgress(stage as 1 | 2 | 3))}%` }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                />
+            <div key={chNum} className="flex-1 min-w-0">
+              <div className={cn(
+                'h-2 rounded-full transition-all duration-300',
+                isDone
+                  ? 'bg-green-500'
+                  : isCurrent
+                    ? 'bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 animate-pulse'
+                    : 'bg-muted'
+              )} />
+              <div className={cn(
+                'text-[10px] text-center mt-1 font-medium',
+                isDone ? 'text-green-600' : isCurrent ? 'text-primary' : 'text-muted-foreground/50'
+              )}>
+                Ch {chNum}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Current chapter detail with sub-stage indicators */}
+      {currentChapter > 0 && state.phase !== 'complete' && (
+        <div className="flex items-center gap-3 px-1">
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-semibold text-primary">
+              Chapter {currentChapter}/{totalChapters}
+            </span>
+            {currentChapterTitle && (
+              <span className="text-muted-foreground truncate max-w-[200px]">
+                — {currentChapterTitle}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 ml-auto">
+            {([1, 2, 3] as const).map((s) => {
+              const stageConfig = getStageConfig();
+              const cfg = stageConfig[s];
+              const isDone = currentStage > s;
+              const isActive = currentStage === s;
+              return (
+                <div
+                  key={s}
+                  className={cn(
+                    'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                    isDone ? 'bg-green-500/10 text-green-600'
+                      : isActive ? cfg.bgColor + ' ' + cfg.color
+                        : 'bg-muted text-muted-foreground/50'
+                  )}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="h-3 w-3" />
+                  ) : isActive ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <cfg.icon className="h-3 w-3" />
+                  )}
+                  <span className="hidden sm:inline">{cfg.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Items counter */}
+      {serverTotal > 0 && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
+            <span>
+              Item {Math.min(serverCompleted, serverTotal)} of {serverTotal}
+            </span>
+          </div>
+          <span className="text-muted-foreground/60">
+            ({completedChapterCount} of {totalChapters} chapters done)
+          </span>
+        </div>
+      )}
     </div>
   );
 });
@@ -219,10 +246,20 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
 }: {
   progress: CreationProgress;
 }) {
-  const { state } = progress;
+  const { state, completedItems } = progress;
   const stageConfig = getStageConfig();
   const config = stageConfig[state.stage] ?? stageConfig[1];
   const Icon = config.icon;
+
+  // Find current chapter title from completed items
+  const currentChapterData = completedItems.chapters.find(
+    ch => ch.position === state.currentChapter
+  );
+
+  // Find current section being worked on (latest for this chapter)
+  const currentSectionData = completedItems.sections.find(
+    s => s.chapterPosition === state.currentChapter && s.position === state.currentSection
+  );
 
   const activityText = useMemo(() => {
     if (state.phase === 'creating_course') {
@@ -232,10 +269,20 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
       return `Generating Chapter ${state.currentChapter} of ${state.totalChapters}`;
     }
     if (state.phase === 'generating_section') {
-      return `Creating Section ${state.currentSection} of ${state.totalSections}`;
+      const sectionLabel = `Section ${state.currentSection} of ${state.totalSections}`;
+      const chapterLabel = currentChapterData?.title
+        ? `Chapter ${state.currentChapter}: ${currentChapterData.title}`
+        : `Chapter ${state.currentChapter}`;
+      return `Building ${sectionLabel} for ${chapterLabel}`;
     }
     if (state.phase === 'generating_details') {
-      return `Adding details to Section ${state.currentSection} of Chapter ${state.currentChapter}`;
+      const sectionName = currentSectionData?.title
+        ? currentSectionData.title
+        : `Section ${state.currentSection}`;
+      const chapterLabel = currentChapterData?.title
+        ? `Chapter ${state.currentChapter}: ${currentChapterData.title}`
+        : `Chapter ${state.currentChapter}`;
+      return `Adding details to ${sectionName} in ${chapterLabel}`;
     }
     if (state.phase === 'complete') {
       return 'Course creation complete!';
@@ -244,7 +291,7 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
       return 'An error occurred';
     }
     return 'Preparing...';
-  }, [state]);
+  }, [state, currentChapterData?.title, currentSectionData?.title]);
 
   return (
     <motion.div
@@ -414,6 +461,17 @@ const CompletedItemsList = memo(function CompletedItemsList({
   onRegenerate?: (chapterId: string, position: number) => void;
   regeneratingChapterId?: string | null;
 }) {
+  // Group sections by chapter for depth-first display
+  const sectionsByChapter = useMemo(() => {
+    const grouped = new Map<number, typeof sections>();
+    for (const sec of sections) {
+      const existing = grouped.get(sec.chapterPosition) ?? [];
+      existing.push(sec);
+      grouped.set(sec.chapterPosition, existing);
+    }
+    return grouped;
+  }, [sections]);
+
   const hasItems = chapters.length > 0 || sections.length > 0;
 
   if (!hasItems) return null;
@@ -434,59 +492,62 @@ const CompletedItemsList = memo(function CompletedItemsList({
               isComplete && onRegenerate && chapter.id &&
               chapter.qualityScore != null && chapter.qualityScore < QUALITY_REGENERATE_THRESHOLD;
             const isRegenerating = regeneratingChapterId === chapter.id;
+            const chapterSections = sectionsByChapter.get(chapter.position) ?? [];
 
             return (
-              <div key={`chapter-${idx}`}
-                className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50"
-              >
-                <BookOpen className="h-3 w-3 text-blue-500" />
-                <span className="flex-1 truncate">{chapter.title}</span>
-                {chapter.qualityScore != null && (
-                  <Badge variant="outline" className={cn(
-                    'text-[10px]',
-                    chapter.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
-                      : chapter.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
-                        : 'text-red-600 border-red-500/30'
-                  )}>
-                    {chapter.qualityScore}%
-                  </Badge>
-                )}
-                {canRegenerate && (
-                  <Button variant="ghost" size="icon"
-                    className="h-5 w-5 text-muted-foreground hover:text-amber-600"
-                    disabled={!!regeneratingChapterId}
-                    onClick={() => onRegenerate(chapter.id!, chapter.position)}
-                    title="Regenerate this chapter (quality below 70%)"
+              <div key={`chapter-${idx}`}>
+                <div className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50">
+                  <BookOpen className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                  <span className="font-medium text-muted-foreground mr-1">Ch {chapter.position}:</span>
+                  <span className="flex-1 truncate">{chapter.title}</span>
+                  {chapter.qualityScore != null && (
+                    <Badge variant="outline" className={cn(
+                      'text-[10px]',
+                      chapter.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
+                        : chapter.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
+                          : 'text-red-600 border-red-500/30'
+                    )}>
+                      {chapter.qualityScore}%
+                    </Badge>
+                  )}
+                  {chapterSections.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/60">
+                      {chapterSections.length} sec
+                    </span>
+                  )}
+                  {canRegenerate && (
+                    <Button variant="ghost" size="icon"
+                      className="h-5 w-5 text-muted-foreground hover:text-amber-600"
+                      disabled={!!regeneratingChapterId}
+                      onClick={() => onRegenerate(chapter.id!, chapter.position)}
+                      title="Regenerate this chapter (quality below 70%)"
+                    >
+                      {isRegenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                    </Button>
+                  )}
+                </div>
+                {/* Show sections grouped under their chapter */}
+                {chapterSections.map((section, secIdx) => (
+                  <div key={`section-${chapter.position}-${secIdx}`}
+                    className="flex items-center gap-2 text-xs p-1 rounded bg-muted/20 ml-5 mt-0.5"
                   >
-                    {isRegenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                  </Button>
-                )}
+                    <Layers className="h-2.5 w-2.5 text-purple-400 flex-shrink-0" />
+                    <span className="flex-1 truncate text-muted-foreground">{section.title}</span>
+                    {section.qualityScore != null && (
+                      <Badge variant="outline" className={cn(
+                        'text-[10px]',
+                        section.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
+                          : section.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
+                            : 'text-red-600 border-red-500/30'
+                      )}>
+                        {section.qualityScore}%
+                      </Badge>
+                    )}
+                  </div>
+                ))}
               </div>
             );
           })}
-          {sections.slice(-5).map((section, idx) => (
-            <div key={`section-${idx}`}
-              className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/30 ml-4"
-            >
-              <Layers className="h-3 w-3 text-purple-500" />
-              <span className="flex-1 truncate">{section.title}</span>
-              {section.qualityScore != null && (
-                <Badge variant="outline" className={cn(
-                  'text-[10px]',
-                  section.qualityScore >= 80 ? 'text-green-600 border-green-500/30'
-                    : section.qualityScore >= 60 ? 'text-amber-600 border-amber-500/30'
-                      : 'text-red-600 border-red-500/30'
-                )}>
-                  {section.qualityScore}%
-                </Badge>
-              )}
-            </div>
-          ))}
-          {sections.length > 5 && (
-            <div className="text-xs text-muted-foreground text-center py-1">
-              ...and {sections.length - 5} more sections
-            </div>
-          )}
         </div>
       </ScrollArea>
     </div>
@@ -636,12 +697,9 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
             />
           )}
 
-          {/* Stage Progress */}
+          {/* Chapter Progress (depth-first) */}
           {!isComplete && !isError && (
-            <StageProgressBar
-              currentStage={progress.state.stage}
-              percentage={progress.percentage}
-            />
+            <ChapterProgressDisplay progress={progress} />
           )}
 
           {/* Current Activity */}

@@ -195,6 +195,7 @@ export interface SectionDetails {
   learningObjectives: string[];
   keyConceptsCovered: string[];
   practicalActivity: string;
+  creatorGuidelines: string;
   resources?: string[];
 }
 
@@ -255,6 +256,10 @@ export interface CreationProgress {
   };
   /** Quality flags from agentic flag_for_review decisions */
   qualityFlags?: CourseQualityFlag[];
+  /** Server-side completed item count (accurate, incremented by orchestrator) */
+  serverCompletedItems?: number;
+  /** Server-side total item count */
+  serverTotalItems?: number;
 }
 
 // ============================================================================
@@ -462,6 +467,10 @@ export interface SequentialCreationResult {
     totalSections: number;
     totalTime: number;
     averageQualityScore: number;
+  };
+  fallbackSummary?: {
+    count: number;
+    rate: number;
   };
   error?: string;
   /** SAM Goal ID for this creation session (Phase 3: goal tracking) */
@@ -813,6 +822,8 @@ export interface CheckpointData {
   completedSections?: Array<{ chapterPosition: number; position: number; title: string; id: string; qualityScore?: number }>;
   /** Current pipeline status */
   status?: 'in_progress' | 'paused' | 'error' | 'completed';
+  /** Optional approval window deadline for resume flows (ISO string) */
+  resumeDeadline?: string;
   /** Last error message if status is 'error' */
   errorMessage?: string;
   /** Failure reason (preserved from failCourseCreation — merged, not overwritten) */

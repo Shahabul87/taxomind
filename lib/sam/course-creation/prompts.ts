@@ -825,12 +825,12 @@ ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     },
     {
       label: 'previousChapters',
-      priority: PromptPriority.MEDIUM,
+      priority: PromptPriority.HIGH,
       content: `\n## PREVIOUS CHAPTERS\n${previousChaptersSummary}`,
     },
     {
       label: 'conceptFlow',
-      priority: PromptPriority.MEDIUM,
+      priority: PromptPriority.HIGH,
       content: conceptFlowSection,
     },
     {
@@ -1089,7 +1089,7 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     },
     {
       label: 'courseWideContext',
-      priority: PromptPriority.MEDIUM,
+      priority: PromptPriority.HIGH,
       content: courseWideSection,
     },
     {
@@ -1454,12 +1454,12 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
     },
     {
       label: 'priorSections',
-      priority: PromptPriority.MEDIUM,
+      priority: PromptPriority.HIGH,
       content: priorSectionsBlock,
     },
     {
       label: 'cumulativeKnowledge',
-      priority: PromptPriority.MEDIUM,
+      priority: PromptPriority.HIGH,
       content: cumulativeKnowledgeSection,
     },
     {
@@ -1529,6 +1529,14 @@ Design an activity that uses one or more ARROW assessment types:
 - **Teach-Back**: "Explain this to a beginner" (tests true understanding)
 The activity must: match content type ${section.contentType}, align with Bloom&apos;s level ${chapter.bloomsLevel}, be achievable within ${section.estimatedDuration}, and produce observable evidence of learning.
 
+### Step 5: CREATOR GUIDELINES — Guide professional delivery for this section
+Write practical creator guidance for whoever produces this section content:
+- Include delivery flow (opening hook, concept explanation, worked example, wrap-up)
+- Include production notes (what to emphasize, what to avoid, pacing, learner misconceptions)
+- Include at least one concrete "show this on screen" instruction
+- Align the guidance with section type ${section.contentType} and topic "${section.topicFocus}"
+- Keep it directly actionable (not abstract pedagogy language)
+
 ## OUTPUT REQUIREMENTS
 
 Return a JSON object with this EXACT structure:
@@ -1546,7 +1554,8 @@ Return a JSON object with this EXACT structure:
       // 3-5 SPECIFIC concepts, techniques, or skills
       // Be precise: "JWT token validation" not "security"
     ],
-    "practicalActivity": "Detailed description of the hands-on activity (2-4 sentences). Describe: (1) what the student does, (2) what they produce, (3) how they know they succeeded. Must match content type: ${section.contentType}"
+    "practicalActivity": "Detailed description of the hands-on activity (2-4 sentences). Describe: (1) what the student does, (2) what they produce, (3) how they know they succeeded. Must match content type: ${section.contentType}",
+    "creatorGuidelines": "Structured HTML guidance for content creators. Include: (1) delivery flow, (2) production instructions, (3) misconceptions to address, (4) pacing guidance for ${section.estimatedDuration}. Use h3/h4, ul/li, p, strong."
   }
 }
 
@@ -1556,7 +1565,8 @@ QUALITY GATES — Your output will be scored on:
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?
 5. **Concept Specificity**: Are keyConceptsCovered precise terms, not vague categories?
-6. **Teaching Quality**: Does the lesson include analogies, concrete examples, and address the learner directly?
+6. **Creator Readiness**: Are creatorGuidelines concrete, actionable, and production-ready?
+7. **Teaching Quality**: Does the lesson include analogies, concrete examples, and address the learner directly?
 
 Return ONLY valid JSON, no markdown formatting`,
     },

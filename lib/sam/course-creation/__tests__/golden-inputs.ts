@@ -542,6 +542,7 @@ const programmingCompletedChapters: CompletedChapter[] = [
           learningObjectives: ['Identify the 7 layers of the HTTP request lifecycle'],
           keyConceptsCovered: ['HTTP request', 'HTTP response', 'REST'],
           practicalActivity: 'Trace a real API call using browser DevTools.',
+          creatorGuidelines: '<h3>Creator Notes</h3><p>Use a live API trace and explain each request/response stage.</p>',
         },
       } as CompletedSection,
     ],

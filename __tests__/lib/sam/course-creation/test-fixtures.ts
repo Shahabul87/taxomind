@@ -138,6 +138,16 @@ export function createMockSectionDetails(overrides?: Partial<SectionDetails>): S
     ],
     keyConceptsCovered: ['linear regression', 'logistic regression', 'decision boundaries'],
     practicalActivity: 'Complete a hands-on exercise implementing a linear regression model using scikit-learn to predict housing prices from a sample dataset.',
+    creatorGuidelines: [
+      '<h3>Creator Guidelines</h3>',
+      '<p>Open with a concrete house-pricing prediction scenario, then move into model intuition before formal terms.</p>',
+      '<ul>',
+      '<li>Show a simple scatter plot and draw the best-fit line step by step.</li>',
+      '<li>Emphasize the difference between regression and classification with one side-by-side example.</li>',
+      '<li>Call out one common misconception: high training accuracy does not guarantee generalization.</li>',
+      '<li>Pace delivery for 20-25 minutes with one short recap after each major concept.</li>',
+      '</ul>',
+    ].join('\n'),
     resources: ['https://scikit-learn.org/stable/tutorial/'],
     ...overrides,
   };
@@ -236,6 +246,15 @@ export function createMockDetailsAIResponse(): string {
       ],
       keyConceptsCovered: ['linear regression', 'logistic regression', 'decision boundaries'],
       practicalActivity: 'Complete a hands-on exercise implementing a linear regression model using scikit-learn to predict housing prices.',
+      creatorGuidelines: [
+        '<h3>Creator Guidelines</h3>',
+        '<p>Start with a practical prediction use case, then layer in concepts from intuition to formalization.</p>',
+        '<ul>',
+        '<li>Show the workflow on-screen: dataset -> split -> train -> evaluate.</li>',
+        '<li>Highlight where beginners confuse classification and regression.</li>',
+        '<li>Use one worked example and one independent practice prompt.</li>',
+        '</ul>',
+      ].join('\n'),
       resources: ['https://scikit-learn.org/stable/tutorial/'],
     },
   });

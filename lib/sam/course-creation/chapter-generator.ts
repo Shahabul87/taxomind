@@ -49,9 +49,9 @@ import {
   validateChapterSectionCoverage,
   buildFallbackChapter,
   buildFallbackSection,
-  buildFallbackDetails,
-  traceAICall,
-  sanitizeHtmlOutput,
+    buildFallbackDetails,
+    traceAICall,
+    sanitizeHtmlOutput,
 } from './helpers';
 import { retryWithQualityGate } from './retry-quality-gate';
 import { validateAndFixMath } from './math-validator';
@@ -68,7 +68,6 @@ import type {
   ChapterStepContext,
   ChapterStepResult,
   ConceptTracker,
-  SectionDetails,
 } from './types';
 import { BudgetExceededError } from './pipeline-budget';
 import type { PipelineBudgetTracker } from './pipeline-budget';
@@ -149,7 +148,7 @@ export async function generateSingleChapter(
   let sectionsCreated = 0;
 
   /** Record an AI call against the budget tracker and throw if budget exceeded */
-  const trackBudget = (estimatedTokens: number = 2000): void => {
+  const trackBudget = (estimatedTokens: number = 5000): void => {
     if (!budgetTracker) return;
     budgetTracker.recordCall(estimatedTokens, 0);
     if (!budgetTracker.canProceed()) {
@@ -170,6 +169,7 @@ export async function generateSingleChapter(
   // Quality gate: retry with feedback-driven improvement
   const s1Strategy = strategyMonitor.getStrategy(1, chNum);
   const s1StartTime = Date.now();
+  const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
 
   const s1Retry = await retryWithQualityGate<
     { chapter: ReturnType<typeof buildFallbackChapter>; thinking: string; qualityScore: QualityScore },
@@ -178,7 +178,9 @@ export async function generateSingleChapter(
     strategy: s1Strategy,
     buildFallback: () => ({ chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
     executeAttempt: async (attempt, feedback) => {
-      const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1);
+      const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1, {
+        totalSectionsOverride: effectiveSectionsPerChapter,
+      });
       const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
         courseContext, chNum, previousPlain, conceptTracker,
         composedCategoryPrompt, completedChapters, experimentVariant,
@@ -215,7 +217,6 @@ export async function generateSingleChapter(
           budgetTracker.recordActualUsage(s1UsageResult.usage.inputTokens, s1UsageResult.usage.outputTokens);
         }
       }
-      const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
       const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
 
       const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
@@ -325,7 +326,12 @@ export async function generateSingleChapter(
   });
 
   await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1' });
-  trackBudget(2000);
+  // Budget: only estimate tokens for streaming path (actual usage already recorded in non-streaming)
+  if (enableStreamingThinking) {
+    trackBudget(7000);
+  } else if (budgetTracker && !budgetTracker.canProceed()) {
+    throw new BudgetExceededError(budgetTracker.getSnapshot());
+  }
 
   // =====================================================================
   // MULTI-AGENT CRITIC: Review Stage 1 output with independent reviewer
@@ -379,9 +385,13 @@ export async function generateSingleChapter(
       ].join('\n');
 
       const s1Retry = strategyMonitor.getStrategy(1, chNum);
+      const s1CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1, {
+        totalSectionsOverride: effectiveSectionsPerChapter,
+      });
       const { systemPrompt: retrySystem, userPrompt: retryUser } = buildStage1Prompt(
         courseContext, chNum, previousPlain, conceptTracker,
         composedCategoryPrompt, completedChapters, experimentVariant,
+        s1CriticTemplatePrompt,
       );
       const augmentedRetryUser = `${retryUser}${criticFeedback}`;
 
@@ -442,7 +452,7 @@ export async function generateSingleChapter(
       }
 
       await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' });
-      trackBudget(2000);
+      trackBudget(6000);
     }
     } // end if (criticReview)
   } catch (criticError) {
@@ -461,7 +471,7 @@ export async function generateSingleChapter(
   );
 
   // =====================================================================
-  // STAGE 2: Generate all sections for this chapter
+  // STAGE 2 + STAGE 3: Generate each section, then immediately generate details
   // =====================================================================
   const chapterSections: (GeneratedSection & { id: string })[] = [];
   const completedSections: CompletedSection[] = [];
@@ -484,229 +494,15 @@ export async function generateSingleChapter(
     ? composeCategoryPrompt(rawCategoryEnhancer, chapterPlain.bloomsLevel)
     : composedCategoryPrompt;
 
-  for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
-    const templateSectionDef = selectedSections[secNum - 1];
-    const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+  const generateSectionDetails = async (
+    section: GeneratedSection & { id: string },
+    secIdx: number,
+  ): Promise<void> => {
+    const sectionRoleName = selectedSections[secIdx]?.displayName ?? section.title;
 
     onSSEEvent?.({
       type: 'item_generating',
-      data: { stage: 2, chapter: chNum, section: secNum, message: `Generating ${sectionRoleName}...` },
-    });
-
-    const enrichedContext: EnrichedChapterContext = {
-      allChapters: generatedChapters.map(ch => stripId(ch)),
-      conceptTracker,
-      bloomsProgression,
-    };
-
-    const previousPlainSections = chapterSections.map((s) => stripId(s));
-
-    // Quality gate: retry with feedback-driven improvement
-    const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
-    const s2Strategy = strategyMonitor.getStrategy(2, chNum);
-    const s2StartTime = Date.now();
-
-    const s2Retry = await retryWithQualityGate<
-      { section: ReturnType<typeof buildFallbackSection>; thinking: string; qualityScore: QualityScore },
-      QualityFeedback
-    >({
-      strategy: s2Strategy,
-      buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
-      executeAttempt: async (attempt, feedback) => {
-        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
-        const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
-
-        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
-        const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
-        let s2ResponseText: string;
-        if (enableStreamingThinking) {
-          const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
-            userId, ...s2ChatParams,
-            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
-          }));
-          s2ResponseText = fullContent;
-        } else {
-          const s2UsageResult = await traceAICall(s2Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...s2ChatParams }));
-          s2ResponseText = s2UsageResult.content;
-          if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
-            budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
-          }
-        }
-        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
-
-        const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
-        const blendedSec = blendScores(result.qualityScore, samSecResult);
-        (result as Record<string, unknown>)._samResult = samSecResult;
-
-        return { result: { ...result, qualityScore: blendedSec }, score: blendedSec.overall };
-      },
-      extractFeedback: (result, _score, nextAttempt) => {
-        const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
-        return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
-      },
-      onRetry: (attempt, previousScore, topIssue) => {
-        onSSEEvent?.({ type: 'quality_retry', data: {
-          stage: 2, chapter: chNum, section: secNum, attempt, previousScore, topIssue,
-        }});
-      },
-    });
-
-    const bestSec = s2Retry.bestResult;
-
-    const s2ParseError = bestSec.thinking.includes('Used fallback generation due to parsing error');
-
-    strategyMonitor.record({
-      stage: 2, chapterNumber: chNum, sectionNumber: secNum,
-      score: bestSec.qualityScore.overall, attempt: s2Retry.attemptsUsed - 1,
-      timeMs: Date.now() - s2StartTime, parseError: s2ParseError,
-    });
-
-    let { section, thinking: secThinking } = bestSec;
-    section.templateRole = templateSectionDef?.role;
-
-    let secQuality = bestSec.qualityScore;
-
-    // ===================================================================
-    // MULTI-AGENT CRITIC: Review Stage 2 output (borderline quality only)
-    // ===================================================================
-    try {
-      const previousPlainSectionsForCritic = chapterSections.map((s) => stripId(s));
-      const sectionCriticReview = await reviewSectionWithCritic({
-        userId,
-        section,
-        chapter: chapterPlain,
-        priorSections: previousPlainSectionsForCritic,
-        qualityScore: secQuality.overall,
-        courseContext,
-        runId,
-      });
-
-      if (sectionCriticReview) {
-        onSSEEvent?.({
-          type: 'critic_review',
-          data: {
-            stage: 2, chapter: chNum, section: secNum,
-            verdict: sectionCriticReview.verdict,
-            confidence: sectionCriticReview.confidence,
-            improvements: sectionCriticReview.actionableImprovements.length,
-          },
-        });
-
-        if (sectionCriticReview.verdict === 'revise' && sectionCriticReview.actionableImprovements.length > 0) {
-          const criticFeedback = buildSectionCriticFeedbackBlock(sectionCriticReview);
-          const s2RetryStrategy = strategyMonitor.getStrategy(2, chNum);
-          const s2CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum);
-          const { systemPrompt: s2CriticSystem, userPrompt: s2CriticUser } = buildStage2Prompt(
-            courseContext, chapterPlain, secNum, previousPlainSectionsForCritic, allSectionTitles,
-            enrichedContext, chapterCategoryPrompt, experimentVariant, s2CriticTemplatePrompt,
-            recalledMemory ?? undefined,
-          );
-          const augmentedCriticUser = `${s2CriticUser}${criticFeedback}`;
-
-          const s2CriticResponse = await traceAICall(
-            { runId, stage: 2, chapter: chNum, section: secNum, label: `Stage2 Ch${chNum}S${secNum} critic-retry` },
-            () => runSAMChatWithPreference({
-              userId,
-              capability: 'course',
-              messages: [{ role: 'user', content: augmentedCriticUser }],
-              systemPrompt: s2CriticSystem,
-              maxTokens: s2RetryStrategy.maxTokens,
-              temperature: s2RetryStrategy.temperature,
-            }),
-          );
-          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
-          const criticSam = await validateSectionWithSAM(criticResult.section, criticResult.qualityScore, courseContext);
-          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
-
-          if (criticBlended.overall > secQuality.overall) {
-            section = criticResult.section;
-            section.templateRole = templateSectionDef?.role;
-            secQuality = criticBlended;
-            logger.info('[ORCHESTRATOR] Section critic revision accepted', {
-              chapter: chNum, section: secNum,
-              improvement: criticBlended.overall - bestSec.qualityScore.overall,
-            });
-          }
-
-          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2-critic-retry' });
-          trackBudget(2000);
-        }
-      }
-    } catch (sectionCriticError) {
-      logger.warn('[ORCHESTRATOR] Section critic review failed, proceeding with original', {
-        chapter: chNum, section: secNum,
-        error: sectionCriticError instanceof Error ? sectionCriticError.message : String(sectionCriticError),
-      });
-    }
-
-    secQuality.chapterNumber = chNum;
-    secQuality.stage = 2;
-    localQualityScores.push(secQuality);
-    qualityScores.push(secQuality);
-    allSectionTitles.push(section.title);
-
-    // Update concept tracker
-    const sectionConcepts = section.conceptsIntroduced ?? [];
-    for (const concept of sectionConcepts) {
-      if (!conceptTracker.concepts.has(concept)) {
-        const entry: ConceptEntry = { concept, introducedInChapter: chNum, introducedInSection: secNum, bloomsLevel: chapterWithId.bloomsLevel };
-        conceptTracker.concepts.set(concept, entry);
-      }
-    }
-
-    onSSEEvent?.({ type: 'thinking', data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking } });
-
-    // Save to DB
-    const durationMinutes = parseDuration(section.estimatedDuration);
-    const dbSection = await db.section.create({
-      data: {
-        title: section.title,
-        position: section.position,
-        chapterId: chapterWithId.id,
-        type: section.contentType,
-        duration: durationMinutes,
-        isPublished: false,
-      },
-    });
-
-    const sectionWithId = { ...section, id: dbSection.id };
-    chapterSections.push(sectionWithId);
-    completedSections.push({ ...section, id: dbSection.id });
-    sectionsCreated++;
-
-    onSSEEvent?.({
-      type: 'item_complete',
-      data: { stage: 2, chapter: chNum, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
-    });
-
-    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' });
-    trackBudget(2000);
-  }
-
-  // Chapter-section coverage validation
-  const coveredTopics = validateChapterSectionCoverage(
-    { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },
-    chapterSections
-  );
-  if (coveredTopics.uncoveredTopics.length > 0) {
-    logger.warn('[ORCHESTRATOR] Chapter-section coverage gap', {
-      chapter: chapter.title,
-      uncoveredTopics: coveredTopics.uncoveredTopics,
-      coverageScore: coveredTopics.coveragePercent,
-    });
-  }
-
-  // =====================================================================
-  // STAGE 3: Generate details for all sections of this chapter
-  // =====================================================================
-  for (let secIdx = 0; secIdx < chapterSections.length; secIdx++) {
-    const section = chapterSections[secIdx];
-
-    const s3SectionRoleName = selectedSections[section.position - 1]?.displayName ?? section.title;
-
-    onSSEEvent?.({
-      type: 'item_generating',
-      data: { stage: 3, chapter: chNum, section: section.position, message: `Generating content for ${s3SectionRoleName}...` },
+      data: { stage: 3, chapter: chNum, section: section.position, message: `Generating content for ${sectionRoleName}...` },
     });
 
     const enrichedContext: EnrichedChapterContext = {
@@ -728,9 +524,12 @@ export async function generateSingleChapter(
     };
     const allChapterSectionsPlain = chapterSections.map((s) => stripId(s));
 
-    // Quality gate: retry with feedback-driven improvement
-    const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
-    const s3TemplateDef = selectedSections[section.position - 1];
+    const s3TemplateDef = selectedSections[secIdx];
+    const s3TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position, {
+      totalSectionsOverride: effectiveSectionsPerChapter,
+      sectionDefOverride: s3TemplateDef,
+      sequenceOverride: selectedSections,
+    });
     const s3Strategy = strategyMonitor.getStrategy(3, chNum);
     const s3StartTime = Date.now();
 
@@ -745,7 +544,7 @@ export async function generateSingleChapter(
           courseContext, chapter: chapterPlain, section: sectionPlain,
           chapterSections: allChapterSectionsPlain, enrichedContext,
           categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
-          templatePrompt: s3TemplatePrompt, completedSections: completedSections.slice(0, secIdx),
+          templatePrompt: s3TemplatePrompt, completedSections,
           recalledMemory: recalledMemory ?? undefined,
           bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
         });
@@ -787,7 +586,6 @@ export async function generateSingleChapter(
     });
 
     const bestDet = s3Retry.bestResult;
-
     const s3ParseError = bestDet.thinking.includes('Used fallback generation due to parsing error');
 
     strategyMonitor.record({
@@ -799,9 +597,6 @@ export async function generateSingleChapter(
     let { details, thinking: detThinking } = bestDet;
     let detQuality = bestDet.qualityScore;
 
-    // ===================================================================
-    // MULTI-AGENT CRITIC: Review Stage 3 output (borderline quality only)
-    // ===================================================================
     try {
       const detailsCriticReview = await reviewDetailsWithCritic({
         userId,
@@ -827,13 +622,16 @@ export async function generateSingleChapter(
         if (detailsCriticReview.verdict === 'revise' && detailsCriticReview.actionableImprovements.length > 0) {
           const criticFeedback = buildDetailsCriticFeedbackBlock(detailsCriticReview);
           const s3RetryStrategy = strategyMonitor.getStrategy(3, chNum);
-          const s3CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position);
-          const s3CriticTemplateDef = selectedSections[section.position - 1];
+          const s3CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position, {
+            totalSectionsOverride: effectiveSectionsPerChapter,
+            sectionDefOverride: s3TemplateDef,
+            sequenceOverride: selectedSections,
+          });
           const { systemPrompt: s3CriticSystem, userPrompt: s3CriticUser } = buildStage3Prompt({
             courseContext, chapter: chapterPlain, section: sectionPlain,
             chapterSections: allChapterSectionsPlain, enrichedContext,
             categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
-            templatePrompt: s3CriticTemplatePrompt, completedSections: completedSections.slice(0, secIdx),
+            templatePrompt: s3CriticTemplatePrompt, completedSections,
             recalledMemory: recalledMemory ?? undefined,
           });
           const augmentedCriticUser = `${s3CriticUser}${criticFeedback}`;
@@ -849,7 +647,7 @@ export async function generateSingleChapter(
               temperature: s3RetryStrategy.temperature,
             }),
           );
-          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3CriticTemplateDef, fallbackTracker);
+          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
           const criticSam = await validateDetailsWithSAM(criticResult.details, sectionPlain, chapterPlain.bloomsLevel, criticResult.qualityScore, courseContext);
           const criticBlended = blendScores(criticResult.qualityScore, criticSam);
 
@@ -863,7 +661,7 @@ export async function generateSingleChapter(
           }
 
           await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3-critic-retry' });
-          trackBudget(2000);
+          trackBudget(7000);
         }
       }
     } catch (detailsCriticError) {
@@ -878,7 +676,6 @@ export async function generateSingleChapter(
     localQualityScores.push(detQuality);
     qualityScores.push(detQuality);
 
-    // Update concept tracker
     const detailConcepts = ensureOptionalArray(details.keyConceptsCovered);
     for (const concept of detailConcepts) {
       if (!conceptTracker.concepts.has(concept)) {
@@ -887,16 +684,16 @@ export async function generateSingleChapter(
       }
     }
 
-    completedSections[secIdx].details = details;
+    completedSections.push({ ...section, details });
 
     onSSEEvent?.({ type: 'thinking', data: { stage: 3, chapter: chNum, section: section.position, thinking: detThinking } });
 
-    // Update section in DB with details
     await db.section.update({
       where: { id: section.id },
       data: {
         description: sanitizeHtmlOutput(details.description),
         learningObjectives: details.learningObjectives.join('\n'),
+        creatorGuidelines: sanitizeHtmlOutput(details.creatorGuidelines || '') || null,
         resourceUrls: details.resources?.join('\n') ?? null,
         practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
         keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
@@ -909,7 +706,225 @@ export async function generateSingleChapter(
     });
 
     await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' });
-    trackBudget(2000);
+    if (enableStreamingThinking) {
+      trackBudget(7000);
+    } else if (budgetTracker && !budgetTracker.canProceed()) {
+      throw new BudgetExceededError(budgetTracker.getSnapshot());
+    }
+  };
+
+  for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
+    const templateSectionDef = selectedSections[secNum - 1];
+    const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+
+    onSSEEvent?.({
+      type: 'item_generating',
+      data: { stage: 2, chapter: chNum, section: secNum, message: `Generating ${sectionRoleName}...` },
+    });
+
+    const enrichedContext: EnrichedChapterContext = {
+      allChapters: generatedChapters.map(ch => stripId(ch)),
+      conceptTracker,
+      bloomsProgression,
+    };
+
+    const previousPlainSections = chapterSections.map((s) => stripId(s));
+    const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum, {
+      totalSectionsOverride: effectiveSectionsPerChapter,
+      sectionDefOverride: templateSectionDef,
+      sequenceOverride: selectedSections,
+    });
+    const s2Strategy = strategyMonitor.getStrategy(2, chNum);
+    const s2StartTime = Date.now();
+
+    const s2Retry = await retryWithQualityGate<
+      { section: ReturnType<typeof buildFallbackSection>; thinking: string; qualityScore: QualityScore },
+      QualityFeedback
+    >({
+      strategy: s2Strategy,
+      buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
+      executeAttempt: async (attempt, feedback) => {
+        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, chapterCategoryPrompt, experimentVariant, s2TemplatePrompt, recalledMemory ?? undefined);
+        const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
+
+        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
+        const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
+        let s2ResponseText: string;
+        if (enableStreamingThinking) {
+          const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
+            userId, ...s2ChatParams,
+            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
+          }));
+          s2ResponseText = fullContent;
+        } else {
+          const s2UsageResult = await traceAICall(s2Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...s2ChatParams }));
+          s2ResponseText = s2UsageResult.content;
+          if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
+            budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
+          }
+        }
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+        const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
+        const blendedSec = blendScores(result.qualityScore, samSecResult);
+        (result as Record<string, unknown>)._samResult = samSecResult;
+
+        return { result: { ...result, qualityScore: blendedSec }, score: blendedSec.overall };
+      },
+      extractFeedback: (result, _score, nextAttempt) => {
+        const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
+        return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
+      },
+      onRetry: (attempt, previousScore, topIssue) => {
+        onSSEEvent?.({ type: 'quality_retry', data: {
+          stage: 2, chapter: chNum, section: secNum, attempt, previousScore, topIssue,
+        }});
+      },
+    });
+
+    const bestSec = s2Retry.bestResult;
+    const s2ParseError = bestSec.thinking.includes('Used fallback generation due to parsing error');
+
+    strategyMonitor.record({
+      stage: 2, chapterNumber: chNum, sectionNumber: secNum,
+      score: bestSec.qualityScore.overall, attempt: s2Retry.attemptsUsed - 1,
+      timeMs: Date.now() - s2StartTime, parseError: s2ParseError,
+    });
+
+    let { section, thinking: secThinking } = bestSec;
+    section.templateRole = templateSectionDef?.role;
+    let secQuality = bestSec.qualityScore;
+
+    try {
+      const previousPlainSectionsForCritic = chapterSections.map((s) => stripId(s));
+      const sectionCriticReview = await reviewSectionWithCritic({
+        userId,
+        section,
+        chapter: chapterPlain,
+        priorSections: previousPlainSectionsForCritic,
+        qualityScore: secQuality.overall,
+        courseContext,
+        runId,
+      });
+
+      if (sectionCriticReview) {
+        onSSEEvent?.({
+          type: 'critic_review',
+          data: {
+            stage: 2, chapter: chNum, section: secNum,
+            verdict: sectionCriticReview.verdict,
+            confidence: sectionCriticReview.confidence,
+            improvements: sectionCriticReview.actionableImprovements.length,
+          },
+        });
+
+        if (sectionCriticReview.verdict === 'revise' && sectionCriticReview.actionableImprovements.length > 0) {
+          const criticFeedback = buildSectionCriticFeedbackBlock(sectionCriticReview);
+          const s2RetryStrategy = strategyMonitor.getStrategy(2, chNum);
+          const s2CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum, {
+            totalSectionsOverride: effectiveSectionsPerChapter,
+            sectionDefOverride: templateSectionDef,
+            sequenceOverride: selectedSections,
+          });
+          const { systemPrompt: s2CriticSystem, userPrompt: s2CriticUser } = buildStage2Prompt(
+            courseContext, chapterPlain, secNum, previousPlainSectionsForCritic, allSectionTitles,
+            enrichedContext, chapterCategoryPrompt, experimentVariant, s2CriticTemplatePrompt,
+            recalledMemory ?? undefined,
+          );
+          const augmentedCriticUser = `${s2CriticUser}${criticFeedback}`;
+
+          const s2CriticResponse = await traceAICall(
+            { runId, stage: 2, chapter: chNum, section: secNum, label: `Stage2 Ch${chNum}S${secNum} critic-retry` },
+            () => runSAMChatWithPreference({
+              userId,
+              capability: 'course',
+              messages: [{ role: 'user', content: augmentedCriticUser }],
+              systemPrompt: s2CriticSystem,
+              maxTokens: s2RetryStrategy.maxTokens,
+              temperature: s2RetryStrategy.temperature,
+            }),
+          );
+          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+          const criticSam = await validateSectionWithSAM(criticResult.section, criticResult.qualityScore, courseContext);
+          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
+
+          if (criticBlended.overall > secQuality.overall) {
+            section = criticResult.section;
+            section.templateRole = templateSectionDef?.role;
+            secQuality = criticBlended;
+            logger.info('[ORCHESTRATOR] Section critic revision accepted', {
+              chapter: chNum, section: secNum,
+              improvement: criticBlended.overall - bestSec.qualityScore.overall,
+            });
+          }
+
+          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2-critic-retry' });
+          trackBudget(5000);
+        }
+      }
+    } catch (sectionCriticError) {
+      logger.warn('[ORCHESTRATOR] Section critic review failed, proceeding with original', {
+        chapter: chNum, section: secNum,
+        error: sectionCriticError instanceof Error ? sectionCriticError.message : String(sectionCriticError),
+      });
+    }
+
+    secQuality.chapterNumber = chNum;
+    secQuality.stage = 2;
+    localQualityScores.push(secQuality);
+    qualityScores.push(secQuality);
+    allSectionTitles.push(section.title);
+
+    const sectionConcepts = section.conceptsIntroduced ?? [];
+    for (const concept of sectionConcepts) {
+      if (!conceptTracker.concepts.has(concept)) {
+        const entry: ConceptEntry = { concept, introducedInChapter: chNum, introducedInSection: secNum, bloomsLevel: chapterWithId.bloomsLevel };
+        conceptTracker.concepts.set(concept, entry);
+      }
+    }
+
+    onSSEEvent?.({ type: 'thinking', data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking } });
+
+    const durationMinutes = parseDuration(section.estimatedDuration);
+    const dbSection = await db.section.create({
+      data: {
+        title: section.title,
+        position: section.position,
+        chapterId: chapterWithId.id,
+        type: section.contentType,
+        duration: durationMinutes,
+        isPublished: false,
+      },
+    });
+
+    const sectionWithId = { ...section, id: dbSection.id };
+    chapterSections.push(sectionWithId);
+    sectionsCreated++;
+
+    onSSEEvent?.({
+      type: 'item_complete',
+      data: { stage: 2, chapter: chNum, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
+    });
+
+    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' });
+    if (enableStreamingThinking) {
+      trackBudget(5000);
+    } else if (budgetTracker && !budgetTracker.canProceed()) {
+      throw new BudgetExceededError(budgetTracker.getSnapshot());
+    }
+
+    await generateSectionDetails(sectionWithId, secNum - 1);
+  }
+
+  const coveredTopics = validateChapterSectionCoverage(
+    { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },
+    chapterSections
+  );
+  if (coveredTopics.uncoveredTopics.length > 0) {
+    logger.warn('[ORCHESTRATOR] Chapter-section coverage gap', {
+      chapter: chapter.title,
+      uncoveredTopics: coveredTopics.uncoveredTopics,
+      coverageScore: coveredTopics.coveragePercent,
+    });
   }
 
   // =====================================================================

@@ -243,11 +243,16 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     where: { id: { in: mentorToolIds } },
     select: { id: true },
   });
-  const existingMentorIds = new Set(existingMentorTools.map((t) => t.id));
+  // Check both DB and in-memory cache to prevent "already registered" errors
+  // (cache and DB can desync during dev hot reloads)
+  const existingMentorIds = new Set([
+    ...existingMentorTools.map((t) => t.id),
+    ...mentorToolIds.filter((id) => toolCache.has(id)),
+  ]);
 
   for (const tool of tools) {
     if (!existingMentorIds.has(tool.id)) {
-      // Tool not in DB - register it (this also adds to cache)
+      // Tool not in DB or cache - register it (this also adds to cache)
       await toolRegistry.register(tool);
       registeredCount++;
     } else {
@@ -259,11 +264,11 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
         version: tool.version,
         category: tool.category,
         confirmationType: tool.confirmationType,
-        requiredPermissions: tool.requiredPermissions,
+        requiredPermissions: tool.requiredPermissions?.filter(Boolean),
         timeoutMs: tool.timeoutMs,
         maxRetries: tool.maxRetries,
         rateLimit: tool.rateLimit,
-        tags: tool.tags,
+        tags: tool.tags?.filter(Boolean),
         examples: tool.examples,
         metadata: tool.metadata,
         enabled: tool.enabled,
@@ -317,7 +322,11 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     where: { id: { in: standaloneToolIds } },
     select: { id: true },
   });
-  const existingStandaloneIds = new Set(existingStandaloneTools.map((t) => t.id));
+  // Check both DB and in-memory cache to prevent "already registered" errors
+  const existingStandaloneIds = new Set([
+    ...existingStandaloneTools.map((t) => t.id),
+    ...standaloneToolIds.filter((id) => toolCache.has(id)),
+  ]);
 
   for (const tool of standaloneTools) {
     if (!existingStandaloneIds.has(tool.id)) {
@@ -331,11 +340,11 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
         version: tool.version,
         category: tool.category,
         confirmationType: tool.confirmationType,
-        requiredPermissions: tool.requiredPermissions,
+        requiredPermissions: tool.requiredPermissions?.filter(Boolean),
         timeoutMs: tool.timeoutMs,
         maxRetries: tool.maxRetries,
         rateLimit: tool.rateLimit,
-        tags: tool.tags,
+        tags: tool.tags?.filter(Boolean),
         examples: tool.examples,
         metadata: tool.metadata,
         enabled: tool.enabled,
@@ -397,7 +406,11 @@ async function doRegisterExternalAPITools(toolRegistry: ToolRegistry): Promise<v
     where: { id: { in: externalToolIds } },
     select: { id: true },
   });
-  const existingExternalIds = new Set(existingExternalTools.map((t) => t.id));
+  // Check both DB and in-memory cache to prevent "already registered" errors
+  const existingExternalIds = new Set([
+    ...existingExternalTools.map((t) => t.id),
+    ...externalToolIds.filter((id) => toolCache.has(id)),
+  ]);
 
   let externalRegistered = 0;
   let externalUpdated = 0;
@@ -417,11 +430,11 @@ async function doRegisterExternalAPITools(toolRegistry: ToolRegistry): Promise<v
         version: tool.version,
         category: tool.category,
         confirmationType: tool.confirmationType,
-        requiredPermissions: tool.requiredPermissions,
+        requiredPermissions: tool.requiredPermissions?.filter(Boolean),
         timeoutMs: tool.timeoutMs,
         maxRetries: tool.maxRetries,
         rateLimit: tool.rateLimit,
-        tags: tool.tags,
+        tags: tool.tags?.filter(Boolean),
         examples: tool.examples,
         metadata: tool.metadata,
         enabled: tool.enabled,

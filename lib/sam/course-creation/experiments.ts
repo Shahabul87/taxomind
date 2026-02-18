@@ -52,12 +52,14 @@ export interface ExperimentOutcome {
  * All experiments defined in code. Set `active: true` to enable.
  * Default: all inactive → exact current behavior (ARROW framework).
  */
+const COURSE_CREATION_EXPERIMENTS_ENABLED = process.env.ENABLE_COURSE_CREATION_EXPERIMENTS === 'true';
+
 export const EXPERIMENTS: ExperimentDefinition[] = [
   {
     id: 'arrow-vs-traditional',
     name: 'ARROW vs Traditional Pedagogy',
     description: 'Compares the ARROW application-first framework against traditional taxonomy-based linear progression.',
-    active: true,
+    active: COURSE_CREATION_EXPERIMENTS_ENABLED,
     variants: ['control', 'treatment-a'],
     autoGraduateAfterSamples: 30,
   },
@@ -65,7 +67,7 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     id: 'optimized-prompts-v1',
     name: 'Optimized Prompt Token Efficiency',
     description: 'Reduces input tokens via system prompt tiering and progressive prior context compression while preserving course quality.',
-    active: true,
+    active: COURSE_CREATION_EXPERIMENTS_ENABLED,
     variants: ['control', 'optimized-v1'],
     weights: [0.8, 0.2],
     autoGraduateAfterSamples: 20,

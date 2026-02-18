@@ -138,8 +138,9 @@ export async function regenerateChapter(
       where: {
         chapterId,
         OR: [
-          { muxData: { isNot: null } },
-          { userProgress: { some: {} } },
+          { videos: { some: {} } },
+          { exams: { some: {} } },
+          { user_progress: { some: {} } },
         ],
       },
       select: { id: true, title: true },
@@ -247,6 +248,7 @@ export async function regenerateChapter(
             learningObjectives: (sec.learningObjectives ?? '').split('\n').filter(Boolean),
             keyConceptsCovered: [],
             practicalActivity: '',
+            creatorGuidelines: sec.creatorGuidelines ?? '',
           } : undefined,
         })),
       }));
@@ -738,6 +740,7 @@ export async function regenerateChapter(
         data: {
           description: sanitizeHtmlOutput(details.description),
           learningObjectives: details.learningObjectives.join('\n'),
+          creatorGuidelines: sanitizeHtmlOutput(details.creatorGuidelines || '') || null,
           resourceUrls: details.resources?.join('\n') ?? null,
           practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
           keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
@@ -1159,6 +1162,7 @@ export async function regenerateSectionsOnly(
         data: {
           description: sanitizeHtmlOutput(details.description),
           learningObjectives: details.learningObjectives.join('\n'),
+          creatorGuidelines: sanitizeHtmlOutput(details.creatorGuidelines || '') || null,
           resourceUrls: details.resources?.join('\n') ?? null,
           practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
           keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,
@@ -1421,6 +1425,7 @@ export async function regenerateDetailsOnly(
         data: {
           description: sanitizeHtmlOutput(details.description),
           learningObjectives: details.learningObjectives.join('\n'),
+          creatorGuidelines: sanitizeHtmlOutput(details.creatorGuidelines || '') || null,
           resourceUrls: details.resources?.join('\n') ?? null,
           practicalActivity: sanitizeHtmlOutput(details.practicalActivity || '') || null,
           keyConceptsCovered: details.keyConceptsCovered?.join('\n') || null,

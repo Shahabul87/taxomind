@@ -62,6 +62,7 @@ export const AIDetailsResponseSchema = z.object({
     learningObjectives: z.array(z.string().min(5)).min(1),
     keyConceptsCovered: z.array(z.string()).optional(),
     practicalActivity: z.string().min(10),
+    creatorGuidelines: z.string().min(50),
     resources: z.array(z.string()).optional(),
   }),
 });

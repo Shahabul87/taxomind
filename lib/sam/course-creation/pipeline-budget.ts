@@ -58,6 +58,14 @@ export class PipelineBudgetTracker {
   ) {
     this.maxTotalTokens = Math.ceil(estimatedTotalTokens * multiplier);
     this.maxCostUSD = estimatedCostUSD * multiplier;
+
+    logger.info('[PipelineBudget] Budget initialized', {
+      estimatedTokens: estimatedTotalTokens,
+      maxTokens: this.maxTotalTokens,
+      multiplier,
+      estimatedCost: estimatedCostUSD.toFixed(4),
+      maxCost: this.maxCostUSD.toFixed(4),
+    });
   }
 
   /**
@@ -93,22 +101,32 @@ export class PipelineBudgetTracker {
 
   /**
    * Record actual token usage from AI provider response (not heuristic estimates).
-   * Use alongside recordCall() for precise budget tracking when runSAMChatWithUsage
-   * returns real token counts from the SDK adapter.
+   * This is the preferred method when runSAMChatWithUsage returns real token counts.
+   * NOTE: Do NOT also call recordCall() for the same AI call — that causes double counting.
    */
   recordActualUsage(inputTokens: number, outputTokens: number): void {
     const totalTokens = inputTokens + outputTokens;
     this.accumulatedTokens += totalTokens;
     this.callCount++;
 
-    if (this.callCount % 10 === 0) {
+    const utilization = Math.round((this.accumulatedTokens / this.maxTotalTokens) * 100);
+
+    if (this.callCount % 5 === 0 || utilization > 70) {
       logger.debug('[PipelineBudget] Actual usage checkpoint', {
         callCount: this.callCount,
         tokens: this.accumulatedTokens,
         maxTokens: this.maxTotalTokens,
         inputTokens,
         outputTokens,
-        utilization: `${Math.round((this.accumulatedTokens / this.maxTotalTokens) * 100)}%`,
+        utilization: `${utilization}%`,
+      });
+    }
+
+    if (utilization > 80) {
+      logger.warn('[PipelineBudget] High budget utilization', {
+        callCount: this.callCount,
+        utilization: `${utilization}%`,
+        remaining: this.maxTotalTokens - this.accumulatedTokens,
       });
     }
   }

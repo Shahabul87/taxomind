@@ -113,8 +113,8 @@ export interface SharedPipelineState {
   budgetTracker?: PipelineBudgetTracker;
   /** Tracks fallback usage — halts pipeline when rate exceeds threshold */
   fallbackTracker?: import('./response-parsers').FallbackTracker;
-  /** Breadth-first roadmap (populated only in BF mode) */
-  roadmap?: import('./types').CourseRoadmap;
+  /** Legacy breadth-first roadmap payload (unused in current agentic path) */
+  roadmap?: unknown;
 }
 
 // ============================================================================
@@ -352,7 +352,7 @@ export class CourseCreationStateMachine {
     const steps: PlanStep[] = chapterTitles.map((title, index) => ({
       id: `chapter-${index + 1 + offset}`,
       planId: '', // Filled by state machine on start
-      type: 'content' as const,
+      type: 'read_content',
       title: title || `Chapter ${index + 1 + offset}`,
       description: `Generate chapter ${index + 1 + offset} with all sections and details`,
       order: index,

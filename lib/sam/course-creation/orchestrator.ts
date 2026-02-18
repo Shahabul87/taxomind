@@ -245,9 +245,15 @@ export async function orchestrateCourseCreation(
   const fallbackTracker = new FallbackTracker(fallbackThreshold);
 
   // Initialize pipeline budget tracker (3x the estimated token spend)
-  const estimatedCallsPerChapter = 1 + config.sectionsPerChapter * 2;
-  const estimatedTotalCalls = config.totalChapters * estimatedCallsPerChapter + 5;
-  const estimatedTokensPerCall = 2000;
+  // Accurate call count per chapter:
+  //   Stage 1: 1 gen + 1 self-critique + 1 critic + 1 critic-retry = 4 calls
+  //   Stage 2: sectionsPerChapter × (1 gen + 1 critic + 1 critic-retry) = spc × 3
+  //   Stage 3: sectionsPerChapter × (1 gen + 1 critic + 1 critic-retry) = spc × 3
+  //   Between-chapter: 1 agentic decision
+  // Total per chapter: 5 + sectionsPerChapter × 6
+  const estimatedCallsPerChapter = 5 + config.sectionsPerChapter * 6;
+  const estimatedTotalCalls = config.totalChapters * estimatedCallsPerChapter + 2; // +2 for overhead
+  const estimatedTokensPerCall = 6000;
   const estimatedTotalTokens = estimatedTotalCalls * estimatedTokensPerCall;
   const estimatedCostUSD = estimatedTotalTokens * 0.000003;
   const budgetTracker = new PipelineBudgetTracker(estimatedTotalTokens, estimatedCostUSD);
@@ -265,6 +271,46 @@ export async function orchestrateCourseCreation(
     type: 'total_items',
     data: { totalItems, totalChapters, sectionsPerChapter: effectiveSectionsPerChapter },
   });
+
+  // Wrap onSSEEvent to auto-increment completedItems on core item_complete events.
+  // This fixes the bug where completedItems was never incremented during active runs,
+  // causing emitProgress() to always calculate 0% progress.
+  logger.info('[ORCHESTRATOR] Total items calculated', {
+    totalItems,
+    totalChapters,
+    sectionsPerChapter: effectiveSectionsPerChapter,
+    formula: `${totalChapters} + ${totalSections} + ${totalSections} = ${totalItems}`,
+  });
+
+  const trackingOnSSEEvent = onSSEEvent
+    ? (event: { type: string; data: Record<string, unknown> }) => {
+        if (event.type === 'item_complete') {
+          const stage = event.data.stage as number;
+          if (stage === 1 || stage === 2 || stage === 3) {
+            const isHealing = event.data.isHealing as boolean | undefined;
+            const isResumeReplay = event.data.isResumeReplay as boolean | undefined;
+            if (!isHealing && !isResumeReplay) {
+              completedItems++;
+              logger.debug('[ORCHESTRATOR] Item completed', {
+                stage,
+                completedItems,
+                totalItems,
+                percentage: Math.round((completedItems / totalItems) * 100),
+                chapter: event.data.chapter,
+                section: event.data.section,
+              });
+            }
+          }
+          // Enrich item_complete events with progress counters for client-side tracking
+          onSSEEvent({
+            type: event.type,
+            data: { ...event.data, completedItems, totalItems },
+          });
+          return;
+        }
+        onSSEEvent(event);
+      }
+    : undefined;
 
   const progress: CreationProgress = {
     state: {
@@ -285,13 +331,15 @@ export async function orchestrateCourseCreation(
     progress.message = message;
     if (thinking) progress.thinking = thinking;
     onProgress?.(progress);
-    onSSEEvent?.({
+    trackingOnSSEEvent?.({
       type: 'progress',
       data: {
         percentage: progress.percentage,
         message,
         stage: progress.state.stage,
         phase: progress.state.phase,
+        completedItems,
+        totalItems,
       },
     });
   }
@@ -316,7 +364,7 @@ export async function orchestrateCourseCreation(
       });
 
       emitProgress(`Resuming from chapter ${resumeState.completedChapterCount + 1}...`);
-      onSSEEvent?.({
+      trackingOnSSEEvent?.({
         type: 'progress',
         data: {
           percentage: Math.round((resumeState.completedChapterCount / totalChapters) * 100),
@@ -328,7 +376,7 @@ export async function orchestrateCourseCreation(
 
       // Emit a single batch resume_hydrate event so the client can hydrate
       // its completedItems list without showing individual events
-      onSSEEvent?.({
+      trackingOnSSEEvent?.({
         type: 'resume_hydrate',
         data: {
           courseId,
@@ -364,7 +412,7 @@ export async function orchestrateCourseCreation(
       progress.goalId = goalId;
 
       logger.info('[ORCHESTRATOR] Course created', { courseId, title: config.courseTitle });
-      onSSEEvent?.({
+      trackingOnSSEEvent?.({
         type: 'item_complete',
         data: { stage: 0, message: 'Course record created', courseId },
       });
@@ -379,7 +427,7 @@ export async function orchestrateCourseCreation(
       // Include courseId so the client's lastCourseIdRef is populated early.
       // This ensures the Resume button can appear even if the pipeline fails
       // before any item_complete event is sent.
-      onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...', courseId } });
+      trackingOnSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...', courseId } });
     }
 
     // Seed completedChapters/generatedChapters from resume state
@@ -436,7 +484,7 @@ export async function orchestrateCourseCreation(
       planId,
       config,
       courseContext,
-      onSSEEvent,
+      onSSEEvent: trackingOnSSEEvent,
       abortSignal,
       enableStreamingThinking,
       runId,
@@ -472,7 +520,7 @@ export async function orchestrateCourseCreation(
       const averageQualityScore = qualityScores.length > 0
         ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
         : 0;
-      onSSEEvent?.({
+      trackingOnSSEEvent?.({
         type: 'complete',
         data: {
           courseId,
@@ -504,7 +552,7 @@ export async function orchestrateCourseCreation(
     // =========================================================================
 
     await runPostProcessing(
-      { userId, courseId, goalId, runId, onSSEEvent },
+      { userId, courseId, goalId, runId, onSSEEvent: trackingOnSSEEvent },
       completedChapters,
       conceptTracker,
       courseContext,
@@ -532,7 +580,7 @@ export async function orchestrateCourseCreation(
         runId,
         userId,
         courseTitle: config.courseTitle,
-        onSSEEvent,
+        onSSEEvent: trackingOnSSEEvent,
       },
       {
         chaptersCreated,
@@ -558,7 +606,7 @@ export async function orchestrateCourseCreation(
     emitProgress(`Error: ${errorMessage}`);
     config.onError?.(errorMessage, false);
 
-    onSSEEvent?.({
+    trackingOnSSEEvent?.({
       type: 'error',
       data: {
         code: PipelineErrorCode.ORCHESTRATOR_ERROR,
