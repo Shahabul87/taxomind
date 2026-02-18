@@ -240,6 +240,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 500,
     });
 
     if (enrollments.length === 0) {
@@ -339,6 +340,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        take: 500,
       });
       sectionCompletions = rawCompletions as unknown as SectionCompletionWithRelations[];
     } catch (e) {
@@ -357,6 +359,7 @@ export async function GET(req: NextRequest) {
           startTime: { gte: timeRangeStart },
         },
         orderBy: { startTime: 'desc' },
+        take: 500,
       });
       learningSessions = rawSessions as typeof learningSessions;
     } catch (e) {
@@ -386,6 +389,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        take: 500,
       });
       examAttempts = rawAttempts as unknown as ExamAttemptWithRelations[];
     } catch (e) {
@@ -400,6 +404,7 @@ export async function GET(req: NextRequest) {
           courseId: { in: courseIds },
           startedAt: { gte: timeRangeStart },
         },
+        take: 500,
       });
       practiceSessions = rawPractice as typeof practiceSessions;
     } catch (e) {
@@ -418,6 +423,7 @@ export async function GET(req: NextRequest) {
             orderBy: { order: 'asc' },
           },
         },
+        take: 500,
       });
       goals = rawGoals as unknown as GoalWithSubGoals[];
     } catch (e) {
@@ -442,6 +448,7 @@ export async function GET(req: NextRequest) {
           userId: user.id,
           courseId: { in: courseIds },
         },
+        take: 500,
       });
       bloomsProgress = rawBlooms as typeof bloomsProgress;
     } catch (e) {

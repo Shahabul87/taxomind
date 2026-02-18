@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
-import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { parseAIJsonResponse } from '@/lib/ai/parse-ai-json';
+import { validatePromptLength, PromptTooLongError } from '@/lib/api/prompt-guard';
 
 
 export const runtime = 'nodejs';
@@ -92,6 +93,9 @@ export async function POST(req: NextRequest) {
       logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
     }
+    if (error instanceof PromptTooLongError) {
+      return NextResponse.json({ error: 'Content is too long to optimize. Please shorten your input.' }, { status: 413 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
@@ -117,7 +121,7 @@ async function optimizeContent(request: ContentOptimizationRequest, userId: stri
   }
 }
 
-async function optimizeTitle(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
+async function optimizeTitle(content: ContentOptimizationRequest['content'], goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize this course title for maximum impact and effectiveness.
 
 CURRENT TITLE: "${content.title}"
@@ -166,6 +170,8 @@ Return ONLY valid JSON:
   ]
 }`;
 
+  validatePromptLength(prompt);
+
   const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
@@ -174,10 +180,14 @@ Return ONLY valid JSON:
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(aiResponse);
+  const result = parseAIJsonResponse<OptimizationResult>(aiResponse, undefined, 'optimizeTitle');
+  if (!result) {
+    throw new Error('Failed to parse AI response for title optimization');
+  }
+  return result;
 }
 
-async function optimizeDescription(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
+async function optimizeDescription(content: ContentOptimizationRequest['content'], goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize this course description for maximum conversion and engagement.
 
 CURRENT DESCRIPTION: "${content.description}"
@@ -202,6 +212,8 @@ Create an optimized description that converts browsers into students.
 
 Return ONLY valid JSON with the same structure, focusing on description optimization.`;
 
+  validatePromptLength(prompt);
+
   const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
@@ -210,10 +222,14 @@ Return ONLY valid JSON with the same structure, focusing on description optimiza
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(aiResponse);
+  const result = parseAIJsonResponse<OptimizationResult>(aiResponse, undefined, 'optimizeDescription');
+  if (!result) {
+    throw new Error('Failed to parse AI response for description optimization');
+  }
+  return result;
 }
 
-async function optimizeLearningObjectives(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
+async function optimizeLearningObjectives(content: ContentOptimizationRequest['content'], goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize these learning objectives for educational effectiveness and student motivation.
 
 CURRENT OBJECTIVES: ${JSON.stringify(content.learningObjectives)}
@@ -236,6 +252,8 @@ Transform these into compelling, measurable learning outcomes.
 
 Return ONLY valid JSON with learning objectives optimization structure.`;
 
+  validatePromptLength(prompt);
+
   const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
@@ -244,10 +262,14 @@ Return ONLY valid JSON with learning objectives optimization structure.`;
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(aiResponse);
+  const result = parseAIJsonResponse<OptimizationResult>(aiResponse, undefined, 'optimizeLearningObjectives');
+  if (!result) {
+    throw new Error('Failed to parse AI response for learning objectives optimization');
+  }
+  return result;
 }
 
-async function comprehensiveOptimization(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
+async function comprehensiveOptimization(content: ContentOptimizationRequest['content'], goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Perform comprehensive optimization of all course content elements.
 
 CURRENT CONTENT:
@@ -276,6 +298,8 @@ Optimize all elements to work together synergistically for maximum impact.
 
 Return ONLY valid JSON with comprehensive optimization covering title, description, and learning objectives.`;
 
+  validatePromptLength(prompt);
+
   const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
@@ -284,5 +308,9 @@ Return ONLY valid JSON with comprehensive optimization covering title, descripti
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(aiResponse);
+  const result = parseAIJsonResponse<OptimizationResult>(aiResponse, undefined, 'comprehensiveOptimization');
+  if (!result) {
+    throw new Error('Failed to parse AI response for comprehensive optimization');
+  }
+  return result;
 }

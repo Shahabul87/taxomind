@@ -315,7 +315,8 @@ async function getCourseOverview(courseId: string, dateFilter: DateFilter) {
       timestamp: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
     },
     distinct: ['userId'],
-    select: { userId: true }
+    select: { userId: true },
+    take: 1000
   });
 
   const completions = await db.user_progress.count({
@@ -376,7 +377,8 @@ async function getContentAnalytics(courseId: string, dateFilter: DateFilter) {
         courseId
       }
     },
-    select: { id: true, title: true }
+    select: { id: true, title: true },
+    take: 1000
   });
 
   const sectionIds = sections.map(s => s.id);
@@ -456,7 +458,8 @@ async function getEngagementTrends(courseId: string, timeframe: string) {
         lte: now
       }
     },
-    select: { timestamp: true }
+    select: { timestamp: true },
+    take: 1000
   });
 
   // Build trends by bucketing in memory instead of N queries
@@ -503,7 +506,8 @@ async function identifyAtRiskStudents(courseId: string) {
           email: true
         }
       }
-    }
+    },
+    take: 1000
   });
 
   const userIds = enrolledStudents.map(e => e.userId);
@@ -659,7 +663,8 @@ async function getContentIdsForCourse(courseId: string): Promise<string[]> {
         courseId
       }
     },
-    select: { id: true }
+    select: { id: true },
+    take: 1000
   });
 
   return sections.map(s => s.id);

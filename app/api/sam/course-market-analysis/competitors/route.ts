@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { createMarketEngine } from '@sam-ai/educational';
 import { createMarketAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
@@ -27,8 +29,11 @@ function normalizeList(value: unknown): string[] {
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -80,6 +85,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -126,7 +134,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const analysis = await getMarketEngine().analyzeCourse(courseId, 'competition', false);
+    const analysis = await withRetryableTimeout(
+      () => getMarketEngine().analyzeCourse(courseId, 'competition', false),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'competitorMarketAnalysis'
+    );
 
     return NextResponse.json({
       success: true,

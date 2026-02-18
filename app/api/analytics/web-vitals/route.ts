@@ -3,9 +3,14 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { performanceMonitoring } from '@/lib/performance-monitoring'
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter'
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'standard')
+    if (rateLimitResponse) return rateLimitResponse
+
     const body = await req.json()
     
     const {

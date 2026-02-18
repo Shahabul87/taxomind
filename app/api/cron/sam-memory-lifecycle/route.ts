@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
+import { withCronAuth } from '@/lib/api/cron-auth';
 import {
   getMemoryLifecycleManager,
   startMemoryLifecycle,
@@ -31,9 +32,6 @@ import {
   getKGRefreshStats,
   type KGRefreshJobType,
 } from '@/lib/sam/memory-lifecycle-service';
-
-// Cron secret for authorization (set in environment variables)
-const CRON_SECRET = process.env.CRON_SECRET;
 
 // Request body schema for manual triggers
 const ManualTriggerSchema = z.object({
@@ -60,25 +58,6 @@ const ManualTriggerSchema = z.object({
 });
 
 /**
- * Verify cron authorization
- */
-function verifyCronAuth(request: NextRequest): boolean {
-  if (!CRON_SECRET) {
-    logger.warn('[SAM_MEMORY_LIFECYCLE_CRON] CRON_SECRET not configured');
-    return false;
-  }
-
-  const authHeader = request.headers.get('authorization');
-  if (authHeader === `Bearer ${CRON_SECRET}`) {
-    return true;
-  }
-
-  // Also check x-cron-secret header (used by some cron providers)
-  const cronSecretHeader = request.headers.get('x-cron-secret');
-  return cronSecretHeader === CRON_SECRET;
-}
-
-/**
  * GET /api/cron/sam-memory-lifecycle
  *
  * Main cron endpoint - processes pending memory jobs.
@@ -88,11 +67,9 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify authorization
-    if (!verifyCronAuth(request)) {
-      logger.warn('[SAM_MEMORY_LIFECYCLE_CRON] Unauthorized request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(request);
+    if (authResponse) return authResponse;
 
     // Check if memory lifecycle feature is enabled
     if (!SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {

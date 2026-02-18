@@ -305,11 +305,10 @@ const nextConfig = {
   
   // Essential image configuration
   images: {
-    // CRITICAL FIX: Disable image optimization in production due to Next.js 15 regression
-    // Issue: Middleware blocks /_next/image route causing 400 errors and infinite loop
-    // Solution: Serve images directly from Cloudinary/GitHub without optimization
-    // This fixes the infinite loop of 400 errors from avatars.githubusercontent.com and res.cloudinary.com
-    unoptimized: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production',
+    // Image optimization is enabled by default. Set DISABLE_IMAGE_OPTIMIZATION=true
+    // to serve images without optimization (e.g., if using external CDN like Cloudinary).
+    // Note: middleware (proxy.ts) already excludes /_next/image from auth checks.
+    unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
     // Configure image quality settings for premium display
     qualities: [75, 80, 90],
     remotePatterns: [

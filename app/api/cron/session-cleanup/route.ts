@@ -17,11 +17,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupExpiredSessions, getCleanupStats } from '@/lib/auth/session-cleanup';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
  * GET /api/cron/session-cleanup
@@ -31,12 +30,9 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify cron secret if configured
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      console.warn('[SESSION_CLEANUP_CRON] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     // Check if dry run is requested
     const { searchParams } = new URL(req.url);

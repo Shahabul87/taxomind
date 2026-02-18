@@ -477,7 +477,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to generate recommendations',
-        ...(isDev && { message: errorMessage, stack: errorStack }),
+        ...(isDev && { message: errorMessage }),
       },
       { status: 500 }
     );

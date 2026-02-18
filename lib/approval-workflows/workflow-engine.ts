@@ -202,6 +202,12 @@ export class WorkflowEngine {
     const validatedInstance = WorkflowInstanceSchema.parse(instance);
     this.instances.set(validatedInstance.id, validatedInstance);
 
+    // Cap instances Map at 5000 entries
+    if (this.instances.size > 5000) {
+      const oldestKey = this.instances.keys().next().value;
+      if (oldestKey) this.instances.delete(oldestKey);
+    }
+
     // Notify assignees of first step
     await this.notifyStepAssignees(validatedInstance, firstStep);
 
@@ -290,6 +296,13 @@ export class WorkflowEngine {
     }
 
     this.instances.set(instance.id, instance);
+
+    // Cap instances Map at 5000 entries
+    if (this.instances.size > 5000) {
+      const oldestKey = this.instances.keys().next().value;
+      if (oldestKey) this.instances.delete(oldestKey);
+    }
+
     return instance;
   }
 
@@ -467,6 +480,11 @@ export class WorkflowEngine {
       timestamp: new Date(),
       read: false
     });
+
+    // Keep only the last 1000 notifications to prevent memory leak
+    if (this.notifications.length > 1000) {
+      this.notifications.splice(0, this.notifications.length - 1000);
+    }
   }
 
   private async getStepAssignees(step: WorkflowStep): Promise<string[]> {

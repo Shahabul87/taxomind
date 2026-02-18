@@ -358,12 +358,13 @@ export async function GET(req: NextRequest) {
             include: {
               chapters: {
                 include: {
-                  sections: true,
+                  sections: { select: { id: true } },
                 },
               },
             },
           },
         },
+        take: 50,
       }).catch(() => []),
 
       // SAM Interactions

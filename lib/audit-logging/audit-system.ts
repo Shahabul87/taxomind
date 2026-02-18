@@ -565,7 +565,13 @@ export class AuditSystem {
   private async processImmediately(event: AuditEvent): Promise<void> {
     // Store critical events immediately
     this.events.set(event.id, event);
-    
+
+    // Cap events Map at 5000 entries to prevent memory leak
+    if (this.events.size > 5000) {
+      const oldestKey = this.events.keys().next().value;
+      if (oldestKey) this.events.delete(oldestKey);
+    }
+
     // Send immediate alerts for critical events
     if (event.severity === 'critical') {
       await this.sendCriticalAlert(event);
@@ -628,9 +634,15 @@ export class AuditSystem {
   private async flushBuffer(): Promise<void> {
     const eventsToProcess = [...this.eventBuffer];
     this.eventBuffer = [];
-    
+
     for (const event of eventsToProcess) {
       this.events.set(event.id, event);
+    }
+
+    // Cap events Map at 5000 entries to prevent memory leak
+    if (this.events.size > 5000) {
+      const oldestKey = this.events.keys().next().value;
+      if (oldestKey) this.events.delete(oldestKey);
     }
   }
 

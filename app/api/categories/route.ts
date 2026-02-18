@@ -52,14 +52,14 @@ export async function POST(req: Request) {
       return NextResponse.json(category);
     } catch (dbError) {
       logger.error("[CATEGORIES_POST] Database error:", dbError);
-      return new NextResponse(`Database Error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`, { status: 500 });
+      return new NextResponse('Internal Error', { status: 500 });
     }
   } catch (error) {
     logger.error("[CATEGORIES_POST] Detailed error:", error);
     if (error instanceof Error && error.name === "SyntaxError") {
       return new NextResponse("Invalid JSON in request body", { status: 400 });
     }
-    return new NextResponse(`Internal Error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
+    return new NextResponse('Internal Error', { status: 500 });
   }
 }
 

@@ -21,6 +21,8 @@
 import { NextRequest } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { orchestrateExamEvaluation } from '@/lib/sam/exam-evaluation/orchestrator';
@@ -50,6 +52,9 @@ const OrchestrateEvalSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {
@@ -97,20 +102,24 @@ export async function POST(request: NextRequest) {
         });
 
         try {
-          const result = await orchestrateExamEvaluation({
-            params,
-            userId: user.id,
-            abortSignal: request.signal,
-            onSSEEvent: (event: { type: string; data: Record<string, unknown> }) => {
-              sendSSE(event.type, event.data);
-            },
-            onProgress: (progress: { percentage: number; message: string }) => {
-              sendSSE('progress', {
-                percentage: progress.percentage,
-                message: progress.message,
-              });
-            },
-          });
+          const result = await withRetryableTimeout(
+            () => orchestrateExamEvaluation({
+              params,
+              userId: user.id,
+              abortSignal: request.signal,
+              onSSEEvent: (event: { type: string; data: Record<string, unknown> }) => {
+                sendSSE(event.type, event.data);
+              },
+              onProgress: (progress: { percentage: number; message: string }) => {
+                sendSSE('progress', {
+                  percentage: progress.percentage,
+                  message: progress.message,
+                });
+              },
+            }),
+            TIMEOUT_DEFAULTS.AI_GENERATION,
+            'orchestrateExamEvaluation'
+          );
 
           // Final event
           if (result.success) {

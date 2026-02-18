@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight, BookOpen, ArrowUpRight } from "lucide-react";
 
 interface Course {
@@ -28,11 +29,12 @@ export default function EnrolledCourses({ courses }: EnrolledCoursesProps) {
             >
               <div className="h-32 bg-gradient-to-r from-blue-400 to-purple-500 relative overflow-hidden">
                 {course.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img 
-                    src={course.imageUrl} 
+                  <Image
+                    src={course.imageUrl}
                     alt={course.title}
-                    className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover opacity-90 group-hover:scale-105 transition-transform"
                   />
                 )}
                 <div className="absolute bottom-2 left-3 bg-black/50 px-2 py-1 rounded text-xs text-white">

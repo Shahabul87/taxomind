@@ -1262,6 +1262,8 @@ model LearningActivityLog {
   @@index([courseId])
   @@index([activityType])
   @@index([createdAt])
+  @@index([courseId, userId, createdAt])
+  @@index([courseId, createdAt])
 }
 
 // Progress Intervention (alerts and recommendations)

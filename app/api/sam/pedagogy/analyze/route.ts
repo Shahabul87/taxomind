@@ -14,6 +14,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import {
   evaluatePedagogically,
@@ -121,6 +123,9 @@ const AnalyzeContentSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -176,12 +181,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Run pedagogical evaluation
-    const result = await evaluatePedagogically(pedagogicalContent, studentProfile, {
-      evaluators: validated.evaluators,
-      threshold: validated.config?.threshold,
-      parallel: validated.config?.parallel,
-      timeoutMs: validated.config?.timeoutMs,
-    });
+    const result = await withRetryableTimeout(
+      () => evaluatePedagogically(pedagogicalContent, studentProfile, {
+        evaluators: validated.evaluators,
+        threshold: validated.config?.threshold,
+        parallel: validated.config?.parallel,
+        timeoutMs: validated.config?.timeoutMs,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'pedagogy-evaluate'
+    );
 
     // Transform result for API response
     const response = transformResult(result);
@@ -222,6 +231,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

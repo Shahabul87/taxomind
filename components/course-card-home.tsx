@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/format";
@@ -21,7 +21,7 @@ interface CourseCardProps {
   enrollmentCount?: number;
 }
 
-export const CourseCardHome = ({
+const CourseCardHomeComponent = ({
   id,
   title,
   cleanDescription,
@@ -168,3 +168,6 @@ export const CourseCardHome = ({
     </Link>
   );
 };
+
+export const CourseCardHome = React.memo(CourseCardHomeComponent);
+CourseCardHome.displayName = 'CourseCardHome';

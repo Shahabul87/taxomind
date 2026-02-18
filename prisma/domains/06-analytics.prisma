@@ -96,6 +96,9 @@ model learning_metrics {
   updatedAt               DateTime
   Course                  Course?         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   User                    User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, courseId])
+  @@index([userId])
 }
 
 model learning_sessions {
@@ -198,6 +201,7 @@ model realtime_activities {
   @@index([courseId, timestamp])
   @@index([sessionId])
   @@index([userId, timestamp])
+  @@index([userId, courseId, timestamp])
 }
 
 model study_streaks {

@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // ============================================================================
 // TYPES
@@ -223,6 +224,9 @@ function calculateCognitiveLoad(data: z.infer<typeof SessionDataSchema>): {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -306,6 +310,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

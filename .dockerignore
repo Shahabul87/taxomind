@@ -60,6 +60,14 @@ logs
 .github
 .gitlab-ci.yml
 
+# Claude Code / AI tools
+.claude/
+codebase-memory/
+PERFORMANCE_AUDIT_AGENT_PROMPT.md
+
+# SAM separate deployment
+server/Dockerfile.sam
+
 # Documentation
 *.md
 !README.md

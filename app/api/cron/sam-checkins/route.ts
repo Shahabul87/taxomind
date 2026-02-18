@@ -28,8 +28,7 @@ import {
   type TriggerCondition,
 } from '@sam-ai/agentic';
 
-// Cron secret for authorization (set in environment variables)
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // Get check-in store from centralized context (singleton, not new instance)
 const getCheckInStore = () => getStore('checkIn');
@@ -91,24 +90,24 @@ async function sendNotification(payload: NotificationPayload): Promise<boolean> 
 // GET - Process pending check-ins (cron endpoint)
 // ============================================================================
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify cron authorization
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     const checkInScheduler = getCheckInScheduler();
 
-    // Get all pending check-ins that are due
+    // Get all pending check-ins that are due (look back 7 days, not epoch)
     const now = new Date();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const pendingCheckIns = await getCheckInStore().getAllScheduled(
-      new Date(0), // From beginning
-      now // Up to now
+      sevenDaysAgo,
+      now
     );
 
     // Filter to only scheduled (not yet sent) check-ins
@@ -171,8 +170,9 @@ export async function GET(req: NextRequest) {
     let expired = 0;
 
     try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const oldPendingCheckIns = await getCheckInStore().getAllScheduled(
-        new Date(0),
+        thirtyDaysAgo,
         expirationThreshold
       );
 
@@ -229,12 +229,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify authorization
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('Unauthorized manual cron trigger attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     // Call the GET handler
     return GET(req);

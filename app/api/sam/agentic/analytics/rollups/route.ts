@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { generateProgressRollup, type RollupPeriod } from '@/lib/sam/analytics-rollups';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 const querySchema = z.object({
   period: z.enum(['daily', 'weekly', 'monthly']).optional().default('daily'),
@@ -25,11 +25,9 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('[SAM_ROLLUPS] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({

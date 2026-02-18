@@ -192,159 +192,82 @@ export async function GET(request: NextRequest) {
     }
 
     // ==========================================
-    // Fetch Enrollments (with fallback)
+    // Fetch all profile data in PARALLEL (with individual fallbacks)
     // ==========================================
-    let enrolledCourses: Array<{
-      Course: {
-        id: string;
-        title: string;
-        imageUrl: string | null;
-        categoryId: string | null;
-        user: { name: string | null } | null;
-        chapters: Array<{ id: string }>;
-      };
-      updatedAt: Date;
-    }> = [];
-
-    try {
-      enrolledCourses = await db.enrollment.findMany({
-        where: {
-          userId,
-          status: 'ACTIVE',
-        },
+    const [
+      enrollmentsResult,
+      certificationsResult,
+      learningMetricsResult,
+      streaksResult,
+      achievementsResult,
+      recentProgressResult,
+    ] = await Promise.allSettled([
+      db.enrollment.findMany({
+        where: { userId, status: 'ACTIVE' },
+        take: 100,
         include: {
           Course: {
             include: {
-              user: {
-                select: {
-                  name: true,
-                },
-              },
-              chapters: {
-                where: { isPublished: true },
-                select: {
-                  id: true,
-                },
-              },
+              user: { select: { name: true } },
+              chapters: { where: { isPublished: true }, select: { id: true } },
             },
           },
         },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      });
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch enrollments (table may not exist):', error);
-      // Continue with empty array
-    }
+        orderBy: { updatedAt: 'desc' },
+      }),
+      db.certification.findMany({
+        where: { userId, isRevoked: false },
+        take: 100,
+        select: { id: true, issuedAt: true, courseId: true },
+      }),
+      db.learning_metrics.findMany({
+        where: { userId },
+        take: 100,
+        select: { totalStudyTime: true, totalSessions: true, averageSessionDuration: true },
+      }),
+      db.study_streaks.findMany({
+        where: { userId },
+        take: 100,
+        select: { currentStreak: true, longestStreak: true },
+      }),
+      db.user_achievements.findMany({
+        where: { userId },
+        orderBy: { unlockedAt: 'desc' },
+        take: 20,
+        select: { id: true, achievementType: true, title: true, description: true, iconUrl: true, badgeLevel: true, unlockedAt: true },
+      }),
+      db.user_progress.findMany({
+        where: { userId, courseId: { not: null } },
+        orderBy: { lastAccessedAt: 'desc' },
+        take: 10,
+        include: { Course: { select: { title: true } }, Chapter: { select: { title: true } } },
+      }),
+    ]);
 
-    // ==========================================
-    // Fetch Certifications (with fallback)
-    // ==========================================
-    let certifications: Array<{ id: string; issuedAt: Date; courseId: string | null }> = [];
-
-    try {
-      certifications = await db.certification.findMany({
-        where: {
-          userId,
-          isRevoked: false,
-        },
-        select: {
-          id: true,
-          issuedAt: true,
-          courseId: true,
-        },
-      });
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch certifications (table may not exist):', error);
-      // Continue with empty array
-    }
-
-    // ==========================================
-    // Fetch Learning Metrics (with fallback)
-    // ==========================================
+    // Extract results with fallbacks
+    const enrolledCourses = enrollmentsResult.status === 'fulfilled' ? enrollmentsResult.value : (() => { logger.warn('[PROFILE_GET] Failed to fetch enrollments'); return [] as Awaited<typeof enrollmentsResult extends PromiseFulfilledResult<infer T> ? T : never>[]; })();
+    const certifications = certificationsResult.status === 'fulfilled' ? certificationsResult.value : (() => { logger.warn('[PROFILE_GET] Failed to fetch certifications'); return [] as Array<{ id: string; issuedAt: Date; courseId: string | null }>; })();
 
     let totalLearningHours = 0;
-    try {
-      const learningMetrics = await db.learning_metrics.findMany({
-        where: { userId },
-        select: {
-          totalStudyTime: true,
-          totalSessions: true,
-          averageSessionDuration: true,
-        },
-      });
-
-      const totalLearningMinutes = learningMetrics.reduce(
-        (sum, metric) => sum + (metric.totalStudyTime || 0),
-        0
-      );
+    if (learningMetricsResult.status === 'fulfilled') {
+      const totalLearningMinutes = learningMetricsResult.value.reduce((sum, metric) => sum + (metric.totalStudyTime || 0), 0);
       totalLearningHours = Math.floor(totalLearningMinutes / 60);
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch learning metrics:', error);
-      // Continue with default value
+    } else {
+      logger.warn('[PROFILE_GET] Failed to fetch learning metrics');
     }
-
-    // ==========================================
-    // Fetch Study Streaks (with fallback)
-    // ==========================================
 
     let currentStreak = 0;
     let longestStreak = 0;
-    try {
-      const streaks = await db.study_streaks.findMany({
-        where: { userId },
-        select: {
-          currentStreak: true,
-          longestStreak: true,
-        },
-      });
-
-      currentStreak = streaks.reduce(
-        (max, streak) => Math.max(max, streak.currentStreak || 0),
-        0
-      );
-      longestStreak = streaks.reduce(
-        (max, streak) => Math.max(max, streak.longestStreak || 0),
-        0
-      );
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch study streaks:', error);
-      // Continue with default values
+    if (streaksResult.status === 'fulfilled') {
+      currentStreak = streaksResult.value.reduce((max, streak) => Math.max(max, streak.currentStreak || 0), 0);
+      longestStreak = streaksResult.value.reduce((max, streak) => Math.max(max, streak.longestStreak || 0), 0);
+    } else {
+      logger.warn('[PROFILE_GET] Failed to fetch study streaks');
     }
 
-    // ==========================================
-    // Fetch Achievements (with fallback)
-    // ==========================================
-
-    let achievements: Array<{
-      id: string;
-      title: string;
-      description: string;
-      icon: string;
-      earnedAt: string;
-      rarity: 'common' | 'rare' | 'epic' | 'legendary';
-    }> = [];
-
-    try {
-      const userAchievements = await db.user_achievements.findMany({
-        where: { userId },
-        orderBy: {
-          unlockedAt: 'desc',
-        },
-        take: 20,
-        select: {
-          id: true,
-          achievementType: true,
-          title: true,
-          description: true,
-          iconUrl: true,
-          badgeLevel: true,
-          unlockedAt: true,
-        },
-      });
-
-      achievements = userAchievements.map((achievement) => ({
+    let achievements: Array<{ id: string; title: string; description: string; icon: string; earnedAt: string; rarity: 'common' | 'rare' | 'epic' | 'legendary' }> = [];
+    if (achievementsResult.status === 'fulfilled') {
+      achievements = achievementsResult.value.map((achievement) => ({
         id: achievement.id,
         title: achievement.title,
         description: achievement.description,
@@ -352,87 +275,51 @@ export async function GET(request: NextRequest) {
         earnedAt: achievement.unlockedAt.toISOString(),
         rarity: mapBadgeLevelToRarity(achievement.badgeLevel),
       }));
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch achievements:', error);
-      // Continue with empty array
+    } else {
+      logger.warn('[PROFILE_GET] Failed to fetch achievements');
     }
 
-    // ==========================================
-    // Fetch User Progress for Recent Activity (with fallback)
-    // ==========================================
+    let recentActivity: Array<{ id: string; type: string; title: string; timestamp: string; progress?: number }> = [];
+    if (recentProgressResult.status === 'fulfilled') {
+      recentActivity = recentProgressResult.value.map((progress) => {
+        const timeDiff = Date.now() - progress.lastAccessedAt.getTime();
+        const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+        const daysAgo = Math.floor(hoursAgo / 24);
 
-    let recentActivity: Array<{
-      id: string;
-      type: string;
-      title: string;
-      timestamp: string;
-      progress?: number;
-    }> = [];
+        let timestamp: string;
+        if (hoursAgo < 1) {
+          timestamp = 'Just now';
+        } else if (hoursAgo < 24) {
+          timestamp = `${hoursAgo} ${hoursAgo === 1 ? 'hour' : 'hours'} ago`;
+        } else {
+          timestamp = `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`;
+        }
 
-    try {
-      const recentProgress = await db.user_progress.findMany({
-        where: {
-          userId,
-          courseId: { not: null },
-        },
-        orderBy: {
-          lastAccessedAt: 'desc',
-        },
-        take: 10,
-        include: {
-          Course: {
-            select: {
-              title: true,
-            },
-          },
-          Chapter: {
-            select: {
-              title: true,
-            },
-          },
-        },
+        let type: string;
+        let title: string;
+
+        if (progress.isCompleted) {
+          type = progress.chapterId ? 'chapter_completed' : 'course_completed';
+          title = progress.chapterId
+            ? `Completed "${progress.Chapter?.title || 'Chapter'}" in "${progress.Course?.title || 'Course'}"`
+            : `Completed "${progress.Course?.title || 'Course'}"`;
+        } else {
+          type = 'course_progress';
+          title = progress.Chapter
+            ? `Continued "${progress.Chapter.title}" in "${progress.Course?.title || 'Course'}"`
+            : `Continued "${progress.Course?.title || 'Course'}"`;
+        }
+
+        return {
+          id: progress.id,
+          type,
+          title,
+          timestamp,
+          progress: progress.progressPercent,
+        };
       });
-
-      recentActivity = recentProgress.map((progress) => {
-      const timeDiff = Date.now() - progress.lastAccessedAt.getTime();
-      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
-      const daysAgo = Math.floor(hoursAgo / 24);
-
-      let timestamp: string;
-      if (hoursAgo < 1) {
-        timestamp = 'Just now';
-      } else if (hoursAgo < 24) {
-        timestamp = `${hoursAgo} ${hoursAgo === 1 ? 'hour' : 'hours'} ago`;
-      } else {
-        timestamp = `${daysAgo} ${daysAgo === 1 ? 'day' : 'days'} ago`;
-      }
-
-      let type: string;
-      let title: string;
-
-      if (progress.isCompleted) {
-        type = progress.chapterId ? 'chapter_completed' : 'course_completed';
-        title = progress.chapterId
-          ? `Completed "${progress.Chapter?.title || 'Chapter'}" in "${progress.Course?.title || 'Course'}"`
-          : `Completed "${progress.Course?.title || 'Course'}"`;
-      } else {
-        type = 'course_progress';
-        title = progress.Chapter
-          ? `Continued "${progress.Chapter.title}" in "${progress.Course?.title || 'Course'}"`
-          : `Continued "${progress.Course?.title || 'Course'}"`;
-      }
-
-      return {
-        id: progress.id,
-        type,
-        title,
-        timestamp,
-        progress: progress.progressPercent,
-      };
-    });
-    } catch (error) {
-      logger.warn('[PROFILE_GET] Failed to fetch recent activity:', error);
-      // Continue with empty array
+    } else {
+      logger.warn('[PROFILE_GET] Failed to fetch recent activity');
     }
 
     // ==========================================

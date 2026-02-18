@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // Get practice goal store for updating streak goals
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -12,21 +12,13 @@ const { practiceGoal: practiceGoalStore } = getPracticeStores();
 // Purpose: Update streak counters and reset broken streaks
 // ============================================================================
 
-// Verify cron secret for security
-const CRON_SECRET = process.env.CRON_SECRET;
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(request);
+    if (authResponse) return authResponse;
 
     console.log('[CRON] Starting practice streak updates...');
 
@@ -50,6 +42,7 @@ export async function GET(request: NextRequest) {
         longestStreak: true,
         lastPracticedAt: true,
       },
+      take: 1000,
     });
 
     console.log(`[CRON] Processing ${activeMasteries.length} active streaks`);
@@ -57,43 +50,54 @@ export async function GET(request: NextRequest) {
     let brokenStreaks = 0;
     let maintainedStreaks = 0;
 
+    // Classify streaks into broken vs maintained
+    const brokenIds: string[] = [];
+    const brokenNotifications: Array<{ userId: string; skillId: string; streak: number }> = [];
+
     for (const mastery of activeMasteries) {
       const lastPractice = mastery.lastPracticedAt
         ? new Date(mastery.lastPracticedAt)
         : null;
 
       if (!lastPractice) {
-        // No practice recorded, reset streak
-        await db.skillMastery10K.update({
-          where: { id: mastery.id },
-          data: { currentStreak: 0 },
-        });
+        brokenIds.push(mastery.id);
         brokenStreaks++;
         continue;
       }
 
       // Check if last practice was yesterday or today
-      lastPractice.setHours(0, 0, 0, 0);
+      const lpDate = new Date(lastPractice);
+      lpDate.setHours(0, 0, 0, 0);
       const diffDays = Math.floor(
-        (today.getTime() - lastPractice.getTime()) / (1000 * 60 * 60 * 24)
+        (today.getTime() - lpDate.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       if (diffDays > 1) {
-        // Streak is broken (didn't practice yesterday)
-        await db.skillMastery10K.update({
-          where: { id: mastery.id },
-          data: { currentStreak: 0 },
-        });
+        brokenIds.push(mastery.id);
         brokenStreaks++;
-
-        // Notify user about broken streak (create notification)
-        await createStreakBrokenNotification(
-          mastery.userId,
-          mastery.skillId,
-          mastery.currentStreak
-        );
+        brokenNotifications.push({
+          userId: mastery.userId,
+          skillId: mastery.skillId,
+          streak: mastery.currentStreak,
+        });
       } else {
         maintainedStreaks++;
+      }
+    }
+
+    // Batch reset all broken streaks in a single query
+    if (brokenIds.length > 0) {
+      await db.skillMastery10K.updateMany({
+        where: { id: { in: brokenIds } },
+        data: { currentStreak: 0 },
+      });
+
+      // Send notifications in parallel batches of 10
+      for (let i = 0; i < brokenNotifications.length; i += 10) {
+        const batch = brokenNotifications.slice(i, i + 10);
+        await Promise.allSettled(
+          batch.map(n => createStreakBrokenNotification(n.userId, n.skillId, n.streak))
+        );
       }
     }
 
@@ -111,6 +115,7 @@ export async function GET(request: NextRequest) {
         skillId: true,
         currentStreak: true,
       },
+      take: 1000,
     });
 
     let streakMilestonesAwarded = 0;
@@ -140,6 +145,7 @@ export async function GET(request: NextRequest) {
         userId: true,
       },
       distinct: ['userId'],
+      take: 1000,
     });
 
     let streakGoalsUpdated = 0;

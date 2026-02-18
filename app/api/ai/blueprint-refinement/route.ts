@@ -180,7 +180,7 @@ Format your response as a JSON object with the structure matching the Refinement
     const responseText = await runSAMChatWithPreference({
       userId,
       capability: 'course',
-      maxTokens: 8000,
+      maxTokens: 4000,
       temperature: 0.3,
       messages: [
         {

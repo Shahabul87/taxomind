@@ -2,15 +2,25 @@
 import { Kafka, Producer, Consumer, EachMessagePayload } from 'kafkajs';
 import { logger } from '@/lib/logger';
 
-// Kafka client configuration
-const kafka = new Kafka({
-  clientId: 'alam-lms-analytics',
-  brokers: process.env.KAFKA_BROKERS?.split(',') || ['localhost:9092'],
-  retry: {
-    initialRetryTime: 100,
-    retries: 8
+// Lazy-initialized Kafka client - only created when KAFKA_BROKERS is set
+let kafka: Kafka | null = null;
+
+function getKafka(): Kafka | null {
+  if (kafka) return kafka;
+  const brokers = process.env.KAFKA_BROKERS;
+  if (!brokers) {
+    return null;
   }
-});
+  kafka = new Kafka({
+    clientId: 'alam-lms-analytics',
+    brokers: brokers.split(','),
+    retry: {
+      initialRetryTime: 100,
+      retries: 8
+    }
+  });
+  return kafka;
+}
 
 // Producer instance
 let producer: Producer | null = null;
@@ -19,12 +29,15 @@ let producer: Producer | null = null;
 const consumers = new Map<string, Consumer>();
 
 // Initialize Kafka producer
-export async function initializeProducer(): Promise<Producer> {
-  if (!producer) {
-    producer = kafka.producer();
-    await producer.connect();
-
+export async function initializeProducer(): Promise<Producer | null> {
+  if (producer) return producer;
+  const kafkaClient = getKafka();
+  if (!kafkaClient) {
+    logger.debug('[KAFKA] Not configured (KAFKA_BROKERS not set) - skipping producer init');
+    return null;
   }
+  producer = kafkaClient.producer();
+  await producer.connect();
   return producer;
 }
 
@@ -32,19 +45,21 @@ export async function initializeProducer(): Promise<Producer> {
 export async function initializeConsumer(
   groupId: string,
   topics: string[]
-): Promise<Consumer> {
-  if (!consumers.has(groupId)) {
-    const consumer = kafka.consumer({ groupId });
-    await consumer.connect();
-    
-    for (const topic of topics) {
-      await consumer.subscribe({ topic, fromBeginning: false });
-    }
-    
-    consumers.set(groupId, consumer);
-
+): Promise<Consumer | null> {
+  if (consumers.has(groupId)) return consumers.get(groupId)!;
+  const kafkaClient = getKafka();
+  if (!kafkaClient) {
+    logger.debug('[KAFKA] Not configured - skipping consumer init');
+    return null;
   }
-  
+  const consumer = kafkaClient.consumer({ groupId });
+  await consumer.connect();
+
+  for (const topic of topics) {
+    await consumer.subscribe({ topic, fromBeginning: false });
+  }
+
+  consumers.set(groupId, consumer);
   return consumers.get(groupId)!;
 }
 
@@ -53,15 +68,16 @@ export async function sendToKafka(
   topic: string,
   messages: Array<{ key?: string; value: any }>
 ): Promise<void> {
-  const producer = await initializeProducer();
-  
+  const prod = await initializeProducer();
+  if (!prod) return; // Kafka not configured, silently skip
+
   const kafkaMessages = messages.map(msg => ({
     key: msg.key,
     value: JSON.stringify(msg.value),
     timestamp: Date.now().toString()
   }));
-  
-  await producer.send({
+
+  await prod.send({
     topic,
     messages: kafkaMessages
   });

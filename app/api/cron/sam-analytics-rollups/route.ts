@@ -8,8 +8,7 @@ import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { generateProgressRollup, type RollupPeriod } from '@/lib/sam/analytics-rollups';
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 const DEFAULT_QUEUE = process.env.SAM_AGENTIC_QUEUE ?? 'agentic';
 
 const querySchema = z.object({
@@ -17,15 +16,15 @@ const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).optional(),
 });
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('[SAM_ROLLUPS_CRON] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({

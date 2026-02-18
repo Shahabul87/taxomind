@@ -67,6 +67,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import axios from "axios";
 import { SectionUser, Section, Chapter, Course } from "./enhanced-section-learning/types";
+import { SafeHtmlRenderer } from "../safe-html-renderer";
 
 // Personalization interfaces
 interface LearningPreferences {
@@ -271,9 +272,9 @@ export const EnterpriseSectionLearning = ({
                   {currentSection.title}
                 </h1>
                 {currentSection.description && (
-                  <div
+                  <SafeHtmlRenderer
+                    html={currentSection.description}
                     className="text-base text-slate-700 dark:text-slate-300 leading-relaxed prose prose-slate dark:prose-invert prose-p:my-2 prose-p:text-slate-700 dark:prose-p:text-slate-300 max-w-none"
-                    dangerouslySetInnerHTML={{ __html: currentSection.description }}
                   />
                 )}
               </div>
@@ -824,9 +825,9 @@ const EnterpriseContentView = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div
+            <SafeHtmlRenderer
+              html={currentSection.learningObjectives}
               className="prose prose-slate dark:prose-invert max-w-none prose-p:text-indigo-800 dark:prose-p:text-indigo-200 prose-li:text-indigo-800 dark:prose-li:text-indigo-200"
-              dangerouslySetInnerHTML={{ __html: currentSection.learningObjectives }}
             />
           </CardContent>
         </Card>
@@ -928,9 +929,10 @@ const EnterpriseContentView = ({
                   <code>{codeBlock.code}</code>
                 </pre>
                 {codeBlock.explanation && (
-                  <div className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-700 dark:prose-p:text-slate-300">
-                    <div dangerouslySetInnerHTML={{ __html: codeBlock.explanation }} />
-                  </div>
+                  <SafeHtmlRenderer
+                    html={codeBlock.explanation}
+                    className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-700 dark:prose-p:text-slate-300"
+                  />
                 )}
               </div>
             ))}
@@ -964,9 +966,10 @@ const EnterpriseContentView = ({
                   </div>
                 )}
                 {math.explanation && (
-                  <div className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-700 dark:prose-p:text-slate-300">
-                    <div dangerouslySetInnerHTML={{ __html: math.explanation }} />
-                  </div>
+                  <SafeHtmlRenderer
+                    html={math.explanation}
+                    className="prose prose-slate dark:prose-invert max-w-none prose-p:text-slate-700 dark:prose-p:text-slate-300"
+                  />
                 )}
               </div>
             ))}
@@ -1046,7 +1049,7 @@ const EnterpriseContentView = ({
                 {getNoteIcon(note.type)}
                 <div className="flex-1">
                   <h3 className="font-bold mb-2">{note.title}</h3>
-                  <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: note.content }} />
+                  <SafeHtmlRenderer html={note.content} className="prose prose-sm max-w-none" />
                 </div>
               </div>
             </div>

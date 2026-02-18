@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { z } from 'zod';
+
+const SectionUpdateSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().max(10000).optional().nullable(),
+  learningObjectives: z.string().max(5000).optional().nullable(),
+  creatorGuidelines: z.string().max(10000).optional().nullable(),
+  videoUrl: z.string().url().max(1000).optional().nullable(),
+  position: z.number().int().min(0).optional(),
+  isPublished: z.boolean().optional(),
+  isFree: z.boolean().optional(),
+  duration: z.number().int().min(0).optional().nullable(),
+  type: z.string().max(50).optional().nullable(),
+  isPreview: z.boolean().optional().nullable(),
+  resourceUrls: z.string().max(5000).optional().nullable(),
+  practicalActivity: z.string().max(10000).optional().nullable(),
+  keyConceptsCovered: z.string().max(10000).optional().nullable(),
+}).strict();
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -82,7 +100,8 @@ export async function PATCH(
   const params = await props.params;
   try {
     const user = await currentUser();
-    const { videoUrl, ...values } = await req.json();
+    const body = await req.json();
+    const { videoUrl, ...values } = SectionUpdateSchema.parse(body);
 
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });

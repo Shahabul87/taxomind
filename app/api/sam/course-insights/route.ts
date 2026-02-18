@@ -40,6 +40,7 @@ export async function GET() {
           },
         },
       },
+      take: 50,
     });
 
     // Get user's exam attempts for mastery calculation
@@ -63,6 +64,7 @@ export async function GET() {
           },
         },
       },
+      take: 200,
     });
 
     // Get user's study sessions for engagement metrics

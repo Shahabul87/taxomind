@@ -1,9 +1,9 @@
 "use client";
 
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { useState } from "react";
 
 import { IconBadge } from "@/components/icon-badge";
 import { formatPrice } from "@/lib/format";
@@ -18,9 +18,9 @@ interface CourseCardProps {
   price: number;
   progress: number | null;
   category: string;
-};
+}
 
-export const CourseCard = ({
+const CourseCardComponent = ({
   id,
   title,
   imageUrl,
@@ -95,4 +95,7 @@ export const CourseCard = ({
       </div>
     </Link>
   )
-}
+};
+
+export const CourseCard = React.memo(CourseCardComponent);
+CourseCard.displayName = 'CourseCard';

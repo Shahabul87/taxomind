@@ -20,7 +20,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { getStore, getPracticeStores } from '@/lib/sam/taxomind-context';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 /** Bloom's-weighted decay rates (%/day). Higher cognition = faster decay. */
 const BLOOMS_DECAY_RATES: Record<string, number> = {
@@ -91,16 +91,15 @@ interface CronResult {
 // HANDLER
 // ============================================================================
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify cron authentication
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('[SAM_MASTERY_DECAY] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);

@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const TicketCreateSchema = z.object({
+  subject: z.string().min(1).max(500),
+  category: z.string().min(1).max(100),
+  message: z.string().min(1).max(10000),
+}).strict();
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +17,8 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const values = await req.json();
+    const body = await req.json();
+    const values = TicketCreateSchema.parse(body);
 
     const ticket = await db.supportTicket.create({
       data: {

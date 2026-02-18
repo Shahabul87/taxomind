@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // ============================================================================
 // CRON: Spaced Repetition Review Reminders
@@ -9,21 +9,13 @@ import { logger } from '@/lib/logger';
 // Purpose: Send reminders for overdue and due-today reviews
 // ============================================================================
 
-// Verify cron secret for security
-const CRON_SECRET = process.env.CRON_SECRET;
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(request);
+    if (authResponse) return authResponse;
 
     logger.info('[CRON] Starting spaced repetition review reminders...');
 

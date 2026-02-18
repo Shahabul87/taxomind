@@ -362,7 +362,11 @@ export async function GET(req: NextRequest) {
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    logger.error('[EnhancedDepthAnalysis] Error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return NextResponse.json(
       {
@@ -370,7 +374,9 @@ export async function GET(req: NextRequest) {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to retrieve depth analysis data',
-          details: { errorMessage, errorStack }
+          ...(process.env.NODE_ENV !== 'production' && {
+            details: { errorMessage },
+          }),
         }
       },
       { status: 500 }

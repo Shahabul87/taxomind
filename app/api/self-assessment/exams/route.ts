@@ -270,7 +270,7 @@ async function generateTopicBasedQuestions(params: {
       capability: 'analysis',
       messages: [{ role: 'user', content: userPrompt }],
       systemPrompt: TOPIC_QUESTION_GENERATION_PROMPT,
-      maxTokens: 8000,
+      maxTokens: 4000,
       temperature: 0.7,
     });
 

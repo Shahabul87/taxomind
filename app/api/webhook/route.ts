@@ -86,7 +86,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     return new Response(
-      `Webhook Error: ${error instanceof Error ? error.message : String(error)}`,
+      'Webhook Error: An unexpected error occurred',
       { status: 400 }
     );
   }

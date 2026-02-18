@@ -15,6 +15,8 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createFairnessAuditor,
   createStrictFairnessAuditor,
@@ -72,6 +74,9 @@ const RunAuditSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -119,7 +124,11 @@ export async function POST(req: NextRequest) {
 
     if (validated.quickAudit) {
       // Quick audit - critical issues only
-      result = await auditor.quickAudit(evaluationsWithDemographics);
+      result = await withRetryableTimeout(
+        () => auditor.quickAudit(evaluationsWithDemographics),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'fairness-quick-audit'
+      );
 
       logger.info('[FAIRNESS_AUDIT] Quick audit completed', {
         userId: session.user.id,
@@ -140,7 +149,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Full audit
-    const fullResult = await auditor.runFairnessAudit(evaluationsWithDemographics);
+    const fullResult = await withRetryableTimeout(
+      () => auditor.runFairnessAudit(evaluationsWithDemographics),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'fairness-full-audit'
+    );
 
     // Transform result for API response (convert Maps to objects)
     const response = transformAuditReport(fullResult);
@@ -185,6 +198,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

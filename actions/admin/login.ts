@@ -239,7 +239,9 @@ export const login = async (
   const passwordMatches = await verifyPassword(password, existingAdmin.password);
 
   if (!passwordMatches) {
-    console.log('[admin-login] Invalid credentials - wrong password. Hash format:', existingAdmin.password.substring(0, 10) + '...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[admin-login] Invalid credentials - wrong password');
+    }
     await authAuditHelpers.logSignInFailed(email, 'Admin login - Invalid password', 'credentials');
     return { error: "Invalid admin credentials!" };
   }

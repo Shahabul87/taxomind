@@ -28,19 +28,19 @@ const PERFORMANCE_THRESHOLDS = {
   CRITICAL_QUERY: 1000,
 };
 
-// Metrics collector for monitoring
+// Metrics collector for monitoring (ring buffer to avoid GC pressure)
 class DatabaseMetrics {
-  private static queryTimes: number[] = [];
+  private static readonly MAX_METRICS = 1000;
+  private static queryTimes: number[] = new Array(1000).fill(0);
+  private static queryIndex = 0;
+  private static queryCount = 0;
   private static errorCount = 0;
   private static connectionCount = 0;
 
   static recordQuery(duration: number, model: string, action: string) {
-    this.queryTimes.push(duration);
-
-    // Keep only last 1000 queries for memory efficiency
-    if (this.queryTimes.length > 1000) {
-      this.queryTimes = this.queryTimes.slice(-1000);
-    }
+    this.queryTimes[this.queryIndex] = duration;
+    this.queryIndex = (this.queryIndex + 1) % this.MAX_METRICS;
+    this.queryCount++;
 
     // Log slow queries
     if (duration > PERFORMANCE_THRESHOLDS.CRITICAL_QUERY) {
@@ -58,13 +58,17 @@ class DatabaseMetrics {
   }
 
   static getMetrics() {
-    const sortedTimes = [...this.queryTimes].sort((a, b) => a - b);
-    const p50 = sortedTimes[Math.floor(sortedTimes.length * 0.5)] || 0;
-    const p95 = sortedTimes[Math.floor(sortedTimes.length * 0.95)] || 0;
-    const p99 = sortedTimes[Math.floor(sortedTimes.length * 0.99)] || 0;
+    const count = Math.min(this.queryCount, this.MAX_METRICS);
+    const activeTimes = count < this.MAX_METRICS
+      ? this.queryTimes.slice(0, count)
+      : [...this.queryTimes];
+    const sortedTimes = activeTimes.sort((a, b) => a - b);
+    const p50 = sortedTimes[Math.floor(count * 0.5)] || 0;
+    const p95 = sortedTimes[Math.floor(count * 0.95)] || 0;
+    const p99 = sortedTimes[Math.floor(count * 0.99)] || 0;
 
     return {
-      totalQueries: this.queryTimes.length,
+      totalQueries: this.queryCount,
       errorCount: this.errorCount,
       connectionCount: this.connectionCount,
       latency: {
@@ -174,12 +178,21 @@ const prismaClientSingleton = () => {
               operation
             );
 
-            // Implement retry logic for transient failures
+            // Implement retry logic for transient failures with exponential backoff
             // Only retry non-transaction queries to avoid transaction conflicts
             if (shouldRetry(error as Error)) {
-              console.log(`Retrying ${model}.${operation} after transient error`);
-              await sleep(100); // Wait 100ms before retry
-              return query(args);
+              const backoffDelays = [100, 500, 1000]; // Exponential backoff
+              for (let attempt = 0; attempt < backoffDelays.length; attempt++) {
+                try {
+                  console.log(`Retrying ${model}.${operation} (attempt ${attempt + 1}) after transient error`);
+                  await sleep(backoffDelays[attempt]);
+                  return await query(args);
+                } catch (retryError) {
+                  if (attempt === backoffDelays.length - 1 || !shouldRetry(retryError as Error)) {
+                    throw retryError;
+                  }
+                }
+              }
             }
 
             throw error;

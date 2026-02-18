@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { BloomsAligner } from "@sam-ai/pedagogy";
+import { devOnlyGuard } from "@/lib/api/dev-only-guard";
 
 // Request schema
 const RequestSchema = z.object({
@@ -9,6 +10,10 @@ const RequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Demo route — dev/staging only
+    const blocked = devOnlyGuard();
+    if (blocked) return blocked;
+
     const body = await req.json();
 
     // Validate request

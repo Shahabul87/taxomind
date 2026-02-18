@@ -15,6 +15,8 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   validateContent,
   quickValidateContent,
@@ -120,6 +122,9 @@ interface QualityValidationRecord {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -161,10 +166,18 @@ export async function POST(req: NextRequest) {
 
     if (validated.quickValidation) {
       // Quick validation - only essential gates
-      result = await quickValidateContent(generatedContent);
+      result = await withRetryableTimeout(
+        () => quickValidateContent(generatedContent),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'quality-quick-validate'
+      );
     } else {
       // Full validation with all gates
-      result = await validateContent(generatedContent, validated.config);
+      result = await withRetryableTimeout(
+        () => validateContent(generatedContent, validated.config),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'quality-full-validate'
+      );
     }
 
     const processingTime = Date.now() - startTime;
@@ -221,6 +234,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

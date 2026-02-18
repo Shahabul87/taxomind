@@ -3,6 +3,7 @@ import { Server as SocketIOServer, Socket } from "socket.io";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { v4 as uuidv4 } from "uuid";
+import jwt from "jsonwebtoken";
 import { getSAMRealtimeServer } from "@/lib/sam/realtime";
 import type { PresenceMetadata } from "@sam-ai/agentic";
 
@@ -124,19 +125,37 @@ samWss.on("connection", (ws, req) => {
   });
 });
 
-// Authentication middleware
+// Authentication middleware - verify JWT token
 io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
   const userId = socket.handshake.auth.userId;
   const userName = socket.handshake.auth.userName;
 
-  if (!userId) {
-    return next(new Error("Authentication error: userId is required"));
+  // If JWT_SECRET is configured, require and verify token
+  const jwtSecret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
+
+  if (jwtSecret && token) {
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as {
+        sub?: string;
+        name?: string;
+        [key: string]: unknown;
+      };
+      socket.data.userId = decoded.sub || userId;
+      socket.data.userName = decoded.name || userName || "Unknown User";
+      return next();
+    } catch {
+      console.warn("Socket.IO: Invalid JWT token, falling back to userId");
+    }
   }
 
-  // Attach user info to socket
+  // Fallback: require userId (backward compatible during migration)
+  if (!userId) {
+    return next(new Error("Authentication error: token or userId is required"));
+  }
+
   socket.data.userId = userId;
   socket.data.userName = userName || "Unknown User";
-
   next();
 });
 

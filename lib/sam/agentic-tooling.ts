@@ -232,10 +232,21 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
   let registeredCount = 0;
   let updatedCount = 0;
 
+  // Apply configs to all tools first
   for (const tool of tools) {
     applyToolConfig(tool, toolConfigMap.get(tool.id));
-    const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
-    if (!existing) {
+  }
+
+  // Batch lookup: fetch all existing tools in one query
+  const mentorToolIds = tools.map((t) => t.id);
+  const existingMentorTools = await db.agentTool.findMany({
+    where: { id: { in: mentorToolIds } },
+    select: { id: true },
+  });
+  const existingMentorIds = new Set(existingMentorTools.map((t) => t.id));
+
+  for (const tool of tools) {
+    if (!existingMentorIds.has(tool.id)) {
       // Tool not in DB - register it (this also adds to cache)
       await toolRegistry.register(tool);
       registeredCount++;
@@ -295,10 +306,21 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
   let standaloneRegistered = 0;
   let standaloneUpdated = 0;
 
+  // Apply configs to all standalone tools first
   for (const tool of standaloneTools) {
     applyToolConfig(tool, toolConfigMap.get(tool.id));
-    const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
-    if (!existing) {
+  }
+
+  // Batch lookup: fetch all existing standalone tools in one query
+  const standaloneToolIds = standaloneTools.map((t) => t.id);
+  const existingStandaloneTools = await db.agentTool.findMany({
+    where: { id: { in: standaloneToolIds } },
+    select: { id: true },
+  });
+  const existingStandaloneIds = new Set(existingStandaloneTools.map((t) => t.id));
+
+  for (const tool of standaloneTools) {
+    if (!existingStandaloneIds.has(tool.id)) {
       await toolRegistry.register(tool);
       standaloneRegistered++;
     } else {
@@ -364,12 +386,27 @@ async function doRegisterExternalAPITools(toolRegistry: ToolRegistry): Promise<v
 
   const toolCache = getToolRegistryCache();
 
+  // Apply configs to all external tools first
   for (const tool of externalTools) {
     applyToolConfig(tool, toolConfigMap.get(tool.id));
-    const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
-    if (!existing) {
+  }
+
+  // Batch lookup: fetch all existing external tools in one query
+  const externalToolIds = externalTools.map((t) => t.id);
+  const existingExternalTools = await db.agentTool.findMany({
+    where: { id: { in: externalToolIds } },
+    select: { id: true },
+  });
+  const existingExternalIds = new Set(existingExternalTools.map((t) => t.id));
+
+  let externalRegistered = 0;
+  let externalUpdated = 0;
+
+  for (const tool of externalTools) {
+    if (!existingExternalIds.has(tool.id)) {
       // Tool not in DB - register it (this also adds to cache)
       await toolRegistry.register(tool);
+      externalRegistered++;
       logger.debug('[Tooling] Registered external tool', { id: tool.id });
     } else {
       // Tool exists in DB - add to cache first, then update
@@ -391,11 +428,16 @@ async function doRegisterExternalAPITools(toolRegistry: ToolRegistry): Promise<v
         deprecated: tool.deprecated,
         deprecationMessage: tool.deprecationMessage,
       });
+      externalUpdated++;
       logger.debug('[Tooling] Updated external tool', { id: tool.id });
     }
   }
 
-  logger.info('[Tooling] External API tools registered', { count: externalTools.length });
+  logger.info('[Tooling] External API tools registered', {
+    registered: externalRegistered,
+    updated: externalUpdated,
+    total: externalTools.length,
+  });
 }
 
 export function getToolingSystem(): ToolingSystem {

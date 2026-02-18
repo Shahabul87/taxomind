@@ -268,17 +268,23 @@ export async function startAnalyticsConsumer(): Promise<void> {
       'analytics-interactions',
       [KAFKA_TOPICS.STUDENT_INTERACTIONS]
     );
-    
+
     const videoConsumer = await initializeConsumer(
       'analytics-video',
       [KAFKA_TOPICS.VIDEO_ANALYTICS]
     );
-    
+
     const metricsConsumer = await initializeConsumer(
       'analytics-metrics',
       [KAFKA_TOPICS.LEARNING_METRICS]
     );
-    
+
+    // Skip if Kafka is not configured
+    if (!interactionConsumer || !videoConsumer || !metricsConsumer) {
+      logger.debug('[KAFKA] Not configured - skipping analytics consumers');
+      return;
+    }
+
     // Run consumers
     await Promise.all([
       interactionConsumer.run({

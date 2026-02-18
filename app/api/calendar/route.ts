@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const CalendarEventSchema = z.object({
+  title: z.string().min(1).max(500),
+  description: z.string().max(5000).optional().nullable(),
+  startDate: z.string(),
+  endDate: z.string(),
+  location: z.string().max(500).optional().nullable(),
+  recurringEndDate: z.string().optional().nullable(),
+  allDay: z.boolean().default(false),
+  category: z.string().min(1).max(100),
+  color: z.string().max(50).optional().nullable(),
+  recurringType: z.string().max(50).optional().nullable(),
+  taskId: z.string().optional().nullable(),
+}).strict();
 
 // Helper function to handle recurring events
 function expandRecurringEvent(
@@ -226,8 +241,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
     
-    const data = await request.json();
-    
+    const body = await request.json();
+    const data = CalendarEventSchema.parse(body);
+
     // Create the event in the database
     const event = await db.calendarEvent.create({
       data: {

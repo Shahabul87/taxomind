@@ -1,8 +1,6 @@
 'use client';
 
-import { useMemo, memo } from 'react';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { useMemo, useState, useEffect, memo } from 'react';
 
 interface KaTeXRendererProps {
   math: string;
@@ -10,23 +8,50 @@ interface KaTeXRendererProps {
   className?: string;
 }
 
+// Cached katex module reference so we only dynamically import once
+let katexModule: typeof import('katex') | null = null;
+let katexLoadPromise: Promise<typeof import('katex')> | null = null;
+
+function loadKatex(): Promise<typeof import('katex')> {
+  if (katexModule) return Promise.resolve(katexModule);
+  if (!katexLoadPromise) {
+    katexLoadPromise = Promise.all([
+      import('katex'),
+      import('katex/dist/katex.min.css'),
+    ]).then(([mod]) => {
+      katexModule = mod;
+      return mod;
+    });
+  }
+  return katexLoadPromise;
+}
+
 /**
  * Shared KaTeX renderer using dangerouslySetInnerHTML (React-recommended approach).
  * This prevents React from trying to reconcile KaTeX-generated DOM nodes.
  *
  * Used by both teacher and student views for consistent math rendering.
+ * KaTeX and its CSS are dynamically imported to reduce initial bundle size.
  */
 const KaTeXRendererComponent = ({
   math,
   displayMode = true,
   className = ''
 }: KaTeXRendererProps) => {
+  const [katexReady, setKatexReady] = useState(!!katexModule);
+
+  useEffect(() => {
+    if (!katexModule) {
+      loadKatex().then(() => setKatexReady(true));
+    }
+  }, []);
+
   // Memoize the rendered HTML to avoid re-rendering on every parent update
   const html = useMemo(() => {
-    if (!math) return '';
+    if (!math || !katexReady || !katexModule) return '';
 
     try {
-      return katex.renderToString(math, {
+      return katexModule.default.renderToString(math, {
         displayMode,
         throwOnError: false,
         errorColor: '#cc0000',
@@ -39,7 +64,7 @@ const KaTeXRendererComponent = ({
       console.error('KaTeX rendering error:', error);
       return '<span class="text-red-500 text-sm">Error rendering equation</span>';
     }
-  }, [math, displayMode]);
+  }, [math, displayMode, katexReady]);
 
   return (
     <div

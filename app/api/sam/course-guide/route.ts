@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
@@ -21,6 +23,9 @@ function getCourseGuideEngine() {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     
     if (!user) {
@@ -64,10 +69,10 @@ export async function POST(request: NextRequest) {
 
     // Generate course guide
     const engine = getCourseGuideEngine();
-    const guide = await engine.generateCourseGuide(
-      courseId,
-      includeComparison,
-      includeProjections
+    const guide = await withRetryableTimeout(
+      () => engine.generateCourseGuide(courseId, includeComparison, includeProjections),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'courseGuideGeneration'
     );
 
     // Record the generation as a SAM interaction
@@ -102,6 +107,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     
     if (!user) {
@@ -137,7 +145,11 @@ export async function GET(request: NextRequest) {
     const engine = getCourseGuideEngine();
     
     if (format === 'html') {
-      const htmlContent = await engine.exportCourseGuide(courseId, 'html');
+      const htmlContent = await withRetryableTimeout(
+        () => engine.exportCourseGuide(courseId, 'html'),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'courseGuideExportHtml'
+      );
       return new NextResponse(htmlContent as string, {
         headers: {
           'Content-Type': 'text/html',
@@ -145,7 +157,11 @@ export async function GET(request: NextRequest) {
         },
       });
     } else {
-      const guide = await engine.generateCourseGuide(courseId);
+      const guide = await withRetryableTimeout(
+        () => engine.generateCourseGuide(courseId),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'courseGuideGenerationGet'
+      );
       return NextResponse.json({
         success: true,
         data: guide,

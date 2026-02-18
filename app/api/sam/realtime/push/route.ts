@@ -42,11 +42,12 @@ const BroadcastEventSchema = z.object({
  * Verify internal API access (admin or cron secret)
  */
 async function verifyInternalAccess(request: NextRequest): Promise<{ authorized: boolean; reason?: string }> {
-  // Check for CRON_SECRET header (for cron jobs)
+  // Check for CRON_SECRET header (for cron jobs) — fail-closed
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
+  const cronSecretHeader = request.headers.get('x-cron-secret');
 
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+  if (cronSecret && (authHeader === `Bearer ${cronSecret}` || cronSecretHeader === cronSecret)) {
     return { authorized: true };
   }
 

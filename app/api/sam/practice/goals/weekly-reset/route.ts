@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // Get practice goal store from TaxomindContext singleton
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -13,15 +13,9 @@ const { practiceGoal: practiceGoalStore } = getPracticeStores();
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify cron secret for automated calls
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      logger.warn('Unauthorized attempt to reset weekly goals');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     // Reset all weekly goals
     const resetCount = await practiceGoalStore.resetWeeklyGoals();

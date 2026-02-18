@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { sendPushToUser, isPushAvailable } from '@/lib/sam/notifications';
 import { logger } from '@/lib/logger';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 /**
  * Cron job to send push notifications for upcoming study sessions
@@ -14,15 +15,13 @@ import { logger } from '@/lib/logger';
  *   ]
  * }
  */
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   try {
-    // Verify cron secret (optional but recommended)
-    const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     if (!isPushAvailable()) {
       return Response.json({

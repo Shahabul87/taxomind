@@ -12,7 +12,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import { getTaxomindContext } from '@/lib/sam/taxomind-context';
 import {
@@ -79,7 +81,7 @@ const CritiqueRequestSchema = z.object({
   passThreshold: z.number().min(0).max(100).optional(),
   critiqueMode: z.enum(['standard', 'strict', 'lenient']).optional().default('standard'),
   runLoop: z.boolean().optional().default(false),
-  maxIterations: z.number().int().min(1).max(10).optional().default(3),
+  maxIterations: z.number().int().min(1).max(5).optional().default(3),
   minImprovement: z.number().min(0).max(100).optional().default(5),
 });
 
@@ -89,6 +91,9 @@ const CritiqueRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -146,7 +151,11 @@ export async function POST(req: NextRequest) {
         minImprovement: validated.minImprovement,
       };
 
-      const loopResult = await engine.runCritiqueLoop(loopInput);
+      const loopResult = await withRetryableTimeout(
+        () => engine.runCritiqueLoop(loopInput),
+        TIMEOUT_DEFAULTS.AI_GENERATION,
+        'selfCritiqueLoop'
+      );
 
       logger.info('[SELF_CRITIQUE] Loop completed', {
         userId: session.user.id,
@@ -216,7 +225,11 @@ export async function POST(req: NextRequest) {
       passThreshold: validated.passThreshold,
     };
 
-    const result = await engine.critique(critiqueInput);
+    const result = await withRetryableTimeout(
+      () => engine.critique(critiqueInput),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'selfCritiqueSingle'
+    );
 
     logger.info('[SELF_CRITIQUE] Single critique completed', {
       userId: session.user.id,
@@ -293,6 +306,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -393,7 +409,7 @@ export async function GET(req: NextRequest) {
       targetAudiences: ['beginner', 'intermediate', 'advanced', 'expert'],
       loopConfig: {
         defaultMaxIterations: 3,
-        maxAllowedIterations: 10,
+        maxAllowedIterations: 5,
         defaultMinImprovement: 5,
         convergenceThreshold: 2,
       },

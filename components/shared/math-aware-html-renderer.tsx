@@ -1,9 +1,30 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import DOMPurify from "isomorphic-dompurify";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+
+// Dynamically loaded katex module - cached at module level
+let katexModule: typeof import('katex') | null = null;
+let katexLoadPromise: Promise<typeof import('katex')> | null = null;
+
+function loadKatex(): Promise<typeof import('katex')> {
+  if (katexModule) return Promise.resolve(katexModule);
+  if (!katexLoadPromise) {
+    katexLoadPromise = Promise.all([
+      import('katex'),
+      import('katex/dist/katex.min.css'),
+    ]).then(([mod]) => {
+      katexModule = mod;
+      return mod;
+    });
+  }
+  return katexLoadPromise;
+}
+
+/** Returns the katex default export if loaded, or null */
+function getKatex(): typeof import('katex')['default'] | null {
+  return katexModule ? katexModule.default : null;
+}
 
 interface MathAwareHtmlRendererProps {
   html: string;
@@ -145,18 +166,21 @@ function normalizeMathChars(text: string): string {
 }
 
 /**
- * Render math to HTML using KaTeX. Returns null on failure.
+ * Render math to HTML using KaTeX. Returns null on failure or if katex is not yet loaded.
  */
 function renderMath(
   content: string,
   displayMode: boolean
 ): string | null {
+  const k = getKatex();
+  if (!k) return null;
+
   const decoded = decodeHtmlEntities(content.trim());
   const normalized = normalizeMathChars(decoded);
   const deduped = normalizeLatexBackslashes(normalized);
   const latex = toLatex(deduped);
   try {
-    return katex.renderToString(latex, {
+    return k.renderToString(latex, {
       displayMode,
       throwOnError: false,
       errorColor: "#cc0000",
@@ -485,18 +509,21 @@ function renderRawLatexInText(text: string): string {
 /**
  * Render math strictly — returns non-null ONLY if KaTeX fully parses
  * the expression without errors. Used to test if an entire text block
- * is a valid math expression.
+ * is a valid math expression. Returns null if katex is not yet loaded.
  */
 function renderMathStrict(
   content: string,
   displayMode: boolean
 ): string | null {
+  const k = getKatex();
+  if (!k) return null;
+
   const decoded = decodeHtmlEntities(content.trim());
   const normalized = normalizeMathChars(decoded);
   const deduped = normalizeLatexBackslashes(normalized);
   const latex = toLatex(deduped);
   try {
-    return katex.renderToString(latex, {
+    return k.renderToString(latex, {
       displayMode,
       throwOnError: true,
       strict: "error",
@@ -725,8 +752,17 @@ interface MathTextProps {
  * such as exam questions and answer options.
  */
 export function MathText({ text, className }: MathTextProps) {
+  const [katexReady, setKatexReady] = useState(!!katexModule);
+
+  useEffect(() => {
+    if (!katexModule) {
+      loadKatex().then(() => setKatexReady(true));
+    }
+  }, []);
+
   const processedHtml = useMemo(() => {
-    if (!text) return "";
+    // katexReady is included as a dependency to re-process once katex loads
+    if (!text || !katexReady) return text || "";
 
     // Escape HTML since input is plain text
     let html = text
@@ -764,7 +800,7 @@ export function MathText({ text, className }: MathTextProps) {
     }
 
     return html;
-  }, [text]);
+  }, [text, katexReady]);
 
   if (!text) return null;
 
@@ -795,19 +831,28 @@ export function MathAwareHtmlRenderer({
   className = "",
   as: Tag = "div",
 }: MathAwareHtmlRendererProps) {
+  const [katexReady, setKatexReady] = useState(!!katexModule);
+
+  useEffect(() => {
+    if (!katexModule) {
+      loadKatex().then(() => setKatexReady(true));
+    }
+  }, []);
+
   const processedHtml = useMemo(() => {
     if (!html) return "";
 
-    // Step 1: Sanitize HTML (security)
+    // Step 1: Sanitize HTML (security) - always runs even before katex loads
     const sanitized = DOMPurify.sanitize(html, {
       ALLOWED_TAGS,
       ALLOWED_ATTR,
       ALLOW_DATA_ATTR: false,
     });
 
-    // Step 2: Process math content
+    // Step 2: Process math content (only when katex is loaded)
+    if (!katexReady) return sanitized;
     return processMathInHtml(sanitized);
-  }, [html]);
+  }, [html, katexReady]);
 
   return (
     <Tag

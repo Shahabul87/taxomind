@@ -10,22 +10,22 @@ import { logger } from '@/lib/logger';
 import { getProactiveScheduler } from '@/lib/sam/agentic-proactive-scheduler';
 import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notifications';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(1000).optional(),
   notify: z.coerce.boolean().optional().default(true),
 });
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('[SAM_PROACTIVE_CRON] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({

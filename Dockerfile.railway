@@ -62,8 +62,29 @@ COPY --from=deps-dev /app/node_modules ./node_modules
 # Copy workspace packages with their dependencies from deps-dev
 COPY --from=deps-dev /app/packages ./packages
 
-# Copy application source code (except packages which are already copied)
-COPY . .
+# Copy application source code with explicit directories for better layer caching
+# (packages already copied from deps-dev above)
+COPY app/ ./app/
+COPY components/ ./components/
+COPY lib/ ./lib/
+COPY actions/ ./actions/
+COPY data/ ./data/
+COPY hooks/ ./hooks/
+COPY schemas/ ./schemas/
+COPY server/ ./server/
+COPY config/ ./config/
+COPY public/ ./public/
+# Root config files (Next.js build, TypeScript, styling)
+COPY next.config.js tsconfig.json tsconfig.build.json tsconfig.node.json ./
+COPY routes.ts tailwind.config.ts postcss.config.mjs postcss.config.js ./
+COPY next-env.d.ts next-auth.d.ts admin.d.ts components.json ./
+# Auth config files (user + admin auth systems)
+COPY auth.ts auth.json auth.admin.ts ./
+COPY auth.config.ts auth.config.edge.ts ./
+COPY auth.config.admin.ts auth.config.admin.edge.ts ./
+# Sentry + instrumentation
+COPY sentry.client.config.ts sentry.server.config.ts sentry.edge.config.ts ./
+COPY instrumentation.ts proxy.ts ./
 
 # Copy merged schema.prisma and generated Prisma client from deps-dev
 COPY --from=deps-dev /app/prisma/schema.prisma ./prisma/schema.prisma

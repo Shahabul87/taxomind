@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { generateSamSuggestion } from "@/lib/sam/ai-provider";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -39,8 +41,11 @@ interface SamResponse {
   confidence: number;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     
     if (!user?.id) {
@@ -122,7 +127,11 @@ async function generateContextualSuggestion(request: SamSuggestionRequest, userI
   }
   
   try {
-    const aiResponse = await generateSamSuggestion(contextPrompt, userInput as any, userId);
+    const aiResponse = await withRetryableTimeout(
+      () => generateSamSuggestion(contextPrompt, userInput as any, userId),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'generateSamSuggestion'
+    );
     
     // Determine confidence based on context and input completeness
     const confidence = calculateConfidence(userInput, context);

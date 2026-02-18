@@ -1,18 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { sendEmail } from "@/lib/email"; // You would need to implement this function
+import { withCronAuth } from '@/lib/api/cron-auth';
 
-export async function GET(req: Request) {
+export const maxDuration = 60;
+
+export async function GET(req: NextRequest) {
   try {
-    // Verify this is an authorized request
-    const { searchParams } = new URL(req.url);
-    const apiKey = searchParams.get("apiKey");
-    
-    // Check API key - you would need to store this securely in your environment variables
-    if (!apiKey || apiKey !== process.env.CRON_API_KEY) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // Verify authorization (fail-closed, uses header-based auth)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
     
     // Find all tasks that have reminders set, haven't been sent yet, and are due soon
     const now = new Date();
@@ -33,7 +31,8 @@ export async function GET(req: Request) {
             email: true
           }
         }
-      }
+      },
+      take: 500,
     });
     
     const results = [];

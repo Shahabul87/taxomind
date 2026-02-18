@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import { getLearningPathStores } from '@/lib/sam/taxomind-context';
 import {
@@ -134,6 +136,9 @@ function getPathRecommender() {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json(
@@ -276,6 +281,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json(
@@ -310,14 +318,18 @@ export async function POST(req: NextRequest) {
         }
 
         const recommender = getPathRecommender();
-        const path = await recommender.generatePath(user.id, {
-          courseId: parsed.data.courseId,
-          maxSteps: parsed.data.maxSteps,
-          maxMinutes: parsed.data.maxMinutes,
-          includeReview: parsed.data.includeReview,
-          focusOnWeakAreas: parsed.data.focusOnWeakAreas,
-          difficultyPreference: parsed.data.difficultyPreference,
-        });
+        const path = await withRetryableTimeout(
+          () => recommender.generatePath(user.id, {
+            courseId: parsed.data.courseId,
+            maxSteps: parsed.data.maxSteps,
+            maxMinutes: parsed.data.maxMinutes,
+            includeReview: parsed.data.includeReview,
+            focusOnWeakAreas: parsed.data.focusOnWeakAreas,
+            difficultyPreference: parsed.data.difficultyPreference,
+          }),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'generateLearningPath'
+        );
 
         return NextResponse.json({
           success: true,
@@ -355,10 +367,14 @@ export async function POST(req: NextRequest) {
         }
 
         const recommender = getPathRecommender();
-        const path = await recommender.generatePathToTarget(
-          user.id,
-          parsed.data.targetConceptId,
-          parsed.data.courseId
+        const path = await withRetryableTimeout(
+          () => recommender.generatePathToTarget(
+            user.id,
+            parsed.data.targetConceptId,
+            parsed.data.courseId
+          ),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'generatePathToTarget'
         );
 
         return NextResponse.json({

@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import {
   InvokeToolInputSchema,
@@ -46,6 +48,9 @@ function toToolSummary(tool: ToolDefinition) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     logger.info('[Tools API] GET request received', { userId: session?.user?.id });
 
@@ -90,6 +95,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -142,15 +150,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const execution = await tooling.toolExecutor.execute(
-      parsed.data.toolId,
-      session.user.id,
-      enrichedInput,
-      {
-        sessionId: parsed.data.sessionId,
-        skipConfirmation: parsed.data.skipConfirmation,
-        metadata: parsed.data.metadata,
-      }
+    const execution = await withRetryableTimeout(
+      () => tooling.toolExecutor.execute(
+        parsed.data.toolId,
+        session.user.id,
+        enrichedInput,
+        {
+          sessionId: parsed.data.sessionId,
+          skipConfirmation: parsed.data.skipConfirmation,
+          metadata: parsed.data.metadata,
+        }
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      `toolExecute:${parsed.data.toolId}`
     );
 
     return NextResponse.json({

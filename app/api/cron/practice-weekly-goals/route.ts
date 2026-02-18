@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // Get practice goal store for resetting weekly goals
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -11,21 +11,13 @@ const { practiceGoal: practiceGoalStore } = getPracticeStores();
 // Purpose: Reset WEEKLY_HOURS goals to allow fresh progress tracking
 // ============================================================================
 
-// Verify cron secret for security
-const CRON_SECRET = process.env.CRON_SECRET;
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(request);
+    if (authResponse) return authResponse;
 
     console.log('[CRON] Starting weekly practice goal reset...');
 

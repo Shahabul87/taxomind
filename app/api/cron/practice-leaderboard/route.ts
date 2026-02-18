@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { headers } from 'next/headers';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 // ============================================================================
 // CRON: Practice Leaderboard Recalculation
@@ -8,23 +8,15 @@ import { headers } from 'next/headers';
 // Purpose: Recalculate practice leaderboard rankings for all timeframes
 // ============================================================================
 
-// Verify cron secret for security
-const CRON_SECRET = process.env.CRON_SECRET;
-
 type LeaderboardTimeframe = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ALL_TIME';
+
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const headersList = await headers();
-    const authHeader = headersList.get('authorization');
-
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(request);
+    if (authResponse) return authResponse;
 
     console.log('[CRON] Starting practice leaderboard recalculation...');
 
@@ -87,6 +79,7 @@ async function recalculateLeaderboard(timeframe: LeaderboardTimeframe): Promise<
       periodStart: periodStart ?? new Date(0),
     },
     select: { id: true, userId: true },
+    take: 1000,
   });
 
   const existingUserIds = new Set(existingEntries.map((e) => e.userId));

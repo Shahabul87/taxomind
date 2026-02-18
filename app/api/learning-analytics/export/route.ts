@@ -104,7 +104,7 @@ async function handler(req: NextRequest, context: APIAuthContext) {
       },
       UserAnswer: {
         include: {
-          ExamQuestion: true,
+          ExamQuestion: { select: { id: true, bloomsLevel: true, title: true, questionType: true } },
         },
       },
     },

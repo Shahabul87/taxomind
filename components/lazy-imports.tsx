@@ -117,6 +117,12 @@ export const AnalyticsDashboard = dynamic(
   { loading: () => <LoadingSpinner />, ssr: false }
 );
 
+// Progress chart - Lazy-loaded recharts bar chart for learning progress
+export const ProgressChart = dynamic(
+  () => import('@/components/dashboard/progress-chart'),
+  { loading: () => <LoadingSpinner />, ssr: false }
+);
+
 // Teacher insights panel
 export const TeacherInsights = dynamic(
   () => Promise.resolve({ default: () => null }),
@@ -250,6 +256,7 @@ const LazyComponents = {
   
   // Analytics
   AnalyticsDashboard,
+  ProgressChart,
   TeacherInsights,
   
   // AI

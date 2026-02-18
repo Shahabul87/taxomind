@@ -134,7 +134,7 @@ export class ToolExecutor {
     this.confirmationManager = config.confirmationManager;
     this.logger = config.logger ?? console;
     this.enableSandbox = config.enableSandbox ?? true;
-    this.defaultTimeoutMs = config.defaultTimeoutMs ?? 30000;
+    this.defaultTimeoutMs = config.defaultTimeoutMs ?? 10000;
     this.maxConcurrentPerUser = config.maxConcurrentPerUser ?? 5;
     this.onBeforeExecute = config.onBeforeExecute;
     this.onAfterExecute = config.onAfterExecute;

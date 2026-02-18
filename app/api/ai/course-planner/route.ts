@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
 
       const completion = await withRetryableTimeout(
         () => runSAMChatWithMetadata({
-          maxTokens: 8000,
+          maxTokens: 4000,
           temperature: 0.7,
           systemPrompt: COURSE_PLANNER_SYSTEM_PROMPT,
           messages: [

@@ -217,7 +217,7 @@ class RedisBackedRateLimitStore implements RateLimitStore {
   /** Pull buckets from Redis into local cache (handles cross-instance updates) */
   private async syncFromRedis(): Promise<void> {
     try {
-      const redisKeys = await this.redisClient.keys('rl:*');
+      const redisKeys = await this.scanKeys('rl:*');
       for (const redisKey of redisKeys) {
         const localKey = redisKey.replace(/^rl:/, '');
         const raw = await this.redisClient.get(redisKey);
@@ -234,6 +234,18 @@ class RedisBackedRateLimitStore implements RateLimitStore {
       }
     } catch { /* Redis unavailable — continue with local cache */ }
   }
+
+  /** Use SCAN instead of KEYS to avoid blocking Redis on large keyspaces */
+  private async scanKeys(pattern: string): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = '0';
+    do {
+      const result = await this.redisClient.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = result[0];
+      keys.push(...result[1]);
+    } while (cursor !== '0');
+    return keys;
+  }
 }
 
 /** Minimal Redis interface needed by RedisBackedRateLimitStore */
@@ -242,6 +254,7 @@ interface RedisLike {
   setex(key: string, seconds: number, value: string): Promise<string>;
   del(...keys: string[]): Promise<number>;
   keys(pattern: string): Promise<string[]>;
+  scan(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]>;
 }
 
 let bucketStore: RateLimitStore = new InMemoryRateLimitStore();

@@ -3,6 +3,17 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const PostChapterUpdateSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  description: z.string().max(10000).optional().nullable(),
+  imageUrl: z.string().url().max(1000).optional().nullable(),
+  isPublished: z.boolean().optional(),
+  isFree: z.boolean().optional(),
+  position: z.number().int().min(0).optional(),
+  content: z.string().max(100000).optional().nullable(),
+}).strict();
 
 export async function DELETE(
   req: Request,
@@ -86,7 +97,8 @@ export async function PATCH(
     }
 
     // Extract and validate the provided values
-    const values = await req.json();
+    const body = await req.json();
+    const values = PostChapterUpdateSchema.parse(body);
     if (!values || Object.keys(values).length === 0) {
       return new NextResponse("No values provided for update", { status: 400 });
     }

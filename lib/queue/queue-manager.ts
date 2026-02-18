@@ -1060,7 +1060,26 @@ export class QueueManager {
   }
 }
 
-// Export singleton instance
-export const queueManager = new QueueManager();
+// Lazy-initialized singleton — only creates when first accessed
+let _queueManager: QueueManager | null = null;
+
+export function getQueueManager(): QueueManager {
+  if (!_queueManager) {
+    _queueManager = new QueueManager();
+  }
+  return _queueManager;
+}
+
+// Backward-compatible named export using Proxy for lazy instantiation
+export const queueManager = new Proxy({} as QueueManager, {
+  get(_target, prop) {
+    const instance = getQueueManager();
+    const value = (instance as Record<string | symbol, unknown>)[prop];
+    if (typeof value === 'function') {
+      return (value as Function).bind(instance);
+    }
+    return value;
+  },
+});
 
 export default QueueManager;

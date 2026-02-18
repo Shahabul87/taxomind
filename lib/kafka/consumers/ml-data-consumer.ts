@@ -337,7 +337,12 @@ export async function startMLDataConsumer(): Promise<void> {
         KAFKA_TOPICS.LEARNING_METRICS
       ]
     );
-    
+
+    if (!consumer) {
+      logger.debug('[KAFKA] Not configured - skipping ML data consumer');
+      return;
+    }
+
     await consumer.run({
       eachMessage: processMLDataMessage
     });

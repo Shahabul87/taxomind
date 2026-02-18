@@ -234,7 +234,12 @@ export async function startRealTimeConsumer(): Promise<void> {
       'real-time-events',
       [KAFKA_TOPICS.REAL_TIME_EVENTS]
     );
-    
+
+    if (!consumer) {
+      logger.debug('[KAFKA] Not configured - skipping real-time consumer');
+      return;
+    }
+
     await consumer.run({
       eachMessage: processRealTimeMessage
     });

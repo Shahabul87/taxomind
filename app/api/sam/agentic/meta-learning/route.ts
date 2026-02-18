@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import { getTaxomindContext } from '@/lib/sam/taxomind-context';
 import {
@@ -85,6 +87,9 @@ function getMetaLearningAnalyzer() {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json(
@@ -112,9 +117,13 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        const analytics = await analyzer.getAnalytics(
-          user.id,
-          parsed.data.period as AnalyticsPeriod
+        const analytics = await withRetryableTimeout(
+          () => analyzer.getAnalytics(
+            user.id,
+            parsed.data.period as AnalyticsPeriod
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metaLearningGetAnalytics'
         );
 
         return NextResponse.json({
@@ -161,10 +170,14 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        const insights = await analyzer.getActiveInsights(
-          parsed.data.type as InsightType | undefined,
-          parsed.data.priority as InsightPriority | undefined,
-          parsed.data.limit
+        const insights = await withRetryableTimeout(
+          () => analyzer.getActiveInsights(
+            parsed.data.type as InsightType | undefined,
+            parsed.data.priority as InsightPriority | undefined,
+            parsed.data.limit
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metaLearningGetInsights'
         );
 
         return NextResponse.json({
@@ -191,7 +204,11 @@ export async function GET(req: NextRequest) {
       }
 
       case 'patterns': {
-        const patterns = await analyzer.detectPatterns(user.id);
+        const patterns = await withRetryableTimeout(
+          () => analyzer.detectPatterns(user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metaLearningDetectPatterns'
+        );
 
         return NextResponse.json({
           success: true,
@@ -240,6 +257,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json(
@@ -289,7 +309,11 @@ export async function POST(req: NextRequest) {
       }
 
       case 'generate-insights': {
-        const insights = await analyzer.generateInsights(user.id);
+        const insights = await withRetryableTimeout(
+          () => analyzer.generateInsights(user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metaLearningGenerateInsights'
+        );
 
         return NextResponse.json({
           success: true,
@@ -312,7 +336,11 @@ export async function POST(req: NextRequest) {
 
       case 'detect-patterns': {
         const since = body.since ? new Date(body.since) : undefined;
-        const patterns = await analyzer.detectPatterns(user.id, since);
+        const patterns = await withRetryableTimeout(
+          () => analyzer.detectPatterns(user.id, since),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metaLearningDetectPatternsPost'
+        );
 
         return NextResponse.json({
           success: true,

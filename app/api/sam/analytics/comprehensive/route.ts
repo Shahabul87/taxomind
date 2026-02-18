@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { db } from '@/lib/db';
 import { createAnalyticsEngine } from '@sam-ai/educational';
 import type { UserSAMStats } from '@sam-ai/educational';
@@ -212,6 +213,9 @@ async function createAnalyticsEngineForUser(userId: string) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

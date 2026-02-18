@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { BadgeCheck } from "lucide-react";
 
 interface UserProfileSummaryProps {
@@ -17,11 +18,12 @@ export default function UserProfileSummary({ user, userData }: UserProfileSummar
         <div className="flex items-center">
           <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-xl font-bold overflow-hidden">
             {user?.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img 
-                src={user.image} 
-                alt={user?.name || "User"} 
-                className="h-full w-full object-cover"
+              <Image
+                src={user.image}
+                alt={user?.name || "User"}
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
               />
             ) : (
               user?.name?.charAt(0) || "U"

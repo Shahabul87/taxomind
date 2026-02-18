@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Validation schema for batch events
 const BatchEventSchema = z.object({
@@ -26,6 +27,10 @@ const SingleEventSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
 
     // Try to parse as batch events first

@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -23,12 +24,21 @@ interface BatchRequest {
   events: AnalyticsEvent[];
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { events }: BatchRequest = await req.json();
-    
+
     if (!Array.isArray(events) || events.length === 0) {
       return new NextResponse("Invalid batch request", { status: 400 });
+    }
+
+    // Cap events array to prevent abuse
+    if (events.length > 100) {
+      return new NextResponse("Too many events in batch (max 100)", { status: 400 });
     }
 
     // Get current user if available

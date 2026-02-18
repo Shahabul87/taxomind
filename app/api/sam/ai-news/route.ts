@@ -11,6 +11,8 @@ import {
   type NewsCategory as RankerNewsCategory,
 } from '@sam-ai/external-knowledge';
 import { z } from 'zod';
+import { currentUser } from '@/lib/auth';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * SAM AI News API Route
@@ -223,6 +225,14 @@ function isRealNewsEnabled(): boolean {
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth + rate limiting
+    const user = await currentUser();
+    if (!user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { searchParams } = new URL(request.url);
 
     // Validate query parameters

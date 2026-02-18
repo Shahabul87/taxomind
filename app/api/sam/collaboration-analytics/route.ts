@@ -6,6 +6,8 @@ import type { CollaborationActivityType } from "@sam-ai/educational";
 import { logger } from '@/lib/logger';
 import { createCollaborationAdapter } from '@/lib/adapters';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // Create collaboration engine singleton
 let collaborationEngine: ReturnType<typeof createCollaborationEngine> | null = null;
@@ -37,6 +39,9 @@ const samCollaborationEngine = {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -267,7 +272,11 @@ async function handleEndSession(data: any, userId: string) {
       metrics: session.metrics,
       insights: session.insights,
     },
-    analytics: await samCollaborationEngine.analyzeCollaboration(sessionId),
+    analytics: await withRetryableTimeout(
+      () => samCollaborationEngine.analyzeCollaboration(sessionId),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'collaborationAnalysisEndSession'
+    ),
   };
 }
 
@@ -278,7 +287,11 @@ async function handleAnalyzeSession(data: any) {
     throw new Error("Session ID is required");
   }
 
-  const analytics = await samCollaborationEngine.analyzeCollaboration(sessionId);
+  const analytics = await withRetryableTimeout(
+    () => samCollaborationEngine.analyzeCollaboration(sessionId),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS,
+    'collaborationAnalysisSession'
+  );
 
   return {
     analytics,
@@ -484,21 +497,21 @@ async function notifyUsersAboutSession(
   const enrolledUsers = await db.enrollment.findMany({
     where: { courseId },
     select: { userId: true },
+    take: 500,
   });
 
-  await Promise.all(
-    enrolledUsers.map((enrollment) =>
-      db.notification.create({
-        data: {
-          id: `collab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          userId: enrollment.userId,
-          title: `Collaboration session ${action}`,
-          message: `A collaboration session has ${action} in your course`,
-          type: "collaboration",
-        },
-      })
-    )
-  );
+  if (enrolledUsers.length > 0) {
+    await db.notification.createMany({
+      data: enrolledUsers.map((enrollment) => ({
+        id: `collab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId: enrollment.userId,
+        title: `Collaboration session ${action}`,
+        message: `A collaboration session has ${action} in your course`,
+        type: "collaboration",
+      })),
+      skipDuplicates: true,
+    });
+  }
 }
 
 function generateSessionRecommendations(analytics: any): string[] {
@@ -1062,6 +1075,9 @@ async function generateDemoStudyGroups(courseId: string) {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

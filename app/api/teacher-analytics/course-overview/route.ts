@@ -281,51 +281,52 @@ async function generateOptimizedCourseAnalytics(
 
   const examIds = exams.map(e => e.id);
 
-  // QUERY 3: Get aggregated statistics (using groupBy for efficiency)
-  const attemptStats = await db.userExamAttempt.groupBy({
-    by: ['examId', 'status'],
-    where: {
-      examId: { in: examIds },
-      startedAt: { gte: timeFilter }
-    },
-    _count: true,
-    _avg: {
-      scorePercentage: true,
-      timeSpent: true
-    }
-  });
-
-  // QUERY 4: Get unique students
-  const uniqueStudents = await db.userExamAttempt.findMany({
-    where: {
-      examId: { in: examIds },
-      startedAt: { gte: timeFilter }
-    },
-    select: {
-      userId: true,
-      User: {
-        select: {
-          id: true,
-          name: true,
-          email: true
-        }
-      }
-    },
-    distinct: ['userId']
-  });
-
-  // QUERY 5: Get active students (last 7 days)
+  // QUERIES 3-5: Run in parallel (all depend on examIds but not on each other)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const activeStudents = await db.userExamAttempt.findMany({
-    where: {
-      examId: { in: examIds },
-      startedAt: { gte: sevenDaysAgo }
-    },
-    select: {
-      userId: true
-    },
-    distinct: ['userId']
-  });
+  const [attemptStats, uniqueStudents, activeStudents] = await Promise.all([
+    // QUERY 3: Get aggregated statistics (using groupBy for efficiency)
+    db.userExamAttempt.groupBy({
+      by: ['examId', 'status'],
+      where: {
+        examId: { in: examIds },
+        startedAt: { gte: timeFilter }
+      },
+      _count: true,
+      _avg: {
+        scorePercentage: true,
+        timeSpent: true
+      }
+    }),
+    // QUERY 4: Get unique students
+    db.userExamAttempt.findMany({
+      where: {
+        examId: { in: examIds },
+        startedAt: { gte: timeFilter }
+      },
+      select: {
+        userId: true,
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      distinct: ['userId']
+    }),
+    // QUERY 5: Get active students (last 7 days)
+    db.userExamAttempt.findMany({
+      where: {
+        examId: { in: examIds },
+        startedAt: { gte: sevenDaysAgo }
+      },
+      select: {
+        userId: true
+      },
+      distinct: ['userId']
+    }),
+  ]);
 
   // QUERY 6: Get student performance metrics (paginated if detailed)
   let studentPerformanceData = [];

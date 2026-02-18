@@ -17,7 +17,7 @@ import {
   type EvaluationWithDemographics,
 } from '@sam-ai/safety';
 
-const CRON_SECRET = process.env.CRON_SECRET;
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 const querySchema = z.object({
   daysSince: z.coerce.number().int().min(1).max(90).optional().default(7),
@@ -34,16 +34,15 @@ interface FairnessAuditResult {
   demographicDisparities: string[];
 }
 
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify cron authentication
-    const authHeader = req.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      logger.warn('[SAM_FAIRNESS_AUDIT] Unauthorized cron access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Verify authorization (fail-closed)
+    const authResponse = withCronAuth(req);
+    if (authResponse) return authResponse;
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);

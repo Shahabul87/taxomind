@@ -71,6 +71,30 @@ export class ApiGateway {
     
     this.initializeCircuitBreakers();
     this.startHealthMonitoring();
+    this.startRateLimitCacheCleanup();
+  }
+
+  /**
+   * Periodically clean up expired rate limit cache entries to prevent unbounded memory growth
+   */
+  private startRateLimitCacheCleanup(): void {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of this.rateLimitCache) {
+        if (entry.resetTime < now) {
+          this.rateLimitCache.delete(key);
+        }
+      }
+      // Hard cap: if still over 10K entries, remove oldest
+      if (this.rateLimitCache.size > 10000) {
+        const entries = Array.from(this.rateLimitCache.entries());
+        entries.sort((a, b) => a[1].resetTime - b[1].resetTime);
+        const toRemove = entries.slice(0, entries.length - 10000);
+        for (const [key] of toRemove) {
+          this.rateLimitCache.delete(key);
+        }
+      }
+    }, 5 * 60 * 1000); // Every 5 minutes
   }
 
   /**

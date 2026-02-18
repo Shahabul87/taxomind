@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { createMarketEngine } from '@sam-ai/educational';
 import type { MarketAnalysisType } from '@sam-ai/educational';
 import { db } from '@/lib/db';
@@ -22,6 +24,9 @@ function getMarketEngine() {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -57,7 +62,11 @@ export async function POST(request: NextRequest) {
 
     // Perform market analysis
     const engine = getMarketEngine();
-    const analysis = await engine.analyzeCourse(courseId, analysisType, includeRecommendations);
+    const analysis = await withRetryableTimeout(
+      () => engine.analyzeCourse(courseId, analysisType, includeRecommendations),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'courseMarketAnalysis'
+    );
 
     // Record the analysis as a SAM interaction
     await recordSAMInteraction(user.id, courseId, 'MARKET_ANALYSIS', {
@@ -87,8 +96,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { LucideIcon, TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -61,7 +62,7 @@ const mapIconBgToVariant = (iconBgColor?: string): MetricVariant => {
   return "primary";
 };
 
-export const MetricCard = ({
+const MetricCardComponent = ({
   title,
   value,
   change,
@@ -185,6 +186,9 @@ export const MetricCard = ({
     </motion.div>
   );
 };
+
+export const MetricCard = React.memo(MetricCardComponent);
+MetricCard.displayName = 'MetricCard';
 
 // Premium Skeleton loading state
 export const MetricCardSkeleton = () => (

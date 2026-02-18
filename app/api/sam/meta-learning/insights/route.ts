@@ -12,8 +12,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createMetaLearningAnalyzer,
   PatternCategory,
@@ -101,6 +103,9 @@ function getAnalyzer() {
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -120,18 +125,26 @@ export async function GET(req: NextRequest) {
     const startTime = Date.now();
 
     // Get active insights
-    const insights = await analyzer.getActiveInsights(
-      params.type as InsightType | undefined,
-      params.priority as InsightPriority | undefined,
-      params.limit
+    const insights = await withRetryableTimeout(
+      () => analyzer.getActiveInsights(
+        params.type as InsightType | undefined,
+        params.priority as InsightPriority | undefined,
+        params.limit
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'meta-learning-get-insights'
     );
 
     // Get analytics if requested
     let analytics: MetaLearningAnalytics | null = null;
     if (params.includeAnalytics) {
-      analytics = await analyzer.getAnalytics(
-        session.user.id,
-        params.period as AnalyticsPeriod
+      analytics = await withRetryableTimeout(
+        () => analyzer.getAnalytics(
+          session.user.id,
+          params.period as AnalyticsPeriod
+        ),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'meta-learning-get-analytics'
       );
     }
 
@@ -179,6 +192,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -221,8 +237,16 @@ export async function POST(req: NextRequest) {
     let patterns = null;
     let newInsights = null;
     if (validated.triggerAnalysis) {
-      patterns = await analyzer.detectPatterns(session.user.id);
-      newInsights = await analyzer.generateInsights(session.user.id);
+      patterns = await withRetryableTimeout(
+        () => analyzer.detectPatterns(session.user.id),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'meta-learning-detect-patterns'
+      );
+      newInsights = await withRetryableTimeout(
+        () => analyzer.generateInsights(session.user.id),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'meta-learning-generate-insights'
+      );
     }
 
     const processingTime = Date.now() - startTime;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +123,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [filterStatus, setFilterStatus] = useState("all");
   const [stats, setStats] = useState<Stats>(initialStats);
   const { toast } = useToast();
@@ -186,9 +188,9 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   useEffect(() => {
     let filtered = [...users];
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Search filter (debounced to avoid filtering on every keystroke)
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
       filtered = filtered.filter(
         (user) =>
           user.name?.toLowerCase().includes(query) ||
@@ -204,7 +206,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     }
 
     setFilteredUsers(filtered);
-  }, [searchQuery, filterStatus, users]);
+  }, [debouncedSearch, filterStatus, users]);
 
   // Handle view user details
   const handleViewUser = useCallback((user: UserData) => {
@@ -963,12 +965,10 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user, idx) => (
-                    <motion.tr
+                    <tr
                       key={user.id}
-                      className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + idx * 0.02 }}
+                      className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-200 animate-in fade-in-0 slide-in-from-left-2 duration-300"
+                      style={{ animationDelay: `${500 + idx * 20}ms` }}
                     >
                       <TableCell className="text-left">
                         <div className="flex items-center gap-3">
@@ -1142,7 +1142,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
-                    </motion.tr>
+                    </tr>
                   ))}
                 </TableBody>
               </Table>

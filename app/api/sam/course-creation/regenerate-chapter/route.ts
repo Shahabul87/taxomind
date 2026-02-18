@@ -11,9 +11,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { regenerateChapter } from '@/lib/sam/course-creation/orchestrator';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // 2 minutes max for single chapter regeneration
@@ -34,6 +36,9 @@ const RegenerateRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {
@@ -71,12 +76,16 @@ export async function POST(request: NextRequest) {
     });
 
     // 4. Regenerate
-    const result = await regenerateChapter({
-      userId: user.id,
-      courseId,
-      chapterId,
-      chapterPosition,
-    });
+    const result = await withRetryableTimeout(
+      () => regenerateChapter({
+        userId: user.id,
+        courseId,
+        chapterId,
+        chapterPosition,
+      }),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'regenerateChapter'
+    );
 
     if (result.success) {
       logger.info('[REGENERATE_CHAPTER] Regeneration complete', {

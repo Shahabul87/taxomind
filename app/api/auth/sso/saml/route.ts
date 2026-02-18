@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { samlProviderManager, type SAMLConfiguration } from '@/lib/auth/saml-provider';
 import { db } from '@/lib/db';
 import { signIn } from '@/auth';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
+
+const SAMLAuthSchema = z.object({
+  tenantId: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'Invalid tenant ID format'),
+  relayState: z.string().max(2000).optional(),
+});
 
 /**
  * SAML SSO Authentication Endpoints
@@ -18,14 +25,17 @@ import { logger } from '@/lib/logger';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { tenantId, relayState } = await request.json();
-    
-    if (!tenantId) {
+    const body = await request.json();
+    const parsed = SAMLAuthSchema.safeParse(body);
+
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Tenant ID is required' },
+        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const { tenantId, relayState } = parsed.data;
     
     // Get or create SAML provider for tenant
     let provider = samlProviderManager.getProvider(tenantId);
@@ -57,10 +67,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('[SAML] Authentication initiation failed:', error);
     
-    return NextResponse.json(
-      { error: 'Failed to initiate SAML authentication', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAML authentication initiation');
   }
 }
 
@@ -70,8 +77,18 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenant');
-    
+    const rawTenantId = searchParams.get('tenant');
+
+    // Validate tenant ID format if provided
+    if (rawTenantId && !/^[a-zA-Z0-9_-]{1,100}$/.test(rawTenantId)) {
+      return NextResponse.json(
+        { error: 'Invalid tenant ID format' },
+        { status: 400 }
+      );
+    }
+
+    const tenantId = rawTenantId;
+
     if (!tenantId) {
       // Return list of configured tenants
       const tenants = samlProviderManager.getConfiguredOrganizations();
@@ -112,10 +129,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('[SAML] Metadata retrieval failed:', error);
     
-    return NextResponse.json(
-      { error: 'Failed to retrieve SAML metadata', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAML metadata retrieval');
   }
 }
 
