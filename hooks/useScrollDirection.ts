@@ -10,6 +10,13 @@ interface UseScrollDirectionOptions {
   initialDirection?: ScrollDirection;
 }
 
+/**
+ * Tracks scroll direction without exposing scrollY as reactive state.
+ *
+ * scrollY is kept in a ref so that consumers like MobileGestureController
+ * don't re-render on every scroll frame. Only direction changes (up/down/idle)
+ * and boundary flags (isAtTop/isNearTop) trigger re-renders.
+ */
 export function useScrollDirection(
   options: UseScrollDirectionOptions = {}
 ): {
@@ -19,13 +26,15 @@ export function useScrollDirection(
   isNearTop: boolean;
 } {
   const {
-    threshold = 5,  // More sensitive to scroll changes
-    debounce = 30,  // Faster response
+    threshold = 5,
+    debounce = 30,
     initialDirection = 'idle'
   } = options;
 
   const [scrollDirection, setScrollDirection] = useState<ScrollDirection>(initialDirection);
-  const [scrollY, setScrollY] = useState(0);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [isNearTop, setIsNearTop] = useState(true);
+  const scrollYRef = useRef(0);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
   const timeout = useRef<NodeJS.Timeout>();
@@ -38,10 +47,19 @@ export function useScrollDirection(
       return;
     }
 
-    setScrollY(currentScrollY);
-    setScrollDirection(currentScrollY > lastScrollY.current ? 'down' : 'up');
+    scrollYRef.current = currentScrollY;
+
+    const newDirection: ScrollDirection = currentScrollY > lastScrollY.current ? 'down' : 'up';
+    const newIsAtTop = currentScrollY < 10;
+    const newIsNearTop = currentScrollY < 100;
+
     lastScrollY.current = currentScrollY;
     ticking.current = false;
+
+    // Batch state updates — only set if changed to avoid re-renders
+    setScrollDirection(prev => prev === newDirection ? prev : newDirection);
+    setIsAtTop(prev => prev === newIsAtTop ? prev : newIsAtTop);
+    setIsNearTop(prev => prev === newIsNearTop ? prev : newIsNearTop);
 
     // Set to idle after debounce
     clearTimeout(timeout.current);
@@ -58,11 +76,11 @@ export function useScrollDirection(
   }, [updateScrollDirection]);
 
   useEffect(() => {
-    // Set initial scroll position
-    setScrollY(window.scrollY);
+    scrollYRef.current = window.scrollY;
     lastScrollY.current = window.scrollY;
+    setIsAtTop(window.scrollY < 10);
+    setIsNearTop(window.scrollY < 100);
 
-    // Add passive listener for better performance
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
@@ -73,8 +91,8 @@ export function useScrollDirection(
 
   return {
     scrollDirection,
-    scrollY,
-    isAtTop: scrollY < 10,
-    isNearTop: scrollY < 100
+    scrollY: scrollYRef.current,
+    isAtTop,
+    isNearTop
   };
 }

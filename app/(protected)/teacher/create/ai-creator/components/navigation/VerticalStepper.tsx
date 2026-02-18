@@ -66,8 +66,8 @@ export function VerticalStepper({
     <nav
       className={cn(
         "relative p-5 overflow-hidden",
-        "bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl",
-        "rounded-2xl border border-white/50 dark:border-slate-700/50",
+        "bg-white dark:bg-slate-900",
+        "rounded-2xl border border-slate-200 dark:border-slate-700",
         "shadow-xl shadow-slate-200/50 dark:shadow-black/20",
         className
       )}
@@ -102,14 +102,14 @@ export function VerticalStepper({
             )}
             style={{ width: `${progressPercentage}%` }}
           />
-          {/* Shine effect */}
+          {/* Static shine overlay — infinite shimmer removed to reduce GPU work */}
           <div
             className={cn(
               "absolute inset-y-0 left-0 rounded-full overflow-hidden transition-all duration-700 ease-out"
             )}
             style={{ width: `${progressPercentage}%` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
         </div>
 
@@ -224,16 +224,11 @@ export function VerticalStepper({
                       )}
                     </div>
 
-                    {/* Pulse indicator for current step */}
+                    {/* Static indicator for current step — ping/pulse/blur removed to reduce GPU work */}
                     {isCurrent && (
-                      <>
-                        <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-indigo-500 border-2 border-white dark:border-slate-900" />
-                        </span>
-                        {/* Glow effect */}
-                        <div className="absolute inset-0 rounded-xl bg-indigo-500/20 blur-md -z-10 animate-pulse" />
-                      </>
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-indigo-500 border-2 border-white dark:border-slate-900" />
+                      </span>
                     )}
                   </div>
 
@@ -253,7 +248,7 @@ export function VerticalStepper({
 
                       {/* Status Badge */}
                       {isCurrent && (
-                        <Badge className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border-0 animate-pulse">
+                        <Badge className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border-0">
                           Active
                         </Badge>
                       )}

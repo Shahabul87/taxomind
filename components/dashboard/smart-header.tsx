@@ -98,13 +98,13 @@ export function SmartHeader({
     }
 
     // Hide on scroll down (with a threshold), always show on scroll up
-    // Note: React is smart enough to not re-render if state value doesn't change
-    if (scrollDirection === 'down' && scrollY > 100) {
+    // scrollY is a ref snapshot — read window.scrollY for the freshest value
+    if (scrollDirection === 'down' && window.scrollY > 100) {
       setIsHeaderVisible(false);
     } else if (scrollDirection === 'up' || scrollDirection === 'idle') {
       setIsHeaderVisible(true);
     }
-  }, [scrollDirection, scrollY, isAtTop, isNearTop, isMobile]);
+  }, [scrollDirection, isAtTop, isNearTop, isMobile]);
 
   // Quick action items
   const quickActions: QuickAction[] = [

@@ -89,7 +89,7 @@ export function AICreatorLayout({ children }: AICreatorLayoutProps) {
         <SmartSidebar user={user} />
 
         {/* Main Content Area - Left padding matches collapsed sidebar width (72px) */}
-        <main className="flex-1 pt-0 md:pt-14 pl-0 sm:pl-[72px] transition-all duration-300">
+        <main className="flex-1 pt-0 md:pt-14 pl-0 sm:pl-[72px]">
           {children}
         </main>
       </div>

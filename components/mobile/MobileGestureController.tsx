@@ -26,64 +26,69 @@ export function MobileGestureController({
   enablePullToRefresh = false,
 }: MobileGestureControllerProps) {
   const { isMobile, height: viewportHeight } = useViewportHeight();
-  const { scrollDirection, scrollY } = useScrollDirection();
+  const { scrollDirection, isAtTop } = useScrollDirection();
   const [isBottomBarVisible, setIsBottomBarVisible] = useState(true);
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const touchStartY = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const visibilityTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Prevent hydration mismatch by only rendering mobile features after mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Auto-hide bottom bar on scroll
+  // Auto-hide bottom bar on scroll — debounced to avoid per-frame re-renders.
+  // Only depends on scrollDirection and isAtTop (both change infrequently),
+  // NOT on scrollY which changed every frame and caused the cascade.
   useEffect(() => {
     if (!isMobile || !enableBottomBar) return;
 
-    // Show when scrolled to bottom or top
-    const isAtBottom = window.innerHeight + scrollY >= document.documentElement.scrollHeight - 100;
-    const isAtTop = scrollY < 10;
+    clearTimeout(visibilityTimeoutRef.current);
+    visibilityTimeoutRef.current = setTimeout(() => {
+      if (isAtTop) {
+        setIsBottomBarVisible(true);
+      } else if (scrollDirection === 'down') {
+        // Check if near bottom at evaluation time (no reactive dep)
+        const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
+        setIsBottomBarVisible(atBottom);
+      } else if (scrollDirection === 'up') {
+        setIsBottomBarVisible(true);
+      }
+    }, 100);
 
-    if (isAtTop || isAtBottom) {
-      setIsBottomBarVisible(true);
-    } else if (scrollDirection === 'down' && scrollY > 200) {
-      setIsBottomBarVisible(false);
-    } else if (scrollDirection === 'up') {
-      setIsBottomBarVisible(true);
-    }
-  }, [scrollDirection, scrollY, isMobile, enableBottomBar]);
+    return () => clearTimeout(visibilityTimeoutRef.current);
+  }, [scrollDirection, isAtTop, isMobile, enableBottomBar]);
 
-  // Pull to refresh handlers - memoized to prevent unnecessary re-renders
+  // Pull to refresh handlers — use window.scrollY directly (non-reactive read)
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (!enablePullToRefresh || scrollY > 0) return;
+    if (!enablePullToRefresh || window.scrollY > 0) return;
     touchStartY.current = e.touches[0].clientY;
-  }, [enablePullToRefresh, scrollY]);
+  }, [enablePullToRefresh]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!enablePullToRefresh || scrollY > 0) return;
+    if (!enablePullToRefresh || window.scrollY > 0) return;
 
     const touchY = e.touches[0].clientY;
     const distance = touchY - touchStartY.current;
 
     if (distance > 0) {
       setIsPulling(true);
-      setPullDistance(Math.min(distance, 150)); // Max pull distance
+      setPullDistance(Math.min(distance, 150));
 
       // Add resistance effect
       if (distance > 100) {
         setPullDistance(100 + (distance - 100) * 0.3);
       }
     }
-  }, [enablePullToRefresh, scrollY]);
+  }, [enablePullToRefresh]);
 
   const handleTouchEnd = useCallback(() => {
     if (!enablePullToRefresh || !isPulling) return;
 
     if (pullDistance > 80) {
-      // Trigger refresh
       if ('vibrate' in navigator) {
         navigator.vibrate(20);
       }
@@ -110,10 +115,9 @@ export function MobileGestureController({
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [enablePullToRefresh, scrollY, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [enablePullToRefresh, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Only apply mobile features on mobile devices after mounting
-  // This prevents hydration mismatch by ensuring server and initial client render are identical
   if (!isMounted || !isMobile) {
     return <>{children}</>;
   }
@@ -218,7 +222,6 @@ function FirstTimeHint() {
   const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
-    // Check if user has seen the hint before
     const hasSeenHint = localStorage.getItem('hasSeenMobileGestureHint');
     if (!hasSeenHint) {
       setTimeout(() => setShowHint(true), 1500);

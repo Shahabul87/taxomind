@@ -34,17 +34,33 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { AICreatorLayout } from "./_components/AICreatorLayout";
 
-// Import modular components
+// Import hooks
 import { useSamWizard } from "./hooks/use-sam-wizard";
-import { CourseBasicsStep } from "./components/steps/course-basics-step";
-import { TargetAudienceStep } from "./components/steps/target-audience-step";
-import { CourseStructureStep } from "./components/steps/course-structure-step";
-import { AdvancedSettingsStep } from "./components/steps/advanced-settings-step";
-import { MobileStepNav } from "./components/navigation/MobileStepNav";
 import { useSequentialCreation } from "@/hooks/use-sam-sequential-creation";
 
+// Step 1 loaded eagerly (always visible on first paint)
+import { CourseBasicsStep } from "./components/steps/course-basics-step";
+
+// Steps 2-4 lazy-loaded (only rendered when navigated to) — Fix 1.3
+import { StepSkeleton } from "./components/ui/StepSkeleton";
+
+const TargetAudienceStep = dynamic(
+  () => import("./components/steps/target-audience-step").then(m => m.TargetAudienceStep),
+  { loading: () => <StepSkeleton /> }
+);
+const CourseStructureStep = dynamic(
+  () => import("./components/steps/course-structure-step").then(m => m.CourseStructureStep),
+  { loading: () => <StepSkeleton /> }
+);
+const AdvancedSettingsStep = dynamic(
+  () => import("./components/steps/advanced-settings-step").then(m => m.AdvancedSettingsStep),
+  { loading: () => <StepSkeleton /> }
+);
+
+// Mobile step nav (loaded eagerly — small component always needed on mobile)
+import { MobileStepNav } from "./components/navigation/MobileStepNav";
+
 // Dynamic imports with SSR disabled to fix Radix UI hydration mismatch
-// See: https://github.com/radix-ui/primitives/issues/3700
 const SequentialCreationModal = dynamic(
   () => import("@/components/sam/sequential-creation-modal").then(mod => mod.SequentialCreationModal),
   { ssr: false }
@@ -81,6 +97,12 @@ const STEPS = [
   },
 ];
 
+// Fix 2.3: Pre-computed steps with icons — never recreated between renders
+const STEPS_WITH_ICONS = STEPS.map(s => ({
+  ...s,
+  icon: <s.icon className="h-5 w-5" />,
+}));
+
 
 export default function AICreatorPage() {
   const router = useRouter();
@@ -100,7 +122,6 @@ export default function AICreatorPage() {
   } = useSamWizard();
 
   // Pre-fill course title and overview from URL params
-  // Supports: ?title=... (from Course Plan) and ?overview=... (from Skill Roadmap Journey)
   React.useEffect(() => {
     const titleParam = searchParams.get("title");
     const overviewParam = searchParams.get("overview");
@@ -124,7 +145,12 @@ export default function AICreatorPage() {
 
   // Local validation errors (field-specific)
   const [localValidationErrors, setLocalValidationErrors] = React.useState<Record<string, string>>({});
-  const mergedValidationErrors = { ...validationErrors, ...localValidationErrors };
+
+  // Fix 2.2: Memoize merged validation errors to prevent child re-renders
+  const mergedValidationErrors = React.useMemo(
+    () => ({ ...validationErrors, ...localValidationErrors }),
+    [validationErrors, localValidationErrors]
+  );
 
   // Sequential Creation (3-Stage Process)
   const [isSequentialModalOpen, setIsSequentialModalOpen] = React.useState(false);
@@ -307,8 +333,7 @@ export default function AICreatorPage() {
     }
   }, [formData, startSequentialCreation, router]);
 
-  // Handle retry for sequential creation — dismiss stale plans first so the
-  // dedup check doesn't block the new attempt with "already in progress".
+  // Handle retry for sequential creation
   const handleRetrySequentialCreation = React.useCallback(async () => {
     await dismissCreation();
     handleStartSequentialCreation();
@@ -356,15 +381,23 @@ export default function AICreatorPage() {
     }
   }, [resumableCourseId, resumeCreation, formData, router]);
 
-  // Handle chapter regeneration (post-creation, for low-quality chapters)
+  // Handle chapter regeneration
   const handleRegenerateChapter = React.useCallback((chapterId: string, position: number) => {
     if (!createdCourseId) return;
     regenerateChapter(createdCourseId, chapterId, position);
   }, [createdCourseId, regenerateChapter]);
 
-  // SAM Memory Integration
+  // Fix 2.1 + 6.2: Debounced SAM Memory Integration (was firing on every keystroke)
+  // Uses a 5-second debounce to batch rapid changes and avoid per-keystroke saves.
+  // The auto-save in use-sam-wizard.ts handles localStorage persistence every 30s.
+  const samMemoryTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
   React.useEffect(() => {
-    if ((formData.courseTitle || formData.courseShortOverview) && typeof window !== "undefined") {
+    if (!(formData.courseTitle || formData.courseShortOverview) || typeof window === "undefined") {
+      return;
+    }
+
+    clearTimeout(samMemoryTimeoutRef.current);
+    samMemoryTimeoutRef.current = setTimeout(() => {
       import("@/lib/sam/utils/sam-memory-system").then(({ samMemory }) => {
         samMemory.saveWizardData({
           courseTitle: formData.courseTitle || "",
@@ -382,7 +415,9 @@ export default function AICreatorPage() {
           includeAssessments: formData.includeAssessments,
         });
       });
-    }
+    }, 5000); // 5s debounce
+
+    return () => clearTimeout(samMemoryTimeoutRef.current);
   }, [formData]);
 
   React.useEffect(() => {
@@ -399,7 +434,11 @@ export default function AICreatorPage() {
   const currentStep = STEPS[step - 1];
   const StepIcon = currentStep.icon;
 
-  // Keyboard shortcuts
+  // Fix 2.5: Single keyboard handler using refs for frequently-changing values
+  // Removes the duplicate handler that was in use-sam-wizard.ts
+  const stateRef = React.useRef({ step, canProceed, isLastStep, isSequentialCreating });
+  stateRef.current = { step, canProceed, isLastStep, isSequentialCreating };
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInputFocused =
@@ -408,15 +447,16 @@ export default function AICreatorPage() {
 
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (!isLastStep) {
+        const { isLastStep: last, canProceed: can, isSequentialCreating: creating } = stateRef.current;
+        if (!last) {
           attemptNext();
-        } else if (canProceed && isLastStep && !isSequentialCreating) {
+        } else if (can && last && !creating) {
           setShowGenerateConfirm(true);
         }
         return;
       }
 
-      if (!isInputFocused && e.key === "Escape" && step > 1) {
+      if (!isInputFocused && e.key === "Escape" && stateRef.current.step > 1) {
         e.preventDefault();
         handleBack();
       }
@@ -424,7 +464,16 @@ export default function AICreatorPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [step, canProceed, isLastStep, isSequentialCreating, attemptNext, handleBack]);
+  }, [attemptNext, handleBack]);
+
+  // Fix 2.4: Memoize modal formData to prevent SequentialCreationModal re-renders
+  const modalFormData = React.useMemo(() => ({
+    courseTitle: formData.courseTitle || '',
+    targetAudience: formData.targetAudience,
+    difficulty: formData.difficulty,
+    chapterCount: formData.chapterCount,
+    sectionsPerChapter: formData.sectionsPerChapter,
+  }), [formData.courseTitle, formData.targetAudience, formData.difficulty, formData.chapterCount, formData.sectionsPerChapter]);
 
   const renderStepContent = () => {
     const stepProps = {
@@ -456,7 +505,7 @@ export default function AICreatorPage() {
         {/* Resume Banner */}
         {resumableCourseId && !isSequentialCreating && (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 shadow-lg backdrop-blur-xl">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 shadow-lg">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200 truncate">
@@ -507,19 +556,15 @@ export default function AICreatorPage() {
           onRegenerate={handleRegenerateChapter}
           regeneratingChapterId={regeneratingChapterId}
           resumableCourseId={resumableCourseId}
-          formData={{
-            courseTitle: formData.courseTitle || '',
-            targetAudience: formData.targetAudience,
-            difficulty: formData.difficulty,
-            chapterCount: formData.chapterCount,
-            sectionsPerChapter: formData.sectionsPerChapter,
-          }}
+          formData={modalFormData}
         />
 
         {/* Simplified Background */}
         <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800" />
 
-        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 pb-40 sm:pb-44 lg:pb-8 max-w-7xl relative">
+        {/* Fix 3.2: MobileStepNav now sits at bottom:0, covering SmartBottomBar.
+            Bottom padding ensures content doesn't hide behind the fixed nav. */}
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 pb-48 sm:pb-52 lg:pb-8 max-w-7xl relative">
           {/* Compact Header */}
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -549,7 +594,8 @@ export default function AICreatorPage() {
               <div className="flex items-center gap-3">
                 {lastAutoSave && (
                   <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 rounded-full px-3 py-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {/* Fix 5.1: Removed animate-pulse — static green dot is sufficient */}
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     Saved
                   </div>
                 )}
@@ -571,8 +617,9 @@ export default function AICreatorPage() {
             {/* Desktop Stepper - sticky sidebar */}
             <aside className="hidden lg:block w-[280px] flex-shrink-0">
               <div className="sticky top-20">
+                {/* Fix 2.3: Uses pre-computed STEPS_WITH_ICONS (stable reference) */}
                 <VerticalStepper
-                  steps={STEPS.map(s => ({ ...s, icon: <s.icon className="h-5 w-5" /> }))}
+                  steps={STEPS_WITH_ICONS}
                   currentStep={step}
                   onStepClick={goToStep}
                   formData={formData}
@@ -584,7 +631,7 @@ export default function AICreatorPage() {
             <div className="flex-1 min-w-0 max-w-4xl">
               <main className="space-y-5">
                 {/* Step Header - visible on mobile/tablet, hidden on desktop where stepper exists */}
-                <div className="lg:hidden p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+                <div className="lg:hidden p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-md">
                   <div className="flex items-center gap-4">
                     <div
                       className={cn(
@@ -615,8 +662,8 @@ export default function AICreatorPage() {
                   </div>
                 </div>
 
-                {/* Step Content */}
-                <div className="p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+                {/* Step Content — Fix 3.3: Removed backdrop-blur on mobile, kept on desktop */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 lg:bg-white/80 lg:dark:bg-slate-900/80 lg:backdrop-blur-xl border border-slate-200 dark:border-slate-700 lg:border-slate-200/50 lg:dark:border-slate-700/50 shadow-md lg:shadow-xl">
                   <div key={step} className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
                     {renderStepContent()}
                   </div>
@@ -624,7 +671,7 @@ export default function AICreatorPage() {
 
                 {/* Navigation */}
                 <div className="hidden sm:flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-4 p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 lg:bg-white/60 lg:dark:bg-slate-900/60 lg:backdrop-blur-xl border border-slate-200 dark:border-slate-700 lg:border-slate-200/50 lg:dark:border-slate-700/50">
                     <Button
                       variant="outline"
                       onClick={handleBack}

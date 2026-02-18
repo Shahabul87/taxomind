@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { CourseCreationRequest, SamSuggestion, SamWizardState, SamWizardActions } from '../types/sam-creator.types';
@@ -185,59 +185,47 @@ export function useSamWizard() {
     cancelAllCalls();
   }, [cancelAllCalls]);
 
-  // Keyboard navigation
+  // Hook-specific keyboard shortcuts (Ctrl+S save, Escape cancel SAM).
+  // Navigation shortcuts (Ctrl+Enter, Escape-back) are handled in page.tsx
+  // to avoid duplicate handlers and reduce listener churn.
+  const isLoadingSuggestionRef = React.useRef(isLoadingSuggestion);
+  isLoadingSuggestionRef.current = isLoadingSuggestion;
+  const formDataRef = React.useRef(formData);
+  formDataRef.current = formData;
+  const stepRef = React.useRef(step);
+  stepRef.current = step;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-      
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case 'Enter':
-            e.preventDefault();
-            if (step < TOTAL_STEPS) {
-              handleNext();
-            }
-            break;
-          case 'ArrowLeft':
-            e.preventDefault();
-            if (step > 1) handleBack();
-            break;
-          case 'ArrowRight':
-            e.preventDefault();
-            if (step < TOTAL_STEPS) handleNext();
-            break;
-          case 's':
-            e.preventDefault();
-            // Manual save trigger
-            localStorage.setItem('course-creator-draft', JSON.stringify({
-              formData,
-              step,
-              timestamp: new Date().toISOString()
-            }));
-            toast.success('Progress saved manually');
-            break;
-        }
+
+      // Ctrl+S: Manual save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        localStorage.setItem('course-creator-draft', JSON.stringify({
+          formData: formDataRef.current,
+          step: stepRef.current,
+          timestamp: new Date().toISOString()
+        }));
+        toast.success('Progress saved manually');
       }
-      
-      // Escape to cancel Sam operations
-      if (e.key === 'Escape') {
-        if (isLoadingSuggestion) {
-          cancelAllCalls();
-          setIsLoadingSuggestion(false);
-          toast.info('Sam operation cancelled');
-        }
+
+      // Escape: Cancel SAM operations
+      if (e.key === 'Escape' && isLoadingSuggestionRef.current) {
+        cancelAllCalls();
+        setIsLoadingSuggestion(false);
+        toast.info('Sam operation cancelled');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      cancelAllCalls(); // Cleanup on unmount
+      cancelAllCalls();
     };
-  }, [step, formData, handleNext, handleBack, isLoadingSuggestion, cancelAllCalls]);
+  }, [cancelAllCalls]);
 
   const state: SamWizardState = {
     step,

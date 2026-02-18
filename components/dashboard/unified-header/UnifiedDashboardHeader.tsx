@@ -68,12 +68,13 @@ export function UnifiedDashboardHeader({
       return;
     }
 
-    if (scrollDirection === 'down' && scrollY > 100) {
+    // scrollY is a ref snapshot — read window.scrollY for the freshest value
+    if (scrollDirection === 'down' && window.scrollY > 100) {
       setIsHeaderVisible(false);
     } else if (scrollDirection === 'up' || scrollDirection === 'idle') {
       setIsHeaderVisible(true);
     }
-  }, [scrollDirection, scrollY, isAtTop, isNearTop, isMobile, autoHideOnScroll]);
+  }, [scrollDirection, isAtTop, isNearTop, isMobile, autoHideOnScroll]);
 
   // Prevent hydration mismatch: render placeholder until mounted
   if (!isMounted) {

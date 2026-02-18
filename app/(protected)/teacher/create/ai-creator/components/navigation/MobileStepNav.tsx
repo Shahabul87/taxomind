@@ -39,12 +39,13 @@ export function MobileStepNav({
         className
       )}
       style={{
-        bottom: '64px',
+        bottom: 0,
         paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
       }}
     >
-      {/* Glassmorphism background */}
-      <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/90 backdrop-blur-2xl border-t-2 border-white/50 dark:border-slate-700/50 shadow-2xl shadow-slate-900/10 dark:shadow-black/30" />
+      {/* Solid background - sits at bottom:0 and covers SmartBottomBar (z-30)
+          so only one nav bar is visible on mobile. No backdrop-blur for scroll perf. */}
+      <div className="absolute inset-0 bg-white dark:bg-slate-900 border-t-2 border-slate-200 dark:border-slate-700 shadow-lg shadow-slate-900/10 dark:shadow-black/20" />
 
       {/* Animated gradient progress bar */}
       <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-200/50 dark:bg-slate-700/50 overflow-hidden">
@@ -60,12 +61,12 @@ export function MobileStepNav({
           aria-valuemax={totalSteps}
           aria-label="Course creation progress"
         />
-        {/* Shine effect */}
+        {/* Static shine overlay — infinite shimmer removed for mobile GPU perf */}
         <div
           className="absolute inset-y-0 left-0 overflow-hidden transition-all duration-700 ease-out"
           style={{ width: `${progressPercentage}%` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
         </div>
       </div>
 
@@ -100,10 +101,9 @@ export function MobileStepNav({
                   )}
                 </div>
 
-                {/* Active indicator pulse */}
+                {/* Active indicator — ping removed for mobile GPU perf */}
                 {isCurrent && (
                   <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500 border-2 border-white dark:border-slate-900" />
                   </span>
                 )}
