@@ -153,7 +153,7 @@ Cache mount IDs must use `id=s/<service-id>-<name>` format. See Railway-Specific
 Remove the syntax directive. Docker 23+ has native BuildKit support — the directive is only needed for older Docker versions and causes unnecessary image pulls.
 
 ### OOM during next build
-The Dockerfile uses `--max-old-space-size=4096` + `EXPERIMENTAL_CPUS=1` + `--experimental-build-mode compile` to stay within Railway's ~8 GB container. See comments in `Dockerfile.railway` for detailed memory tuning.
+The Dockerfile uses `--max-old-space-size=2048` + `EXPERIMENTAL_CPUS=1` + `--experimental-build-mode compile` to stay within Railway's ~8 GB container. V8 only needs ~200 MB; the rest is reserved for Turbopack's native Rust allocations. See comments in `Dockerfile.railway` for detailed memory tuning.
 
 ---
 
