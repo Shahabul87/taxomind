@@ -214,8 +214,8 @@ export async function GET(request: NextRequest) {
       headline?: string | null;
       socialLinks?: unknown;
       theme: string;
-      featuredProjectIds: string[];
-      featuredSkillIds: string[];
+      featuredProjectIds: unknown;
+      featuredSkillIds: unknown;
     };
 
     try {
@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
     let achievements: PortfolioAchievement[] = [];
     if (validatedParams.includeAchievements) {
       try {
-        const achievementRecords = await db.achievement.findMany({
+        const achievementRecords = await db.skillBuildAchievement.findMany({
           where: { userId: user.id },
           orderBy: { earnedAt: 'desc' },
         });
@@ -388,8 +388,8 @@ export async function GET(request: NextRequest) {
           title: a.title,
           description: a.description ?? '',
           earnedAt: a.earnedAt,
-          badgeUrl: a.badgeUrl ?? undefined,
-          metadata: (a.metadata as Record<string, unknown>) ?? undefined,
+          badgeUrl: undefined,
+          metadata: undefined,
         }));
       } catch (achievementError) {
         logger.warn('[PORTFOLIO] Failed to get achievements, using empty array:', achievementError);

@@ -337,7 +337,7 @@ function EvidenceCard({ evidence }: { evidence: EvidenceItem }) {
           className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: `${frameworkColor}20` }}
         >
-          <Icon className="h-5 w-5" style={{ color: frameworkColor }} />
+          <Icon className="h-5 w-5" />
         </div>
 
         <div className="flex-1 min-w-0">

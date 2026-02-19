@@ -12,6 +12,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import type { LearningInsights } from '@sam-ai/agentic';
 import type {
   CohortCognitiveAnalysis,
   CreatorPrescriptions,
@@ -195,33 +196,67 @@ async function doPeristCache(
   try {
     const existing = await sessionContext.get(userId, cacheKey);
     if (existing) {
-      const currentInsights = (existing.insights ?? {}) as Record<string, unknown>;
+      const currentInsights = existing.insights as unknown as Record<string, unknown>;
       await sessionContext.update(existing.id, {
         lastActiveAt: new Date(),
         insights: {
+          ...existing.insights,
           ...currentInsights,
           creatorPrismAnalytics: {
             courseId,
             cohortHealthScore: healthScore,
             analyzedAt: new Date().toISOString(),
           },
-        },
+        } as unknown as LearningInsights,
       });
     } else {
       await sessionContext.create({
         userId,
         courseId: cacheKey,
         lastActiveAt: new Date(),
-        currentState: { type: 'creator-analytics' },
+        currentState: {
+          currentTopic: 'creator-analytics',
+          currentGoal: courseId,
+          recentConcepts: [],
+          pendingQuestions: [],
+          activeArtifacts: [],
+          sessionCount: 1,
+        },
         history: [],
-        preferences: {},
+        preferences: {
+          learningStyle: 'mixed',
+          preferredPace: 'moderate',
+          preferredContentTypes: [],
+          preferredSessionLength: 30,
+          notificationPreferences: {
+            enabled: false,
+            channels: [],
+            frequency: 'daily',
+          },
+          accessibilitySettings: {
+            fontSize: 'medium',
+            highContrast: false,
+            reduceMotion: false,
+            screenReaderOptimized: false,
+            captionsEnabled: false,
+          },
+        },
         insights: {
+          strengths: [],
+          weaknesses: [],
+          recommendedTopics: [],
+          masteredConcepts: [],
+          strugglingConcepts: [],
+          averageSessionDuration: 0,
+          totalLearningTime: 0,
+          completionRate: 0,
+          engagementScore: 0,
           creatorPrismAnalytics: {
             courseId,
             cohortHealthScore: healthScore,
             analyzedAt: new Date().toISOString(),
           },
-        },
+        } as unknown as LearningInsights,
       });
     }
   } catch (error) {

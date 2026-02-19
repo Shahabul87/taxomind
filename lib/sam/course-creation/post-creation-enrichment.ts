@@ -124,10 +124,12 @@ interface CourseContentForEnrichment {
   title: string;
   description: string;
   chapters: Array<{
+    id: string;
     title: string;
     description: string;
     position: number;
     sections: Array<{
+      id: string;
       title: string;
       description: string | null;
       position: number;
@@ -142,13 +144,15 @@ async function loadCourseContent(courseId: string): Promise<CourseContentForEnri
       select: {
         title: true,
         description: true,
-        Chapter: {
+        chapters: {
           select: {
+            id: true,
             title: true,
             description: true,
             position: true,
-            Section: {
+            sections: {
               select: {
+                id: true,
                 title: true,
                 description: true,
                 position: true,
@@ -166,11 +170,13 @@ async function loadCourseContent(courseId: string): Promise<CourseContentForEnri
     return {
       title: course.title,
       description: course.description ?? '',
-      chapters: course.Chapter.map((ch) => ({
+      chapters: course.chapters.map((ch) => ({
+        id: ch.id,
         title: ch.title,
         description: ch.description ?? '',
         position: ch.position,
-        sections: ch.Section.map((sec) => ({
+        sections: ch.sections.map((sec) => ({
+          id: sec.id,
           title: sec.title,
           description: sec.description,
           position: sec.position,
@@ -214,11 +220,10 @@ async function enrichKnowledgeGraph(
 
       await engine.extractConcepts({
         content: chapterContent,
-        contentType: 'lesson',
+        contentType: 'CHAPTER',
         context: {
           courseId,
-          chapterTitle: chapter.title,
-          chapterPosition: chapter.position,
+          chapterId: chapter.id,
         },
       });
     }
@@ -256,15 +261,18 @@ async function enrichBloomsAnalysis(
 
     // Build course analysis input
     const courseAnalysisInput = {
-      courseId,
-      courseTitle,
+      id: courseId,
+      title: courseTitle,
+      description: courseData.description,
       chapters: courseData.chapters.map((ch) => ({
+        id: ch.id,
         title: ch.title,
-        content: [
-          ch.description,
-          ...ch.sections.map((sec) => `${sec.title}: ${sec.description ?? ''}`),
-        ].join('\n'),
         position: ch.position,
+        sections: ch.sections.map((sec) => ({
+          id: sec.id,
+          title: sec.title,
+          description: sec.description ?? '',
+        })),
       })),
     };
 
@@ -272,7 +280,7 @@ async function enrichBloomsAnalysis(
 
     logger.info('[POST_ENRICHMENT] Bloom\'s analysis complete', {
       courseId,
-      dominantLevel: analysisResult.courseLevel?.dominantLevel ?? 'unknown',
+      balance: analysisResult.courseLevel?.balance ?? 'unknown',
       chapterCount: courseData.chapters.length,
     });
 

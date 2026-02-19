@@ -40,7 +40,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Goal } from '@/app/dashboard/user/goals/_components/GoalsClient';
+import type { Goal } from './types';
 
 interface GoalCreationDialogProps {
   open: boolean;

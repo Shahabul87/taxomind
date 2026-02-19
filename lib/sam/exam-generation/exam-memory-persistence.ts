@@ -11,6 +11,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import type { LearningInsights } from '@sam-ai/agentic';
 import type { DecomposedConcept, ExamQualityScore } from './agentic-types';
 
 /**
@@ -47,7 +48,7 @@ async function doPersistConcepts(
   try {
     for (const concept of concepts) {
       const entity = await knowledgeGraph.createEntity({
-        type: 'exam-concept',
+        type: 'concept',
         name: concept.name,
         description: `${concept.description} (${concept.importance} concept for exam)`,
         properties: {
@@ -67,7 +68,7 @@ async function doPersistConcepts(
         const prereqIdx = concepts.findIndex((c) => c.name === prereqName);
         if (prereqIdx >= 0 && entityIds[prereqIdx] && entityIds[i]) {
           await knowledgeGraph.createRelationship({
-            type: 'prerequisite_for',
+            type: 'prerequisite_of',
             sourceId: entityIds[prereqIdx],
             targetId: entityIds[i],
             weight: 1.0,
@@ -146,16 +147,17 @@ async function doPersistQuality(
     };
 
     if (existing) {
-      const currentInsights = (existing.insights ?? {}) as Record<
+      const currentInsights = existing.insights as unknown as Record<
         string,
         unknown
       >;
       await sessionContext.update(existing.id, {
         lastActiveAt: new Date(),
         insights: {
+          ...existing.insights,
           ...currentInsights,
           [`stage${stage}Quality`]: qualityData,
-        },
+        } as unknown as LearningInsights,
       });
     } else {
       await sessionContext.create({
@@ -163,15 +165,44 @@ async function doPersistQuality(
         courseId: examId, // reuse courseId field for examId
         lastActiveAt: new Date(),
         currentState: {
-          type: 'exam-creation',
-          examId,
-          stage,
+          currentTopic: 'exam-creation',
+          currentGoal: examId,
+          recentConcepts: [],
+          pendingQuestions: [],
+          activeArtifacts: [],
+          sessionCount: 1,
         },
         history: [],
-        preferences: {},
-        insights: {
-          [`stage${stage}Quality`]: qualityData,
+        preferences: {
+          learningStyle: 'mixed',
+          preferredPace: 'moderate',
+          preferredContentTypes: [],
+          preferredSessionLength: 30,
+          notificationPreferences: {
+            enabled: false,
+            channels: [],
+            frequency: 'daily',
+          },
+          accessibilitySettings: {
+            fontSize: 'medium',
+            highContrast: false,
+            reduceMotion: false,
+            screenReaderOptimized: false,
+            captionsEnabled: false,
+          },
         },
+        insights: {
+          strengths: [],
+          weaknesses: [],
+          recommendedTopics: [],
+          masteredConcepts: [],
+          strugglingConcepts: [],
+          averageSessionDuration: 0,
+          totalLearningTime: 0,
+          completionRate: 0,
+          engagementScore: 0,
+          [`stage${stage}Quality`]: qualityData,
+        } as unknown as LearningInsights,
       });
     }
 

@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
         {
           samConfig,
           userId: user.id,
-          userRole: user.role ?? 'USER',
+          userRole: user.isAdmin ? 'ADMIN' : 'USER',
         },
       ),
       TIMEOUT_DEFAULTS.AI_ANALYSIS,

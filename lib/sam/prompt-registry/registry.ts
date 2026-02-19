@@ -34,7 +34,7 @@ function ensureKnowledgeIndex(): void {
 export function registerProfile<TInput, TOutput>(
   profile: PromptProfile<TInput, TOutput>,
 ): void {
-  profiles.set(profile.taskType, profile);
+  profiles.set(profile.taskType, profile as PromptProfile<Record<string, unknown>, unknown>);
 }
 
 /**

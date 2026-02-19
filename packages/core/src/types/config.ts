@@ -58,6 +58,7 @@ export interface AIChatResponse {
   usage: {
     inputTokens: number;
     outputTokens: number;
+    totalTokens?: number;
   };
   finishReason: 'stop' | 'max_tokens' | 'error';
 }

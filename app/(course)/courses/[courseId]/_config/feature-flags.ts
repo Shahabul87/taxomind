@@ -104,6 +104,13 @@ export const CATEGORY_FEATURE_FLAGS: Record<CategoryLayoutVariant, CategoryFeatu
     enableDiscussions: true,
   },
 
+  math: {
+    enableInteractiveQuizzes: true,
+    enableCertificates: true,
+    enableDiscussions: true,
+    enableAIAssistant: true,
+  },
+
   default: {
     enableInteractiveQuizzes: true,
     enableCertificates: true,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
+import type { ReviewScheduleEntry } from '@/lib/sam/stores/prisma-spaced-repetition-store';
 
 // Get spaced repetition store from TaxomindContext singleton
 const { spacedRepetition: spacedRepetitionStore } = getPracticeStores();
@@ -10,14 +11,7 @@ const { spacedRepetition: spacedRepetitionStore } = getPracticeStores();
 // HELPER FUNCTIONS
 // ============================================================================
 
-function enrichReview(review: {
-  id: string;
-  nextReviewDate: Date;
-  retentionEstimate: number;
-  isOverdue: boolean;
-  priority: string;
-  [key: string]: unknown;
-}) {
+function enrichReview(review: ReviewScheduleEntry) {
   return {
     ...review,
     urgencyLabel: review.isOverdue ? 'overdue' : 'due today',

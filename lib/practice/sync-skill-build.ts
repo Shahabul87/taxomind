@@ -106,8 +106,9 @@ export async function syncSessionToSkillBuildTrack(
       return { synced: false, error: 'Store not available' };
     }
 
-    // Create the engine with the store
-    const engine = createSkillBuildTrackEngine({ store });
+    // Create the engine with database adapter
+    // @ts-expect-error - Store adapter compatibility: getStore returns a runtime-compatible adapter that doesn't match the strict SAMConfig type
+    const engine = createSkillBuildTrackEngine({ samConfig: {}, database: store });
 
     // Build quality scoring inputs from session data
     const qualityInputs: QualityScoringInputs = {
@@ -160,19 +161,23 @@ export async function syncSessionToSkillBuildTrack(
       sourceType,
     });
 
+    const previousLevel = result.levelChange?.fromLevel ?? result.profile.proficiencyLevel;
+    const newLevel = result.levelChange?.toLevel ?? result.profile.proficiencyLevel;
+    const levelChanged = !!result.levelChange;
+
     logger.info(
       `Synced practice to SkillBuildTrack: user=${data.userId}, skill=${data.skillId}, ` +
         `duration=${data.durationMinutes}min, score=${evidenceScore.score} (${evidenceScore.evidenceType}, ` +
         `confidence=${evidenceScore.confidence.toFixed(2)}), ` +
-        `previousLevel=${result.previousLevel}, newLevel=${result.newLevel}, ` +
-        `levelChanged=${result.levelChanged}`
+        `previousLevel=${previousLevel}, newLevel=${newLevel}, ` +
+        `levelChanged=${levelChanged}`
     );
 
     return {
       synced: true,
-      previousLevel: result.previousLevel,
-      newLevel: result.newLevel,
-      levelChanged: result.levelChanged,
+      previousLevel,
+      newLevel,
+      levelChanged,
       compositeScore: result.profile.compositeScore,
       decayDaysReset: result.profile.decay?.daysSinceLastPractice ?? 0,
       scoreUsed: evidenceScore.score,

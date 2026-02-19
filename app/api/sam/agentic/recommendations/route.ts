@@ -145,8 +145,8 @@ export async function GET(req: NextRequest) {
       progressAnalyzer.getAllProgress(user.id),
       skillAssessor.getUserAssessments(user.id),
       getQuickPreferences(user.id).catch(() => ({
-        preferredTypes: [],
-        avoidedTypes: [],
+        preferredTypes: [] as string[],
+        avoidedTypes: [] as string[],
         difficultyBias: 0,
         hasEnoughData: false,
       })),

@@ -190,7 +190,7 @@ export async function orchestrateCreatorAnalytics(
         temperature: stage3Prompt.temperature,
       });
 
-      contentQuality = safeJsonParse<ContentQualityReport>(stage3Raw, 'Stage 3');
+      contentQuality = safeJsonParse<ContentQualityReport>(stage3Raw, 'Stage 3') ?? undefined;
       if (!contentQuality) {
         contentQuality = buildFallbackContentQuality(snapshot);
       }
@@ -235,7 +235,7 @@ export async function orchestrateCreatorAnalytics(
         temperature: stage4Prompt.temperature,
       });
 
-      rootCauseAnalysis = safeJsonParse<RootCauseAnalysis>(stage4Raw, 'Stage 4');
+      rootCauseAnalysis = safeJsonParse<RootCauseAnalysis>(stage4Raw, 'Stage 4') ?? undefined;
       if (!rootCauseAnalysis) {
         rootCauseAnalysis = buildFallbackRootCause(cohortAnalysis);
       }
@@ -283,7 +283,7 @@ export async function orchestrateCreatorAnalytics(
         temperature: stage5Prompt.temperature,
       });
 
-      prescriptions = safeJsonParse<CreatorPrescriptions>(stage5Raw, 'Stage 5');
+      prescriptions = safeJsonParse<CreatorPrescriptions>(stage5Raw, 'Stage 5') ?? undefined;
       if (!prescriptions) {
         prescriptions = {
           prescriptions: [{
@@ -304,7 +304,7 @@ export async function orchestrateCreatorAnalytics(
       }
 
       for (const rx of prescriptions.prescriptions) {
-        emit('prescription_generated', rx);
+        emit('prescription_generated', rx as unknown as Record<string, unknown>);
       }
 
       await completeCreatorAnalyticsStep(planId, stepIds, 5, [
@@ -343,7 +343,7 @@ export async function orchestrateCreatorAnalytics(
         temperature: stage6Prompt.temperature,
       });
 
-      report = safeJsonParse<CreatorPRISMReport>(stage6Raw, 'Stage 6');
+      report = safeJsonParse<CreatorPRISMReport>(stage6Raw, 'Stage 6') ?? undefined;
       if (!report) {
         report = buildFallbackReport(snapshot, cohortAnalysis, prescriptions);
       }

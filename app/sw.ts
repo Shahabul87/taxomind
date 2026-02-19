@@ -98,11 +98,13 @@ self.addEventListener('fetch', (event) => {
 // BACKGROUND SYNC
 // =============================================================================
 
-self.addEventListener('sync', (event: SyncEvent) => {
-  if (event.tag === SYNC_TAG) {
-    event.waitUntil(syncPendingMessages());
-  }
-});
+// Background Sync API - cast needed as SyncEvent is not in standard TS lib
+(self as unknown as { addEventListener(type: 'sync', listener: (event: { tag: string; waitUntil(p: Promise<void>): void }) => void): void })
+  .addEventListener('sync', (event) => {
+    if (event.tag === SYNC_TAG) {
+      event.waitUntil(syncPendingMessages());
+    }
+  });
 
 async function syncPendingMessages(): Promise<void> {
   // The actual sync is handled by lib/sam/offline/sync-manager.ts

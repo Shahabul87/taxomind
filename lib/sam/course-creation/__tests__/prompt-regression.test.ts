@@ -477,8 +477,9 @@ describe('buildStage3Prompt', () => {
   });
 
   it('user prompt contains HTML structure guidance', () => {
-    expect(prompt.userPrompt).toContain('Why This Matters');
-    expect(prompt.userPrompt).toContain('Real-World Applications');
+    expect(prompt.userPrompt).toContain('Why It Was Developed');
+    expect(prompt.userPrompt).toContain('Core Intuition');
+    expect(prompt.userPrompt).toContain('Common Confusion + Fix');
   });
 
   it('user prompt token count is within budget', () => {

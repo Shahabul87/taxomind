@@ -109,7 +109,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
   const router = useRouter();
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -148,7 +148,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       const saved = localStorage.getItem(autoSaveKey);
       if (saved) {
         const data = JSON.parse(saved) as {
-          answers: Record<string, string | boolean>;
+          answers: Record<string, string>;
           currentQuestionIndex?: number;
           flaggedQuestions?: string[];
           savedAt?: string;
@@ -214,11 +214,13 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                 id: q.id as string,
                 question: q.question as string,
                 questionType: q.questionType as Question["questionType"],
-                options: q.options,
+                options: Array.isArray(q.options)
+                  ? q.options.filter((option): option is string => typeof option === "string")
+                  : undefined,
                 points: (q.points as number) ?? 1,
                 order: (q.order as number) ?? 0,
-                imageUrl: q.imageUrl as string | undefined,
-                videoUrl: q.videoUrl as string | undefined,
+                imageUrl: (q.imageUrl as string | null) ?? undefined,
+                videoUrl: (q.videoUrl as string | null) ?? undefined,
               })),
             },
             startedAt: raw.startedAt as string,
@@ -228,7 +230,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
           setAttempt(transformed);
 
           // Initialize answers from existing attempt
-          const existingAnswers: Record<string, string | boolean> = {};
+          const existingAnswers: Record<string, string> = {};
           const userAnswers = (
             (raw.UserAnswer as Array<Record<string, unknown>>) ?? []
           );
@@ -236,7 +238,8 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
             const questionRef = answer.ExamQuestion as Record<string, unknown> | undefined;
             const qId = (questionRef?.id as string) ?? (answer.questionId as string);
             if (qId && answer.answer != null) {
-              existingAnswers[qId] = answer.answer as string | boolean;
+              const rawAnswer = answer.answer as string | boolean;
+              existingAnswers[qId] = typeof rawAnswer === "boolean" ? String(rawAnswer) : rawAnswer;
             }
           });
           setAnswers(existingAnswers);
@@ -263,7 +266,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
     }
   }, [attempt, timeRemaining]);
 
-  const handleAnswerChange = (questionId: string, answer: string | boolean) => {
+  const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -448,7 +451,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       case 'MULTIPLE_CHOICE':
         return (
           <RadioGroup
-            value={answer || ""}
+            value={answer ?? ""}
             onValueChange={(value) => handleAnswerChange(question.id, value)}
           >
             {question.options?.map((option, index) => (
@@ -465,8 +468,8 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       case 'TRUE_FALSE':
         return (
           <RadioGroup
-            value={answer || ""}
-            onValueChange={(value) => handleAnswerChange(question.id, value === 'true')}
+            value={answer ?? ""}
+            onValueChange={(value) => handleAnswerChange(question.id, value)}
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="true" id={`${question.id}-true`} />
@@ -483,7 +486,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       case 'FILL_IN_BLANK':
         return (
           <Input
-            value={answer || ""}
+            value={answer ?? ""}
             onChange={(e) => handleAnswerChange(question.id, e.target.value)}
             placeholder="Enter your answer..."
             className="w-full"
@@ -493,7 +496,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       case 'ESSAY':
         return (
           <Textarea
-            value={answer || ""}
+            value={answer ?? ""}
             onChange={(e) => handleAnswerChange(question.id, e.target.value)}
             placeholder="Write your essay here..."
             className="w-full min-h-[200px]"

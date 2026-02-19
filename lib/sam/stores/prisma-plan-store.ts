@@ -14,6 +14,8 @@ import {
   type PlanState,
   type Checkpoint,
   PlanStatus,
+  StepStatus,
+  StepType,
 } from '@sam-ai/agentic';
 
 /**
@@ -388,7 +390,7 @@ export class PrismaPlanStore implements PlanStore {
   ): Promise<ExecutionPlan> {
     if (!planId) {
       logger.debug('[PlanStore] Skipping update — no planId (goal tracking unavailable)');
-      return { id: '', goalId: '', userId: '', steps: [], checkpoints: [], fallbackStrategies: [], overallProgress: 0, status: PlanStatus.DRAFT } as ExecutionPlan;
+      return { id: '', goalId: '', userId: '', steps: [], checkpoints: [], fallbackStrategies: [], overallProgress: 0, status: PlanStatus.DRAFT, createdAt: new Date(), updatedAt: new Date() } as ExecutionPlan;
     }
 
     const updateData: Record<string, unknown> = {};
@@ -564,7 +566,7 @@ export class PrismaPlanStore implements PlanStore {
   ): Promise<PlanStep> {
     if (!planId || !stepId) {
       logger.debug('[PlanStore] Skipping updateStep — missing planId or stepId');
-      return { id: stepId || '', planId: planId || '', type: 'content', title: '', description: '', order: 0, status: 'pending', estimatedMinutes: 0, retryCount: 0, maxRetries: 2 } as PlanStep;
+      return { id: stepId || '', planId: planId || '', type: StepType.READ_CONTENT, title: '', description: '', order: 0, status: StepStatus.PENDING, estimatedMinutes: 0, retryCount: 0, maxRetries: 2 } as PlanStep;
     }
 
     const updateData: Record<string, unknown> = {};

@@ -164,6 +164,7 @@ export default function AICreatorPage() {
     regeneratingChapterId,
     startCreation: startSequentialCreation,
     resumeCreation,
+    approveAndResumeCreation,
     regenerateChapter,
     cancel: cancelSequentialCreation,
     reset: resetSequentialCreation,
@@ -172,6 +173,9 @@ export default function AICreatorPage() {
 
   // Step validation
   const isStepValid = React.useCallback((): boolean => {
+    const hasCustomAudience = formData.targetAudience === 'Custom (describe below)';
+    const customAudienceValid = !hasCustomAudience || formData.customAudience.trim().length >= 30;
+
     switch (step) {
       case 1:
         return !!(
@@ -182,7 +186,8 @@ export default function AICreatorPage() {
       case 2:
         return !!(
           formData.targetAudience?.trim()?.length > 0 &&
-          formData.difficulty?.trim()?.length > 0
+          formData.difficulty?.trim()?.length > 0 &&
+          customAudienceValid
         );
       case 3:
         return !!(
@@ -198,6 +203,7 @@ export default function AICreatorPage() {
           formData.courseCategory?.trim()?.length > 0 &&
           formData.targetAudience?.trim()?.length > 0 &&
           formData.difficulty?.trim()?.length > 0 &&
+          customAudienceValid &&
           Array.isArray(formData.courseGoals) &&
           formData.courseGoals.length >= 2 &&
           Array.isArray(formData.bloomsFocus) &&
@@ -227,6 +233,9 @@ export default function AICreatorPage() {
     if (step === 2) {
       if (!formData.targetAudience) errors.targetAudience = "Please select a target audience";
       if (!formData.difficulty) errors.difficulty = "Please select a difficulty level";
+      if (formData.targetAudience === 'Custom (describe below)' && formData.customAudience.trim().length < 30) {
+        errors.customAudience = "Please provide at least 30 characters for custom audience";
+      }
     }
     if (step === 3) {
       if (!formData.courseGoals || formData.courseGoals.length < 2)
@@ -260,29 +269,44 @@ export default function AICreatorPage() {
     }
   }, [isSequentialCreating, resetSequentialCreation]);
 
+  const buildSequentialConfig = React.useCallback(() => ({
+    courseTitle: formData.courseTitle || '',
+    courseDescription: formData.courseShortOverview || '',
+    targetAudience:
+      formData.targetAudience === 'Custom (describe below)'
+        ? (formData.customAudience.trim() || formData.targetAudience)
+        : (formData.targetAudience || ''),
+    difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+    totalChapters: formData.chapterCount,
+    sectionsPerChapter: formData.sectionsPerChapter,
+    learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
+    learningObjectivesPerSection: formData.learningObjectivesPerSection,
+    courseGoals: formData.courseGoals,
+    bloomsFocus: formData.bloomsFocus,
+    preferredContentTypes: formData.preferredContentTypes,
+    category: formData.courseCategory,
+    subcategory: formData.courseSubcategory,
+    courseIntent: formData.courseIntent,
+    includeAssessments: formData.includeAssessments,
+    duration: formData.duration,
+    enableEscalationGate: formData.enableEscalationGate,
+    fallbackPolicy: {
+      haltRateThreshold: formData.fallbackHaltRateThreshold,
+      haltOnExcessiveFallbacks: formData.haltOnExcessiveFallbacks,
+    },
+  }), [formData]);
+
+  const isPipelinePausedError = React.useCallback((err?: string) => {
+    if (!err) return false;
+    return err.toLowerCase().includes('paused for human review');
+  }, []);
+
   // Start sequential creation process
   const handleStartSequentialCreation = React.useCallback(async () => {
     try {
       logger.info('[AI-CREATOR] Starting sequential course creation');
 
-      const result = await startSequentialCreation({
-        courseTitle: formData.courseTitle || '',
-        courseDescription: formData.courseShortOverview || '',
-        targetAudience: formData.targetAudience || '',
-        difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        totalChapters: formData.chapterCount,
-        sectionsPerChapter: formData.sectionsPerChapter,
-        learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
-        learningObjectivesPerSection: formData.learningObjectivesPerSection,
-        courseGoals: formData.courseGoals,
-        bloomsFocus: formData.bloomsFocus,
-        preferredContentTypes: formData.preferredContentTypes,
-        category: formData.courseCategory,
-        subcategory: formData.courseSubcategory,
-        courseIntent: formData.courseIntent,
-        includeAssessments: formData.includeAssessments,
-        duration: formData.duration,
-      });
+      const result = await startSequentialCreation(buildSequentialConfig());
 
       if (result.success && result.courseId) {
         setCreatedCourseId(result.courseId);
@@ -309,6 +333,13 @@ export default function AICreatorPage() {
           });
         }
       } else {
+        if (isPipelinePausedError(result.error)) {
+          toast.info('Pipeline paused for review', {
+            description: 'Choose Continue, Heal & Resume, or Abort in the modal.',
+          });
+          return;
+        }
+
         const isCancelled = result.error?.toLowerCase().includes('cancel');
         if (isCancelled) {
           logger.info('[AI-CREATOR] Course creation was cancelled by user');
@@ -331,7 +362,7 @@ export default function AICreatorPage() {
         toast.error('Failed to create course');
       }
     }
-  }, [formData, startSequentialCreation, router]);
+  }, [startSequentialCreation, router, buildSequentialConfig, isPipelinePausedError]);
 
   // Handle retry for sequential creation
   const handleRetrySequentialCreation = React.useCallback(async () => {
@@ -346,24 +377,37 @@ export default function AICreatorPage() {
     try {
       logger.info('[AI-CREATOR] Resuming course creation', { courseId: resumableCourseId });
 
-      const result = await resumeCreation(resumableCourseId, {
-        courseTitle: formData.courseTitle || '',
-        courseDescription: formData.courseShortOverview || '',
-        targetAudience: formData.targetAudience || '',
-        difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-        totalChapters: formData.chapterCount,
-        sectionsPerChapter: formData.sectionsPerChapter,
-        learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
-        learningObjectivesPerSection: formData.learningObjectivesPerSection,
-        courseGoals: formData.courseGoals,
-        bloomsFocus: formData.bloomsFocus,
-        preferredContentTypes: formData.preferredContentTypes,
-        category: formData.courseCategory,
-        subcategory: formData.courseSubcategory,
-        courseIntent: formData.courseIntent,
-        includeAssessments: formData.includeAssessments,
-        duration: formData.duration,
-      });
+      const result = await resumeCreation(resumableCourseId, buildSequentialConfig());
+
+      if (result.success && result.courseId) {
+        toast.success('Course resumed and completed!', {
+          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
+        });
+        setTimeout(() => {
+          router.push(`/teacher/courses/${result.courseId}`);
+        }, 1500);
+      } else if (isPipelinePausedError(result.error)) {
+        toast.info('Pipeline paused for review', {
+          description: 'Choose Continue, Heal & Resume, or Abort in the modal.',
+        });
+      } else {
+        toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
+      }
+    } catch (error) {
+      logger.error('[AI-CREATOR] Error resuming creation:', error);
+      toast.error('Failed to resume course creation');
+    }
+  }, [resumableCourseId, resumeCreation, router, buildSequentialConfig, isPipelinePausedError]);
+
+  const handleApproveContinue = React.useCallback(async () => {
+    if (!resumableCourseId) return;
+
+    try {
+      const result = await approveAndResumeCreation(
+        resumableCourseId,
+        'approve_continue',
+        buildSequentialConfig(),
+      );
 
       if (result.success && result.courseId) {
         toast.success('Course resumed and completed!', {
@@ -376,10 +420,65 @@ export default function AICreatorPage() {
         toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
       }
     } catch (error) {
-      logger.error('[AI-CREATOR] Error resuming creation:', error);
-      toast.error('Failed to resume course creation');
+      logger.error('[AI-CREATOR] Error approving and resuming:', error);
+      toast.error('Failed to approve and resume course creation');
     }
-  }, [resumableCourseId, resumeCreation, formData, router]);
+  }, [approveAndResumeCreation, resumableCourseId, buildSequentialConfig, router]);
+
+  const handleApproveHeal = React.useCallback(async () => {
+    if (!resumableCourseId) return;
+
+    try {
+      const result = await approveAndResumeCreation(
+        resumableCourseId,
+        'approve_heal',
+        buildSequentialConfig(),
+      );
+
+      if (result.success && result.courseId) {
+        toast.success('Course resumed and completed!', {
+          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
+        });
+        setTimeout(() => {
+          router.push(`/teacher/courses/${result.courseId}`);
+        }, 1500);
+      } else {
+        toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
+      }
+    } catch (error) {
+      logger.error('[AI-CREATOR] Error approving healing and resuming:', error);
+      toast.error('Failed to approve healing and resume');
+    }
+  }, [approveAndResumeCreation, resumableCourseId, buildSequentialConfig, router]);
+
+  const handleAbortPausedPipeline = React.useCallback(async () => {
+    if (!resumableCourseId) return;
+
+    try {
+      const res = await fetch('/api/sam/course-creation/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: resumableCourseId,
+          decision: 'reject_abort',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to abort paused pipeline');
+      }
+
+      toast.info('Pipeline aborted', {
+        description: 'Generated content up to this point has been kept.',
+      });
+      await dismissCreation();
+      setIsSequentialModalOpen(false);
+    } catch (error) {
+      logger.error('[AI-CREATOR] Error aborting paused pipeline:', error);
+      toast.error('Failed to abort paused pipeline');
+    }
+  }, [dismissCreation, resumableCourseId]);
 
   // Handle chapter regeneration
   const handleRegenerateChapter = React.useCallback((chapterId: string, position: number) => {
@@ -404,7 +503,10 @@ export default function AICreatorPage() {
           courseShortOverview: formData.courseShortOverview || "",
           courseCategory: formData.courseCategory || "",
           courseSubcategory: formData.courseSubcategory,
-          targetAudience: formData.targetAudience || "",
+          targetAudience: formData.targetAudience === 'Custom (describe below)'
+            ? (formData.customAudience || formData.targetAudience)
+            : (formData.targetAudience || ""),
+          customAudience: formData.customAudience || "",
           difficulty: formData.difficulty || "",
           courseIntent: formData.courseIntent,
           courseGoals: formData.courseGoals || [],
@@ -469,11 +571,13 @@ export default function AICreatorPage() {
   // Fix 2.4: Memoize modal formData to prevent SequentialCreationModal re-renders
   const modalFormData = React.useMemo(() => ({
     courseTitle: formData.courseTitle || '',
-    targetAudience: formData.targetAudience,
+    targetAudience: formData.targetAudience === 'Custom (describe below)'
+      ? (formData.customAudience || formData.targetAudience)
+      : formData.targetAudience,
     difficulty: formData.difficulty,
     chapterCount: formData.chapterCount,
     sectionsPerChapter: formData.sectionsPerChapter,
-  }), [formData.courseTitle, formData.targetAudience, formData.difficulty, formData.chapterCount, formData.sectionsPerChapter]);
+  }), [formData.courseTitle, formData.targetAudience, formData.customAudience, formData.difficulty, formData.chapterCount, formData.sectionsPerChapter]);
 
   const renderStepContent = () => {
     const stepProps = {
@@ -553,6 +657,9 @@ export default function AICreatorPage() {
           onCancel={cancelSequentialCreation}
           onRetry={handleRetrySequentialCreation}
           onResume={handleResumeCreation}
+          onApproveContinue={handleApproveContinue}
+          onApproveHeal={handleApproveHeal}
+          onAbortPaused={handleAbortPausedPipeline}
           onRegenerate={handleRegenerateChapter}
           regeneratingChapterId={regeneratingChapterId}
           resumableCourseId={resumableCourseId}

@@ -261,12 +261,12 @@ interface CourseWithQuality {
   cognitiveQuality: {
     cognitiveScore: number;
     cognitiveGrade: string;
-    rememberPercentage: number;
-    understandPercentage: number;
-    applyPercentage: number;
-    analyzePercentage: number;
-    evaluatePercentage: number;
-    createPercentage: number;
+    rememberPercent: number;
+    understandPercent: number;
+    applyPercent: number;
+    analyzePercent: number;
+    evaluatePercent: number;
+    createPercent: number;
   } | null;
 }
 
@@ -282,15 +282,15 @@ function generateTopCourseInsights(
 
   // Analyze what top courses do well
   const avgApply = topCourses.reduce(
-    (sum, c) => sum + (c.cognitiveQuality?.applyPercentage ?? 0),
+    (sum, c) => sum + (c.cognitiveQuality?.applyPercent ?? 0),
     0
   ) / topCourses.length;
   const avgAnalyze = topCourses.reduce(
-    (sum, c) => sum + (c.cognitiveQuality?.analyzePercentage ?? 0),
+    (sum, c) => sum + (c.cognitiveQuality?.analyzePercent ?? 0),
     0
   ) / topCourses.length;
   const avgCreate = topCourses.reduce(
-    (sum, c) => sum + (c.cognitiveQuality?.createPercentage ?? 0),
+    (sum, c) => sum + (c.cognitiveQuality?.createPercent ?? 0),
     0
   ) / topCourses.length;
 
@@ -310,12 +310,12 @@ function generateTopCourseInsights(
   const avgActiveLevels = topCourses.reduce((sum, c) => {
     if (!c.cognitiveQuality) return sum;
     let count = 0;
-    if (c.cognitiveQuality.rememberPercentage > 5) count++;
-    if (c.cognitiveQuality.understandPercentage > 5) count++;
-    if (c.cognitiveQuality.applyPercentage > 5) count++;
-    if (c.cognitiveQuality.analyzePercentage > 5) count++;
-    if (c.cognitiveQuality.evaluatePercentage > 5) count++;
-    if (c.cognitiveQuality.createPercentage > 5) count++;
+    if (c.cognitiveQuality.rememberPercent > 5) count++;
+    if (c.cognitiveQuality.understandPercent > 5) count++;
+    if (c.cognitiveQuality.applyPercent > 5) count++;
+    if (c.cognitiveQuality.analyzePercent > 5) count++;
+    if (c.cognitiveQuality.evaluatePercent > 5) count++;
+    if (c.cognitiveQuality.createPercent > 5) count++;
     return sum + count;
   }, 0) / topCourses.length;
 
@@ -345,32 +345,32 @@ function generateImprovementOpportunities(
 
   // Compare with top courses
   const avgTop = {
-    apply: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.applyPercentage ?? 0), 0) / Math.max(1, topCourses.length),
-    analyze: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.analyzePercentage ?? 0), 0) / Math.max(1, topCourses.length),
-    evaluate: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.evaluatePercentage ?? 0), 0) / Math.max(1, topCourses.length),
-    create: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.createPercentage ?? 0), 0) / Math.max(1, topCourses.length),
+    apply: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.applyPercent ?? 0), 0) / Math.max(1, topCourses.length),
+    analyze: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.analyzePercent ?? 0), 0) / Math.max(1, topCourses.length),
+    evaluate: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.evaluatePercent ?? 0), 0) / Math.max(1, topCourses.length),
+    create: topCourses.reduce((s, c) => s + (c.cognitiveQuality?.createPercent ?? 0), 0) / Math.max(1, topCourses.length),
   };
 
-  if (courseQuality.applyPercentage < avgTop.apply - 5) {
-    opportunities.push(`Add ${Math.round(avgTop.apply - courseQuality.applyPercentage)}% more hands-on exercises`);
+  if (courseQuality.applyPercent < avgTop.apply - 5) {
+    opportunities.push(`Add ${Math.round(avgTop.apply - courseQuality.applyPercent)}% more hands-on exercises`);
   }
 
-  if (courseQuality.analyzePercentage < avgTop.analyze - 5) {
+  if (courseQuality.analyzePercent < avgTop.analyze - 5) {
     opportunities.push('Include case studies for deeper analysis');
   }
 
-  if (courseQuality.createPercentage < avgTop.create - 3) {
+  if (courseQuality.createPercent < avgTop.create - 3) {
     opportunities.push('Add creative projects or design challenges');
   }
 
   // Check for dominant level
   const levels = [
-    courseQuality.rememberPercentage,
-    courseQuality.understandPercentage,
-    courseQuality.applyPercentage,
-    courseQuality.analyzePercentage,
-    courseQuality.evaluatePercentage,
-    courseQuality.createPercentage,
+    courseQuality.rememberPercent,
+    courseQuality.understandPercent,
+    courseQuality.applyPercent,
+    courseQuality.analyzePercent,
+    courseQuality.evaluatePercent,
+    courseQuality.createPercent,
   ];
   const maxLevel = Math.max(...levels);
 

@@ -12,7 +12,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus } from '@sam-ai/agentic';
+import { PlanStatus } from '@sam-ai/agentic';
 
 interface GoalPlanIds {
   goalId: string;
@@ -39,11 +39,8 @@ export async function initializeExamCreationGoal(
       title: `Create exam: ${examTitle}`,
       description: `AI-powered Bloom&apos;s Taxonomy exam generation for "${examTitle}" with 5-stage pipeline.`,
       priority: 'high',
-      status: GoalStatus.ACTIVE,
-      context: {
-        examId,
-        type: 'exam-creation',
-      },
+      context: {},
+      tags: ['exam-creation', `exam:${examId}`],
     });
 
     const samPlan = await planStore.create({
@@ -54,6 +51,8 @@ export async function initializeExamCreationGoal(
       overallProgress: 0,
       steps: [
         {
+          id: '',
+          planId: '',
           title: 'Topic Decomposition',
           description:
             'Break the exam topic into 5-15 concepts with prerequisites and common misconceptions',
@@ -65,10 +64,12 @@ export async function initializeExamCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 1 },
-          metadata: { examId },
+          executionContext: {},
+          metadata: { examId, stage: 1 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Bloom&apos;s Distribution Planning',
           description:
             'Calculate questions per Bloom&apos;s level per concept based on exam purpose',
@@ -80,10 +81,12 @@ export async function initializeExamCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 2 },
-          metadata: { examId },
+          executionContext: {},
+          metadata: { examId, stage: 2 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Question Generation',
           description:
             'Generate questions per concept x Bloom&apos;s level with quality scoring and retry',
@@ -95,10 +98,12 @@ export async function initializeExamCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 3 },
-          metadata: { examId },
+          executionContext: {},
+          metadata: { examId, stage: 3 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Exam Assembly & Balancing',
           description:
             'Validate coverage, difficulty curve, independence, and cognitive load balance',
@@ -110,10 +115,12 @@ export async function initializeExamCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 4 },
-          metadata: { examId },
+          executionContext: {},
+          metadata: { examId, stage: 4 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Rubric & Cognitive Profile',
           description:
             'Generate rubric, answer key, diagnostic mapping, and cognitive profile template',
@@ -125,13 +132,13 @@ export async function initializeExamCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 5 },
-          metadata: { examId },
+          executionContext: {},
+          metadata: { examId, stage: 5 },
         },
       ],
       checkpoints: [],
       checkpointData: {},
-      schedule: {},
+      schedule: undefined,
       fallbackStrategies: [],
     });
 
@@ -218,7 +225,12 @@ export async function completeExamStep(
     await planStore.updateStep(planId, stepId, {
       status: 'completed',
       completedAt: new Date(),
-      outputs: outputs ?? [],
+      outputs: (outputs ?? []).map((value) => ({
+        name: 'stage-output',
+        type: 'result' as const,
+        value,
+        timestamp: new Date(),
+      })),
     });
   } catch (error) {
     logger.warn('[ExamCreationController] Failed to complete stage step', {
@@ -285,7 +297,7 @@ export async function failExamCreation(
   const { goal: goalStore, plan: planStore } = getGoalStores();
 
   try {
-    const existingPlan = await planStore.getById(planId);
+    const existingPlan = await planStore.get(planId);
     const existingCheckpoint = (existingPlan?.checkpointData ?? {}) as Record<
       string,
       unknown

@@ -49,7 +49,7 @@ export function MemoryPanel({ className }: MemoryPanelProps) {
       <div className="flex-1 overflow-y-auto p-2 max-h-[250px] sam-scrollbar">
         {activeView === 'insights' && <MemoryInsightsWidget compact />}
         {activeView === 'search' && <MemorySearchPanel compact />}
-        {activeView === 'history' && <ConversationHistory compact limit={10} />}
+        {activeView === 'history' && <ConversationHistory compact maxTurns={10} />}
       </div>
     </div>
   );

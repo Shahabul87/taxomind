@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
@@ -50,7 +50,7 @@ interface GeneratedQuestion {
   relatedConcepts: string[];
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const rateLimitResponse = await withRateLimit(request, 'ai');
   if (rateLimitResponse) return rateLimitResponse;
 

@@ -459,7 +459,7 @@ function ChatWindowInner({
 
   // Mode suggestion from API insights
   const modeSuggestion = useMemo(() => {
-    const suggestion = insights?.modeSuggestion as
+    const suggestion = (insights as Record<string, unknown> | undefined)?.modeSuggestion as
       | { suggestedMode: string; suggestedModeLabel?: string; reason?: string }
       | undefined;
     return suggestion ?? null;
@@ -752,7 +752,7 @@ function ChatWindowInner({
   const engineInsightsData = useMemo((): EngineInsightsData | null => {
     if (!showEngineDetails || !lastResult) return null;
     const response = lastResult.response;
-    const metadata = response.metadata as Record<string, unknown> | undefined;
+    const metadata = (lastResult as unknown as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
     const responseInsights = response.insights as SAMInsights | undefined;
     if (!metadata) return null;
 

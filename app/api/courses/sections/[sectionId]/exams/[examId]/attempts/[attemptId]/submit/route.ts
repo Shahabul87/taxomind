@@ -11,7 +11,7 @@ import { createEvaluationEngine, createUnifiedBloomsEngine } from '@sam-ai/educa
 import type { EvaluationContext } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { wrapEvaluationWithSafety } from '@sam-ai/safety';
-import { BloomsLevel, EvaluationType } from '@prisma/client';
+import { BloomsLevel, EvaluationType, Prisma } from '@prisma/client';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -194,7 +194,7 @@ export async function POST(
       id: string;
       attemptId: string;
       questionId: string;
-      answer: unknown;
+      answer: Prisma.InputJsonValue | Prisma.NullTypes.JsonNull;
       isCorrect: boolean;
       pointsEarned: number;
       timeSpent: number;
@@ -289,7 +289,7 @@ export async function POST(
         id: crypto.randomUUID(),
         attemptId: params.attemptId,
         questionId: question.id,
-        answer: answerText ?? null,
+        answer: answerText == null ? Prisma.JsonNull : (answerText as Prisma.InputJsonValue),
         isCorrect,
         pointsEarned,
         timeSpent: 0,
@@ -320,7 +320,6 @@ export async function POST(
         await tx.aIEvaluationRecord.create({
           data: {
             answerId: evalData.answerId,
-            questionId: evalData.questionId,
             score: evalData.score,
             maxScore: evalData.maxScore,
             targetBloomsLevel: evalData.targetBloomsLevel,
@@ -586,6 +585,12 @@ async function evaluateSubjectiveAnswer(
   // Determine if answer is correct based on score threshold (60%)
   const isCorrect = safeEvaluation.score >= safeEvaluation.maxScore * 0.6;
   const pointsEarned = Math.round((safeEvaluation.score / safeEvaluation.maxScore) * question.points);
+  const evaluationWithInsights = evaluation as {
+    conceptsUnderstood?: string[];
+    misconceptions?: string[];
+    knowledgeGaps?: string[];
+    demonstratedBloomsLevel?: string | null;
+  };
 
   return {
     isCorrect,
@@ -600,10 +605,10 @@ async function evaluateSubjectiveAnswer(
     strengths: safeEvaluation.strengths ?? [],
     improvements: safeEvaluation.improvements ?? [],
     nextSteps: safeEvaluation.nextSteps ?? [],
-    demonstratedLevel: (evaluation.demonstratedBloomsLevel as BloomsLevel) ?? null,
-    conceptsUnderstood: evaluation.conceptsUnderstood ?? [],
-    misconceptions: evaluation.misconceptions ?? [],
-    knowledgeGaps: evaluation.knowledgeGaps ?? [],
+    demonstratedLevel: (evaluationWithInsights.demonstratedBloomsLevel as BloomsLevel) ?? null,
+    conceptsUnderstood: evaluationWithInsights.conceptsUnderstood ?? [],
+    misconceptions: evaluationWithInsights.misconceptions ?? [],
+    knowledgeGaps: evaluationWithInsights.knowledgeGaps ?? [],
     confidence: safeEvaluation.safetyValidation?.score ?? 0.8,
   };
 }

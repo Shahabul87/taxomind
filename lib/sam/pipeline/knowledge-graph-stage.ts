@@ -46,7 +46,7 @@ export async function runKnowledgeGraphStage(
         if (qualityScore >= 75 && bloomsConfidence >= 0.7) {
           await recordConceptInteraction(ctx.user.id, stepTitle, 'mastered', courseIdForKg);
         } else {
-          await recordConceptInteraction(ctx.user.id, stepTitle, 'practicing', courseIdForKg);
+          await recordConceptInteraction(ctx.user.id, stepTitle, 'reviewed', courseIdForKg);
         }
       } else if (
         ctx.orchestrationData?.stepProgress &&

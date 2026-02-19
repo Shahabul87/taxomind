@@ -208,8 +208,9 @@ async function updateStudentBloomsProgress(params: {
 
   if (existing) {
     // Update existing record
-    const currentScores = (existing.bloomsScores as BloomsScores) ?? getDefaultScores();
-    const currentHistory = (existing.progressHistory as ProgressHistoryEntry[]) ?? [];
+    const currentScores = (existing.bloomsScores ?? getDefaultScores()) as BloomsScores;
+    const rawHistory = existing.progressHistory;
+    const currentHistory = Array.isArray(rawHistory) ? (rawHistory as unknown as ProgressHistoryEntry[]) : [];
 
     // Calculate new score using exponential moving average
     const alpha = 0.3; // Weight for new score

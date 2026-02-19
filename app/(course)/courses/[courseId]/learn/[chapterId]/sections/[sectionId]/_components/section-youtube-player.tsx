@@ -33,22 +33,22 @@ import { cn } from "@/lib/utils";
 
 /** YouTube IFrame API player instance methods used by this component */
 interface YTPlayerInstance {
-  playVideo: () => void;
-  pauseVideo: () => void;
-  getPlayerState: () => number;
-  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  setVolume: (volume: number) => void;
-  getVolume: () => number;
-  mute: () => void;
-  unMute: () => void;
-  isMuted: () => boolean;
-  setPlaybackRate: (rate: number) => void;
-  getPlaybackRate: () => number;
-  setPlaybackQuality: (quality: string) => void;
-  getAvailableQualityLevels: () => string[];
-  getIframe: () => HTMLIFrameElement;
+  playVideo: () => void | Promise<void>;
+  pauseVideo: () => void | Promise<void>;
+  getPlayerState: () => number | Promise<number>;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void | Promise<void>;
+  getCurrentTime: () => number | Promise<number>;
+  getDuration: () => number | Promise<number>;
+  setVolume: (volume: number) => void | Promise<void>;
+  getVolume: () => number | Promise<number>;
+  mute: () => void | Promise<void>;
+  unMute: () => void | Promise<void>;
+  isMuted: () => boolean | Promise<boolean>;
+  setPlaybackRate: (rate: number) => void | Promise<void>;
+  getPlaybackRate: () => number | Promise<number>;
+  setPlaybackQuality: (quality: string) => void | Promise<void>;
+  getAvailableQualityLevels: () => string[] | Promise<string[]>;
+  getIframe: () => HTMLIFrameElement | Promise<HTMLIFrameElement>;
 }
 
 /** Public ref handle exposed to parent components */
@@ -99,15 +99,25 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
 
   // Expose player methods to parent component
   useImperativeHandle(ref, () => ({
-    playVideo: () => player?.playVideo(),
-    pauseVideo: () => player?.pauseVideo(),
-    getPlayerState: () => player?.getPlayerState(),
-    seekTo: (seconds: number) => player?.seekTo(seconds),
-    getCurrentTime: () => player?.getCurrentTime(),
-    getDuration: () => player?.getDuration(),
-    setVolume: (volume: number) => player?.setVolume(volume),
-    getVolume: () => player?.getVolume(),
-  }), [player]);
+    playVideo: () => {
+      player?.playVideo();
+    },
+    pauseVideo: () => {
+      player?.pauseVideo();
+    },
+    getPlayerState: () => (player ? (isPlaying ? 1 : 2) : undefined),
+    seekTo: (seconds: number) => {
+      player?.seekTo(seconds, true);
+      setCurrentTime(seconds);
+    },
+    getCurrentTime: () => currentTime,
+    getDuration: () => duration,
+    setVolume: (nextVolume: number) => {
+      setVolume(nextVolume);
+      player?.setVolume(nextVolume);
+    },
+    getVolume: () => volume,
+  }), [player, isPlaying, currentTime, duration, volume]);
 
   // Extract YouTube video ID from URL
   const getYouTubeId = (url: string): string | null => {
@@ -177,8 +187,11 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
     if (player && isPlaying && duration > 0) {
       progressIntervalRef.current = setInterval(async () => {
         try {
-          const current = await player.getCurrentTime();
-          const total = await player.getDuration();
+          const current = Number(await Promise.resolve(player.getCurrentTime()));
+          const total = Number(await Promise.resolve(player.getDuration()));
+          if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) {
+            return;
+          }
           const percentage = (current / total) * 100;
 
           setCurrentTime(current);
@@ -218,16 +231,26 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
 
   // Player event handlers
   const onReady = (event: YouTubeEvent) => {
-    setPlayer(event.target);
-    setDuration(event.target.getDuration());
+    const target = event.target as unknown as YTPlayerInstance;
+    setPlayer(target);
     setIsLoading(false);
 
     // Set initial volume and quality
-    event.target.setVolume(volume);
+    target.setVolume(volume);
+    Promise.resolve(target.getDuration())
+      .then((value) => {
+        const resolvedDuration = Number(value);
+        if (Number.isFinite(resolvedDuration)) {
+          setDuration(resolvedDuration);
+        }
+      })
+      .catch(() => {
+        // Non-fatal: keep duration at 0 if unavailable on ready.
+      });
 
     // Resume from last position if available
     if (startTime > 0) {
-      event.target.seekTo(startTime, true);
+      target.seekTo(startTime, true);
     }
   };
 
@@ -303,10 +326,16 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
   };
 
   const enterFullscreen = () => {
-    const iframe = player?.getIframe();
-    if (iframe && iframe.requestFullscreen) {
-      iframe.requestFullscreen();
-    }
+    if (!player) return;
+    Promise.resolve(player.getIframe())
+      .then((iframe) => {
+        if (iframe && iframe.requestFullscreen) {
+          iframe.requestFullscreen();
+        }
+      })
+      .catch(() => {
+        // Ignore fullscreen failures from unavailable iframe handles.
+      });
   };
 
   // Format time display

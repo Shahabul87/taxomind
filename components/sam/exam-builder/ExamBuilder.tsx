@@ -165,7 +165,7 @@ export function ExamBuilder({
     const result = await generateExam({
       totalQuestions,
       timeLimit,
-      bloomsDistribution,
+      bloomsDistribution: bloomsDistribution as Partial<BloomsDistribution>,
       questionTypes: selectedTypes,
       adaptiveMode,
     });
@@ -620,7 +620,7 @@ export function ExamBuilder({
             {(buildMode === "question-bank" || buildMode === "mixed") && (
               <TabsContent value="questions" className="flex-1 overflow-hidden p-4">
                 <QuestionBankBrowser
-                  questions={bankQuestions}
+                  questions={bankQuestions as unknown as import('./QuestionBankBrowser').BankQuestion[]}
                   selectedIds={selectedQuestionIds}
                   onSelectionChange={setSelectedQuestionIds}
                   onLoadMore={loadMore}

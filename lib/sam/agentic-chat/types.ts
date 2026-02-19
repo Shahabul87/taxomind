@@ -177,7 +177,7 @@ export function toInterventionContext(interventions: Intervention[]): Interventi
       type: i.type,
       priority: i.priority,
       message: i.message,
-      suggestedActions: i.suggestedActions ?? [],
+      suggestedActions: (i.suggestedActions ?? []).map((a) => a.title),
     })),
   };
 }
@@ -192,7 +192,7 @@ export function toToolResult(
     toolName: inv.toolId,
     category: (inv.metadata?.category as string) ?? 'general',
     status: inv.status === 'success' ? 'success' : 'failure',
-    data: inv.result ? (inv.result as Record<string, unknown>) : null,
+    data: inv.result ? (inv.result as unknown as Record<string, unknown>) : null,
     reasoning: (inv.metadata?.reasoning as string) ?? null,
     durationMs,
   };

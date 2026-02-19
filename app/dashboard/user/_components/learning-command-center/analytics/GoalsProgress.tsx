@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSAMGoals, type SAMGoal, type SAMSubGoal } from '@/hooks/use-sam-agentic-analytics';
 import { StudyPlanDashboard } from '@/components/sam/study-plan';
-import { isStudyPlanGoal } from '@/lib/sam/study-plan-metrics';
+import { isStudyPlanGoal, type SubGoalData } from '@/lib/sam/study-plan-metrics';
 
 export interface GoalsProgressProps {
   compact?: boolean;
@@ -358,7 +358,15 @@ export function GoalsProgress({
           <div className="space-y-3">
             {displayGoals.map((goal) => {
               // Check if this goal is a study plan
-              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, goal.subGoals);
+              const mappedSubGoals: SubGoalData[] = goal.subGoals.map((sg) => ({
+                id: sg.id,
+                title: sg.title,
+                status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
+                estimatedMinutes: sg.estimatedMinutes,
+                completedAt: sg.completedAt,
+                metadata: sg.metadata as SubGoalData['metadata'],
+              }));
+              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, mappedSubGoals);
 
               return goalIsStudyPlan ? (
                 <StudyPlanDashboard
@@ -373,14 +381,7 @@ export function GoalsProgress({
                     targetDate: goal.targetDate,
                     createdAt: goal.createdAt,
                     metadata: goal.metadata,
-                    subGoals: goal.subGoals.map((sg) => ({
-                      id: sg.id,
-                      title: sg.title,
-                      status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
-                      estimatedMinutes: sg.estimatedMinutes,
-                      completedAt: sg.completedAt,
-                      metadata: sg.metadata,
-                    })),
+                    subGoals: mappedSubGoals,
                   }}
                   onRefresh={handleRefresh}
                   isLoading={refreshing}
@@ -440,8 +441,15 @@ export function GoalsProgress({
           </h4>
           <AnimatePresence mode="popLayout">
             {displayGoals.map((goal, index) => {
-              // Check if this goal is a study plan
-              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, goal.subGoals);
+              const mappedSGs: SubGoalData[] = goal.subGoals.map((sg) => ({
+                id: sg.id,
+                title: sg.title,
+                status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
+                estimatedMinutes: sg.estimatedMinutes,
+                completedAt: sg.completedAt,
+                metadata: sg.metadata as SubGoalData['metadata'],
+              }));
+              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, mappedSGs);
 
               return (
                 <motion.div
@@ -463,14 +471,7 @@ export function GoalsProgress({
                         targetDate: goal.targetDate,
                         createdAt: goal.createdAt,
                         metadata: goal.metadata,
-                        subGoals: goal.subGoals.map((sg) => ({
-                          id: sg.id,
-                          title: sg.title,
-                          status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
-                          estimatedMinutes: sg.estimatedMinutes,
-                          completedAt: sg.completedAt,
-                          metadata: sg.metadata,
-                        })),
+                        subGoals: mappedSGs,
                       }}
                       onRefresh={handleRefresh}
                       isLoading={refreshing}

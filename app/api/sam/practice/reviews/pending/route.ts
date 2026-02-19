@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
+import type { ReviewScheduleEntry } from '@/lib/sam/stores/prisma-spaced-repetition-store';
 
 // Get spaced repetition store from TaxomindContext singleton
 const { spacedRepetition: spacedRepetitionStore } = getPracticeStores();
@@ -19,13 +20,7 @@ const GetPendingQuerySchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-function enrichReview(review: {
-  id: string;
-  nextReviewDate: Date;
-  retentionEstimate: number;
-  isOverdue: boolean;
-  [key: string]: unknown;
-}) {
+function enrichReview(review: ReviewScheduleEntry) {
   const now = new Date();
   const nextReview = new Date(review.nextReviewDate);
   const daysUntilReview = Math.ceil(

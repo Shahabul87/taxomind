@@ -247,11 +247,13 @@ export async function POST(request: NextRequest) {
     // Create the event in the database
     const event = await db.calendarEvent.create({
       data: {
+        id: crypto.randomUUID(),
         ...data,
         userId: session.user.id,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         recurringEndDate: data.recurringEndDate ? new Date(data.recurringEndDate) : null,
+        updatedAt: new Date(),
       },
     });
     

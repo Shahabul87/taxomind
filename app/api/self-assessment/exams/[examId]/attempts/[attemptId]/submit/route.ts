@@ -177,12 +177,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         try {
           const engine = evalEngine;
           const evaluation = await withRetryableTimeout(
-            () => engine.evaluateAnswer({
+            () => engine.evaluateAnswer(answerData.answer ?? '', {
               questionText: question.question,
               questionType: question.questionType,
-              correctAnswer: question.correctAnswer,
-              studentAnswer: answerData.answer,
-              rubric: question.rubric as Record<string, unknown> | undefined,
+              expectedAnswer: question.correctAnswer,
               bloomsLevel: question.bloomsLevel,
               maxPoints: question.points,
             }),
@@ -200,11 +198,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             depth: evaluation.depth,
             strengths: evaluation.strengths,
             improvements: evaluation.improvements,
-            conceptsUnderstood: evaluation.conceptsUnderstood,
+            conceptsUnderstood: evaluation.nextSteps,
             misconceptions: evaluation.misconceptions,
-            knowledgeGaps: evaluation.knowledgeGaps,
+            knowledgeGaps: evaluation.improvements,
           };
-          demonstratedLevel = evaluation.demonstratedLevel ?? question.bloomsLevel;
+          demonstratedLevel = evaluation.demonstratedBloomsLevel ?? question.bloomsLevel;
         } catch (aiError) {
           // Fallback to simple comparison if AI fails
           logger.error('AI evaluation failed, using fallback:', aiError);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Master Service Coordinator - Orchestrates all 18 intelligent learning platform features
 
 import { EventEmitter } from 'events';

@@ -147,7 +147,7 @@ export function resolveModeEnginesWithMetadata(
   }
   const maturity = getModeMaturity(engines);
 
-  return { engines, reason, augmented, maturity, engineMaturityMap, engineConfig: mode.engineConfig, effectivenessScore };
+  return { engines, reason, augmented, maturity, engineMaturityMap, engineConfig: mode.engineConfig as Record<string, unknown> | undefined, effectivenessScore };
 }
 
 /**

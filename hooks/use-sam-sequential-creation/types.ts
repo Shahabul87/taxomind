@@ -9,6 +9,7 @@ import type {
   CreationProgress,
   CreationState,
   CreationStage,
+  EscalationDecision,
   SequentialCreationConfig,
   SequentialCreationResult,
 } from '@/lib/sam/course-creation/types';
@@ -18,6 +19,7 @@ export type {
   CreationProgress,
   CreationState,
   CreationStage,
+  EscalationDecision,
   SequentialCreationConfig,
   SequentialCreationResult,
 };
@@ -56,6 +58,11 @@ export interface UseSequentialCreationReturn {
   // Actions
   startCreation: (config: SequentialCreationConfig) => Promise<SequentialCreationResult>;
   resumeCreation: (courseId: string, config: SequentialCreationConfig) => Promise<SequentialCreationResult>;
+  approveAndResumeCreation: (
+    courseId: string,
+    decision: Exclude<EscalationDecision, 'reject_abort'>,
+    config: SequentialCreationConfig,
+  ) => Promise<SequentialCreationResult>;
   regenerateChapter: (courseId: string, chapterId: string, position: number) => Promise<void>;
   cancel: () => void;
   reset: () => void;

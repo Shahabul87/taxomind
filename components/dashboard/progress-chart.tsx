@@ -24,13 +24,15 @@ const ProgressChartContent = dynamic(
   () =>
     import("recharts").then((mod) => {
       const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = mod;
-      type TooltipProps = Parameters<typeof Tooltip>[0];
 
       function ProgressChartContentInner({ processedData }: { processedData: ProcessedProgressData[] }) {
         const CustomTooltip = ({
           active,
           payload,
-        }: TooltipProps) => {
+        }: {
+          active?: boolean;
+          payload?: Array<{ payload: ProcessedProgressData }>;
+        }) => {
           if (active && payload && payload.length) {
             const item = payload[0].payload;
             return (

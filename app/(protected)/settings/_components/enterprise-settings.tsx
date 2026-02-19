@@ -63,7 +63,7 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
       bio: user.bio ?? "",
       location: user.location ?? "",
       website: user.website ?? "",
-      learningStyle: user.learningStyle ?? "",
+      learningStyle: user.learningStyle ?? undefined,
 
       // Notifications (defaults - should be fetched from user preferences)
       emailNotifications: true,

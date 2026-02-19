@@ -84,6 +84,10 @@ const SECTION_REGISTRY: Record<CategoryLayoutVariant, CategorySections> = {
     'tools': ToolsSection as SectionComponent<BaseSectionProps>,
   },
 
+  math: {
+    // No math-specific sections registered yet
+  },
+
   default: {
     // No custom sections for default category
   },
@@ -147,6 +151,7 @@ export const CATEGORY_SECTION_CONFIG: Record<CategoryLayoutVariant, string[]> = 
   design: ['portfolio', 'design-tools'],
   business: ['case-studies', 'frameworks'],
   marketing: ['strategies', 'tools'],
+  math: [],
   default: [],
 };
 

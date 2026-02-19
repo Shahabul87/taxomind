@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { PremiumPlan } from "@prisma/client";
 import { stripe, isStripeConfigured } from "@/lib/stripe";
 import { logger } from "@/lib/logger";
 
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Calculate expiry date based on plan
-    const plan = session.metadata?.plan || "MONTHLY";
+    const plan = (session.metadata?.plan || "MONTHLY") as PremiumPlan;
     let premiumExpiresAt: Date | null = null;
 
     if (plan === "MONTHLY") {

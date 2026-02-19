@@ -313,7 +313,32 @@ export async function POST(
     });
 
     // Build results with question details
-    const results = updatedAttempt.answers.map((answer) => ({
+    const resultAnswers = (updatedAttempt as unknown as {
+      answers?: Array<{
+        id: string;
+        questionId: string;
+        answer: string;
+        isCorrect: boolean;
+        pointsEarned: number;
+        evaluationType: string | null;
+        aiFeedback: string | null;
+        aiScore: number | null;
+        targetBloomsLevel: string | null;
+        demonstratedLevel: string | null;
+        misconceptions: string[] | null;
+        knowledgeGaps: string[] | null;
+        hintsUsed: number;
+        question: {
+          question: string;
+          questionType: string;
+          correctAnswer: string;
+          explanation: string | null;
+          options: unknown;
+        };
+      }>;
+    }).answers ?? [];
+
+    const results = resultAnswers.map((answer) => ({
       id: answer.id,
       questionId: answer.questionId,
       question: answer.question.question,

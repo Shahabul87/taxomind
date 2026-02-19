@@ -256,7 +256,7 @@ export function SecureClientAdminDashboard() {
         </div>
         
         <div className="flex items-center gap-4">
-          <Select value={timeRange} onValueChange={setTimeRange}>
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select time range" />
             </SelectTrigger>

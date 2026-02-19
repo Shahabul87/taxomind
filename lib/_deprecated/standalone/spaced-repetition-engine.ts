@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Spaced Repetition Optimization Engine - Core repetition and memory science algorithms
 
 import { db } from '@/lib/db';

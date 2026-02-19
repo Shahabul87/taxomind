@@ -89,7 +89,7 @@ export async function runPipeline(
 ): Promise<PipelineRunnerResult> {
   const {
     userId, courseId, goalId, planId, config, courseContext,
-    onSSEEvent, enableStreamingThinking, runId,
+    onSSEEvent, enableStreamingThinking, runId, abortSignal,
     completedChapters, generatedChapters, qualityScores,
     allSectionTitles, conceptTracker, bloomsProgression,
     blueprintPlan: initialBlueprintPlan, recalledMemory, strategyMonitor,
@@ -133,6 +133,7 @@ export async function runPipeline(
     courseContext,
     onSSEEvent,
     enableStreamingThinking,
+    abortSignal,
     startChapterOffset: startChapter - 1,
     runId,
     sharedState: {
@@ -159,27 +160,36 @@ export async function runPipeline(
     },
   });
 
-  await stateMachine.start(chapterTitles, (chNum) => ({
-    chapterNumber: chNum,
-    courseId,
-    courseContext,
-    conceptTracker,
-    bloomsProgression,
-    allSectionTitles,
-    qualityScores,
-    completedChapters,
-    generatedChapters,
-    blueprintPlan,
-    lastAgenticDecision,
-    recalledMemory,
-    strategyMonitor,
-    chapterTemplate,
-    categoryPrompt,
-    categoryEnhancer,
-    experimentVariant,
-    budgetTracker,
-    fallbackTracker,
-  }));
+  try {
+    await stateMachine.start(chapterTitles, (chNum) => ({
+      chapterNumber: chNum,
+      courseId,
+      courseContext,
+      conceptTracker,
+      bloomsProgression,
+      allSectionTitles,
+      qualityScores,
+      completedChapters,
+      generatedChapters,
+      blueprintPlan,
+      lastAgenticDecision,
+      recalledMemory,
+      strategyMonitor,
+      chapterTemplate,
+      categoryPrompt,
+      categoryEnhancer,
+      experimentVariant,
+      budgetTracker,
+      fallbackTracker,
+    }));
+  } catch (error) {
+    const isAbort = abortSignal?.aborted || (error instanceof Error && error.name === 'AbortError');
+    if (!isAbort) throw error;
+    logger.info('[PIPELINE] Aborted during state machine execution', {
+      courseId,
+      chaptersCreated: completedChapters.length,
+    });
+  }
 
   chaptersCreated = completedChapters.length;
   sectionsCreated = completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0);

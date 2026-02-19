@@ -42,7 +42,7 @@ const QualityEvaluatorInputSchema = z.object({
 // =============================================================================
 
 function createQualityEvaluatorHandler(): ToolHandler {
-  return async (input: Record<string, unknown>): Promise<ToolExecutionResult> => {
+  return async (input, _context): Promise<ToolExecutionResult> => {
     const parsed = QualityEvaluatorInputSchema.parse(input);
 
     try {
@@ -55,11 +55,9 @@ function createQualityEvaluatorHandler(): ToolHandler {
             select: {
               title: true,
               description: true,
-              category: true,
-              subcategory: true,
-              targetAudience: true,
+              category: { select: { name: true } },
+              subcategory: { select: { name: true } },
               difficulty: true,
-              totalChapters: true,
             },
           },
         },
@@ -89,12 +87,12 @@ function createQualityEvaluatorHandler(): ToolHandler {
       const courseContext: CourseContext = {
         courseTitle: chapter.course.title ?? '',
         courseDescription: chapter.course.description ?? '',
-        courseCategory: chapter.course.category ?? 'General',
-        courseSubcategory: chapter.course.subcategory ?? undefined,
-        targetAudience: chapter.course.targetAudience ?? '',
+        courseCategory: chapter.course.category?.name ?? 'General',
+        courseSubcategory: chapter.course.subcategory?.name ?? undefined,
+        targetAudience: '',
         difficulty: (chapter.course.difficulty ?? 'intermediate') as CourseContext['difficulty'],
         courseLearningObjectives: [],
-        totalChapters: chapter.course.totalChapters ?? 1,
+        totalChapters: 1,
         sectionsPerChapter: chapter.sections.length || 3,
         bloomsFocus: [],
         learningObjectivesPerChapter: 5,
@@ -124,8 +122,8 @@ function createQualityEvaluatorHandler(): ToolHandler {
             depth: blended.depth,
           },
           samValidation: {
-            provider: samResult.provider ?? 'unknown',
-            passed: samResult.passed,
+            combinedScore: samResult.combinedScore,
+            qualityGateScore: samResult.qualityGateScore,
           },
           sectionCount: chapter.sections.length,
         },

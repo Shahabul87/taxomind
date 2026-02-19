@@ -22,6 +22,7 @@ import {
   type CognitiveLoadLevel,
   type LearningStrategy,
   type MetacognitiveSkill,
+  type ReflectionContext,
 } from '@sam-ai/educational';
 import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
@@ -383,8 +384,7 @@ export async function POST(req: NextRequest) {
           // Map numeric confidence (1-5) to ConfidenceLevel enum
           const mapConfidence = (rating?: number): ConfidenceLevel | undefined => {
             if (rating === undefined) return undefined;
-            const levels: ConfidenceLevel[] = ['VERY_LOW', 'LOW', 'MODERATE', 'HIGH', 'VERY_HIGH'];
-            return levels[Math.min(Math.max(rating - 1, 0), 4)];
+            return Math.min(Math.max(rating, 1), 5) as ConfidenceLevel;
           };
 
           // Process each response, aggregate results
@@ -408,7 +408,7 @@ export async function POST(req: NextRequest) {
                 targetSkill: 'MONITORING' as MetacognitiveSkill,
                 suggestedTimeMinutes: 5,
                 responseType: 'TEXT',
-                context: validated.sessionId ? { sessionId: validated.sessionId } : undefined,
+                context: validated.sessionId ? ({ activityType: 'session' } satisfies ReflectionContext) : undefined,
               },
             });
             analyses.push(analysisResult);

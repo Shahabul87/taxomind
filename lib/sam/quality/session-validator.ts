@@ -524,4 +524,4 @@ export function getValidationSummary(result: ValidationResult): string {
 // EXPORTS
 // ============================================================================
 
-export { DEFAULT_THRESHOLDS, FOCUS_DISTRACTION_LIMITS };
+export { FOCUS_DISTRACTION_LIMITS };

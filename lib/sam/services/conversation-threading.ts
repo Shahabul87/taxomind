@@ -181,7 +181,7 @@ export class ConversationThreadingService {
     }
 
     // Fallback: extract first user message as summary
-    const firstUserMsg = conversation.messages.find((m) => m.messageType === 'USER_MESSAGE');
+    const firstUserMsg = conversation.messages.find((m) => m.messageType === 'USER');
     const fallback = firstUserMsg
       ? firstUserMsg.content.slice(0, 200)
       : conversation.messages[0].content.slice(0, 200);
@@ -279,7 +279,7 @@ export class ConversationThreadingService {
     }
 
     const recentMessages = conversation.messages
-      .filter((m) => m.messageType === 'USER_MESSAGE')
+      .filter((m) => m.messageType === 'USER')
       .map((m) => m.content);
 
     const currentTopicResult = await this.detectTopic(recentMessages);

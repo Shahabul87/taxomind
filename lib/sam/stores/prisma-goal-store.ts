@@ -171,7 +171,7 @@ export class PrismaGoalStore implements GoalStore {
         description: input.description,
         targetDate: input.targetDate,
         priority: mapAgenticPriority(input.priority ?? 'medium'),
-        status: input.status ? mapAgenticStatus(input.status) : 'DRAFT',
+        status: 'DRAFT',
         courseId: input.context?.courseId,
         chapterId: input.context?.chapterId,
         sectionId: input.context?.sectionId,
@@ -180,7 +180,7 @@ export class PrismaGoalStore implements GoalStore {
         currentMastery: mapAgenticMastery(input.currentMastery),
         targetMastery: mapAgenticMastery(input.targetMastery),
         tags: input.tags ?? [],
-        metadata: input.metadata ?? Prisma.JsonNull,
+        metadata: Prisma.JsonNull,
       },
     });
 

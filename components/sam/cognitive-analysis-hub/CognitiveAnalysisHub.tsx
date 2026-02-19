@@ -214,7 +214,6 @@ export function CognitiveAnalysisHub({
         <Dialog open={knowledgeGraphOpen} onOpenChange={setKnowledgeGraphOpen}>
           <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden">
             <EnhancedKnowledgeGraphExplorer
-              userId={userId}
               courseId={courseId}
               className="h-full"
             />
@@ -425,7 +424,6 @@ export function CognitiveAnalysisHub({
           <TabsContent value="knowledge-graph" className="p-0">
             <div className="h-[500px]">
               <EnhancedKnowledgeGraphExplorer
-                userId={userId}
                 courseId={courseId}
                 className="h-full rounded-none"
               />
@@ -438,7 +436,6 @@ export function CognitiveAnalysisHub({
       <Dialog open={knowledgeGraphOpen} onOpenChange={setKnowledgeGraphOpen}>
         <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden">
           <EnhancedKnowledgeGraphExplorer
-            userId={userId}
             courseId={courseId}
             className="h-full"
           />

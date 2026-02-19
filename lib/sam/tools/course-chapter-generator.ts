@@ -60,16 +60,19 @@ export function createCourseChapterGeneratorTool(): ToolDefinition {
 
     // When chapterStepContext is provided by the state machine, call
     // generateSingleChapter() directly for a functional tool.
-    const chapterStepContext = context?.metadata?.chapterStepContext;
+    const chapterStepContext = context?.metadata?.chapterStepContext as
+      import('@/lib/sam/course-creation/types').ChapterStepContext | undefined;
     if (chapterStepContext) {
       try {
         const { generateSingleChapter } = await import('@/lib/sam/course-creation/orchestrator');
+        const onSSEEvent = context?.metadata?.onSSEEvent as
+          ((event: { type: string; data: Record<string, unknown> }) => void) | undefined;
         const chapterResult = await generateSingleChapter(
           userId,
           chapterStepContext,
           {
-            onSSEEvent: context?.metadata?.onSSEEvent,
-            enableStreamingThinking: context?.metadata?.enableStreamingThinking,
+            onSSEEvent,
+            enableStreamingThinking: context?.metadata?.enableStreamingThinking as boolean | undefined,
           },
         );
 
@@ -123,10 +126,11 @@ export function createCourseChapterGeneratorTool(): ToolDefinition {
     confirmationType: ConfirmationType.NONE,
     timeoutMs: 120_000,
     maxRetries: 2,
-    rateLimit: { maxPerMinute: 5, maxPerHour: 30 },
+    rateLimit: { maxCalls: 5, windowMs: 60_000, scope: 'user' as const },
     tags: ['course-creation', 'content-generation', 'direct-mode'],
     examples: [
       {
+        name: 'Generate chapter',
         description: 'Generate chapter 3 of a course',
         input: { courseId: 'course-abc123', chapterNumber: 3, action: 'generate' },
       },
@@ -177,12 +181,14 @@ export function createCourseHealerTool(): ToolDefinition {
     // Call regenerateChapter() directly for a functional tool
     try {
       const { regenerateChapter } = await import('@/lib/sam/course-creation/chapter-regenerator');
+      const onSSEEvent = context?.metadata?.onSSEEvent as
+        ((event: { type: string; data: Record<string, unknown> }) => void) | undefined;
       const healResult = await regenerateChapter({
         userId,
         courseId,
         chapterId,
         chapterPosition,
-        onSSEEvent: context?.metadata?.onSSEEvent,
+        onSSEEvent,
       });
 
       return {
@@ -220,10 +226,11 @@ export function createCourseHealerTool(): ToolDefinition {
     confirmationType: ConfirmationType.NONE,
     timeoutMs: 120_000,
     maxRetries: 1,
-    rateLimit: { maxPerMinute: 3, maxPerHour: 15 },
+    rateLimit: { maxCalls: 3, windowMs: 60_000, scope: 'user' as const },
     tags: ['course-creation', 'healing', 'quality', 'direct-mode'],
     examples: [
       {
+        name: 'Heal chapter',
         description: 'Heal a chapter with low quality score',
         input: { courseId: 'course-abc', chapterId: 'ch-123', chapterPosition: 2, reason: 'Quality score below 40' },
       },

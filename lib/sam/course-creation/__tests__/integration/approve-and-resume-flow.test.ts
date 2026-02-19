@@ -33,6 +33,10 @@ jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
   withRateLimit: jest.fn().mockResolvedValue(null),
 }));
 
+jest.mock('@/lib/sam/ai-provider', () => ({
+  withSubscriptionGate: jest.fn().mockResolvedValue({ allowed: true }),
+}));
+
 jest.mock('@/lib/sam/course-creation/orchestrator', () => ({
   resumeCourseCreation: jest.fn(),
 }));

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -33,8 +33,6 @@ const DIFFICULTY_ICONS = {
 };
 
 export function TargetAudienceStep({ formData, setFormData, validationErrors }: StepComponentProps) {
-  const [customAudience, setCustomAudience] = useState('');
-
   // Real-time validation
   const audienceValidation = RealTimeValidator.validateAudienceAlignment(formData.targetAudience, formData.difficulty);
 
@@ -65,7 +63,11 @@ export function TargetAudienceStep({ formData, setFormData, validationErrors }: 
           >
             <Select
               value={formData.targetAudience}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, targetAudience: value }))}
+              onValueChange={(value) => setFormData(prev => ({
+                ...prev,
+                targetAudience: value,
+                customAudience: value === 'Custom (describe below)' ? prev.customAudience : '',
+              }))}
             >
               <SelectTrigger className={cn(
                 "h-12 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700",
@@ -112,12 +114,15 @@ export function TargetAudienceStep({ formData, setFormData, validationErrors }: 
                 label="Describe your target audience"
                 tooltip="Be specific about who your ideal learner is - their background, goals, and what they hope to achieve."
                 placeholder="Describe the specific audience for your course. Include their current skill level, professional background, and learning goals..."
-                value={customAudience}
-                onChange={(e) => setCustomAudience(e.target.value)}
+                value={formData.customAudience}
+                onChange={(e) => setFormData(prev => ({ ...prev, customAudience: e.target.value }))}
                 minChars={30}
                 showCharCount
                 className="min-h-[120px]"
               />
+              {validationErrors.customAudience && (
+                <p className="mt-2 text-sm text-red-500">{validationErrors.customAudience}</p>
+              )}
           </div>
         </div>
       )}

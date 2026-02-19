@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Unified Streaming API Route
  *

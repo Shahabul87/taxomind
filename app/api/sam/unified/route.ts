@@ -84,8 +84,8 @@ function mergeStageResult(
   // Merge only whitelisted fields
   for (const field of allowedFields) {
     const key = field as string;
-    if ((result as Record<string, unknown>)[key] !== undefined) {
-      (ctx as Record<string, unknown>)[key] = (result as Record<string, unknown>)[key];
+    if ((result as unknown as Record<string, unknown>)[key] !== undefined) {
+      (ctx as unknown as Record<string, unknown>)[key] = (result as unknown as Record<string, unknown>)[key];
     }
   }
 
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
         stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
         logger.error(`[SAM_UNIFIED] Critical stage '${stage.name}' failed:`, errorMsg);
-        ctx.stageErrors.push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
+        (ctx.stageErrors ??= []).push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
         failedStages.push(stage.name);
         // Orchestration is truly critical — must throw
         if (stage.name === 'orchestration') throw stageError;
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
         bgFailed.add(stage.name);
         logger.warn(`[SAM_UNIFIED] Background stage '${stage.name}' failed:`, errorMsg);
-        ctx.stageErrors.push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
+        (ctx.stageErrors ??= []).push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
         failedStages.push(stage.name);
         return { name: stage.name, status: 'rejected' as const };
       }

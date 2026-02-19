@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { AttemptStatus, Prisma } from '@prisma/client';
 
 /**
  * GET /api/exams/attempts
@@ -41,22 +42,12 @@ export async function GET(request: Request) {
     });
 
     // Build where clause
-    const where: {
-      userId: string;
-      status?: string;
-      Exam?: {
-        section?: {
-          chapter?: {
-            courseId?: string;
-          };
-        };
-      };
-    } = {
+    const where: Prisma.UserExamAttemptWhereInput = {
       userId: user.id,
     };
 
     if (query.status) {
-      where.status = query.status;
+      where.status = query.status as AttemptStatus;
     }
 
     if (query.courseId) {

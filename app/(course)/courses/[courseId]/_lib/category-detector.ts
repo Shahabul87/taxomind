@@ -106,6 +106,19 @@ const CATEGORY_PATTERNS: Record<string, CategoryLayoutVariant> = {
   branding: 'marketing',
   'email marketing': 'marketing',
   'growth hacking': 'marketing',
+
+  // Mathematics
+  math: 'math',
+  mathematics: 'math',
+  algebra: 'math',
+  calculus: 'math',
+  geometry: 'math',
+  trigonometry: 'math',
+  'linear algebra': 'math',
+  'discrete math': 'math',
+  probability: 'math',
+  theorem: 'math',
+  proof: 'math',
 };
 
 /**
@@ -176,6 +189,7 @@ export function detectCategoryVariant(course: BaseCourse): DetectionResult {
     design: 0,
     business: 0,
     marketing: 0,
+    math: 0,
     default: 0,
   };
 

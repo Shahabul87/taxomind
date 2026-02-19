@@ -282,10 +282,10 @@ export async function orchestrateStudentAnalytics(
 
     // Emit individual alerts and prescriptions
     for (const alert of prescriptionOutput.alerts) {
-      emit('alert_generated', alert);
+      emit('alert_generated', { ...alert });
     }
     for (const rx of prescriptionOutput.prescriptions) {
-      emit('prescription_generated', rx);
+      emit('prescription_generated', { ...rx });
     }
 
     await completeAnalyticsStep(planId, stepIds, 4, [

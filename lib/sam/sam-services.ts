@@ -246,17 +246,12 @@ class SAMServices {
     try {
       const {
         initializeProactiveInterventions,
-        getBehaviorMonitor,
-        getCheckInScheduler,
-        getMultiSessionPlanTracker,
       } = await import('./proactive-intervention-integration');
 
-      // Initialize the proactive subsystem
-      initializeProactiveInterventions();
+      // Initialize the proactive subsystem (returns the subsystems)
+      const subsystems = initializeProactiveInterventions();
 
-      const behaviorMonitor = getBehaviorMonitor();
-      const checkInScheduler = getCheckInScheduler();
-      const planTracker = getMultiSessionPlanTracker();
+      const { behaviorMonitor, checkInScheduler, planTracker } = subsystems;
 
       if (!behaviorMonitor || !checkInScheduler || !planTracker) {
         throw new Error('Proactive services not fully initialized');
@@ -305,13 +300,15 @@ class SAMServices {
 
       const stores = getObservabilityStores();
 
+      // The Prisma store implements the core methods used by the scorer/tracker.
+      // Full interface alignment is tracked separately.
       const confidenceScorer = createConfidenceScorer({
-        calibrationStore: stores.calibration,
+        store: stores.confidenceCalibration as unknown as Parameters<typeof createConfidenceScorer>[0] extends { store?: infer S } ? S : never,
         logger,
       });
 
       const qualityTracker = createQualityTracker({
-        telemetryStore: stores.telemetry,
+        calibrationStore: stores.confidenceCalibration as unknown as Parameters<typeof createQualityTracker>[0] extends { calibrationStore?: infer S } ? S : never,
         logger,
       });
 
@@ -355,26 +352,24 @@ class SAMServices {
     try {
       const {
         initializeOrchestration,
-        getTutoringController,
-        getContextInjector,
-        getStepExecutor,
-        getConfirmationGate,
       } = await import('./orchestration-integration');
       const { getMultiSessionStores, getStore } = await import('./taxomind-context');
 
-      const stores = getMultiSessionStores();
+      const multiSessionStores = getMultiSessionStores();
 
-      // Initialize orchestration with required stores
-      await initializeOrchestration({
+      // Initialize orchestration with required stores (returns subsystems).
+      // The Prisma stores implement the core methods used by orchestration.
+      // Full interface alignment is tracked separately.
+      const subsystems = initializeOrchestration({
         goalStore: getStore('goal'),
-        planStore: stores.plan,
+        planStore: multiSessionStores.learningPlan as unknown as Parameters<typeof initializeOrchestration>[0]['planStore'],
         toolStore: getStore('tool'),
       });
 
-      const tutoringController = getTutoringController();
-      const contextInjector = getContextInjector();
-      const stepExecutor = getStepExecutor();
-      const confirmationGate = getConfirmationGate();
+      const tutoringController = subsystems.controller;
+      const contextInjector = subsystems.injector;
+      const stepExecutor = subsystems.executor;
+      const confirmationGate = subsystems.confirmationGate;
 
       if (!tutoringController || !contextInjector || !stepExecutor || !confirmationGate) {
         throw new Error('Orchestration services not fully initialized');
@@ -420,7 +415,7 @@ class SAMServices {
     try {
       const {
         initializeMemoryLifecycle,
-        getLifecycleManager,
+        getMemoryLifecycleManager,
         getBackgroundWorker,
         getMemoryNormalizer,
         getKGRefreshScheduler,
@@ -429,10 +424,10 @@ class SAMServices {
       // Initialize memory lifecycle
       await initializeMemoryLifecycle();
 
-      const lifecycleManager = getLifecycleManager();
-      const backgroundWorker = getBackgroundWorker();
-      const memoryNormalizer = getMemoryNormalizer();
-      const kgRefreshScheduler = getKGRefreshScheduler();
+      const lifecycleManager = await getMemoryLifecycleManager();
+      const backgroundWorker = await getBackgroundWorker();
+      const memoryNormalizer = await getMemoryNormalizer();
+      const kgRefreshScheduler = await getKGRefreshScheduler();
 
       if (!lifecycleManager || !backgroundWorker || !memoryNormalizer || !kgRefreshScheduler) {
         throw new Error('Memory lifecycle services not fully initialized');

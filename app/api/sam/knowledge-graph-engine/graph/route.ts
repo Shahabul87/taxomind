@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const isTeacher = await db.course.findFirst({
       where: {
         id: query.courseId,
-        teacherId: session.user.id,
+        userId: session.user.id,
       },
     });
 
@@ -153,7 +153,7 @@ export async function DELETE(req: NextRequest) {
     const isTeacher = await db.course.findFirst({
       where: {
         id: courseId,
-        teacherId: session.user.id,
+        userId: session.user.id,
       },
     });
 

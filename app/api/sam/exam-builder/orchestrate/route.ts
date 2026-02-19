@@ -26,6 +26,7 @@ import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout'
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { orchestrateExamCreation } from '@/lib/sam/exam-generation/orchestrator';
+import type { ExamBuilderParams } from '@/lib/sam/exam-generation/agentic-types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max for full exam generation
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    const params = parseResult.data;
+    const params = parseResult.data as ExamBuilderParams;
 
     // 4. Set up SSE stream
     const encoder = new TextEncoder();

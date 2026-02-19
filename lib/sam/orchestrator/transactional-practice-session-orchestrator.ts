@@ -19,6 +19,7 @@
 
 import { db } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
+import type { TransactionClient } from '@/lib/sam/utils/transaction-wrapper';
 import {
   PrismaPracticeSessionStore,
   type PracticeSession,
@@ -322,7 +323,7 @@ export class TransactionalPracticeSessionOrchestrator {
           assessmentPassed: input?.assessmentPassed,
           projectOutcome: input?.projectOutcome,
           peerReviewScore: input?.peerReviewScore,
-          qualityBreakdown: qualityScore.breakdown as Prisma.InputJsonValue,
+          qualityBreakdown: JSON.parse(JSON.stringify(qualityScore.breakdown)) as Prisma.InputJsonValue,
           // Anti-Gaming Validation fields (Phase 4)
           validationFlags: validation.flags,
           wasAdjusted: validation.wasAdjusted,
@@ -395,7 +396,7 @@ export class TransactionalPracticeSessionOrchestrator {
    * Update skill mastery within a transaction
    */
   private async updateSkillMasteryInTransaction(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     userId: string,
     skillId: string,
     skillName: string,
@@ -546,7 +547,7 @@ export class TransactionalPracticeSessionOrchestrator {
    * Compute period hours within transaction
    */
   private async computePeriodHoursInTransaction(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     userId: string,
     skillId: string,
     timezone: string
@@ -584,7 +585,7 @@ export class TransactionalPracticeSessionOrchestrator {
    * Check and create milestones within transaction
    */
   private async checkAndCreateMilestonesInTransaction(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     masteryId: string,
     userId: string,
     skillId: string,
@@ -648,7 +649,7 @@ export class TransactionalPracticeSessionOrchestrator {
    * Update daily practice log within transaction with comprehensive session data
    */
   private async updateDailyPracticeLogInTransaction(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     userId: string,
     dateStr: string,
     sessionData: {

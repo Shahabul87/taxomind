@@ -14,7 +14,16 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus, SubGoalType } from '@sam-ai/agentic';
+import { GoalStatus, PlanStatus, SubGoalType, type UpdateGoalInput } from '@sam-ai/agentic';
+
+/**
+ * Extended goal update input that includes metadata.
+ * The underlying Prisma model supports metadata, but UpdateGoalInput
+ * from @sam-ai/agentic does not expose it yet.
+ */
+type GoalUpdateWithMetadata = UpdateGoalInput & {
+  metadata?: Record<string, unknown>;
+};
 
 interface GoalPlanIds {
   goalId: string;
@@ -40,11 +49,10 @@ export async function initializeCourseCreationGoal(
       title: `Create course: ${courseTitle}`,
       description: `AI-powered creation of course "${courseTitle}" with chapters, sections, and learning objectives.`,
       priority: 'high',
-      status: GoalStatus.ACTIVE,
       context: {
         courseId,
-        type: 'course-creation',
       },
+      tags: ['course-creation'],
     });
 
     // Create 3-step ExecutionPlan
@@ -56,6 +64,8 @@ export async function initializeCourseCreationGoal(
       overallProgress: 0,
       steps: [
         {
+          id: '',
+          planId: '',
           title: 'Generate Chapters',
           description: 'Generate all course chapters with learning objectives and Bloom\'s taxonomy alignment',
           type: 'create_summary',
@@ -66,10 +76,12 @@ export async function initializeCourseCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 1 },
-          metadata: { courseId },
+          executionContext: {},
+          metadata: { courseId, stage: 1 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Generate Sections',
           description: 'Generate sections for each chapter with content types and topic focus',
           type: 'create_summary',
@@ -80,10 +92,12 @@ export async function initializeCourseCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 2 },
-          metadata: { courseId },
+          executionContext: {},
+          metadata: { courseId, stage: 2 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Enrich Section Details',
           description: 'Generate descriptions, learning objectives, activities, and resources for each section',
           type: 'create_summary',
@@ -94,13 +108,13 @@ export async function initializeCourseCreationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 3 },
-          metadata: { courseId },
+          executionContext: {},
+          metadata: { courseId, stage: 3 },
         },
       ],
       checkpoints: [],
       checkpointData: {},
-      schedule: {},
+      schedule: undefined,
       fallbackStrategies: [],
     });
 
@@ -185,7 +199,12 @@ export async function completeStageStep(
     await planStore.updateStep(planId, stepId, {
       status: 'completed',
       completedAt: new Date(),
-      outputs: outputs ?? [],
+      outputs: (outputs ?? []).map((value) => ({
+        name: 'stage-output',
+        type: 'result' as const,
+        value,
+        timestamp: new Date(),
+      })),
     });
   } catch (error) {
     logger.warn('[CourseCreationController] Failed to complete stage step', {
@@ -356,7 +375,7 @@ export async function completeChapterSubGoal(
 // =============================================================================
 
 /**
- * Store the pre-generation blueprint in the Goal's context field.
+ * Store the pre-generation blueprint in the Goal's metadata field.
  * Allows later comparison between plan and reality.
  */
 export async function storeBlueprintInGoal(
@@ -368,16 +387,16 @@ export async function storeBlueprintInGoal(
   const { goal: goalStore } = getGoalStores();
 
   try {
-    const existing = await goalStore.getById(goalId);
-    const existingContext = (existing?.context ?? {}) as Record<string, unknown>;
+    const existing = await goalStore.get(goalId);
+    const existingMetadata = (existing?.metadata ?? {}) as Record<string, unknown>;
 
     await goalStore.update(goalId, {
-      context: {
-        ...existingContext,
+      metadata: {
+        ...existingMetadata,
         blueprint,
         blueprintStoredAt: new Date().toISOString(),
       },
-    });
+    } as GoalUpdateWithMetadata);
 
     logger.debug('[CourseCreationController] Blueprint stored in goal', { goalId });
   } catch (error) {
@@ -402,7 +421,7 @@ export async function storeDecisionInPlan(
   const { plan: planStore } = getGoalStores();
 
   try {
-    const existing = await planStore.getById(planId);
+    const existing = await planStore.get(planId);
     const existingCheckpoint = (existing?.checkpointData ?? {}) as Record<string, unknown>;
     const existingDecisions = (existingCheckpoint.agenticDecisions ?? []) as Array<Record<string, unknown>>;
 
@@ -443,16 +462,16 @@ export async function storeReflectionInGoal(
   const { goal: goalStore } = getGoalStores();
 
   try {
-    const existing = await goalStore.getById(goalId);
-    const existingContext = (existing?.context ?? {}) as Record<string, unknown>;
+    const existing = await goalStore.get(goalId);
+    const existingMetadata = (existing?.metadata ?? {}) as Record<string, unknown>;
 
     await goalStore.update(goalId, {
-      context: {
-        ...existingContext,
+      metadata: {
+        ...existingMetadata,
         courseReflection: reflection,
         reflectionStoredAt: new Date().toISOString(),
       },
-    });
+    } as GoalUpdateWithMetadata);
 
     logger.info('[CourseCreationController] Reflection stored in goal', {
       goalId,
@@ -482,7 +501,7 @@ export async function failCourseCreation(
 
   try {
     // Load existing checkpoint to preserve it
-    const existingPlan = await planStore.getById(planId);
+    const existingPlan = await planStore.get(planId);
     const existingCheckpoint = (existingPlan?.checkpointData ?? {}) as Record<string, unknown>;
 
     await planStore.update(planId, {

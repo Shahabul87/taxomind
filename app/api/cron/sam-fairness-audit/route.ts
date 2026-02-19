@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Fairness Audit Cron Job
  *

@@ -193,7 +193,7 @@ export const withLazyLoading = <P extends object>(
 
 // Route-based lazy loading for pages
 export const LazyRoutes = {
-  Analytics: lazy(() => import('@/app/dashboard/user/analytics/page')),
+  Analytics: lazy(() => Promise.resolve({ default: () => null })),
   AITutor: lazy(() => Promise.resolve({ default: () => null })),
   Calendar: lazy(() => import('@/app/calendar/page')),
   Search: lazy(() => import('@/app/(protected)/search/page')),

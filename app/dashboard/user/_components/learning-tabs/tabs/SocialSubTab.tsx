@@ -98,7 +98,7 @@ export function SocialSubTab({ user }: SocialSubTabProps) {
             period="weekly"
             scope="global"
             limit={10}
-            showCurrentUser={true}
+            showCurrentUserPosition={true}
           />
         </div>
       </section>

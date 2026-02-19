@@ -16,7 +16,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
 import type { SequentialCreationConfig } from '@/lib/sam/course-creation/types';
@@ -87,6 +89,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
+    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
+
     const body = await req.json();
     const parsed = RequestSchema.safeParse(body);
     if (!parsed.success) {
@@ -103,14 +108,12 @@ export async function POST(req: NextRequest) {
         goal: { userId: user.id },
         status: 'PAUSED',
         checkpointData: {
-          not: null,
+          not: Prisma.DbNull,
           path: ['courseId'],
           equals: courseId,
         },
       },
-      select: {
-        id: true,
-        checkpointData: true,
+      include: {
         goal: { select: { userId: true } },
       },
     });
@@ -273,4 +276,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

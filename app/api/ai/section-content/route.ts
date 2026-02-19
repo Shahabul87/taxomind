@@ -252,12 +252,13 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
-    if (!session.userId) {
+    const userId = session.userId;
+    if (!userId) {
       logger.error('[SECTION_CONTENT] Unauthorized - no session');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    logger.info('[SECTION_CONTENT] Session authenticated:', session.userId);
+    logger.info('[SECTION_CONTENT] Session authenticated:', userId);
 
     // Parse and validate request body
     const body = await request.json();
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
       sectionId: contentRequest.sectionId,
       chapterId: contentRequest.chapterId,
       courseId: contentRequest.courseId,
-      userId: session.userId,
+      userId,
       isAdmin: session.isAdmin
     });
 
@@ -332,7 +333,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Admins bypass ownership check
-      if (!session.isAdmin && section.chapter.course.userId !== session.userId) {
+      if (!session.isAdmin && section.chapter.course.userId !== userId) {
         logger.error('[SECTION_CONTENT] User does not own this course');
         return NextResponse.json(
           { error: 'Access denied - you do not own this course' },
@@ -367,7 +368,7 @@ export async function POST(request: NextRequest) {
               content: userPrompt
             }
           ],
-          userId: session.userId,
+          userId,
           capability: 'course',
         }),
         TIMEOUT_DEFAULTS.AI_GENERATION,

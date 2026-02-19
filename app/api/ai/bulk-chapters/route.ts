@@ -210,7 +210,8 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
-    if (!session.userId) {
+    const userId = session.userId;
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -231,10 +232,10 @@ export async function POST(request: NextRequest) {
     const bulkRequest = parseResult.data;
 
     // Fetch course data - admins can access any course
-    const course = await db.course.findUnique({
-      where: session.isAdmin
-        ? { id: bulkRequest.courseId }
-        : { id: bulkRequest.courseId, userId: session.userId },
+      const course = await db.course.findUnique({
+        where: session.isAdmin
+          ? { id: bulkRequest.courseId }
+          : { id: bulkRequest.courseId, userId },
       include: {
         chapters: true
       }
@@ -272,7 +273,7 @@ export async function POST(request: NextRequest) {
             }
           ],
           extended: true,
-          userId: session.userId,
+          userId,
           capability: 'course',
         }),
         TIMEOUT_DEFAULTS.AI_GENERATION,

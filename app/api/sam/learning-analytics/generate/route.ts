@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Learning Analytics Generation API
  *

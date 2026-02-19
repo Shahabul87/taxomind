@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { SAMRecommendationAction } from '@prisma/client';
 import { z } from 'zod';
 
 // ============================================================================
@@ -156,7 +157,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         recommendationId: validatedData.recommendationId,
         recommendationType: validatedData.recommendationType,
-        action: validatedData.action,
+        action: validatedData.action.toUpperCase() as SAMRecommendationAction,
         outcomeScore: validatedData.outcomeScore,
         context: validatedData.context ?? {},
         wasFollowed: validatedData.action === 'followed',

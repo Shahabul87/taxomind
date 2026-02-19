@@ -71,10 +71,12 @@ export interface DetailsCritique {
   verdict: CriticVerdict;
   confidence: number;
   reasoning: string;
-  descriptionQuality: number;
-  objectiveAlignment: number;
-  activityRelevance: number;
-  conceptCoverage: number;
+  motivationClarity: number;
+  intuitionClarity: number;
+  equationIntuitionQuality: number;
+  visualizationQuality: number;
+  exampleConcreteness: number;
+  misconceptionRepairQuality: number;
   actionableImprovements: string[];
 }
 
@@ -625,14 +627,16 @@ export function buildSectionCriticFeedbackBlock(critique: SectionCritique): stri
 // ============================================================================
 
 const DETAILS_CRITIC_PERSONA = `You are a SECTION DETAILS REVIEWER for an AI course generator.
-Evaluate whether generated section details (description, objectives, activities) meet quality standards.
+Evaluate whether generated section details follow the required professor-style explanation anatomy.
 
 ## Evaluation Dimensions (0-100 each)
 
-1. **Description Quality**: Is the description specific, informative, and appropriate length? Does it set clear expectations?
-2. **Objective Alignment**: Do learning objectives align with the chapter Bloom&apos;s level and use appropriate verbs?
-3. **Activity Relevance**: Is the practical activity meaningful and connected to the learning objectives?
-4. **Concept Coverage**: Do the key concepts cover the section&apos;s topic focus adequately?
+1. **Motivation Clarity**: Does "Why It Was Developed" clearly explain the motivating problem/limitation?
+2. **Intuition Clarity**: Does "Core Intuition" give a beginner-friendly mental model/analogy?
+3. **Equation Intuition Quality**: Does "Equation Intuition" explain term meanings and equation shape (or clearly justify no equation)?
+4. **Visualization Quality**: Does "Step-by-Step Visualization" provide a clear sequential mental walkthrough?
+5. **Example Concreteness**: Does "Concrete Example" include a specific worked mini-scenario?
+6. **Misconception Repair Quality**: Does "Common Confusion + Fix" include both misconception and correction?
 
 ## Response Format
 
@@ -641,10 +645,12 @@ Return ONLY JSON (no markdown fences):
   "verdict": "approve" | "revise" | "reject",
   "confidence": <0-100>,
   "reasoning": "<1-2 sentence summary>",
-  "descriptionQuality": <0-100>,
-  "objectiveAlignment": <0-100>,
-  "activityRelevance": <0-100>,
-  "conceptCoverage": <0-100>,
+  "motivationClarity": <0-100>,
+  "intuitionClarity": <0-100>,
+  "equationIntuitionQuality": <0-100>,
+  "visualizationQuality": <0-100>,
+  "exampleConcreteness": <0-100>,
+  "misconceptionRepairQuality": <0-100>,
   "actionableImprovements": ["<specific improvement>", ...]
 }
 
@@ -750,10 +756,12 @@ function parseDetailsCriticResponse(responseText: string, section: GeneratedSect
 
   const verdict = parseVerdict(parsed.verdict);
   const confidence = clamp(Number(parsed.confidence) || 70, 0, 100);
-  const descriptionQuality = clamp(Number(parsed.descriptionQuality) || 70, 0, 100);
-  const objectiveAlignment = clamp(Number(parsed.objectiveAlignment) || 70, 0, 100);
-  const activityRelevance = clamp(Number(parsed.activityRelevance) || 70, 0, 100);
-  const conceptCoverage = clamp(Number(parsed.conceptCoverage) || 70, 0, 100);
+  const motivationClarity = clamp(Number(parsed.motivationClarity) || 70, 0, 100);
+  const intuitionClarity = clamp(Number(parsed.intuitionClarity) || 70, 0, 100);
+  const equationIntuitionQuality = clamp(Number(parsed.equationIntuitionQuality) || 70, 0, 100);
+  const visualizationQuality = clamp(Number(parsed.visualizationQuality) || 70, 0, 100);
+  const exampleConcreteness = clamp(Number(parsed.exampleConcreteness) || 70, 0, 100);
+  const misconceptionRepairQuality = clamp(Number(parsed.misconceptionRepairQuality) || 70, 0, 100);
   const reasoning = String(parsed.reasoning || `Section ${section.position} details review complete`);
   const actionableImprovements = Array.isArray(parsed.actionableImprovements)
     ? (parsed.actionableImprovements as unknown[]).map(String).slice(0, 3)
@@ -767,10 +775,12 @@ function parseDetailsCriticResponse(responseText: string, section: GeneratedSect
     verdict: effectiveVerdict,
     confidence,
     reasoning,
-    descriptionQuality,
-    objectiveAlignment,
-    activityRelevance,
-    conceptCoverage,
+    motivationClarity,
+    intuitionClarity,
+    equationIntuitionQuality,
+    visualizationQuality,
+    exampleConcreteness,
+    misconceptionRepairQuality,
     actionableImprovements,
   };
 }
@@ -778,40 +788,97 @@ function parseDetailsCriticResponse(responseText: string, section: GeneratedSect
 function buildRuleBasedDetailsCritique(
   details: SectionDetails,
   section: GeneratedSection,
-  chapter: GeneratedChapter,
+  _chapter: GeneratedChapter,
 ): DetailsCritique {
   const improvements: string[] = [];
-  let descriptionQuality = 75;
-  let objectiveAlignment = 75;
-  let activityRelevance = 75;
-  let conceptCoverage = 75;
+  let motivationClarity = 75;
+  let intuitionClarity = 75;
+  let equationIntuitionQuality = 75;
+  let visualizationQuality = 75;
+  let exampleConcreteness = 75;
+  let misconceptionRepairQuality = 75;
 
-  // Check description length
-  if (details.description.length < 100) {
-    improvements.push('Description is too brief — expand with specific learning context');
-    descriptionQuality -= 15;
+  const description = details.description;
+  const hasHeading = (heading: string): boolean =>
+    new RegExp(`<h2>\\s*${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</h2>`, 'i').test(description);
+  const sectionText = (heading: string): string => {
+    const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`<h2>\\s*${escaped}\\s*</h2>([\\s\\S]*?)(?=<h2>|$)`, 'i');
+    const match = description.match(regex);
+    return (match?.[1] ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  if (!hasHeading('Why It Was Developed')) {
+    improvements.push('Add the required <h2>Why It Was Developed</h2> section.');
+    motivationClarity -= 25;
+  } else if (!/(problem|limitation|challenge|motivated|developed)/i.test(sectionText('Why It Was Developed'))) {
+    improvements.push('Strengthen the motivating problem/limitation in "Why It Was Developed".');
+    motivationClarity -= 15;
   }
 
-  // Check learning objectives count
-  if (details.learningObjectives.length < 2) {
-    improvements.push(`Add more learning objectives (currently ${details.learningObjectives.length}, recommend 3+)`);
-    objectiveAlignment -= 15;
+  if (!hasHeading('Core Intuition')) {
+    improvements.push('Add the required <h2>Core Intuition</h2> section.');
+    intuitionClarity -= 25;
+  } else if (!/(mental model|analogy|think of|imagine)/i.test(sectionText('Core Intuition'))) {
+    improvements.push('Include a beginner-friendly mental model or analogy in "Core Intuition".');
+    intuitionClarity -= 15;
   }
 
-  // Check practical activity
-  if (!details.practicalActivity || details.practicalActivity.length < 30) {
-    improvements.push('Practical activity is missing or too brief');
-    activityRelevance -= 15;
+  if (!hasHeading('Equation Intuition')) {
+    improvements.push('Add the required <h2>Equation Intuition</h2> section.');
+    equationIntuitionQuality -= 25;
+  } else {
+    const eqText = sectionText('Equation Intuition');
+    const eqHasMath = /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\sum|\\int|=)/.test(description);
+    const eqExplainsTerms = /(term|coefficient|numerator|denominator|variable|represents|means)/i.test(eqText);
+    const eqExplainsShape = /(shape|structure|form|because|why)/i.test(eqText);
+    const eqNoMathRationale = /(no equation|equation is not required|does not require an equation)/i.test(eqText);
+    if (eqHasMath && (!eqExplainsTerms || !eqExplainsShape)) {
+      improvements.push('In "Equation Intuition", explain each term and why the equation has its structure.');
+      equationIntuitionQuality -= 20;
+    } else if (!eqHasMath && !eqNoMathRationale) {
+      improvements.push('If no equation is needed, explicitly justify that in "Equation Intuition".');
+      equationIntuitionQuality -= 15;
+    }
   }
 
-  // Check key concepts coverage
-  const keyConcepts = details.keyConceptsCovered ?? [];
-  if (keyConcepts.length < 2) {
-    improvements.push('Add more key concepts to ensure topic coverage');
-    conceptCoverage -= 15;
+  if (!hasHeading('Step-by-Step Visualization')) {
+    improvements.push('Add the required <h2>Step-by-Step Visualization</h2> section.');
+    visualizationQuality -= 25;
+  } else if (!/(step|first|second|third|next|then|finally|visualize)/i.test(sectionText('Step-by-Step Visualization'))) {
+    improvements.push('Make "Step-by-Step Visualization" explicitly sequential.');
+    visualizationQuality -= 15;
   }
 
-  const scores = [descriptionQuality, objectiveAlignment, activityRelevance, conceptCoverage];
+  if (!hasHeading('Concrete Example')) {
+    improvements.push('Add the required <h2>Concrete Example</h2> section.');
+    exampleConcreteness -= 25;
+  } else if (!/(\d|for example|scenario|suppose|worked example|mini)/i.test(sectionText('Concrete Example'))) {
+    improvements.push('Use a concrete worked mini-scenario in "Concrete Example".');
+    exampleConcreteness -= 15;
+  }
+
+  if (!hasHeading('Common Confusion + Fix')) {
+    improvements.push('Add the required <h2>Common Confusion + Fix</h2> section.');
+    misconceptionRepairQuality -= 25;
+  } else {
+    const confusionText = sectionText('Common Confusion + Fix');
+    const hasMisconception = /(confusion|misconception|mistake|often think|trap)/i.test(confusionText);
+    const hasFix = /(fix|avoid|instead|correct|remember)/i.test(confusionText);
+    if (!hasMisconception || !hasFix) {
+      improvements.push('"Common Confusion + Fix" must include both misconception and correction.');
+      misconceptionRepairQuality -= 15;
+    }
+  }
+
+  const scores = [
+    motivationClarity,
+    intuitionClarity,
+    equationIntuitionQuality,
+    visualizationQuality,
+    exampleConcreteness,
+    misconceptionRepairQuality,
+  ];
   const allAbove70 = scores.every(s => s >= 70);
   const anyBelow50 = scores.some(s => s < 50);
 
@@ -823,10 +890,12 @@ function buildRuleBasedDetailsCritique(
     reasoning: improvements.length === 0
       ? `Section ${section.position} details pass basic quality checks`
       : `Section ${section.position} details have ${improvements.length} area(s) for improvement`,
-    descriptionQuality: clamp(descriptionQuality, 0, 100),
-    objectiveAlignment: clamp(objectiveAlignment, 0, 100),
-    activityRelevance: clamp(activityRelevance, 0, 100),
-    conceptCoverage: clamp(conceptCoverage, 0, 100),
+    motivationClarity: clamp(motivationClarity, 0, 100),
+    intuitionClarity: clamp(intuitionClarity, 0, 100),
+    equationIntuitionQuality: clamp(equationIntuitionQuality, 0, 100),
+    visualizationQuality: clamp(visualizationQuality, 0, 100),
+    exampleConcreteness: clamp(exampleConcreteness, 0, 100),
+    misconceptionRepairQuality: clamp(misconceptionRepairQuality, 0, 100),
     actionableImprovements: improvements,
   };
 }
@@ -843,7 +912,7 @@ export function buildDetailsCriticFeedbackBlock(critique: DetailsCritique): stri
     '### Required Improvements:',
     ...critique.actionableImprovements.map((imp, i) => `${i + 1}. ${imp}`),
     '',
-    `Dimension Scores: Description=${critique.descriptionQuality}, Objectives=${critique.objectiveAlignment}, Activity=${critique.activityRelevance}, Concepts=${critique.conceptCoverage}`,
+    `Dimension Scores: Motivation=${critique.motivationClarity}, Intuition=${critique.intuitionClarity}, Equation=${critique.equationIntuitionQuality}, Visualization=${critique.visualizationQuality}, Example=${critique.exampleConcreteness}, ConfusionFix=${critique.misconceptionRepairQuality}`,
     '',
     'Address ALL reviewer feedback. Generate a substantially improved version.',
   ].join('\n');

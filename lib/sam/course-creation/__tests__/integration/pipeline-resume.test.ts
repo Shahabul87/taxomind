@@ -65,6 +65,12 @@ describe('Pipeline Resume - Prompt Version Gate', () => {
     jest.clearAllMocks();
     mockPromptVersion = 'stage1:2.0.0|stage2:2.0.0|stage3:2.0.0';
     mockPromptVersions = { stage1: '2.0.0', stage2: '2.0.0', stage3: '2.0.0' };
+    (mockDb.course.findUnique as jest.Mock).mockResolvedValue({
+      id: 'course-1',
+      userId: 'user-1',
+      isPublished: false,
+      chapters: [],
+    });
   });
 
   it('should block resume when major version differs', async () => {
@@ -74,7 +80,7 @@ describe('Pipeline Resume - Prompt Version Gate', () => {
       checkpointData: {
         completedChapterCount: 3,
         courseId: 'course-1',
-        config: { totalChapters: 10, sectionsPerChapter: 5 },
+        config: { totalChapters: 10, sectionsPerChapter: 5, difficulty: 'intermediate' },
         goalId: 'goal-1',
         planId: 'plan-1',
         stepIds: [],
@@ -106,7 +112,7 @@ describe('Pipeline Resume - Prompt Version Gate', () => {
       checkpointData: {
         completedChapterCount: 3,
         courseId: 'course-1',
-        config: { totalChapters: 10, sectionsPerChapter: 5 },
+        config: { totalChapters: 10, sectionsPerChapter: 5, difficulty: 'intermediate' },
         goalId: 'goal-1',
         planId: 'plan-1',
         stepIds: [],

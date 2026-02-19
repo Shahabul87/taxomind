@@ -23,6 +23,7 @@ async function getRedisClient(): Promise<RedisClient | null> {
   }
 
   try {
+    // @ts-expect-error - redis types may not be installed
     const { createClient } = await import('redis');
     const client = createClient({ url: process.env.REDIS_URL });
     await client.connect();

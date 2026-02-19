@@ -215,7 +215,13 @@ async function collectExamPerformance(
   since: Date
 ): Promise<ExamPerformanceSummary[]> {
   const exams = await db.exam.findMany({
-    where: { courseId },
+    where: {
+      section: {
+        chapter: {
+          courseId,
+        },
+      },
+    },
     select: { id: true },
     take: 50,
   });
@@ -228,7 +234,7 @@ async function collectExamPerformance(
     where: {
       examId: { in: examIds },
       startedAt: { gte: since },
-      status: { in: ['COMPLETED', 'GRADED'] },
+      status: { in: ['SUBMITTED', 'GRADED'] },
     },
     select: {
       examId: true,
@@ -375,7 +381,7 @@ async function collectContentCompletion(
   const result: ContentCompletionData[] = [];
 
   for (const chapter of chapters) {
-    const progress = await db.userProgress.findMany({
+    const progress = await db.user_progress.findMany({
       where: {
         chapterId: chapter.id,
       },
@@ -383,7 +389,7 @@ async function collectContentCompletion(
       take: 5000,
     });
 
-    const completed = progress.filter((p) => p.isCompleted).length;
+    const completed = progress.filter((p: { isCompleted: boolean }) => p.isCompleted).length;
     const completionRate =
       progress.length > 0
         ? Math.round((completed / progress.length) * 100)
@@ -413,9 +419,15 @@ async function collectDiagnoseAggregation(
   avgDepth: number;
   totalRecords: number;
 }> {
-  // Get exams for this course
+  // Get exams for this course (through Section -> Chapter -> Course)
   const exams = await db.exam.findMany({
-    where: { courseId },
+    where: {
+      section: {
+        chapter: {
+          courseId,
+        },
+      },
+    },
     select: { id: true },
     take: 50,
   });

@@ -193,9 +193,9 @@ export async function GET(req: NextRequest) {
       const portfolio = engine.getUserPortfolio(session.user.id);
       const gapAnalysis = engine.getSkillGapAnalysis({ userId: session.user.id });
 
-      const profileData = profile as Record<string, unknown>;
-      const portfolioData = (portfolio ?? []) as Array<Record<string, unknown>>;
-      const gapData = gapAnalysis as Record<string, unknown>;
+      const profileData = profile as unknown as Record<string, unknown>;
+      const portfolioData = (portfolio ?? []) as unknown as Array<Record<string, unknown>>;
+      const gapData = gapAnalysis as unknown as Record<string, unknown>;
 
       const assessment = {
         overallScore: profileData?.overallScore ?? 0,

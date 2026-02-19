@@ -128,6 +128,7 @@ jest.mock('../../chapter-templates', () => ({
     chapterTemplate: { sections: [] },
     sectionDefs: [],
   }),
+  getMinimumSectionsForDifficulty: jest.fn().mockReturnValue(1),
 }));
 
 jest.mock('../../category-prompts', () => ({
@@ -368,7 +369,9 @@ describe('Orchestration E2E - SSE Events', () => {
 
     // Pipeline should receive the SSE event callback
     const pipelineCallArgs = mockRunPipeline.mock.calls[0][0];
-    expect(pipelineCallArgs.onSSEEvent).toBe(onSSEEvent);
+    expect(typeof pipelineCallArgs.onSSEEvent).toBe('function');
+    pipelineCallArgs.onSSEEvent({ type: 'thinking', data: { message: 'hello' } });
+    expect(onSSEEvent).toHaveBeenCalledWith({ type: 'thinking', data: { message: 'hello' } });
   });
 
   it('should pass onSSEEvent callback to finalizeAndEmit', async () => {
@@ -382,7 +385,9 @@ describe('Orchestration E2E - SSE Events', () => {
 
     // Finalize should receive the SSE event callback
     const finalizeCallArgs = mockFinalizeAndEmit.mock.calls[0][0];
-    expect(finalizeCallArgs.onSSEEvent).toBe(onSSEEvent);
+    expect(typeof finalizeCallArgs.onSSEEvent).toBe('function');
+    finalizeCallArgs.onSSEEvent({ type: 'progress', data: { percentage: 10 } });
+    expect(onSSEEvent).toHaveBeenCalledWith({ type: 'progress', data: { percentage: 10 } });
   });
 });
 

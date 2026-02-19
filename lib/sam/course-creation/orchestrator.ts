@@ -18,6 +18,7 @@
 import { logger } from '@/lib/logger';
 import {
   getTemplateForDifficulty,
+  getMinimumSectionsForDifficulty,
 } from './chapter-templates';
 import {
   getActiveExperiments,
@@ -105,6 +106,8 @@ export async function orchestrateCourseCreation(
   // Resolve A/B experiments (all active -- supports concurrent experiments)
   const experimentAssignments = await getActiveExperiments(userId);
   const experimentVariant = joinVariants(experimentAssignments);
+  const minimumSectionsPerChapter = getMinimumSectionsForDifficulty(config.difficulty);
+  const effectiveSectionsPerChapter = Math.max(config.sectionsPerChapter, minimumSectionsPerChapter);
 
   // When resuming, seed state from checkpoint; otherwise start fresh
   const qualityScores: QualityScore[] = resumeState?.qualityScores.slice() ?? [];
@@ -138,7 +141,7 @@ export async function orchestrateCourseCreation(
     difficulty: config.difficulty,
     courseLearningObjectives: config.courseGoals,
     totalChapters: config.totalChapters,
-    sectionsPerChapter: config.sectionsPerChapter,
+    sectionsPerChapter: effectiveSectionsPerChapter,
     bloomsFocus: config.bloomsFocus as BloomsLevel[],
     learningObjectivesPerChapter: config.learningObjectivesPerChapter,
     learningObjectivesPerSection: config.learningObjectivesPerSection,
@@ -167,13 +170,13 @@ export async function orchestrateCourseCreation(
 
   // Resolve chapter template from difficulty level (used for prompt guidance, not counts)
   const chapterTemplate = getTemplateForDifficulty(config.difficulty);
-  // Strict mode: always use user's requested section count, not template default
-  const effectiveSectionsPerChapter = config.sectionsPerChapter;
   logger.info('[ORCHESTRATOR] Chapter DNA template resolved', {
     difficulty: config.difficulty,
     template: chapterTemplate.displayName,
     templateSections: chapterTemplate.totalSections,
-    userRequestedSections: effectiveSectionsPerChapter,
+    minimumSections: minimumSectionsPerChapter,
+    userRequestedSections: config.sectionsPerChapter,
+    effectiveSectionsPerChapter,
   });
 
   // Phase 2: Recall memory from prior course creations (3s timeout, safe fallback)
@@ -237,6 +240,22 @@ export async function orchestrateCourseCreation(
         chapters: blueprintPlan.chapterPlan.length,
         confidence: blueprintPlan.planConfidence,
       });
+
+      if (
+        typeof blueprintPlan.recommendedChapterCount === 'number'
+        && blueprintPlan.recommendedChapterCount !== config.totalChapters
+      ) {
+        onSSEEvent?.({
+          type: 'chapter_count_adjusted',
+          data: {
+            requested: config.totalChapters,
+            recommended: blueprintPlan.recommendedChapterCount,
+            resolved: config.totalChapters,
+            policy: 'user_authoritative',
+            message: `Blueprint suggested ${blueprintPlan.recommendedChapterCount} chapters; keeping requested ${config.totalChapters}.`,
+          },
+        });
+      }
     } catch {
       // Blueprint planning is non-blocking
       blueprintPlan = null;
@@ -256,7 +275,7 @@ export async function orchestrateCourseCreation(
   //   Stage 3: sectionsPerChapter × (1 gen + 1 critic + 1 critic-retry) = spc × 3
   //   Between-chapter: 1 agentic decision
   // Total per chapter: 5 + sectionsPerChapter × 6
-  const estimatedCallsPerChapter = 5 + config.sectionsPerChapter * 6;
+  const estimatedCallsPerChapter = 5 + effectiveSectionsPerChapter * 6;
   const estimatedTotalCalls = config.totalChapters * estimatedCallsPerChapter + 2; // +2 for overhead
   const estimatedTokensPerCall = 6000;
   const estimatedTotalTokens = estimatedTotalCalls * estimatedTokensPerCall;

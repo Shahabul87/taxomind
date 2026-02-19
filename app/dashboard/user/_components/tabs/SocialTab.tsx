@@ -38,7 +38,7 @@ export function SocialTab({ userId }: SocialTabProps) {
           {/* Study Buddy */}
           <div className="mb-6 sm:mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <StudyBuddyFinder />
-            <StudyBuddyChat userId={userId} />
+            <StudyBuddyChat />
           </div>
 
           {/* Collaboration Space */}

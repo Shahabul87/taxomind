@@ -47,6 +47,7 @@ interface Section {
   position: number;
   type?: string | null;
   duration?: number | null;
+  isPublished?: boolean;
   isFree?: boolean;
   isPreview?: boolean;
   user_progress?: Array<{ isCompleted: boolean }>;

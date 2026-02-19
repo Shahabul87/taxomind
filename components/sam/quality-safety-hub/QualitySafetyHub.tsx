@@ -539,7 +539,7 @@ export function QualitySafetyHub({
               compact={false}
               className="w-full"
               onCheckComplete={(result) => {
-                const isClean = result.overallRiskLevel === "low";
+                const isClean = result.overallRisk === "low";
                 onIntegrityChecked?.({ isClean });
               }}
             />

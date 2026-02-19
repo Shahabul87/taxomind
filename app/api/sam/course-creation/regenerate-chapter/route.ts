@@ -105,14 +105,14 @@ export async function POST(request: NextRequest) {
 
     logger.error('[REGENERATE_CHAPTER] Regeneration failed', { error: result.error });
     return NextResponse.json(
-      { success: false, error: result.error },
+      { success: false, error: 'Chapter regeneration failed' },
       { status: 500 }
     );
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[REGENERATE_CHAPTER] Error:', msg);
     return NextResponse.json(
-      { success: false, error: msg },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

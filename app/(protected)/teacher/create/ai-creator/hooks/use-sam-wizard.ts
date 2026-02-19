@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { useIntelligentSAMSync } from '@/hooks/use-sam-intelligent-sync';
 import { getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-context';
 import { useSamActionHandler } from './use-sam-action-handler';
+import { getMinimumSectionsForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 
 const TOTAL_STEPS = 4;
 
@@ -20,10 +21,11 @@ const initialFormData: CourseCreationRequest = {
   courseSubcategory: '',
   courseIntent: '',
   targetAudience: '',
+  customAudience: '',
   difficulty: 'BEGINNER',
   duration: '4-6 weeks',
   chapterCount: 5,
-  sectionsPerChapter: 3,
+  sectionsPerChapter: 5,
   // Learning objectives configuration - Bloom's taxonomy aligned
   learningObjectivesPerChapter: 5,  // 5 objectives per chapter (minimum for proper coverage)
   learningObjectivesPerSection: 3,  // 3 objectives per section (focused learning)
@@ -31,7 +33,19 @@ const initialFormData: CourseCreationRequest = {
   includeAssessments: true,
   bloomsFocus: ['UNDERSTAND', 'APPLY'],
   preferredContentTypes: ['video', 'reading', 'assessments'],
+  enableEscalationGate: false,
+  fallbackHaltRateThreshold: 0.3,
+  haltOnExcessiveFallbacks: true,
 };
+
+function normalizeSectionsPerChapter(data: CourseCreationRequest): CourseCreationRequest {
+  const difficulty = typeof data.difficulty === 'string'
+    ? data.difficulty.toLowerCase()
+    : 'intermediate';
+  const minimumSections = getMinimumSectionsForDifficulty(difficulty);
+  if (data.sectionsPerChapter >= minimumSections) return data;
+  return { ...data, sectionsPerChapter: minimumSections };
+}
 
 export function useSamWizard() {
   const router = useRouter();
@@ -42,6 +56,8 @@ export function useSamWizard() {
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const formDataRef = React.useRef(formData);
+  const stepRef = React.useRef(step);
   // Enhanced hooks
   const { debouncedCall, cancelAllCalls } = useSamDebounce();
   const samCache = useSamCache({ ttl: 5 * 60 * 1000, maxSize: 100 });
@@ -76,7 +92,7 @@ export function useSamWizard() {
   // bloomsFocus, preferredContentTypes) that generate noisy recursive expansions
   const relevantFields = useMemo(() => new Set([
     'courseTitle', 'courseShortOverview', 'courseCategory', 'courseSubcategory',
-    'courseIntent', 'targetAudience', 'difficulty', 'duration',
+    'courseIntent', 'targetAudience', 'customAudience', 'difficulty', 'duration',
     'chapterCount', 'sectionsPerChapter',
     'learningObjectivesPerChapter', 'learningObjectivesPerSection',
     'includeAssessments',
@@ -98,11 +114,22 @@ export function useSamWizard() {
 
   // Auto-save functionality
   useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
+  useEffect(() => {
     const autoSaveInterval = setInterval(() => {
-      if (formData.courseTitle || formData.courseShortOverview) {
+      const currentFormData = formDataRef.current;
+      const currentStep = stepRef.current;
+
+      if (currentFormData.courseTitle || currentFormData.courseShortOverview) {
         localStorage.setItem('course-creator-draft', JSON.stringify({
-          formData,
-          step,
+          formData: currentFormData,
+          step: currentStep,
           timestamp: new Date().toISOString()
         }));
         setLastAutoSave(new Date());
@@ -110,7 +137,7 @@ export function useSamWizard() {
     }, 30000); // Auto-save every 30 seconds
 
     return () => clearInterval(autoSaveInterval);
-  }, [formData, step]);
+  }, []);
 
   // Load saved draft on mount
   useEffect(() => {
@@ -123,7 +150,7 @@ export function useSamWizard() {
         
         if (hoursSinceSave < 24) { // Only restore if less than 24 hours old
           // Merge with defaults to ensure no missing fields from older drafts
-          setFormData({ ...initialFormData, ...savedFormData });
+          setFormData(normalizeSectionsPerChapter({ ...initialFormData, ...savedFormData }));
           setStep(savedStep);
           setLastAutoSave(saveTime);
           toast.success("Draft restored from auto-save");
@@ -190,10 +217,6 @@ export function useSamWizard() {
   // to avoid duplicate handlers and reduce listener churn.
   const isLoadingSuggestionRef = React.useRef(isLoadingSuggestion);
   isLoadingSuggestionRef.current = isLoadingSuggestion;
-  const formDataRef = React.useRef(formData);
-  formDataRef.current = formData;
-  const stepRef = React.useRef(step);
-  stepRef.current = step;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

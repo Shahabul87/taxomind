@@ -436,13 +436,14 @@ Sections within a chapter should follow the ARROW progression:
 const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
 
 ### Writing Lesson Content (Rich HTML Descriptions)
-A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 600-1000 words of structured HTML, organized into exactly 5 sections with h2 headings:
+A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 700-1200 words of structured HTML, organized into exactly 6 sections with these h2 headings in this exact order:
 
-1. **&lt;h2&gt;Why This Matters&lt;/h2&gt;** — Open with a real-world story, scenario, or surprising fact. Build intuition for WHY this concept exists. Make the learner feel "I need to understand this." Use a concrete analogy.
-2. **&lt;h2&gt;The Big Picture&lt;/h2&gt;** — Where does this topic fit in the broader field? Why can&apos;t you skip it? What breaks if you don&apos;t understand it? Connect to prior sections and the chapter arc.
-3. **&lt;h2&gt;What You Will Learn&lt;/h2&gt;** — 3-5 key ideas explained with analogies and plain language. Use &lt;ul&gt;/&lt;li&gt; lists. Each concept should be concrete and specific, not vague.
-4. **&lt;h2&gt;Problems You Can Solve&lt;/h2&gt;** — Specific, concrete problems (not vague categories). Name actual scenarios, datasets, or challenges. Use &lt;ol&gt;/&lt;li&gt; for numbered examples.
-5. **&lt;h2&gt;Real-World Applications&lt;/h2&gt;** — Name real companies, products, or systems that use this concept. Show how this knowledge translates to professional value.
+1. **&lt;h2&gt;Why It Was Developed&lt;/h2&gt;** — Explain the concrete problem/limitation that motivated this concept.
+2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — Give a beginner-friendly mental model and analogy.
+3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — If math exists, explain what each term means and why the equation is shaped that way. If no math is needed, explicitly say why no equation is required.
+4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — Describe how the learner should mentally visualize the process in sequence.
+5. **&lt;h2&gt;Concrete Example&lt;/h2&gt;** — Provide a worked mini-scenario with concrete inputs/outputs.
+6. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — Name a typical misconception and the correction.
 
 **HTML Rules:**
 - Use ONLY these tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote
@@ -452,6 +453,7 @@ A section description is a FULL LESSON — the text version of what a great prof
 - Address the learner directly ("you", "your")
 - Mention the section&apos;s topicFocus by name at least 3 times
 - Include at least one analogy to make an abstract concept concrete
+- Each required h2 section must be substantive (minimum ~80 words per section)
 
 ### Mathematical Notation Formatting
 When the course topic involves math, science, or any quantitative content:
@@ -1380,7 +1382,7 @@ ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'This is early in the co
 Build descriptions and objectives that reference and extend this knowledge.
 
 ## STYLE AND DEPTH GUIDELINES
-- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 5 sections: Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications
+- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 6 sections: Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix
 - Objectives: Use ONLY ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.join(', ')})
 - Activity: Must match content type "${section.contentType}" and demonstrate measurable skill
 - Each objective should be achievable within ${section.estimatedDuration}
@@ -1534,12 +1536,15 @@ ${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Pri
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
-${templateBlock ? `Follow the section-type-specific HTML structure and format rules defined in the Chapter DNA template block above. Do NOT use the generic 5-h2 structure — use the role-specific structure for this section type.` : `Write a rich, structured HTML lesson (${getStage3WordTarget(ctx.difficulty)} words) with exactly 5 sections:
-1. **<h2>Why This Matters</h2>**: Open with a real-world story or scenario about "${section.topicFocus}". Why does this concept exist? What problem does it solve? Use a concrete analogy to build intuition.
-2. **<h2>The Big Picture</h2>**: Where does "${section.topicFocus}" fit in the broader field? How does it connect to what students learned in prior sections? What breaks if you skip this?
-3. **<h2>What You Will Learn</h2>**: List 3-5 key ideas with analogies. Use <ul>/<li> for each concept. Explain each in plain language before using technical terms.
-4. **<h2>Problems You Can Solve</h2>**: Give specific, concrete problems (not vague). Use <ol>/<li> to number them. Name actual datasets, scenarios, or challenges.
-5. **<h2>Real-World Applications</h2>**: Name real companies, products, or systems. Show professional value. Connect to what students will build in the practical activity.`}
+Write a rich, structured HTML lesson (${getStage3WordTarget(ctx.difficulty)} words) with EXACTLY these 6 required <h2> sections in this exact order:
+1. **<h2>Why It Was Developed</h2>**: Identify the original problem/limitation that motivated "${section.topicFocus}".
+2. **<h2>Core Intuition</h2>**: Teach a beginner-safe mental model and at least one concrete analogy.
+3. **<h2>Equation Intuition</h2>**: If math exists, explain each term and why the equation is shaped that way. If math is not needed, explicitly state why no equation is required.
+4. **<h2>Step-by-Step Visualization</h2>**: Walk through how a student should mentally visualize the process in sequence.
+5. **<h2>Concrete Example</h2>**: Give a small worked example or mini-scenario with concrete values/conditions.
+6. **<h2>Common Confusion + Fix</h2>**: Name a typical misconception and provide a specific corrective strategy.
+
+${templateBlock ? `Use the section-type guidance from the Chapter DNA template block above to shape tone, depth, and examples inside these six required headings.` : ''}
 
 ### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
 For each of the ${ctx.learningObjectivesPerSection} objectives:
@@ -1577,7 +1582,7 @@ Return a JSON object with this EXACT structure:
 {
   "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "${templateBlock ? `Structured HTML lesson content following the section-type-specific format from the Chapter DNA template. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote, table, tr, th, td. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.` : `${getStage3WordTarget(ctx.difficulty)} words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.`}",
+    "description": "${getStage3WordTarget(ctx.difficulty)} words of structured HTML lesson content. Must contain EXACTLY these six <h2> headings in order: 'Why It Was Developed', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example', 'Common Confusion + Fix'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote${templateBlock ? ', table, tr, th, td' : ''}. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles. Each h2 section must be substantive (minimum ~80 words).",
     "learningObjectives": [
       // EXACTLY ${ctx.learningObjectivesPerSection} objectives — no more, no less
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
@@ -1594,7 +1599,7 @@ Return a JSON object with this EXACT structure:
 }
 
 QUALITY GATES — Your output will be scored on:
-1. **Lesson Structure**: ${templateBlock ? `Does the description follow the section-type-specific HTML structure from the Chapter DNA template? Does it mention "${section.topicFocus}" at least 3 times?` : `Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it ${getStage3WordTarget(ctx.difficulty)} words? Does it mention "${section.topicFocus}" at least 3 times?`}
+1. **Lesson Structure**: Does the description contain the exact 6 required headings in order (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix), with substantive content under each and "${section.topicFocus}" mentioned at least 3 times?
 2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?

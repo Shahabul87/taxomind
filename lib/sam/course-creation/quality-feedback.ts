@@ -41,7 +41,7 @@ export interface QualityFeedback {
 // Dimension label mapping
 // ============================================================================
 
-const DIMENSION_LABELS: Record<keyof Omit<QualityScore, 'overall'>, string> = {
+const DIMENSION_LABELS: Record<keyof Omit<QualityScore, 'overall' | 'stage' | 'chapterNumber' | 'blueprintAlignment'>, string> = {
   uniqueness: 'Uniqueness across course',
   specificity: 'Topic specificity',
   bloomsAlignment: "Bloom's taxonomy alignment",
@@ -66,13 +66,14 @@ export function extractQualityFeedback(
 ): QualityFeedback {
   // Identify weak dimensions (sub-scores below 60)
   const weakDimensions: string[] = [];
-  const dimensionKeys: Array<keyof Omit<QualityScore, 'overall'>> = [
+  const dimensionKeys: Array<keyof Omit<QualityScore, 'overall' | 'stage' | 'chapterNumber' | 'blueprintAlignment'>> = [
     'uniqueness', 'specificity', 'bloomsAlignment', 'completeness', 'depth',
   ];
 
   for (const key of dimensionKeys) {
-    if (customScore[key] < 60) {
-      weakDimensions.push(`${DIMENSION_LABELS[key]} (${customScore[key]}/100)`);
+    const value = customScore[key];
+    if (value !== undefined && value < 60) {
+      weakDimensions.push(`${DIMENSION_LABELS[key]} (${value}/100)`);
     }
   }
 

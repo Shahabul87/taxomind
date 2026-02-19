@@ -500,7 +500,7 @@ Focus on actionable, specific insights based on the data. Be encouraging but hon
 
   try {
     const responseText = await runSAMChatWithPreference({
-      userId,
+      userId: userId ?? 'system',
       capability: 'analysis',
       maxTokens: 500,
       messages: [{ role: 'user', content: prompt }],

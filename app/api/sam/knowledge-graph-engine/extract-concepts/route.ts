@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       const isTeacher = await db.course.findFirst({
         where: {
           id: context.courseId,
-          teacherId: session.user.id,
+          userId: session.user.id,
         },
       });
 

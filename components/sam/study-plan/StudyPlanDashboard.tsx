@@ -131,11 +131,13 @@ export function StudyPlanDashboard({
       .map((sg) => ({
         id: sg.id,
         title: sg.title,
-        completed: sg.status === 'completed',
+        status: (sg.status === 'completed' ? 'completed' : 'pending') as DailyTask['status'],
         estimatedMinutes: sg.estimatedMinutes ?? 30,
-        scheduledDate: sg.metadata?.scheduledDate ?? null,
-        type: 'study' as const,
-        dayNumber: sg.metadata?.dayNumber ?? 1,
+        metadata: {
+          scheduledDate: sg.metadata?.scheduledDate ?? undefined,
+          taskType: 'study',
+          dayNumber: sg.metadata?.dayNumber ?? 1,
+        },
       }));
   }, [subGoals, currentWeekNumber]);
 

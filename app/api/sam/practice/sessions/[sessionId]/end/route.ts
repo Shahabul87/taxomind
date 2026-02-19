@@ -479,9 +479,9 @@ export async function POST(
             focusWeight: qualityScore.breakdown.focus ?? 0,
             bloomsWeight: qualityScore.breakdown.blooms ?? 0,
             sessionTypeWeight: qualityScore.breakdown.sessionType ?? 0,
-            assessmentBonus: qualityScore.breakdown.assessment ?? 0,
-            projectBonus: qualityScore.breakdown.project ?? 0,
-            peerReviewBonus: qualityScore.breakdown.peerReview ?? 0,
+            assessmentBonus: qualityScore.breakdown.outcome ?? 0,
+            projectBonus: qualityScore.breakdown.engagement ?? 0,
+            peerReviewBonus: qualityScore.breakdown.difficulty ?? 0,
             difficultyAdjustment: qualityScore.breakdown.difficulty ?? 0,
           },
           // Also include raw values for debugging/advanced use

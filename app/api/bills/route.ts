@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { BillCategory, BillStatus } from "@prisma/client";
+import { BillCategory, BillStatus, RecurringType } from "@prisma/client";
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -14,7 +14,7 @@ const BillCreateSchema = z.object({
   startDate: z.string().or(z.date()),
   dueDate: z.string().or(z.date()),
   status: z.nativeEnum(BillStatus).default("UNPAID"),
-  recurringType: z.string().optional().nullable(),
+  recurringType: z.nativeEnum(RecurringType).optional().nullable(),
   recurringPeriod: z.number().int().positive().optional().nullable(),
   notifyBefore: z.number().int().min(0).max(90).default(3),
   notifyEmail: z.boolean().default(true),
@@ -41,8 +41,10 @@ export async function POST(req: Request) {
 
     const bill = await db.bill.create({
       data: {
+        id: crypto.randomUUID(),
         ...values,
         userId: session.user.id,
+        updatedAt: new Date(),
       },
     });
 

@@ -21,6 +21,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { Prisma } from '@prisma/client';
 import type { BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import type {
   ExamOrchestrationConfig,
@@ -781,11 +782,11 @@ async function saveQuestionToDb(
         examId,
         question: question.stem,
         options: question.options
-          ? question.options.map((o) => ({
+          ? JSON.parse(JSON.stringify(question.options.map((o) => ({
               text: o.text,
               isCorrect: o.isCorrect,
-            }))
-          : null,
+            }))))
+          : Prisma.JsonNull,
         correctAnswer: question.correctAnswer,
         explanation: question.explanation,
         points: question.points,
@@ -806,22 +807,22 @@ async function saveQuestionToDb(
         points: question.points,
         order,
         options: question.options
-          ? question.options.map((o) => ({
+          ? JSON.parse(JSON.stringify(question.options.map((o) => ({
               text: o.text,
               isCorrect: o.isCorrect,
               diagnosticNote: o.diagnosticNote,
-            }))
-          : null,
+            }))))
+          : Prisma.JsonNull,
         correctAnswer: question.correctAnswer,
         bloomsLevel: question.bloomsLevel as never,
         cognitiveSkills: question.cognitiveSkills,
         hint: question.hint ?? null,
         explanation: question.explanation,
         commonMisconceptions: question.options
-          ? question.options
+          ? JSON.parse(JSON.stringify(question.options
               .filter((o) => !o.isCorrect && o.diagnosticNote)
-              .map((o) => o.diagnosticNote)
-          : null,
+              .map((o) => o.diagnosticNote)))
+          : Prisma.JsonNull,
         difficulty: difficultyMap[question.difficulty] as never,
         estimatedTime: question.estimatedTimeSeconds,
         prerequisites: question.relatedConcepts,

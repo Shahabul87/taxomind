@@ -5,6 +5,7 @@
  * skill navigator pipeline. Fire-and-forget pattern.
  */
 
+import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
 import { NAVIGATOR_STAGES } from './agentic-types';
@@ -26,24 +27,45 @@ export async function initializeNavigatorGoal(
       userId,
       title: `Skill Navigator: ${skillName}`,
       description: goalOutcome,
-      priority: 'HIGH',
-      status: 'IN_PROGRESS',
+      priority: 'high',
       tags: ['skill-navigator', skillName.toLowerCase()],
-      metadata: { source: 'skill-navigator', skillName },
     });
 
     // Create execution plan with 6 steps (one per NAVIGATOR stage)
+    const planId = randomUUID();
     const newPlan = await plan.create({
       goalId: newGoal.id,
       userId,
-      status: 'ACTIVE',
+      status: 'active',
+      overallProgress: 0,
+      steps: NAVIGATOR_STAGES.map((s, idx) => ({
+        id: randomUUID(),
+        planId,
+        title: s.name,
+        description: `Stage ${s.number}: ${s.name}`,
+        type: 'create_summary' as const,
+        order: idx,
+        status: 'pending' as const,
+        estimatedMinutes: 5,
+        retryCount: 0,
+        maxRetries: 2,
+        inputs: [],
+        outputs: [],
+        executionContext: {},
+        metadata: { hasAI: s.hasAI },
+      })),
       schedule: {
-        stages: NAVIGATOR_STAGES.map((s) => ({
-          number: s.number,
-          name: s.name,
-          hasAI: s.hasAI,
+        dailyMinutes: 30,
+        sessions: NAVIGATOR_STAGES.map((s) => ({
+          date: new Date(),
+          steps: [String(s.number)],
+          estimatedMinutes: 5,
+          completed: false,
         })),
       },
+      checkpoints: [],
+      fallbackStrategies: [],
+      checkpointData: {},
     });
 
     logger.info('[NavigatorController] Goal + plan initialized', {
@@ -99,7 +121,7 @@ export async function completeNavigation(
 
     await Promise.all([
       plan.update(planId, {
-        status: 'COMPLETED',
+        status: 'completed',
         overallProgress: 100,
         completedAt: new Date(),
         checkpointData: {
@@ -108,9 +130,8 @@ export async function completeNavigation(
         },
       }),
       goal.update(goalId, {
-        status: 'ACHIEVED',
-        completedAt: new Date(),
-        metadata: { roadmapId, completedVia: 'navigator-pipeline' },
+        status: 'completed',
+        tags: [`roadmap:${roadmapId}`, 'navigator-pipeline-completed'],
       }),
     ]);
 
@@ -136,15 +157,15 @@ export async function failNavigation(
 
     await Promise.all([
       plan.update(planId, {
-        status: 'FAILED',
+        status: 'failed',
         checkpointData: {
           error: errorMessage,
           failedAt: new Date().toISOString(),
         },
       }),
       goal.update(goalId, {
-        status: 'ABANDONED',
-        metadata: { error: errorMessage, failedVia: 'navigator-pipeline' },
+        status: 'abandoned',
+        tags: ['navigator-pipeline-failed'],
       }),
     ]);
   } catch (error) {

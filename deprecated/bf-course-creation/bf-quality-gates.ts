@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Breadth-First Pipeline Quality Gates
  *

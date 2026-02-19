@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Roadmap Generator — Stage 1 of Breadth-First Course Creation Pipeline
  *

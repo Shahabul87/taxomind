@@ -1373,7 +1373,7 @@ export {
   isSAMError,
   createErrorResponse,
   type ErrorHandlerOptions,
-  type CircuitBreakerConfig,
+  type CircuitBreakerOptions as CircuitBreakerConfig,
 } from './utils/error-handler';
 
 // Enum Normalizer - Type-safe enum conversions between frontend and Prisma

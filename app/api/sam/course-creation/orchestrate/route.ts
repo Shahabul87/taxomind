@@ -22,6 +22,7 @@ import { db } from '@/lib/db';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
 
@@ -29,12 +30,12 @@ export const runtime = 'nodejs';
 export const maxDuration = 900; // 15 min per SSE segment; auto-reconnection handles longer courses
 
 // In-memory in-flight dedup guard — blocks rapid double-submits within a single
-// server process. NOTE: this is per-instance only; in multi-instance deployments
-// (e.g. Railway with multiple replicas), each process has its own Map. Cross-instance
-// dedup is handled by the DB-level requestFingerprint unique constraint in
-// orchestrateCourseCreation(), forming a defense-in-depth pattern.
+// server process. Multi-instance safety is added via a DB-backed dedupe lock row
+// in the RateLimit table (atomic unique key insert).
 const inFlightRequests = new Map<string, number>();
 const IN_FLIGHT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const DB_DEDUPE_LOCK_ENDPOINT = 'sam_orchestrate_dedupe_lock';
+const DB_DEDUPE_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 // =============================================================================
 // VALIDATION
@@ -57,6 +58,11 @@ const OrchestrateRequestSchema = z.object({
   courseIntent: z.string().max(1000).optional(),
   includeAssessments: z.boolean().optional(),
   duration: z.string().max(50).optional(),
+  enableEscalationGate: z.boolean().optional(),
+  fallbackPolicy: z.object({
+    haltRateThreshold: z.number().min(0).max(1).optional(),
+    haltOnExcessiveFallbacks: z.boolean().optional(),
+  }).optional(),
   resumeCourseId: z.string().optional(),
   /** Client-generated idempotency key to prevent duplicate course creation */
   requestId: z.string().uuid().optional(),
@@ -80,6 +86,11 @@ function buildRequestFingerprint(config: z.infer<typeof OrchestrateRequestSchema
     courseIntent: config.courseIntent ?? '',
     includeAssessments: config.includeAssessments ?? null,
     duration: config.duration ?? '',
+    enableEscalationGate: config.enableEscalationGate ?? false,
+    fallbackPolicy: {
+      haltRateThreshold: config.fallbackPolicy?.haltRateThreshold ?? null,
+      haltOnExcessiveFallbacks: config.fallbackPolicy?.haltOnExcessiveFallbacks ?? null,
+    },
   });
   return crypto.createHash('sha256').update(canonical).digest('hex').slice(0, 32);
 }
@@ -97,12 +108,56 @@ function releaseInFlight(key?: string): void {
   inFlightRequests.delete(key);
 }
 
+function getDedupeWindowStart(now = Date.now()): Date {
+  return new Date(Math.floor(now / DB_DEDUPE_WINDOW_MS) * DB_DEDUPE_WINDOW_MS);
+}
+
+async function claimDbDedupeLock(identifier: string): Promise<boolean> {
+  try {
+    await db.rateLimit.create({
+      data: {
+        identifier,
+        endpoint: DB_DEDUPE_LOCK_ENDPOINT,
+        windowStart: getDedupeWindowStart(),
+        count: 1,
+      },
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function releaseDbDedupeLock(identifier?: string): Promise<void> {
+  if (!identifier) return;
+  try {
+    await db.rateLimit.deleteMany({
+      where: {
+        identifier,
+        endpoint: DB_DEDUPE_LOCK_ENDPOINT,
+      },
+    });
+  } catch {
+    // Best effort lock cleanup only
+  }
+}
+
 // =============================================================================
 // HANDLER
 // =============================================================================
 
 export async function POST(request: NextRequest) {
   let inFlightKey: string | undefined;
+  let dbDedupeLockKey: string | undefined;
+
+  const releaseDedupeLocks = async (): Promise<void> => {
+    releaseInFlight(inFlightKey);
+    await releaseDbDedupeLock(dbDedupeLockKey);
+  };
+
   try {
     // 0. Rate limit — prevent abuse of expensive 15-min SSE sessions
     const rateLimitResponse = await withRateLimit(request, 'ai');
@@ -156,6 +211,8 @@ export async function POST(request: NextRequest) {
     const dedupeKey = config.requestId ?? requestFingerprint;
     if (!config.resumeCourseId && dedupeKey) {
       inFlightKey = `${user.id}:${dedupeKey}`;
+      dbDedupeLockKey = inFlightKey;
+
       if (!claimInFlight(inFlightKey)) {
         // Look up the active course so the client can show a Resume button
         // instead of a dead-end error. This is an error path, so the extra
@@ -166,7 +223,7 @@ export async function POST(request: NextRequest) {
             where: {
               goal: { userId: user.id },
               status: { in: ['ACTIVE', 'DRAFT'] },
-              checkpointData: { not: null },
+              checkpointData: { not: Prisma.AnyNull },
             },
             orderBy: { updatedAt: 'desc' },
             select: { checkpointData: true },
@@ -185,6 +242,19 @@ export async function POST(request: NextRequest) {
             error: 'Course creation already in progress',
             code: 'ALREADY_RUNNING',
             courseId: activeCourseId,
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const hasDbLock = await claimDbDedupeLock(dbDedupeLockKey);
+      if (!hasDbLock) {
+        releaseInFlight(inFlightKey);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Course creation already in progress',
+            code: 'ALREADY_RUNNING',
           }),
           { status: 409, headers: { 'Content-Type': 'application/json' } },
         );
@@ -223,7 +293,7 @@ export async function POST(request: NextRequest) {
         const courseId = checkpoint?.courseId as string | undefined;
 
         if (existingPlan.status === 'ACTIVE' || existingPlan.status === 'DRAFT') {
-          releaseInFlight(inFlightKey);
+          await releaseDedupeLocks();
           return new Response(
             JSON.stringify({
               success: false,
@@ -237,7 +307,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (existingPlan.status === 'COMPLETED' && courseId) {
-          releaseInFlight(inFlightKey);
+          await releaseDedupeLocks();
           return new Response(
             JSON.stringify({
               success: true,
@@ -272,7 +342,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (activeMatch) {
-        releaseInFlight(inFlightKey);
+        await releaseDedupeLocks();
         const checkpoint = activeMatch.checkpointData as Record<string, unknown> | null;
         const courseId = checkpoint?.courseId as string | undefined;
         return new Response(
@@ -378,9 +448,9 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Unknown error';
           logger.error('[ORCHESTRATE_ROUTE] Stream error:', msg);
-          sendSSE('error', { message: msg, courseId: lastKnownCourseId });
+          sendSSE('error', { message: 'Course creation failed', courseId: lastKnownCourseId });
         } finally {
-          releaseInFlight(inFlightKey);
+          await releaseDedupeLocks();
           clearInterval(heartbeat);
           try {
             controller.close();
@@ -401,11 +471,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    releaseInFlight(inFlightKey);
+    await releaseDedupeLocks();
     const msg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATE_ROUTE] Error:', msg);
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

@@ -54,9 +54,9 @@ async function fetchEntityContext(
           entityId: section.id,
           title: section.title,
           description: section.description ?? undefined,
-          content: section.contentPreview ?? undefined,
+          content: section.content ?? undefined,
           metadata: {
-            type: section.type,
+            type: section.contentType,
             chapterTitle: section.chapterTitle,
             courseTitle: section.courseTitle,
           },
@@ -154,9 +154,11 @@ export async function processContextSnapshot(
     context: {
       user: { id: userId, role: userRole ?? 'user' } as never,
       page: { type: clientSnapshot.page.type, path: clientSnapshot.page.path } as never,
+      form: null,
       conversation: { messages: [] } as never,
       gamification: {} as never,
       ui: {} as never,
+      metadata: { sessionId: '', startedAt: new Date(), lastActivityAt: new Date(), version: '0.1.0' },
     },
     ...engineInput,
   });

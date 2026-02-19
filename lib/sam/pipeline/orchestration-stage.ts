@@ -487,7 +487,7 @@ export async function runOrchestrationStage(
     const generatedContent: GeneratedContent = {
       type: 'explanation',
       content: result.response.message,
-      targetBloomsLevel: (bloomsAnalysis?.dominantLevel as string) || 'UNDERSTAND',
+      targetBloomsLevel: (bloomsAnalysis?.dominantLevel ?? 'UNDERSTAND') as GeneratedContent['targetBloomsLevel'],
     };
     qualityResult = await subsystems.quality.validate(generatedContent);
 
@@ -509,13 +509,15 @@ export async function runOrchestrationStage(
       for (let attempt = 1; attempt <= MAX_QUALITY_RETRIES; attempt++) {
         try {
           const failedGates = bestQuality.failedGates ?? [];
-          const gateResults = (bestQuality as Record<string, unknown>).gateResults as
-            | Record<string, { feedback?: string; score?: number }>
-            | undefined;
+          const gateResultsArr = bestQuality.gateResults ?? [];
+          const gateResultsByName = new Map(
+            gateResultsArr.map(gr => [gr.gateName, gr])
+          );
 
           const targetedFeedback = failedGates.map((g) => {
-            const feedback = gateResults?.[g]?.feedback ?? 'Failed';
-            const score = gateResults?.[g]?.score ?? 0;
+            const gate = gateResultsByName.get(g);
+            const feedback = gate?.suggestions?.join('; ') ?? 'Failed';
+            const score = gate?.score ?? 0;
             return `- ${g} (${score}/100): ${feedback}`;
           }).join('\n');
 
@@ -539,7 +541,7 @@ export async function runOrchestrationStage(
           const retryContent: GeneratedContent = {
             type: 'explanation',
             content: retryResult.response.message,
-            targetBloomsLevel: (bloomsAnalysis?.dominantLevel as string) || 'UNDERSTAND',
+            targetBloomsLevel: (bloomsAnalysis?.dominantLevel ?? 'UNDERSTAND') as GeneratedContent['targetBloomsLevel'],
           };
           const retryQuality = await subsystems.quality.validate(retryContent);
           const retryScore = retryQuality.overallScore ?? 0;
@@ -581,7 +583,7 @@ export async function runOrchestrationStage(
       pedagogyResult = await subsystems.pedagogy.evaluate({
         type: 'explanation',
         content: result.response?.message || ctx.message,
-        targetBloomsLevel: (bloomsAnalysis?.dominantLevel as string) ?? 'UNDERSTAND',
+        targetBloomsLevel: (bloomsAnalysis?.dominantLevel ?? 'UNDERSTAND') as GeneratedContent['targetBloomsLevel'],
         targetDifficulty: 'intermediate',
       });
 
@@ -624,7 +626,7 @@ export async function runOrchestrationStage(
         sectionId: ctx.pageContext.entityId,
         score: confidence * 100,
         maxScore: 100,
-        bloomsLevel: bloomsAnalysis.dominantLevel as string,
+        bloomsLevel: bloomsAnalysis.dominantLevel as EvaluationOutcome['bloomsLevel'],
         assessmentType: 'practice',
         timeSpentMinutes: 0,
         strengths: confidence > 0.7 ? [bloomsAnalysis.dominantLevel as string] : [],

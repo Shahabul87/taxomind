@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { ContentType } from '@prisma/client';
 
 type CollaboratorRole = 'owner' | 'editor' | 'viewer';
 
@@ -215,7 +216,7 @@ const CreateSessionSchema = z.object({
   action: z.literal('create'),
   name: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
-  contentType: z.enum(['COURSE', 'CHAPTER', 'SECTION', 'DOCUMENT', 'WHITEBOARD']),
+  contentType: z.enum(['COURSE', 'CHAPTER', 'SECTION', 'DOCUMENT', 'OTHER']),
   contentId: z.string(),
   sessionType: z.string().optional(),
 });
@@ -261,11 +262,13 @@ export async function POST(req: NextRequest) {
         const collaborationSession = await db.collaborationSession.create({
           data: {
             sessionId,
-            contentType: action.contentType,
+            contentType: action.contentType as ContentType,
             contentId: action.contentId,
             sessionType: action.sessionType ?? 'general',
             isActive: true,
             startedAt: new Date(),
+            participants: {},
+            activeParticipants: {},
             sessionData: {
               name: action.name,
               description: action.description ?? '',
@@ -276,7 +279,6 @@ export async function POST(req: NextRequest) {
             CollaborationParticipant: {
               create: {
                 id: crypto.randomUUID(),
-                sessionId,
                 userId: session.user.id,
                 role: 'owner',
                 isActive: true,
@@ -294,7 +296,8 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const collaborators: Collaborator[] = collaborationSession.CollaborationParticipant.map((p) => ({
+        const participants = (collaborationSession as { CollaborationParticipant: Array<{ userId: string; user?: { name: string | null; image: string | null } | null; role: string; isActive: boolean; lastActivity: Date | null }> }).CollaborationParticipant ?? [];
+        const collaborators: Collaborator[] = participants.map((p) => ({
           id: p.userId,
           name: p.user?.name ?? 'Collaborator',
           avatar: p.user?.image ?? undefined,

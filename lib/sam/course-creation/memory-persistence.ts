@@ -11,6 +11,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import type { LearningInsights } from '@sam-ai/agentic';
 import type { ConceptTracker, QualityScore } from './types';
 
 /**
@@ -83,7 +84,7 @@ async function doPersistConcepts(
 
     for (let i = 1; i < sortedConcepts.length && i < entityIds.length; i++) {
       await knowledgeGraph.createRelationship({
-        type: 'prerequisite_for',
+        type: 'prerequisite_of',
         sourceId: entityIds[i - 1],
         targetId: entityIds[i],
         weight: 1.0,
@@ -149,10 +150,11 @@ async function doPersistQualityScores(
 
     if (existing) {
       // Update existing session context with new stage scores
-      const currentInsights = (existing.insights ?? {}) as Record<string, unknown>;
+      const currentInsights = existing.insights as unknown as Record<string, unknown>;
       await sessionContext.update(existing.id, {
         lastActiveAt: new Date(),
         insights: {
+          ...existing.insights,
           ...currentInsights,
           [`stage${stage}Quality`]: {
             scoreCount: scores.length,
@@ -167,7 +169,7 @@ async function doPersistQualityScores(
             })),
             persistedAt: new Date().toISOString(),
           },
-        },
+        } as unknown as LearningInsights,
       });
     } else {
       // Create new session context
@@ -176,13 +178,42 @@ async function doPersistQualityScores(
         courseId,
         lastActiveAt: new Date(),
         currentState: {
-          type: 'course-creation',
-          courseId,
-          stage,
+          currentTopic: 'course-creation',
+          currentGoal: courseId,
+          recentConcepts: [],
+          pendingQuestions: [],
+          activeArtifacts: [],
+          sessionCount: 1,
         },
         history: [],
-        preferences: {},
+        preferences: {
+          learningStyle: 'mixed',
+          preferredPace: 'moderate',
+          preferredContentTypes: [],
+          preferredSessionLength: 30,
+          notificationPreferences: {
+            enabled: false,
+            channels: [],
+            frequency: 'daily',
+          },
+          accessibilitySettings: {
+            fontSize: 'medium',
+            highContrast: false,
+            reduceMotion: false,
+            screenReaderOptimized: false,
+            captionsEnabled: false,
+          },
+        },
         insights: {
+          strengths: [],
+          weaknesses: [],
+          recommendedTopics: [],
+          masteredConcepts: [],
+          strugglingConcepts: [],
+          averageSessionDuration: 0,
+          totalLearningTime: 0,
+          completionRate: 0,
+          engagementScore: 0,
           [`stage${stage}Quality`]: {
             scoreCount: scores.length,
             averageScore: avgScore,
@@ -196,7 +227,7 @@ async function doPersistQualityScores(
             })),
             persistedAt: new Date().toISOString(),
           },
-        },
+        } as unknown as LearningInsights,
       });
     }
 

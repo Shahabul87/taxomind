@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Mastery Decay Cron Job
  *

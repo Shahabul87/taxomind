@@ -289,11 +289,10 @@ export async function POST(req: NextRequest) {
       await db.sAMSubGoal.createMany({
         data: validated.milestones.map((m, idx) => ({
           goalId: goal.id,
-          userId: session.user.id,
           title: m.title,
           order: idx,
-          status: 'pending',
-          type: 'milestone',
+          status: 'PENDING' as const,
+          type: 'LEARN' as const,
         })),
       });
     }

@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
-import type { GoalType } from '@/lib/sam/stores';
+import type { GoalType, PracticeGoalData } from '@/lib/sam/stores';
 
 // Get practice goal store from TaxomindContext singleton
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -44,14 +44,7 @@ const CreateGoalSchema = z.object({
 // HELPER FUNCTIONS
 // ============================================================================
 
-function enrichGoal(goal: {
-  id: string;
-  targetValue: number;
-  currentValue: number;
-  deadline?: Date | null;
-  isCompleted: boolean;
-  [key: string]: unknown;
-}) {
+function enrichGoal(goal: PracticeGoalData) {
   return {
     ...goal,
     progressPercentage: Math.min(100, (goal.currentValue / goal.targetValue) * 100),

@@ -146,7 +146,7 @@ export function ClientAdminDashboard() {
   const statsCards = [
     {
       title: "Total Users",
-      value: loading ? "Loading..." : data?.usersStats.totalUsers.toString(),
+      value: loading ? "Loading..." : (data?.usersStats.totalUsers.toString() ?? "N/A"),
       icon: Users,
       color: "bg-blue-500",
       change: "+12%",
@@ -154,7 +154,7 @@ export function ClientAdminDashboard() {
     },
     {
       title: "Verified Users",
-      value: loading ? "Loading..." : `${Math.round(data?.usersStats.verificationRate)}%`,
+      value: loading ? "Loading..." : `${Math.round(data?.usersStats.verificationRate ?? 0)}%`,
       icon: CheckCircle,
       color: "bg-green-500",
       change: "+5%",
@@ -162,7 +162,7 @@ export function ClientAdminDashboard() {
     },
     {
       title: "Weekly Growth",
-      value: loading ? "Loading..." : `${Math.round(data?.usersStats.weeklyGrowthRate)}%`,
+      value: loading ? "Loading..." : `${Math.round(data?.usersStats.weeklyGrowthRate ?? 0)}%`,
       icon: BarChart3,
       color: "bg-purple-500",
       change: "+8%",
@@ -170,7 +170,7 @@ export function ClientAdminDashboard() {
     },
     {
       title: "Monthly Growth",
-      value: loading ? "Loading..." : `${Math.round(data?.usersStats.monthlyGrowthRate)}%`,
+      value: loading ? "Loading..." : `${Math.round(data?.usersStats.monthlyGrowthRate ?? 0)}%`,
       icon: Calendar,
       color: "bg-amber-500",
       change: "-3%",
@@ -182,25 +182,25 @@ export function ClientAdminDashboard() {
   const additionalStatsCards = [
     {
       title: "Total Courses",
-      value: loading ? "Loading..." : data?.additionalStats.totalCourses.toString(),
+      value: loading ? "Loading..." : (data?.additionalStats.totalCourses.toString() ?? "N/A"),
       icon: BookOpen,
       color: "bg-indigo-500"
     },
     {
       title: "Total Groups",
-      value: loading ? "Loading..." : data?.additionalStats.totalGroups.toString(),
+      value: loading ? "Loading..." : (data?.additionalStats.totalGroups.toString() ?? "N/A"),
       icon: Users,
       color: "bg-pink-500"
     },
     {
       title: "Total Resources",
-      value: loading ? "Loading..." : data?.additionalStats.totalResources.toString(),
+      value: loading ? "Loading..." : (data?.additionalStats.totalResources.toString() ?? "N/A"),
       icon: BarChart3,
       color: "bg-teal-500"
     },
     {
       title: "Total Messages",
-      value: loading ? "Loading..." : data?.additionalStats.totalMessages.toString(),
+      value: loading ? "Loading..." : (data?.additionalStats.totalMessages.toString() ?? "N/A"),
       icon: MessageSquare,
       color: "bg-orange-500"
     }

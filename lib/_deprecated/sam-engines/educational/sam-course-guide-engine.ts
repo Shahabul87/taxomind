@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from '@/lib/db';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { MarketAnalysisEngine } from '@/lib/sam-engines/business/sam-market-engine';

@@ -44,6 +44,7 @@ import type {
   ChapterPlanEntry,
 } from './types';
 import { parseAIJsonResponse } from '@/lib/ai/parse-ai-json';
+import { analyzeSectionDescriptionStructure } from './section-description-structure';
 
 // =============================================================================
 // Fallback Tracking (monitors fallback rate across the pipeline)
@@ -192,6 +193,12 @@ function validateCriticalFields(
       const description = typeof det.description === 'string' ? det.description.trim() : '';
       if (description.length < 30) {
         throw new Error(`[CriticalValidation] Detail description too short (${description.length} chars, need ≥30)`);
+      }
+      const structureAnalysis = analyzeSectionDescriptionStructure(description);
+      if (!structureAnalysis.isValid) {
+        throw new Error(
+          `[CriticalValidation] Detail description structure invalid: ${structureAnalysis.issues.slice(0, 3).join('; ')}`
+        );
       }
       const objectives = Array.isArray(det.learningObjectives) ? det.learningObjectives : [];
       if (objectives.length === 0) {

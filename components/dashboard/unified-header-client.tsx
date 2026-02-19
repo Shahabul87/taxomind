@@ -46,7 +46,7 @@ interface UnifiedHeaderClientProps {
 export function UnifiedHeaderClient({ user, onMobileSidebarOpen }: UnifiedHeaderClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState<DashboardView>('learning');
+  const [activeTab, setActiveTab] = useState<DashboardView>('todos');
 
   // Determine if we're on the main dashboard page
   const isMainDashboard = pathname === '/dashboard/user' || pathname === '/dashboard';
@@ -57,7 +57,7 @@ export function UnifiedHeaderClient({ user, onMobileSidebarOpen }: UnifiedHeader
       // On main dashboard, just update the state and URL params
       setActiveTab(tab);
       const url = new URL(window.location.href);
-      if (tab === 'learning') {
+      if (tab === 'todos') {
         url.searchParams.delete('tab');
       } else {
         url.searchParams.set('tab', tab);
@@ -65,7 +65,7 @@ export function UnifiedHeaderClient({ user, onMobileSidebarOpen }: UnifiedHeader
       router.push(url.pathname + url.search, { scroll: false });
     } else {
       // On other pages, navigate to the dashboard with the selected tab
-      if (tab === 'learning') {
+      if (tab === 'todos') {
         router.push('/dashboard/user');
       } else {
         router.push(`/dashboard/user?tab=${tab}`);

@@ -5,6 +5,7 @@ export interface CourseCreationRequest {
   courseSubcategory?: string;
   courseIntent: string;
   targetAudience: string;
+  customAudience: string;
   difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   duration: string;
   chapterCount: number;
@@ -16,6 +17,9 @@ export interface CourseCreationRequest {
   includeAssessments: boolean;
   bloomsFocus: string[];
   preferredContentTypes: string[];
+  enableEscalationGate: boolean;
+  fallbackHaltRateThreshold: number;
+  haltOnExcessiveFallbacks: boolean;
 }
 
 /**

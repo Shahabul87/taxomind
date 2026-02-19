@@ -824,6 +824,16 @@ export function getTemplateForDifficulty(difficulty: string): ChapterTemplate {
 }
 
 /**
+ * Minimum section count required to preserve all required pedagogical roles
+ * for a difficulty template.
+ */
+export function getMinimumSectionsForDifficulty(difficulty: string): number {
+  const template = getTemplateForDifficulty(difficulty);
+  const requiredCount = template.sections.filter(section => section.required).length;
+  return Math.max(1, requiredCount);
+}
+
+/**
  * Get the template section definition for a specific position within a difficulty template.
  */
 export function getTemplateSectionDef(difficulty: string, position: number): TemplateSectionDef {
@@ -957,7 +967,7 @@ ${exampleBlock}
 ${template.teachingLaws.map((law, i) => `${i + 1}. ${law}`).join('\n')}
 
 IMPORTANT: The description HTML must follow the format rules and HTML structure above.
-Do NOT use the generic 5-h2 lesson structure — use the section-type-specific structure for ${sectionDef.displayName}.`;
+You MUST keep the required 6-heading section-description anatomy (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix) while applying the section-type-specific guidance for ${sectionDef.displayName}.`;
 
   return { stage1Block, stage2Block, stage3Block, totalSections: effectiveTotalSections };
 }
@@ -1012,11 +1022,11 @@ export function selectTemplateSections(
     }
   }
 
-  // If target is at or below required count, just use required
+  // If target is at or below required count, keep all required sections.
+  // Required pedagogical roles must never be truncated.
   if (targetCount <= requiredSections.length) {
     return requiredSections
       .sort((a, b) => a.position - b.position)
-      .slice(0, targetCount)
       .map((s, i) => ({ ...s, position: i + 1 }));
   }
 

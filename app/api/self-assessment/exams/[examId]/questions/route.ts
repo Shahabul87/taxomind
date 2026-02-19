@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
@@ -179,9 +180,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             examId,
             question: q.question,
             questionType: q.questionType,
-            options: q.options ?? null,
+            options: (q.options ?? Prisma.DbNull) as Prisma.InputJsonValue,
             correctAnswer: q.correctAnswer,
-            acceptableVariations: q.acceptableVariations ?? null,
+            acceptableVariations: (q.acceptableVariations ?? Prisma.DbNull) as Prisma.InputJsonValue,
             points: q.points,
             bloomsLevel: q.bloomsLevel,
             difficulty: q.difficulty,

@@ -137,7 +137,6 @@ export function StudySubTab({ user }: StudySubTabProps) {
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Prerequisites Tree */}
           <PrerequisiteTreeView
-            userId={user.id ?? ''}
             courseId=""
             conceptId=""
             className="min-h-[400px]"
@@ -145,7 +144,6 @@ export function StudySubTab({ user }: StudySubTabProps) {
 
           {/* Learning Timeline */}
           <LearningPathTimeline
-            userId={user.id ?? ''}
             courseId=""
             className="min-h-[400px]"
           />

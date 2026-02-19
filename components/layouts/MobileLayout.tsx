@@ -91,7 +91,7 @@ export function MobileLayout({
 }: MobileLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardView>('learning');
+  const [activeTab, setActiveTab] = useState<DashboardView>('todos');
   const { isMobile, isTablet, isDesktop } = useViewportHeight();
   const pathname = usePathname();
   const router = useRouter();
@@ -105,7 +105,7 @@ export function MobileLayout({
       // On main dashboard, just update the state and URL params
       setActiveTab(tab);
       const url = new URL(window.location.href);
-      if (tab === 'learning') {
+      if (tab === 'todos') {
         url.searchParams.delete('tab');
       } else {
         url.searchParams.set('tab', tab);
@@ -113,7 +113,7 @@ export function MobileLayout({
       router.push(url.pathname + url.search, { scroll: false });
     } else {
       // On other pages, navigate to the dashboard with the selected tab
-      if (tab === 'learning') {
+      if (tab === 'todos') {
         router.push('/dashboard/user');
       } else {
         router.push(`/dashboard/user?tab=${tab}`);
@@ -134,6 +134,7 @@ export function MobileLayout({
     onScheduleSession: () => router.push('/calendar?action=schedule'),
     onAddTodo: () => router.push('/dashboard?action=add-todo'),
     onSetGoal: () => router.push('/goals?action=create'),
+    onAddLearningTask: () => router.push('/dashboard?action=add-learning-task'),
   };
 
   const handlers = {

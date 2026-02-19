@@ -86,7 +86,6 @@ async function getFirebaseAdmin(): Promise<FirebaseAdminLike | null> {
 
   try {
     // Dynamic import to avoid build errors when firebase-admin is not installed
-    // @ts-expect-error - firebase-admin is optional, may not be installed
     const admin = await import('firebase-admin').catch(() => null);
 
     if (!admin) {

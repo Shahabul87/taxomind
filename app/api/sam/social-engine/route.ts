@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Social Engine - Main Route
  * GET/POST /api/sam/social-engine

@@ -49,8 +49,7 @@ export function AIToolsSubTab({ user }: AIToolsSubTabProps) {
           {/* Multimodal Input Panel */}
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
             <MultimodalInputPanel
-              onSubmit={(input) => console.log('Multimodal input:', input)}
-              placeholder="Ask SAM with voice, image, or text..."
+              onInputProcessed={(result) => console.log('Multimodal input:', result)}
             />
           </div>
 

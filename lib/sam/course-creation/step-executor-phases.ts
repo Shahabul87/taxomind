@@ -78,6 +78,13 @@ export class PipelinePausedError extends Error {
   }
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  const error = new Error('Pipeline cancelled by user');
+  error.name = 'AbortError';
+  throw error;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -121,7 +128,7 @@ export function phaseSkipCheck(ctx: StepExecutorContext): StepResult | null {
       data: { chapter: chapterNumber, reason: 'AI determined content would be redundant' },
     });
     logger.info('[CourseStateMachine] Skipping chapter (AI decision)', { chapter: chapterNumber });
-    return { success: true, output: { skipped: true } } as StepResult;
+    return { success: true, output: { skipped: true } } as unknown as StepResult;
   }
 
   return null;
@@ -189,6 +196,7 @@ export async function phaseGenerate(
   chapterContext: ChapterStepContext,
 ): Promise<{ chapterResult: ChapterStepResult } | { earlyReturn: StepResult }> {
   const { config, state, chapterNumber } = ctx;
+  throwIfAborted(config.abortSignal);
 
   // Budget guard: stop before starting expensive generation
   if (state.budgetTracker && !state.budgetTracker.canProceed()) {
@@ -206,8 +214,10 @@ export async function phaseGenerate(
     {
       onSSEEvent: config.onSSEEvent,
       enableStreamingThinking: config.enableStreamingThinking,
+      abortSignal: config.abortSignal,
     },
   );
+  throwIfAborted(config.abortSignal);
 
   const elapsedMs = Date.now() - startTime;
   logger.info('[CourseStateMachine] Chapter generation complete (all 3 stages)', {
@@ -379,7 +389,7 @@ export async function phaseDecisionMaking(
           chapterPosition: qualityFlag.chapterPosition,
           chapterTitle: qualityFlag.chapterTitle,
           reason: qualityFlag.reason,
-          severity: qualityFlag.severity === 'critical' ? 'critical' : 'high',
+          severity: 'high' as const,
           qualityScore: chapterResult.qualityScores[0]?.overall ?? 0,
           timestamp: qualityFlag.timestamp,
         };

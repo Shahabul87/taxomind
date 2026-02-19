@@ -87,7 +87,6 @@ const QUESTION_TYPES: Record<QuestionType, string> = {
   FILL_IN_BLANK: "Fill in Blank",
   MATCHING: "Matching",
   ORDERING: "Ordering",
-  CODING: "Coding",
 };
 
 export interface BankQuestion {

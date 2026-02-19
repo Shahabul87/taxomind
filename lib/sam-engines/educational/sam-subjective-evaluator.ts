@@ -413,7 +413,7 @@ Please evaluate this answer according to the guidelines and provide your assessm
       strengths: [],
       areasForImprovement: ['Unable to evaluate automatically'],
       nextSteps: ['Please wait for instructor review'],
-      evaluationModel: this.model,
+      evaluationModel: 'subjective-evaluator',
       confidence: 0,
       flaggedForReview: true,
       evaluationType: 'AI_EVALUATED',

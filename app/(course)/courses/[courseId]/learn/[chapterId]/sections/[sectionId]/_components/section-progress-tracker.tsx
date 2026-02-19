@@ -60,28 +60,28 @@ export function SectionProgressTracker({
     if (userProgress) {
       setProgress(userProgress.progressPercent || 0);
 
-      // Parse completed items
-      const completedItems = userProgress.completedItems || {};
+      // Current persisted model tracks overall completion, not per-item arrays.
+      const isFullyCompleted = userProgress.isCompleted === true;
       setContentProgress({
         videos: {
           total: section.videos?.length || 0,
-          completed: completedItems.videos?.length || 0,
+          completed: isFullyCompleted ? (section.videos?.length || 0) : 0,
         },
         blogs: {
           total: section.blogs?.length || 0,
-          completed: completedItems.blogs?.length || 0,
+          completed: isFullyCompleted ? (section.blogs?.length || 0) : 0,
         },
         math: {
           total: section.mathExplanations?.length || 0,
-          completed: completedItems.math?.length || 0,
+          completed: isFullyCompleted ? (section.mathExplanations?.length || 0) : 0,
         },
         code: {
           total: section.codeExplanations?.length || 0,
-          completed: completedItems.code?.length || 0,
+          completed: isFullyCompleted ? (section.codeExplanations?.length || 0) : 0,
         },
         exams: {
           total: section.exams?.length || 0,
-          completed: completedItems.exams?.length || 0,
+          completed: isFullyCompleted ? (section.exams?.length || 0) : 0,
         },
       });
     }

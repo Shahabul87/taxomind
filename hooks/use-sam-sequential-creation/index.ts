@@ -21,6 +21,7 @@ import type { CreationProgress, SequentialCreationConfig, SequentialCreationResu
 
 import type {
   DbProgress,
+  EscalationDecision,
   UseSequentialCreationReturn,
   SSECallbacks,
   SSEHandlerContext,
@@ -376,6 +377,186 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
   }, [fetchDbProgressForCourse]);
 
   // ========================================
+  // Approve + Resume (Escalation Gate)
+  // ========================================
+
+  const approveAndResumeCreation = useCallback(async (
+    courseId: string,
+    decision: Exclude<EscalationDecision, 'reject_abort'>,
+    config: SequentialCreationConfig,
+  ): Promise<SequentialCreationResult> => {
+    const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
+    const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
+
+    const currentPhase = progressRef.current.state.phase;
+    if (currentPhase === 'error' || currentPhase === 'idle' || currentPhase === 'paused') {
+      reconnectCountRef.current = 0;
+    }
+
+    if (reconnectCountRef.current === 0) {
+      startTimeRef.current = Date.now();
+      itemTimestampsRef.current = [];
+    }
+    setError(null);
+
+    const totalChapters = courseData.totalChapters;
+    const sectionsPerChapter = courseData.sectionsPerChapter;
+    const totalSections = totalChapters * sectionsPerChapter;
+    totalItemsRef.current = Math.max(1, totalChapters + totalSections + totalSections);
+
+    const currentDbProgress = await fetchDbProgressForCourse(courseId);
+    const prePopulatedItems = currentDbProgress?.completedItems ?? {
+      chapters: [],
+      sections: [],
+    };
+    const initialPercentage = currentDbProgress?.percentage ?? 0;
+
+    if (reconnectCountRef.current === 0) {
+      setProgress(prev => ({
+        ...prev,
+        state: {
+          ...prev.state,
+          stage: 1,
+          phase: 'resuming',
+          currentChapter: currentDbProgress?.completedChapters ?? 0,
+          totalChapters,
+          currentSection: 0,
+          totalSections: sectionsPerChapter,
+        },
+        percentage: initialPercentage,
+        message: 'Approval recorded. Resuming course creation...',
+        completedItems: prePopulatedItems,
+      }));
+    }
+
+    lastCourseIdRef.current = courseId;
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const ctx = buildHandlerContext(callbacks);
+
+    try {
+      const response = await fetch('/api/sam/course-creation/approve-and-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId, decision }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // reject_abort returns JSON response, but this method is only for resume decisions.
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const { result, gotComplete, gotError } = await readSSEStream(response, ctx);
+
+      if (!gotComplete && !gotError && lastCourseIdRef.current) {
+        if (reconnectCountRef.current < MAX_RECONNECTIONS) {
+          reconnectCountRef.current++;
+          logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after approve/resume timeout', {
+            reconnectCount: reconnectCountRef.current,
+            courseId: lastCourseIdRef.current,
+          });
+          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+          return resumeCreation(lastCourseIdRef.current, config);
+        }
+
+        const exhaustedMsg = 'Connection lost after multiple retries. You can resume where you left off.';
+        logger.warn('[SEQUENTIAL_SSE] Max reconnections reached after approve/resume', {
+          maxReconnections: MAX_RECONNECTIONS,
+          courseId: lastCourseIdRef.current,
+        });
+
+        setPartialCourseId(lastCourseIdRef.current);
+        setResumableCourseId(lastCourseIdRef.current);
+        setError(exhaustedMsg);
+        setProgress(prev => ({
+          ...prev,
+          state: { ...prev.state, phase: 'error', error: exhaustedMsg },
+          message: exhaustedMsg,
+        }));
+
+        return {
+          success: false,
+          courseId: lastCourseIdRef.current,
+          error: exhaustedMsg,
+          stats: {
+            totalChapters: 0,
+            totalSections: 0,
+            totalTime: Date.now() - startTimeRef.current,
+            averageQualityScore: 0,
+          },
+        };
+      }
+
+      return result;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        const cancelMessage = 'Course creation cancelled';
+        setError(cancelMessage);
+        setProgress(prev => ({
+          ...prev,
+          state: { ...prev.state, phase: 'error', error: cancelMessage },
+          message: cancelMessage,
+        }));
+        return { success: false, error: cancelMessage };
+      }
+
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const isNetworkError = err instanceof TypeError ||
+        (err instanceof Error && /fetch|network|connection|timeout/i.test(err.message));
+
+      if (isNetworkError && lastCourseIdRef.current && reconnectCountRef.current < MAX_RECONNECTIONS) {
+        reconnectCountRef.current++;
+        logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after approve/resume network error', {
+          reconnectCount: reconnectCountRef.current,
+          courseId: lastCourseIdRef.current,
+          error: errorMessage,
+        });
+
+        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        return resumeCreation(lastCourseIdRef.current, config);
+      }
+
+      if (lastCourseIdRef.current) {
+        setPartialCourseId(lastCourseIdRef.current);
+        setResumableCourseId(lastCourseIdRef.current);
+      }
+
+      setError(errorMessage);
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'error', error: errorMessage },
+        message: errorMessage,
+      }));
+
+      if (callbacks.onError) {
+        callbacks.onError(errorMessage, true);
+      }
+
+      return {
+        success: false,
+        courseId: lastCourseIdRef.current ?? courseId,
+        error: errorMessage,
+        stats: {
+          totalChapters: 0,
+          totalSections: 0,
+          totalTime: Date.now() - startTimeRef.current,
+          averageQualityScore: 0,
+        },
+      };
+    } finally {
+      abortControllerRef.current = null;
+    }
+  }, [fetchDbProgressForCourse, resumeCreation]);
+
+  // ========================================
   // Main Creation Flow (SSE-based)
   // ========================================
 
@@ -451,6 +632,8 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           courseIntent: courseData.courseIntent,
           includeAssessments: courseData.includeAssessments,
           duration: courseData.duration,
+          enableEscalationGate: courseData.enableEscalationGate,
+          fallbackPolicy: courseData.fallbackPolicy,
         }),
         signal: abortController.signal,
       });
@@ -689,13 +872,17 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
   return {
     progress,
-    isCreating: progress.state.phase !== 'idle' && progress.state.phase !== 'complete' && progress.state.phase !== 'error',
+    isCreating: progress.state.phase !== 'idle'
+      && progress.state.phase !== 'complete'
+      && progress.state.phase !== 'error'
+      && progress.state.phase !== 'paused',
     error,
     resumableCourseId,
     dbProgress,
     regeneratingChapterId,
     startCreation,
     resumeCreation,
+    approveAndResumeCreation,
     regenerateChapter,
     cancel,
     reset,

@@ -11,6 +11,7 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import type { AIProviderType } from '@/lib/sam/providers/ai-registry';
 
 // ============================================================================
 // TYPES
@@ -18,8 +19,8 @@ import { logger } from '@/lib/logger';
 
 export interface CachedPlatformAISettings {
   // Provider routing
-  defaultProvider: string | null;
-  fallbackProvider: string | null;
+  defaultProvider: AIProviderType | null;
+  fallbackProvider: AIProviderType | null;
 
   // Provider enable/disable
   anthropicEnabled: boolean;
@@ -143,8 +144,8 @@ export async function getCachedPlatformAISettings(): Promise<CachedPlatformAISet
     });
 
     const settings: CachedPlatformAISettings = {
-      defaultProvider: row?.defaultProvider ?? PLATFORM_AI_DEFAULTS.defaultProvider,
-      fallbackProvider: row?.fallbackProvider ?? PLATFORM_AI_DEFAULTS.fallbackProvider,
+      defaultProvider: (row?.defaultProvider as AIProviderType | null) ?? PLATFORM_AI_DEFAULTS.defaultProvider,
+      fallbackProvider: (row?.fallbackProvider as AIProviderType | null) ?? PLATFORM_AI_DEFAULTS.fallbackProvider,
       anthropicEnabled: row?.anthropicEnabled ?? PLATFORM_AI_DEFAULTS.anthropicEnabled,
       deepseekEnabled: row?.deepseekEnabled ?? PLATFORM_AI_DEFAULTS.deepseekEnabled,
       openaiEnabled: row?.openaiEnabled ?? PLATFORM_AI_DEFAULTS.openaiEnabled,

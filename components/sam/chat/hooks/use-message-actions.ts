@@ -45,7 +45,8 @@ export function useMessageActions(
 
   const handleInsertContent = useCallback(
     (messageId: string, content: string, targetField?: string) => {
-      const formInteractions = window.samFormInteractions || window.chapterFormInteractions;
+      const win = window as Window & typeof globalThis & { samFormInteractions?: Record<string, (...args: unknown[]) => void>; chapterFormInteractions?: Record<string, (...args: unknown[]) => void> };
+      const formInteractions = win.samFormInteractions || win.chapterFormInteractions;
 
       if (formInteractions && targetField) {
         const fieldActions: Record<string, string> = {

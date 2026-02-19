@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -26,7 +26,7 @@ import {
   Sparkles,
   ChevronDown
 } from 'lucide-react';
-import { getTemplateForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
+import { getMinimumSectionsForDifficulty, getTemplateForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 // Dynamic import with SSR disabled to fix Radix UI hydration mismatch
@@ -39,6 +39,15 @@ const SAMLearningObjectivesGeneratorModal = dynamic(
 export function CourseStructureStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const [newGoal, setNewGoal] = useState('');
   const chapterTemplate = getTemplateForDifficulty(formData.difficulty?.toLowerCase() ?? 'intermediate');
+  const minimumSections = getMinimumSectionsForDifficulty(formData.difficulty?.toLowerCase() ?? 'intermediate');
+
+  useEffect(() => {
+    if (formData.sectionsPerChapter >= minimumSections) return;
+    setFormData(prev => ({
+      ...prev,
+      sectionsPerChapter: minimumSections,
+    }));
+  }, [formData.sectionsPerChapter, minimumSections, setFormData]);
 
   const addGoal = (goal: string) => {
     if (goal.trim() && Array.isArray(formData.courseGoals) && !formData.courseGoals.includes(goal.trim())) {
@@ -167,13 +176,13 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
             value={[formData.sectionsPerChapter]}
             onValueChange={(value) => setFormData(prev => ({ ...prev, sectionsPerChapter: value[0] }))}
             max={8}
-            min={2}
+            min={minimumSections}
             step={1}
             className="w-full mb-3"
           />
 
           <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
-            <span>2 (Brief)</span>
+            <span>{minimumSections} (Minimum)</span>
             <span>4 (Standard)</span>
             <span>8 (Detailed)</span>
           </div>
@@ -185,7 +194,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
 
           <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 p-2.5 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
             <Info className="h-3 w-3 inline mr-1.5" />
-            Your selection of {formData.sectionsPerChapter} sections is authoritative. The AI assigns pedagogical roles from the {chapterTemplate.displayName} template to each section.
+            {chapterTemplate.displayName} requires at least {minimumSections} sections to preserve all required pedagogy. Your selection of {formData.sectionsPerChapter} sections remains authoritative above that minimum.
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
-import { withCronAuth } from '@/lib/api/cron-auth';
+import { withCronAuth, verifyCronAuth } from '@/lib/api/cron-auth';
 import {
   getMemoryLifecycleManager,
   startMemoryLifecycle,

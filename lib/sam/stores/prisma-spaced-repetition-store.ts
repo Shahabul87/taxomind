@@ -256,7 +256,7 @@ export class PrismaSpacedRepetitionStore {
           retentionEstimate: retention,
           quality,
           priority,
-          bloomsLevel: input.bloomsLevel ?? existing.bloomsLevel ?? undefined,
+          bloomsLevel: (input.bloomsLevel ?? existing.bloomsLevel ?? undefined) as 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE' | undefined,
         },
       });
 
@@ -295,7 +295,7 @@ export class PrismaSpacedRepetitionStore {
           retentionEstimate: retention,
           quality,
           priority,
-          bloomsLevel: input.bloomsLevel ?? undefined,
+          bloomsLevel: (input.bloomsLevel ?? undefined) as 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE' | undefined,
         },
       });
 

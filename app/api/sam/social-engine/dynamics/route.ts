@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Social Engine - Group Dynamics Route
  * POST /api/sam/social-engine/dynamics

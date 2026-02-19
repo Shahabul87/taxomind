@@ -74,6 +74,7 @@ export interface CourseStateMachineConfig {
   courseContext: CourseContext;
   onSSEEvent?: (event: { type: string; data: Record<string, unknown> }) => void;
   enableStreamingThinking?: boolean;
+  abortSignal?: AbortSignal;
   /** Shared mutable state between orchestrator and state machine */
   sharedState: SharedPipelineState;
   /** Offset for resume: number of already-completed chapters to skip. Default: 0 */

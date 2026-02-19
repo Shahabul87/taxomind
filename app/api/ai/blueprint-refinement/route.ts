@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
-    if (!session.userId) {
+    const userId = session.userId;
+    if (!userId) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // Generate blueprint refinement
     const refinementResult = await withRetryableTimeout(
-      () => generateBlueprintRefinement(request, session.userId),
+      () => generateBlueprintRefinement(request, userId),
       TIMEOUT_DEFAULTS.AI_ANALYSIS,
       'blueprint-refinement'
     );

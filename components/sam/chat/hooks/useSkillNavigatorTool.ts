@@ -124,7 +124,7 @@ export function useSkillNavigatorTool({
     if (data.type !== 'conversation' && data.type !== 'generate_roadmap') {
       return null;
     }
-    return data as SkillNavigatorToolOutput;
+    return data as unknown as SkillNavigatorToolOutput;
   }, []);
 
   const isSkillNavigatorOutput = useCallback((output: unknown): boolean => {

@@ -11,6 +11,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import type { LearningInsights } from '@sam-ai/agentic';
 import type { AnswerDiagnosis, CognitiveProfile, MisconceptionEntry } from './agentic-types';
 
 /**
@@ -67,10 +68,11 @@ async function doPersistInsights(
     const existing = await sessionContext.get(userId, attemptId);
 
     if (existing) {
-      const currentInsights = (existing.insights ?? {}) as Record<string, unknown>;
+      const currentInsights = existing.insights as unknown as Record<string, unknown>;
       await sessionContext.update(existing.id, {
         lastActiveAt: new Date(),
         insights: {
+          ...existing.insights,
           ...currentInsights,
           diagnoseEvaluation: insightData,
           cognitiveProfile: {
@@ -78,7 +80,7 @@ async function doPersistInsights(
             ceiling: profile.cognitiveCeiling,
             growthEdge: profile.growthEdge,
           },
-        },
+        } as unknown as LearningInsights,
       });
     } else {
       await sessionContext.create({
@@ -86,19 +88,49 @@ async function doPersistInsights(
         courseId: attemptId, // reuse courseId field for attemptId
         lastActiveAt: new Date(),
         currentState: {
-          type: 'exam-evaluation',
-          attemptId,
+          currentTopic: 'exam-evaluation',
+          currentGoal: attemptId,
+          recentConcepts: [],
+          pendingQuestions: [],
+          activeArtifacts: [],
+          sessionCount: 1,
         },
         history: [],
-        preferences: {},
+        preferences: {
+          learningStyle: 'mixed',
+          preferredPace: 'moderate',
+          preferredContentTypes: [],
+          preferredSessionLength: 30,
+          notificationPreferences: {
+            enabled: false,
+            channels: [],
+            frequency: 'daily',
+          },
+          accessibilitySettings: {
+            fontSize: 'medium',
+            highContrast: false,
+            reduceMotion: false,
+            screenReaderOptimized: false,
+            captionsEnabled: false,
+          },
+        },
         insights: {
+          strengths: [],
+          weaknesses: [],
+          recommendedTopics: [],
+          masteredConcepts: [],
+          strugglingConcepts: [],
+          averageSessionDuration: 0,
+          totalLearningTime: 0,
+          completionRate: 0,
+          engagementScore: 0,
           diagnoseEvaluation: insightData,
           cognitiveProfile: {
             bloomsMap: profile.bloomsCognitiveMap,
             ceiling: profile.cognitiveCeiling,
             growthEdge: profile.growthEdge,
           },
-        },
+        } as unknown as LearningInsights,
       });
     }
 
@@ -159,7 +191,7 @@ async function doPersistMisconceptions(
   try {
     for (const [misconceptionId, { entry, count }] of uniqueMisconceptions) {
       const entity = await knowledgeGraph.createEntity({
-        type: 'misconception',
+        type: 'concept',
         name: entry.name,
         description: `[${misconceptionId}] ${entry.description} (category: ${entry.category})`,
         properties: {
@@ -173,9 +205,9 @@ async function doPersistMisconceptions(
       });
       entityIds.push(entity.id);
 
-      // Create relationship: user has_misconception
+      // Create relationship: user struggled_with misconception
       await knowledgeGraph.createRelationship({
-        type: 'has_misconception',
+        type: 'struggled_with',
         sourceId: userId,
         targetId: entity.id,
         weight: Math.min(count / 3, 1.0), // Higher weight for repeated misconceptions

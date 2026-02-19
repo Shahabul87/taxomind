@@ -25,6 +25,7 @@ import type {
   ChapterPlanEntry,
 } from './types';
 import type { TemplateSectionDef } from './chapter-templates';
+import { analyzeSectionDescriptionStructure } from './section-description-structure';
 
 // =============================================================================
 // PROMPT SANITIZATION
@@ -507,15 +508,25 @@ export function scoreDetails(
   if (det.keyConceptsCovered.length < 3) depth -= 15;
   if (!det.resources || det.resources.length === 0) depth -= 5;
 
-  // HTML lesson structure checks
-  const h2Count = (det.description.match(/<h2>/gi) ?? []).length;
-  if (templateDef) {
-    // Template sections have different HTML structures — relax h2 count check
-    if (h2Count < 1) depth -= 25;
-  } else {
-    if (h2Count < 3) depth -= 25;
-    else if (h2Count < 5) depth -= 10;
+  // Section Description quality protocol checks
+  const structureAnalysis = analyzeSectionDescriptionStructure(det.description);
+  if (structureAnalysis.missingHeadings.length > 0 || structureAnalysis.unexpectedHeadings.length > 0) {
+    depth -= 30;
   }
+  if (structureAnalysis.issues.some((issue) => issue.includes('Heading order'))) {
+    depth -= 10;
+  }
+  if (structureAnalysis.issues.some((issue) => issue.includes('must have at least'))) {
+    depth -= 15;
+  }
+
+  const semanticChecks = structureAnalysis.semanticChecks;
+  if (!semanticChecks.hasMotivationProblem) depth -= 8;
+  if (!semanticChecks.hasCoreMentalModel) depth -= 8;
+  if (!semanticChecks.hasEquationIntuitionCompliance) depth -= 10;
+  if (!semanticChecks.hasStepwiseVisualization) depth -= 8;
+  if (!semanticChecks.hasConcreteExample) depth -= 8;
+  if (!semanticChecks.hasMisconceptionAndFix) depth -= 8;
 
   // Word count check (strip HTML tags, count words)
   const plainText = det.description.replace(/<[^>]*>/g, ' ');
@@ -687,6 +698,27 @@ export function buildFallbackDetails(
   ].join('\n');
 
   let description: string;
+
+  const buildProtocolDescriptionFallback = (): string => [
+    `<h2>Why It Was Developed</h2>`,
+    `<p><strong>${topic}</strong> was developed to solve a recurring problem in "${chapter.title}": teams needed a reliable way to move from vague goals to repeatable outcomes. Earlier approaches were limited because they depended on intuition alone, which created inconsistent quality and hard-to-debug mistakes. As a ${audience} learner, you need a method that makes decisions explicit, testable, and easier to improve over time.</p>`,
+    `<p>In practice, the limitation is clear: when the process is not structured, results vary from person to person and failures are hard to explain. ${topic} addresses that limitation by giving you a concrete framework for reasoning, execution, and review.</p>`,
+    `<h2>Core Intuition</h2>`,
+    `<p>Use this mental model: <strong>${topic}</strong> is like a checklist-driven navigation system. Instead of guessing the route every time, you follow a map of decisions that keeps you on track while still allowing course-correction. You are not memorizing rules blindly; you are learning how each decision changes the path and the final result.</p>`,
+    `<p>Picture a beginner-friendly workflow: identify the goal, inspect constraints, choose the next best action, and validate the outcome. That cycle is the intuition you should hold whenever you apply ${topic}.</p>`,
+    `<h2>Equation Intuition</h2>`,
+    `<p>No equation is required for this concept. The key idea is procedural: quality improves when each step is explicit, observable, and connected to a clear success signal. If you later add quantitative metrics, treat each metric as a term that represents one part of performance and combine them only when you can explain why that structure matches the real trade-offs.</p>`,
+    `<p>This keeps your reasoning grounded: every symbol or metric should map to something tangible in the workflow, not abstract math for its own sake.</p>`,
+    `<h2>Step-by-Step Visualization</h2>`,
+    `<p><strong>Step 1:</strong> First, define the target outcome for ${topic} in one sentence. <strong>Step 2:</strong> Next, list the minimum inputs and constraints you must respect. <strong>Step 3:</strong> Then, execute the core method and observe what changed. <strong>Step 4:</strong> After that, compare the result against the target and identify the biggest gap. <strong>Step 5:</strong> Finally, adjust one variable and run the loop again.</p>`,
+    `<p>When you visualize this process, see it as a loop rather than a one-shot task: each pass makes your understanding sharper and your output more reliable.</p>`,
+    `<h2>Concrete Example</h2>`,
+    `<p>Suppose you are building a ${section.contentType} artifact for ${topic} in a 20-minute block. You start with one clear objective, produce a first draft in 10 minutes, review against three criteria in 5 minutes, and spend the final 5 minutes fixing the highest-impact issue. By the end, you have a tangible output, a measured gap, and a specific next improvement.</p>`,
+    `<p>This mini scenario shows why ${topic} is practical: you can apply it immediately, observe progress, and iterate with confidence instead of guessing.</p>`,
+    `<h2>Common Confusion + Fix</h2>`,
+    `<p><strong>Common confusion:</strong> learners often think ${topic} is a rigid checklist that removes creativity. <strong>Fix:</strong> treat the structure as scaffolding, not a cage. The framework protects quality while your choices inside each step remain flexible.</p>`,
+    `<p><strong>Another mistake:</strong> trying to optimize everything at once. <strong>Fix:</strong> change one variable per iteration, measure the effect, and keep what works. This avoids noisy results and helps you build dependable intuition.</p>`,
+  ].join('\n');
 
   if (templateDef) {
     // Generate section-type-appropriate fallback HTML
@@ -990,6 +1022,11 @@ export function buildFallbackDetails(
       `<h2>Real-World Applications</h2>`,
       `<p>Professionals across the industry use <strong>${topic}</strong> every day. From startups to large enterprises, this knowledge is directly applicable to building robust, production-ready systems. Mastering ${topic} will give you the confidence to tackle complex challenges in your career.</p>`,
     ].join('\n');
+  }
+
+  // Ensure fallback always adheres to the strict section-description protocol.
+  if (!analyzeSectionDescriptionStructure(description).isValid) {
+    description = buildProtocolDescriptionFallback();
   }
 
   return {

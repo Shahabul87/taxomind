@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
-import type { BloomsLevel as PrismaBloomsLevel, QuestionType as PrismaQuestionType } from "@prisma/client";
+import type {
+  BloomsLevel as PrismaBloomsLevel,
+  QuestionDifficulty as PrismaQuestionDifficulty,
+  QuestionType as PrismaQuestionType,
+} from "@prisma/client";
 import type { EnhancedQuestionFormData, GeneratedQuestion } from "../enhanced-exam-creator/types";
 import {
   unifiedExamReducer,

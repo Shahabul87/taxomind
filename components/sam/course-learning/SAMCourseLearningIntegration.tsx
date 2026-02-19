@@ -195,8 +195,8 @@ export function SAMCourseLearningIntegration({
     const currentEvents = behaviorEventsRef.current;
     if (currentEvents.length === 0 || !context.userId) return;
 
+    const eventsToFlush = [...currentEvents];
     try {
-      const eventsToFlush = [...currentEvents];
       setBehaviorEvents([]);
 
       await fetch("/api/sam/agentic/events", {
@@ -301,10 +301,11 @@ export function SAMCourseLearningIntegration({
 
   // Handle cognitive load change
   const handleCognitiveLoadChange = useCallback(
-    (load: { level: "low" | "medium" | "high"; score: number }) => {
-      setCognitiveLoad(load.level);
-      if (load.level === "high") {
-        trackBehavior("HIGH_COGNITIVE_LOAD", { score: load.score });
+    (load: { riskLevel?: string; instantaneousLoad?: number }) => {
+      const level = (load.riskLevel ?? "low") as "low" | "medium" | "high";
+      setCognitiveLoad(level);
+      if (level === "high") {
+        trackBehavior("HIGH_COGNITIVE_LOAD", { score: load.instantaneousLoad ?? 0 });
       }
     },
     [trackBehavior]
@@ -469,8 +470,8 @@ export function SAMCourseLearningIntegration({
         {/* Struggle Detection Alert */}
         {struggleDetected && (
           <StruggleDetectionAlert
-            onDismiss={() => setStruggleDetected(false)}
-            onAskForHelp={() => {
+            onTakeBreak={() => setStruggleDetected(false)}
+            onRequestHelp={(_struggle) => {
               trackBehavior("HELP_REQUESTED_FROM_STRUGGLE");
               onAskSAM?.("I'm struggling with this topic. Can you help me?");
             }}
@@ -551,9 +552,9 @@ export function SAMCourseLearningIntegration({
                 How was this section?
               </p>
               <FeedbackButtons
-                entityType="section"
-                entityId={context.sectionId}
-                onFeedback={(rating) => {
+                messageId={context.sectionId}
+                sessionId={context.courseId}
+                onFeedbackSubmitted={(rating: string) => {
                   trackBehavior("SECTION_FEEDBACK", { rating });
                   toast.success("Thanks for your feedback!");
                 }}

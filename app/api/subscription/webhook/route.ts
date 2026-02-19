@@ -487,7 +487,11 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
   if (!userId) {
     // Try to find by Stripe customer
     const stripeCustomer = await db.stripeCustomer.findFirst({
-      where: { stripeCustomerId: dispute.customer as string },
+      where: {
+            stripeCustomerId: typeof dispute.charge !== 'string' && dispute.charge?.customer
+              ? (typeof dispute.charge.customer === 'string' ? dispute.charge.customer : dispute.charge.customer.id)
+              : '',
+          },
     });
     userId = stripeCustomer?.userId ?? null;
   }

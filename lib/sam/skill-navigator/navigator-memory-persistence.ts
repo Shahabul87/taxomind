@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import { EntityType } from '@sam-ai/agentic';
 import type {
   NeedAnalysisResult,
   SkillAuditResult,
@@ -45,10 +46,10 @@ async function doPersist(
     const { knowledgeGraph, sessionContext } = getMemoryStores();
 
     // 1. Persist skill graph to KnowledgeGraph
-    await knowledgeGraph.addNode({
-      userId,
-      nodeType: 'skill_graph',
-      label: `${params.skillName} Skill Graph`,
+    await knowledgeGraph.createEntity({
+      type: EntityType.SKILL,
+      name: `${params.skillName} Skill Graph`,
+      description: `Skill graph for ${params.skillName} (${params.goalType})`,
       properties: {
         skillName: params.skillName,
         goalType: params.goalType,
@@ -67,35 +68,60 @@ async function doPersist(
       },
     });
 
-    // 2. Persist gap analysis to SessionContext
-    await sessionContext.set(
-      userId,
-      `navigator_gap_${params.skillName.toLowerCase().replace(/\s+/g, '_')}`,
-      {
-        skillName: params.skillName,
-        gapTable: gapAnalysis.gapTable,
-        criticalGaps: gapAnalysis.criticalGaps,
-        totalGapHours: gapAnalysis.totalGapHours,
-        roadmapId,
-        analyzedAt: new Date().toISOString(),
-      },
-    );
-
-    // 3. Persist need profile to SessionContext
-    await sessionContext.set(
-      userId,
-      `navigator_profile_${params.skillName.toLowerCase().replace(/\s+/g, '_')}`,
-      {
-        skillName: params.skillName,
-        goalDNA: needAnalysis.goalDNA,
-        refinedGoal: needAnalysis.refinedGoal,
-        goalClassification: needAnalysis.goalClassification,
-        fragileKnowledge: skillAudit.fragileKnowledge,
-        strengths: skillAudit.strengths,
-        roadmapId,
-        analyzedAt: new Date().toISOString(),
-      },
-    );
+    // 2. Persist gap analysis + need profile to SessionContext
+    const gapKey = `navigator_gap_${params.skillName.toLowerCase().replace(/\s+/g, '_')}`;
+    const existing = await sessionContext.get(userId, gapKey);
+    if (existing) {
+      await sessionContext.update(existing.id, {
+        lastActiveAt: new Date(),
+        currentState: {
+          currentTopic: params.skillName,
+          recentConcepts: gapAnalysis.criticalGaps,
+          pendingQuestions: [],
+          activeArtifacts: [roadmapId],
+          sessionCount: 1,
+        },
+      });
+    } else {
+      await sessionContext.create({
+        userId,
+        courseId: gapKey,
+        lastActiveAt: new Date(),
+        currentState: {
+          currentTopic: params.skillName,
+          recentConcepts: gapAnalysis.criticalGaps,
+          pendingQuestions: [],
+          activeArtifacts: [roadmapId],
+          sessionCount: 1,
+        },
+        history: [],
+        preferences: {
+          learningStyle: 'mixed' as const,
+          preferredPace: 'moderate' as const,
+          preferredContentTypes: ['text' as const],
+          preferredSessionLength: 30,
+          notificationPreferences: { enabled: false, channels: [], frequency: 'daily' as const },
+          accessibilitySettings: {
+            highContrast: false,
+            fontSize: 'medium' as const,
+            reduceMotion: false,
+            screenReaderOptimized: false,
+            captionsEnabled: false,
+          },
+        },
+        insights: {
+          strengths: skillAudit.strengths,
+          weaknesses: gapAnalysis.criticalGaps,
+          recommendedTopics: [],
+          masteredConcepts: [],
+          strugglingConcepts: [],
+          averageSessionDuration: 0,
+          totalLearningTime: 0,
+          completionRate: 0,
+          engagementScore: 0,
+        },
+      });
+    }
 
     logger.info('[NavigatorMemory] Persisted to memory stores', {
       userId,

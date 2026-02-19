@@ -59,11 +59,11 @@ export function PostsPageLayout({ user, children }: PostsPageLayoutProps) {
   const pathname = usePathname();
   const { isMobile } = useViewportHeight();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardView>('learning');
+  const [activeTab, setActiveTab] = useState<DashboardView>('todos');
 
   // Handle tab change - navigate to dashboard with the selected tab
   const handleTabChange = (tab: DashboardView) => {
-    if (tab === 'learning') {
+    if (tab === 'todos') {
       router.push('/dashboard/user');
     } else {
       router.push(`/dashboard/user?tab=${tab}`);

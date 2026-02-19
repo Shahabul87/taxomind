@@ -182,8 +182,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
           success: true,
           data: {
-            modules: (analytics as Record<string, unknown>)?.modules ?? [],
-            sessions: (analytics as Record<string, unknown>)?.sessions ?? {},
+            modules: (analytics as unknown as Record<string, unknown>)?.modules ?? [],
+            sessions: (analytics as unknown as Record<string, unknown>)?.sessions ?? {},
             topicId,
           },
           metadata: { timestamp: new Date().toISOString() },
@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
         });
 
         // Build a learner profile from analytics data
-        const analyticsData = analytics as Record<string, unknown>;
+        const analyticsData = analytics as unknown as Record<string, unknown>;
         const profile = {
           totalXp: analyticsData?.totalXp ?? 0,
           currentStreak: analyticsData?.currentStreak ?? 0,

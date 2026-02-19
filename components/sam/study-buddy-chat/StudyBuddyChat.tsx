@@ -110,7 +110,7 @@ export function StudyBuddyChat({
   onStartSession,
 }: StudyBuddyChatProps) {
   const user = useCurrentUser();
-  const { connectionStatus } = useRealtime();
+  const { connectionState, isConnected } = useRealtime();
 
   // State
   const [activeTab, setActiveTab] = useState<'chats' | 'discover'>('chats');
@@ -371,7 +371,7 @@ export function StudyBuddyChat({
                   id: buddy.id,
                   name: buddy.name,
                   avatar: buddy.avatar,
-                  status: buddy.status,
+                  status: buddy.status === 'studying' ? 'online' : buddy.status,
                 },
               ],
               messages: [],
@@ -429,7 +429,7 @@ export function StudyBuddyChat({
                 id: buddy.id,
                 name: buddy.name,
                 avatar: buddy.avatar,
-                status: buddy.status,
+                status: (buddy.status === 'studying' ? 'online' : buddy.status) as ChatParticipant['status'],
               };
             }),
           ];
@@ -618,7 +618,7 @@ export function StudyBuddyChat({
                       Study Buddies
                     </h2>
                     <p className="text-xs text-zinc-500">
-                      {connectionStatus === 'connected' ? (
+                      {connectionState === 'connected' ? (
                         <span className="flex items-center gap-1 text-emerald-400">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                           Connected

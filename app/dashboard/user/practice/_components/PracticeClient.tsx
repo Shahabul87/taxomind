@@ -31,6 +31,8 @@ import {
   type CreateGoalData,
   type PracticeGoal,
   type SkillMastery,
+  type EndSessionInputs,
+  type EndSessionResult,
 } from '@/components/sam/practice-dashboard';
 
 // Hooks
@@ -104,13 +106,14 @@ export function PracticeClient({ userId }: PracticeClientProps) {
   );
 
   const handleEndSession = useCallback(
-    async (rating?: number, notes?: string) => {
-      const success = await endSession(rating, notes);
-      if (success) {
+    async (inputs?: EndSessionInputs): Promise<EndSessionResult | null> => {
+      const result = await endSession(inputs);
+      if (result) {
         // Refresh data after session ends
         refreshOverview();
         refreshMilestones();
       }
+      return result;
     },
     [endSession, refreshOverview, refreshMilestones]
   );
@@ -333,8 +336,8 @@ export function PracticeClient({ userId }: PracticeClientProps) {
 
             <ActiveSessionTracker
               session={activeSession}
-              onPause={pauseSession}
-              onResume={resumeSession}
+              onPause={async () => { await pauseSession(); }}
+              onResume={async () => { await resumeSession(); }}
               onEnd={handleEndSession}
               isLoading={isPausing || isResuming || isEnding}
             />
@@ -361,7 +364,7 @@ export function PracticeClient({ userId }: PracticeClientProps) {
             </div>
             <MilestoneTimeline
               milestones={milestones?.milestones || []}
-              onClaim={claimMilestone}
+              onClaim={async (milestoneId: string) => { await claimMilestone(milestoneId); }}
               isLoading={isLoadingMilestones}
             />
           </div>

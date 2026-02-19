@@ -677,7 +677,7 @@ export function ProfessionalCoursesPage({
                       filterOptions={filterOptions}
                       selectedCategories={selectedCategories}
                       setSelectedCategories={onCategoriesChange || (() => {})}
-                      selectedPriceRange={selectedPriceRange}
+                      selectedPriceRange={selectedPriceRange ?? null}
                       setSelectedPriceRange={onPriceRangeChange || (() => {})}
                       selectedDifficulties={selectedDifficulties}
                       setSelectedDifficulties={onDifficultiesChange || (() => {})}

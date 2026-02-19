@@ -62,6 +62,21 @@ const section: GeneratedSection = {
   conceptsReferenced: ['HTTP'],
 };
 
+const validStage3Description = [
+  '<h2>Why It Was Developed</h2>',
+  '<p>Teams introduced API versioning because production systems repeatedly broke when fields changed without planning. Before this pattern, one release could invalidate mobile apps, partner integrations, and automation scripts in the same week, creating a painful bottleneck for everyone. The motivating problem was not only technical breakage, but coordination failure between product timelines and client upgrade windows. Versioning gives organizations a structured way to evolve contracts while keeping service reliability high, reducing emergency rollback pressure, and protecting customers from surprise outages during normal delivery cycles.</p>',
+  '<h2>Core Intuition</h2>',
+  '<p>Use a mental model of a shared bridge between teams: providers maintain the bridge while consumers cross it on different schedules. Imagine each client as a vehicle with different speed and maintenance constraints. The intuition is that resilient APIs optimize for compatibility over convenience, so one team can move forward without forcing every other team to stop and rework immediately. This analogy helps learners think of versioning as risk distribution, where clear deprecation paths, explicit compatibility rules, and communication checkpoints keep traffic flowing while the bridge is improved safely.</p>',
+  '<h2>Equation Intuition</h2>',
+  '<p>No equation is required for this section because the central idea is policy design and operational behavior, not numeric optimization. The structure still follows a reasoning formula: compatibility plus observability plus migration readiness produces lower outage risk. Each part represents a practical control. Compatibility means preserving expected fields and semantics, observability means measuring client usage before change, and migration readiness means offering a tested path to upgrade. The shape of this reasoning matters because removing any one part creates blind spots that increase incident probability during rollout.</p>',
+  '<h2>Step-by-Step Visualization</h2>',
+  '<p>First, inventory active clients and visualize who depends on each endpoint. Second, mark high-risk fields and identify changes that could break parsing, validation, or workflow order. Third, introduce a non-breaking version with explicit release notes and examples. Next, monitor adoption and error rates with dashboards and log filters tied to version headers. Then, schedule migration checkpoints with teams and confirm progress. Finally, deprecate the old behavior only after evidence shows safe adoption. This step-by-step walkthrough lets learners picture change management as a controlled sequence rather than a one-time switch.</p>',
+  '<h2>Concrete Example</h2>',
+  '<p>Consider a payments API where 12 enterprise clients consume an invoice endpoint. A new requirement adds tax jurisdiction details and changes one nested object. The team releases v2 with additive fields, keeps v1 stable, and publishes a migration guide with side-by-side payloads. In week one, 4 clients migrate; in week three, 9 clients migrate; by week six, all 12 migrate with no production outage. The worked scenario shows how compatibility testing, staged communication, and telemetry checkpoints create measurable confidence before retirement of legacy behavior.</p>',
+  '<h2>Common Confusion + Fix</h2>',
+  '<p>A common misconception is that versioning means creating a brand-new API for every change, which often increases maintenance cost without improving safety. Another frequent trap is deprecating old versions immediately after release. The fix is to classify change types, keep backward compatibility for minor updates, and enforce explicit migration windows for breaking changes. Learners should remember that resilience comes from policy discipline and evidence-based rollout decisions, not from the number of versions created. Correcting this confusion helps teams avoid unnecessary fragmentation while still evolving contracts responsibly.</p>',
+].join('');
+
 describe('Stage schema contracts', () => {
   it('accepts deterministic Stage 1/2/3 payloads via strict schemas', () => {
     const stage1Payload = {
@@ -99,7 +114,7 @@ describe('Stage schema contracts', () => {
     const stage3Payload = {
       thinking: 'Detailed lesson plan.',
       details: {
-        description: '<h2>Why This Matters</h2><p>Reliable versioning prevents outages and protects customers in production systems.</p><p>Teams need repeatable patterns for introducing change safely.</p>',
+        description: validStage3Description,
         learningObjectives: [
           'Apply versioning criteria to enterprise API changes',
           'Evaluate migration paths for existing API clients',
@@ -167,7 +182,7 @@ describe('Stage schema contracts', () => {
       JSON.stringify({
         thinking: 'Stage3',
         details: {
-          description: '<h2>Why This Matters</h2><p>Reliable versioning prevents outages and protects customers in production systems.</p><p>Teams need repeatable patterns for introducing change safely.</p>',
+          description: validStage3Description,
           learningObjectives: [
             'Apply versioning criteria to enterprise API changes',
             'Evaluate migration paths for existing API clients',

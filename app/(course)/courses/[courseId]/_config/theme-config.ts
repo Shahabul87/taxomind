@@ -133,6 +133,22 @@ export const CATEGORY_THEMES: Record<CategoryLayoutVariant, CategoryTheme> = {
     shadowStyle: 'medium',
   },
 
+  math: {
+    primary: '#2563EB', // Blue
+    secondary: '#4F46E5', // Indigo
+    accent: '#06B6D4', // Cyan
+    heroGradient: 'from-blue-700 via-indigo-700 to-cyan-700',
+    buttonGradient: 'from-blue-600 to-indigo-600',
+    cardGradient: 'from-blue-50 to-indigo-50',
+    backgroundPattern: 'geometric',
+    headingFont: 'Inter, system-ui, sans-serif',
+    bodyFont: 'Inter, system-ui, sans-serif',
+    codeFont: 'JetBrains Mono, monospace',
+    iconStyle: 'technical',
+    borderRadius: 'rounded',
+    shadowStyle: 'medium',
+  },
+
   default: {
     primary: '#64748B', // Slate
     secondary: '#475569', // Slate

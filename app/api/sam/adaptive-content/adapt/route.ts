@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     // Get or use provided profile
     let profile: AdaptiveLearnerProfile;
     if (parsed.data.profile) {
-      profile = parsed.data.profile as AdaptiveLearnerProfile;
+      profile = parsed.data.profile as unknown as AdaptiveLearnerProfile;
     } else {
       const fetchedProfile = await engine.getLearnerProfile(userId);
       if (!fetchedProfile) {

@@ -67,23 +67,22 @@ async function doPersistInsights(
   try {
     const existing = await sessionContext.get(userId, cacheKey);
 
+    const analyticsInsights: import('@sam-ai/agentic').LearningInsights = {
+      strengths: [cognitiveMap.cognitiveCeiling, interpretation.cognitiveCluster],
+      weaknesses: [cognitiveMap.growthEdge],
+      recommendedTopics: prescriptions.prescriptions.map((p) => (typeof p === 'string' ? p : String(p))).slice(0, 5),
+      masteredConcepts: [],
+      strugglingConcepts: [],
+      averageSessionDuration: 0,
+      totalLearningTime: 0,
+      completionRate: cognitiveMap.cognitiveHealthScore / 100,
+      engagementScore: cognitiveMap.velocity > 1 ? 80 : cognitiveMap.velocity > 0 ? 60 : 40,
+    };
+
     if (existing) {
-      const currentInsights = (existing.insights ?? {}) as Record<
-        string,
-        unknown
-      >;
       await sessionContext.update(existing.id, {
         lastActiveAt: new Date(),
-        insights: {
-          ...currentInsights,
-          prismAnalytics: insightData,
-          cognitiveProfile: {
-            levelMastery: cognitiveMap.levelMastery,
-            ceiling: cognitiveMap.cognitiveCeiling,
-            growthEdge: cognitiveMap.growthEdge,
-            cluster: interpretation.cognitiveCluster,
-          },
-        },
+        insights: analyticsInsights,
       });
     } else {
       await sessionContext.create({
@@ -91,19 +90,22 @@ async function doPersistInsights(
         courseId: cacheKey,
         lastActiveAt: new Date(),
         currentState: {
-          type: 'student-analytics',
+          currentTopic: 'student-analytics',
+          recentConcepts: [cognitiveMap.cognitiveCeiling, cognitiveMap.growthEdge],
+          pendingQuestions: [],
+          activeArtifacts: [],
+          sessionCount: 1,
         },
         history: [],
-        preferences: {},
-        insights: {
-          prismAnalytics: insightData,
-          cognitiveProfile: {
-            levelMastery: cognitiveMap.levelMastery,
-            ceiling: cognitiveMap.cognitiveCeiling,
-            growthEdge: cognitiveMap.growthEdge,
-            cluster: interpretation.cognitiveCluster,
-          },
+        preferences: {
+          learningStyle: 'visual',
+          preferredPace: 'moderate',
+          preferredContentTypes: [],
+          preferredSessionLength: 30,
+          notificationPreferences: { enabled: false, channels: [], frequency: 'daily' },
+          accessibilitySettings: { highContrast: false, fontSize: 'medium', reduceMotion: false, screenReaderOptimized: false, captionsEnabled: false },
         },
+        insights: analyticsInsights,
       });
     }
 
@@ -149,7 +151,7 @@ async function doPersistProfile(
 
   try {
     const entity = await knowledgeGraph.createEntity({
-      type: 'cognitive_profile',
+      type: 'concept',
       name: `Student Cognitive Profile - ${interpretation.cognitiveCluster}`,
       description: `PRISM cognitive profile snapshot. Ceiling: ${cognitiveMap.cognitiveCeiling}, Health: ${cognitiveMap.cognitiveHealthScore}/100`,
       properties: {
@@ -165,7 +167,7 @@ async function doPersistProfile(
     });
 
     await knowledgeGraph.createRelationship({
-      type: 'has_cognitive_profile',
+      type: 'related_to',
       sourceId: userId,
       targetId: entity.id,
       weight: 1.0,

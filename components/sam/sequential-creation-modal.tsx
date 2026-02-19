@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Brain,
   BookOpen,
@@ -38,6 +37,7 @@ import {
   ChevronRight,
   Target,
   Lightbulb,
+  Sparkles,
   AlertTriangle,
   Zap,
   Clock,
@@ -59,6 +59,9 @@ interface SequentialCreationModalProps {
   onCancel?: () => void;
   onRetry?: () => void;
   onResume?: () => void;
+  onApproveContinue?: () => void;
+  onApproveHeal?: () => void;
+  onAbortPaused?: () => void;
   onRegenerate?: (chapterId: string, position: number) => void;
   regeneratingChapterId?: string | null;
   resumableCourseId?: string | null;
@@ -366,9 +369,9 @@ const SAMThinkingDisplay = memo(function SAMThinkingDisplay({
         <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
         <span>SAM&apos;s Thinking</span>
       </div>
-      <ScrollArea
+      <div
         ref={scrollRef}
-        className="h-24 rounded-lg bg-muted/50 p-3"
+        className="rounded-lg bg-muted/50 p-3"
       >
         <p className="text-xs text-muted-foreground leading-relaxed">
           {thinking}
@@ -376,7 +379,7 @@ const SAMThinkingDisplay = memo(function SAMThinkingDisplay({
             <span className="inline-block w-1.5 h-3.5 bg-amber-500 ml-0.5 animate-pulse" />
           )}
         </p>
-      </ScrollArea>
+      </div>
     </motion.div>
   );
 });
@@ -485,7 +488,7 @@ const CompletedItemsList = memo(function CompletedItemsList({
           {chapters.length} chapters, {sections.length} sections
         </Badge>
       </div>
-      <ScrollArea className="h-48 rounded-lg border bg-card p-2">
+      <div className="rounded-lg border bg-card p-2">
         <div className="space-y-1">
           {chapters.map((chapter, idx) => {
             const canRegenerate =
@@ -549,7 +552,7 @@ const CompletedItemsList = memo(function CompletedItemsList({
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 });
@@ -567,13 +570,17 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
   onCancel,
   onRetry,
   onResume,
+  onApproveContinue,
+  onApproveHeal,
+  onAbortPaused,
   onRegenerate,
   regeneratingChapterId,
   resumableCourseId,
   formData,
 }: SequentialCreationModalProps) {
   const isComplete = progress.state.phase === 'complete';
-  const isError = progress.state.phase === 'error' || !!error;
+  const isPaused = progress.state.phase === 'paused';
+  const isError = !isPaused && (progress.state.phase === 'error' || !!error);
   const startTimeRef = useRef<number>(0);
 
   // Track when creation starts
@@ -604,6 +611,8 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                   'p-2.5 rounded-xl',
                   isComplete
                     ? 'bg-green-500'
+                    : isPaused
+                      ? 'bg-amber-500'
                     : isError
                       ? 'bg-red-500'
                       : 'bg-gradient-to-br from-purple-500 to-indigo-600'
@@ -611,6 +620,8 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
               >
                 {isComplete ? (
                   <CheckCircle2 className="h-5 w-5 text-white" />
+                ) : isPaused ? (
+                  <AlertTriangle className="h-5 w-5 text-white" />
                 ) : isError ? (
                   <XCircle className="h-5 w-5 text-white" />
                 ) : (
@@ -621,6 +632,8 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 <DialogTitle className="text-lg font-bold">
                   {isComplete
                     ? 'Course Created Successfully!'
+                    : isPaused
+                      ? 'Pipeline Paused For Review'
                     : isError
                       ? 'Creation Failed'
                       : 'SAM Sequential Course Creation'}
@@ -628,6 +641,8 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 <p className="text-sm text-muted-foreground mt-0.5">
                   {isComplete
                     ? 'Your course is ready for review'
+                    : isPaused
+                      ? 'A quality flag requires your decision before continuation'
                     : isError
                       ? 'Something went wrong during creation'
                       : 'Creating high-quality content with context awareness'}
@@ -725,12 +740,22 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <Card className="border-red-500/30 bg-red-500/5">
+                <Card className={cn(
+                  isPaused ? 'border-amber-500/30 bg-amber-500/5' : 'border-red-500/30 bg-red-500/5'
+                )}>
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className={cn(
+                        "h-5 w-5 mt-0.5 flex-shrink-0",
+                        isPaused ? "text-amber-500" : "text-red-500",
+                      )} />
                       <div className="space-y-1 min-w-0">
-                        <div className="font-medium text-red-600">Error</div>
+                        <div className={cn(
+                          "font-medium",
+                          isPaused ? "text-amber-600" : "text-red-600",
+                        )}>
+                          {isPaused ? 'Awaiting Approval' : 'Error'}
+                        </div>
                         <div className="text-sm text-muted-foreground break-words">
                           {error}
                         </div>
@@ -777,6 +802,24 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
               <Button variant="outline" onClick={onCancel}>
                 <XCircle className="h-4 w-4 mr-2" />
                 Cancel
+              </Button>
+            )}
+            {isPaused && onAbortPaused && (
+              <Button onClick={onAbortPaused} variant="outline">
+                <XCircle className="h-4 w-4 mr-2" />
+                Abort
+              </Button>
+            )}
+            {isPaused && onApproveHeal && (
+              <Button onClick={onApproveHeal} variant="outline">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Heal and Resume
+              </Button>
+            )}
+            {isPaused && onApproveContinue && (
+              <Button onClick={onApproveContinue} variant="default">
+                <ChevronRight className="h-4 w-4 mr-2" />
+                Continue
               </Button>
             )}
             {isError && onResume && resumableCourseId && (

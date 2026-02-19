@@ -35,11 +35,11 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
         }),
         db.groupDiscussionComment.findMany({
           where: {
-            discussion: { groupId },
+            GroupDiscussion: { groupId },
           },
           include: {
             User: { select: { id: true, name: true } },
-            discussion: { select: { authorId: true } },
+            GroupDiscussion: { select: { authorId: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 200,
@@ -67,7 +67,7 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
           id: comment.id,
           type: 'comment',
           userId: comment.authorId,
-          targetUserId: comment.discussion?.authorId,
+          targetUserId: comment.GroupDiscussion?.authorId,
           contentId: comment.discussionId,
           timestamp: comment.createdAt,
           sentiment: this.analyzeSentiment(comment.content),
@@ -99,15 +99,15 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
         db.enrollment.findMany({
           where: { userId },
           include: {
-            course: { select: { title: true, categoryId: true } },
+            Course: { select: { title: true, categoryId: true } },
           },
         }),
-        db.userProgress.count({
+        db.user_progress.count({
           where: { userId, isCompleted: true },
         }),
-        db.examAttempt.findMany({
+        db.userExamAttempt.findMany({
           where: { userId },
-          select: { score: true },
+          select: { scorePercentage: true },
           take: 20,
           orderBy: { createdAt: 'desc' },
         }),
@@ -118,14 +118,14 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
 
       // Calculate average score from exam attempts
       const averageScore = examAttempts.length > 0
-        ? examAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / examAttempts.length
+        ? examAttempts.reduce((sum: number, a: { scorePercentage: number | null }) => sum + (a.scorePercentage ?? 0), 0) / examAttempts.length
         : 70;
 
       // Extract strengths from completed courses
       const strengths = enrollments
-        .filter(e => e.course?.categoryId)
+        .filter((e: { Course: { categoryId: string | null } | null }) => e.Course?.categoryId)
         .slice(0, 5)
-        .map(e => e.course?.title?.split(' ')[0] ?? 'General');
+        .map((e: { Course: { title: string | null } | null }) => e.Course?.title?.split(' ')[0] ?? 'General');
 
       // Identify skill gaps (simplified)
       const skillGaps = ['Advanced Topics', 'Practice'];
@@ -133,7 +133,7 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
       return {
         experience,
         averageScore,
-        strengths: [...new Set(strengths)],
+        strengths: [...new Set(strengths)] as string[],
         skillGaps,
         availableHours: experience > 6 ? 5 : 2,
         requiredHours: experience < 3 ? 4 : 2,
@@ -156,13 +156,15 @@ export class PrismaSocialDatabaseAdapter implements SocialDatabaseAdapter {
    */
   async getLearningStyle(userId: string): Promise<{ primaryStyle: string } | null> {
     try {
-      const profile = await db.adaptiveLearnerProfile.findUnique({
-        where: { id: `profile_${userId}` },
-        select: { primaryStyle: true },
+      // Attempt to fetch from SAM analytics where learning style may be stored
+      const analytics = await db.sAMSocialAnalytics.findFirst({
+        where: { id: `learningstyle_${userId}` },
+        select: { data: true },
       });
 
-      if (profile?.primaryStyle) {
-        return { primaryStyle: profile.primaryStyle };
+      const data = analytics?.data as Record<string, unknown> | null;
+      if (data?.primaryStyle && typeof data.primaryStyle === 'string') {
+        return { primaryStyle: data.primaryStyle };
       }
 
       // Default learning style

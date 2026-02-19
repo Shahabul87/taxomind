@@ -538,14 +538,19 @@ async function buildAndPersistRoadmap(
     },
   });
 
+  // Extract milestones from the included relation
+  const roadmapWithMilestones = roadmap as typeof roadmap & {
+    milestones: Array<{ id: string; order: number; title: string; status: string; estimatedHours: number }>;
+  };
+
   // Build result
   const result: NavigatorRoadmapResult = {
     roadmapId: roadmap.id,
     title: roadmap.title,
     description: roadmap.description ?? '',
     totalEstimatedHours: roadmap.totalEstimatedHours,
-    milestoneCount: roadmap.milestones.length,
-    milestones: roadmap.milestones.map((m) => {
+    milestoneCount: roadmapWithMilestones.milestones.length,
+    milestones: roadmapWithMilestones.milestones.map((m) => {
       const phaseIdx = m.order - 1;
       const phase = pathArchitecture.phases[phaseIdx];
       return {

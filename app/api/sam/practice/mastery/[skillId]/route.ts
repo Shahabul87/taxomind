@@ -53,7 +53,7 @@ export async function GET(
     // Get skill details
     const skill = await db.skillBuildDefinition.findUnique({
       where: { id: skillId },
-      select: { id: true, name: true, icon: true, description: true },
+      select: { id: true, name: true, description: true },
     });
 
     // Get recent sessions for this skill
@@ -115,7 +115,6 @@ export async function GET(
           ? {
               id: skill.id,
               name: skill.name,
-              icon: skill.icon,
               description: skill.description,
             }
           : null,

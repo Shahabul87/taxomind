@@ -978,34 +978,47 @@ export async function runAIAnalysis(
     // Add content gap issues from duplicate content analysis
     if (result.crossChapter.duplicateContent) {
       for (const duplicate of result.crossChapter.duplicateContent) {
-        if (duplicate.similarityScore > 0.7) {
+        // Derive a similarity score from the recommendation type since the schema
+        // does not include similarityScore. CONSOLIDATE implies high overlap (~0.8),
+        // REMOVE_DUPLICATE implies near-identical (~0.95), KEEP_AS_SPIRAL is lower (~0.5).
+        const similarityScore =
+          duplicate.recommendation === 'REMOVE_DUPLICATE'
+            ? 0.95
+            : duplicate.recommendation === 'CONSOLIDATE'
+              ? 0.8
+              : 0.5;
+
+        const sourceAChapter = duplicate.chapters[0] ?? 0;
+        const sourceBChapter = duplicate.chapters[1] ?? 0;
+
+        if (similarityScore > 0.7) {
           const issue: AnalysisIssue = {
             id: nanoid(),
             type: 'GAP',
-            severity: duplicate.similarityScore > 0.9 ? 'HIGH' : 'MEDIUM',
+            severity: similarityScore > 0.9 ? 'HIGH' : 'MEDIUM',
             status: 'OPEN',
             location: {
-              chapterId: course.chapters[duplicate.sourceAChapter]?.id,
-              chapterTitle: course.chapters[duplicate.sourceAChapter]?.title,
-              chapterPosition: duplicate.sourceAChapter,
+              chapterId: course.chapters[sourceAChapter]?.id,
+              chapterTitle: course.chapters[sourceAChapter]?.title,
+              chapterPosition: sourceAChapter,
             },
-            title: `Content Duplication: ${Math.round(duplicate.similarityScore * 100)}% similarity`,
-            description: `Similar content found between chapter ${duplicate.sourceAChapter + 1} and chapter ${duplicate.sourceBChapter + 1}`,
+            title: `Content Duplication: ${Math.round(similarityScore * 100)}% similarity`,
+            description: `Similar content found between chapter ${sourceAChapter + 1} and chapter ${sourceBChapter + 1}`,
             evidence: [
-              `Source A: Chapter ${duplicate.sourceAChapter + 1}`,
-              `Source B: Chapter ${duplicate.sourceBChapter + 1}`,
-              `Similarity: ${Math.round(duplicate.similarityScore * 100)}%`,
+              `Source A: Chapter ${sourceAChapter + 1}`,
+              `Source B: Chapter ${sourceBChapter + 1}`,
+              `Similarity: ${Math.round(similarityScore * 100)}%`,
             ],
             impact: {
               area: 'Content Efficiency',
               description: 'Duplicate content wastes learner time and may cause confusion',
             },
             fix: {
-              action: duplicate.recommendation === 'MERGE' ? 'merge' : 'modify',
-              what: duplicate.recommendationReason,
+              action: duplicate.recommendation === 'CONSOLIDATE' ? 'merge' : 'modify',
+              what: duplicate.rationale,
               why: 'Each concept should be taught once with appropriate depth',
               how:
-                duplicate.recommendation === 'MERGE'
+                duplicate.recommendation === 'CONSOLIDATE'
                   ? 'Combine the content into a single, comprehensive section'
                   : 'Keep the more comprehensive version and reference it from other locations',
             },

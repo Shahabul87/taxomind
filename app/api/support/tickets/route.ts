@@ -22,9 +22,11 @@ export async function POST(req: Request) {
 
     const ticket = await db.supportTicket.create({
       data: {
+        id: crypto.randomUUID(),
         ...values,
         userId: session.user.id,
         status: "OPEN",
+        updatedAt: new Date(),
       },
     });
 

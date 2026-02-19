@@ -43,8 +43,11 @@ export function SimpleChapterContext({
   useEffect(() => {
     // Inject chapter context data into global scope for SAM
     if (typeof window !== 'undefined' && chapter && chapter.id) {
+      const windowWithChapterContext = window as Window & {
+        chapterContext?: Record<string, unknown>;
+      };
       // Add context data to window for SAM to access
-      window.chapterContext = {
+      windowWithChapterContext.chapterContext = {
         entityType: 'chapter',
         entityId: chapter.id,
         entityData: {

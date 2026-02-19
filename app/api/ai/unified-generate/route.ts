@@ -154,15 +154,16 @@ function recordToolInvocation(params: {
       id,
       toolId: 'sam-content-generator',
       userId: params.userId,
-      input: {
+      sessionId: `sess_${params.userId}`,
+      input: JSON.stringify({
         contentType: params.contentType,
         entityLevel: params.entityLevel,
         entityTitle: params.entityTitle,
-      },
+      }),
       status: params.status,
+      confirmationType: 'none',
       duration: params.durationMs,
-      error: params.errorMessage ? { message: params.errorMessage } : undefined,
-      createdAt: new Date(),
+      result: params.errorMessage ? JSON.stringify({ message: params.errorMessage }) : undefined,
     },
   }).catch((err) => {
     logger.warn('[UnifiedGenerate] Failed to record tool invocation', {
@@ -212,7 +213,7 @@ function recordGenerationHistory(params: {
         advancedSettings: params.advancedSettings,
         userPrompt: params.userPrompt,
       },
-      output: params.status === GenerationStatus.COMPLETED ? params.output : null,
+      output: params.status === GenerationStatus.COMPLETED ? params.output : undefined,
       errorMessage: params.errorMessage,
       generationTime: Math.round(params.generationTimeMs),
       userId: params.userId,

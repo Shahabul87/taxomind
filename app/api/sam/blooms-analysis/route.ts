@@ -5,7 +5,7 @@ import type {
   UnifiedCourseInput,
   UnifiedCourseOptions,
   UnifiedCourseResult,
-  ChapterAnalysis,
+  UnifiedChapterAnalysis as ChapterAnalysis,
 } from '@sam-ai/educational';
 import {
   createCognitiveLoadAnalyzer,
@@ -210,9 +210,7 @@ export async function POST(request: NextRequest) {
         const loadAnalyzer = getCognitiveLoadAnalyzer();
         // Build course content text for cognitive load analysis
         const courseContentText = buildCourseContentForCognitiveLoad(courseData);
-        cognitiveLoad = loadAnalyzer.analyze(courseContentText, {
-          bloomsLevel: analysis.chapters[0]?.primaryLevel ?? 'REMEMBER',
-        });
+        cognitiveLoad = loadAnalyzer.analyze(courseContentText, analysis.chapters[0]?.primaryLevel ?? 'REMEMBER');
       } catch (error) {
         logger.warn('Cognitive load analysis failed:', error);
         // Non-critical - continue without cognitive load data
@@ -675,7 +673,7 @@ async function persistChapterAnalysis(chapters: ChapterAnalysis[]): Promise<void
         distribution: chapter.distribution,
         cognitiveDepth: chapter.cognitiveDepth,
         sectionCount: chapter.sections.length,
-        recommendations: chapter.recommendations ?? [],
+        recommendations: (chapter as ChapterAnalysis & { recommendations?: string[] }).recommendations ?? [],
       };
     });
 

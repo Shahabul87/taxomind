@@ -324,7 +324,7 @@ export function LearningCommandCenter({ user, onCreateStudyPlan }: LearningComma
       router.push(`/courses/${item.courseId}`);
     } else {
       toast.info(`${item.title}`, {
-        description: `${item.status} - ${item.progress}% complete`,
+        description: `${item.status} - ${item.actualProgress}% complete`,
       });
     }
   }, [router]);

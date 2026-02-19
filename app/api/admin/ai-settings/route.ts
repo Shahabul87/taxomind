@@ -129,7 +129,7 @@ export async function GET() {
     }
 
     // Get or create platform settings with fallback for missing table
-    let settings = DEFAULT_SETTINGS;
+    let settings: Record<string, unknown> = DEFAULT_SETTINGS;
     let tableExists = true;
 
     try {

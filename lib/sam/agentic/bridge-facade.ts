@@ -253,7 +253,23 @@ export class SAMAgenticBridge {
     },
   ): Promise<ConfidenceScore> {
     if (!this.selfEvaluation) throw new Error('Self-Evaluation not enabled');
-    return this.selfEvaluation.scoreConfidence(responseText, context);
+    // Map lowercase responseType to uppercase for SelfEvaluationService
+    const RESPONSE_TYPE_MAP: Record<string, 'EXPLANATION' | 'ANSWER' | 'ASSESSMENT' | 'RECOMMENDATION' | 'INTERVENTION' | 'TOOL_RESULT'> = {
+      explanation: 'EXPLANATION',
+      answer: 'ANSWER',
+      hint: 'EXPLANATION',
+      feedback: 'ASSESSMENT',
+      assessment: 'ASSESSMENT',
+      recommendation: 'RECOMMENDATION',
+      clarification: 'EXPLANATION',
+    };
+    const mappedContext = context ? {
+      ...context,
+      responseType: context.responseType
+        ? RESPONSE_TYPE_MAP[context.responseType] ?? 'EXPLANATION'
+        : undefined,
+    } : undefined;
+    return this.selfEvaluation.scoreConfidence(responseText, mappedContext);
   }
 
   async verifyResponse(

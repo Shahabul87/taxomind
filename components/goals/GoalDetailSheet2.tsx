@@ -59,7 +59,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import type { Goal } from '@/app/dashboard/user/goals/_components/GoalsClient';
+import type { Goal } from './types';
 
 interface GoalDetailSheetProps {
   goal: Goal | null;
@@ -890,11 +890,11 @@ export function GoalDetailSheet({
             </Tabs>
 
             {/* Tags */}
-            {goal.tags.length > 0 && (
+            {(goal.tags?.length ?? 0) > 0 && (
               <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Tags</p>
                 <div className="flex flex-wrap gap-2">
-                  {goal.tags.map((tag) => (
+                  {goal.tags?.map((tag) => (
                     <Badge key={tag} variant="outline">
                       {tag}
                     </Badge>

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { studySessionSchema, paginationSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { Prisma, SessionStatus } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,16 +16,12 @@ export async function GET(req: NextRequest) {
     const upcoming = searchParams.get("upcoming") === "true";
 
     // Build where clause
-    const where: {
-      userId: string;
-      startTime?: { gte: Date };
-      status?: string;
-    } = { userId: user.id };
+    const where: Prisma.DashboardStudySessionWhereInput = { userId: user.id };
 
     // Filter for upcoming sessions (future sessions only)
     if (upcoming) {
       where.startTime = { gte: new Date() };
-      where.status = "ACTIVE";
+      where.status = SessionStatus.ACTIVE;
     }
 
     const total = await db.dashboardStudySession.count({ where });

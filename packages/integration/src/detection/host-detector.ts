@@ -525,8 +525,6 @@ export function generateProfileFromHost(
 // TypeScript type guards for runtime detection
 declare global {
   // eslint-disable-next-line no-var
-  var window: unknown | undefined;
-  // eslint-disable-next-line no-var
   var Deno: unknown | undefined;
   // eslint-disable-next-line no-var
   var Bun: unknown | undefined;

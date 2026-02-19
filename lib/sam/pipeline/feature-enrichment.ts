@@ -39,7 +39,7 @@ async function recordFeatureSession(input: FeatureEnrichmentInput): Promise<void
     await db.sAMInteraction.create({
       data: {
         userId: input.userId,
-        interactionType: 'AI_HELP',
+        interactionType: 'LEARNING_ASSISTANCE',
         context: {
           feature: input.featureName,
           action: input.action,
@@ -67,7 +67,7 @@ async function trackFeatureBehavior(input: FeatureEnrichmentInput): Promise<void
     await trackBehaviorEvent({
       userId: input.userId,
       sessionId: `feature-${input.featureName}-${Date.now()}`,
-      type: 'CONTENT_INTERACTION',
+      type: 'content_interaction',
       timestamp: new Date(),
       pageContext: {
         url: `/api/sam/${input.featureName}`,

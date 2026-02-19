@@ -206,8 +206,9 @@ export async function POST(req: NextRequest) {
         let profile: AdaptiveLearnerProfile | null = null;
 
         // Get or create profile
-        if (parsed.data.profile) {
-          profile = parsed.data.profile as AdaptiveLearnerProfile;
+        const adaptData = parsed.data as { profile?: Record<string, unknown>; content?: unknown; options?: unknown };
+        if (adaptData.profile) {
+          profile = adaptData.profile as unknown as AdaptiveLearnerProfile;
         } else {
           profile = await engine.getLearnerProfile(userId);
         }
@@ -221,9 +222,9 @@ export async function POST(req: NextRequest) {
 
         const adaptedContent = await withRetryableTimeout(
           () => engine.adaptContent(
-            parsed.data.content as ContentToAdapt,
+            adaptData.content as ContentToAdapt,
             profile,
-            parsed.data.options as AdaptationOptions
+            adaptData.options as AdaptationOptions
           ),
           TIMEOUT_DEFAULTS.AI_GENERATION,
           'adaptiveContent-adaptContent'
@@ -238,11 +239,12 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ success: true, data: [] });
         }
 
+        const recsData = parsed.data as { topic?: string; count?: number };
         const recommendations = await withRetryableTimeout(
           () => engine.getContentRecommendations(
             profile,
-            parsed.data.topic,
-            parsed.data.count
+            recsData.topic ?? '',
+            recsData.count
           ),
           TIMEOUT_DEFAULTS.AI_ANALYSIS,
           'adaptiveContent-getRecommendations'

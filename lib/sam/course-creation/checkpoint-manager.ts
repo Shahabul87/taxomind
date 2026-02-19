@@ -13,6 +13,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { PROMPT_VERSION, PROMPT_VERSIONS } from './prompts';
+import { getMinimumSectionsForDifficulty } from './chapter-templates';
 import {
   reactivateCourseCreation,
 } from './course-creation-controller';
@@ -196,17 +197,56 @@ export async function resumeCourseCreation(
   const { userId, resumeCourseId, onProgress, onSSEEvent } = options;
 
   try {
-    // 1. Load checkpoint from SAMExecutionPlan
+    // 1. Verify course exists and belongs to user BEFORE any plan mutation
+    const course = await db.course.findUnique({
+      where: {
+        id: resumeCourseId,
+      },
+      include: {
+        chapters: {
+          orderBy: { position: 'asc' },
+          include: {
+            sections: {
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      return { success: false, error: 'Course not found' };
+    }
+    if (course.isPublished) {
+      return { success: false, error: 'Cannot resume: course is already published' };
+    }
+    if (course.userId !== userId) {
+      return { success: false, error: 'Unauthorized: course belongs to another user' };
+    }
+
+    // 2. Load checkpoint plan scoped to the authenticated owner
     const plan = await db.sAMExecutionPlan.findFirst({
       where: {
-        steps: {
-          some: {
-            metadata: {
+        goal: { userId },
+        status: { in: ['ACTIVE', 'PAUSED', 'FAILED', 'DRAFT'] },
+        OR: [
+          {
+            checkpointData: {
               path: ['courseId'],
               equals: resumeCourseId,
             },
           },
-        },
+          {
+            steps: {
+              some: {
+                metadata: {
+                  path: ['courseId'],
+                  equals: resumeCourseId,
+                },
+              },
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -319,31 +359,6 @@ export async function resumeCourseCreation(
       }
     }
 
-    // 2. Verify course exists and belongs to user
-    const course = await db.course.findUnique({
-      where: { id: resumeCourseId },
-      include: {
-        chapters: {
-          orderBy: { position: 'asc' },
-          include: {
-            sections: {
-              orderBy: { position: 'asc' },
-            },
-          },
-        },
-      },
-    });
-
-    if (!course) {
-      return { success: false, error: 'Course not found' };
-    }
-    if (course.isPublished) {
-      return { success: false, error: 'Cannot resume: course is already published' };
-    }
-    if (course.userId !== userId) {
-      return { success: false, error: 'Unauthorized: course belongs to another user' };
-    }
-
     // 3. Reconstruct config — checkpoint config is authoritative for resume.
     //    Only take callbacks from options.config; do NOT let client-side formData
     //    override totalChapters, sectionsPerChapter, etc.
@@ -366,7 +381,8 @@ export async function resumeCourseCreation(
     // Use the user's configured section count for resume validation.
     // Previously this used getTemplateForDifficulty(config.difficulty).totalSections,
     // which could mismatch if the user chose a different section count than the template default.
-    const resumeEffectiveSections = config.sectionsPerChapter;
+    const resumeMinimumSections = getMinimumSectionsForDifficulty(config.difficulty);
+    const resumeEffectiveSections = Math.max(config.sectionsPerChapter, resumeMinimumSections);
 
     if (completedChapterCount >= totalChapters) {
       return {

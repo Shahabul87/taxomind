@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     // Verify user has access to the course (teacher or admin)
     const course = await db.course.findUnique({
       where: { id: courseId },
-      select: { teacherId: true },
+      select: { userId: true },
     });
 
     if (!course) {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isTeacher = course.teacherId === session.user.id;
+    const isTeacher = course.userId === session.user.id;
     const isAdmin = session.user.role === 'ADMIN';
 
     if (!isTeacher && !isAdmin) {
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         recommendations: result.recommendations,
         coverage: result.coverage,
         analyzedAt: result.analyzedAt,
-        savedToDatabase,
+        saveToDatabase,
       },
     });
   } catch (error) {

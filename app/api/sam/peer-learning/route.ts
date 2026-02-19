@@ -287,7 +287,7 @@ export async function GET(req: NextRequest) {
         const analytics = engine.getAnalytics(startDate, now);
 
         const profileData = (profile ?? {}) as Record<string, unknown>;
-        const analyticsData = (analytics ?? {}) as Record<string, unknown>;
+        const analyticsData = (analytics ?? {}) as unknown as Record<string, unknown>;
 
         const stats = {
           totalPeers: analyticsData?.totalPeers ?? profileData?.connectionsCount ?? 0,
@@ -346,7 +346,7 @@ export async function GET(req: NextRequest) {
         const now = new Date();
         const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const analytics = engine.getAnalytics(startDate, now);
-        const analyticsData = (analytics ?? {}) as Record<string, unknown>;
+        const analyticsData = (analytics ?? {}) as unknown as Record<string, unknown>;
 
         return NextResponse.json({
           success: true,

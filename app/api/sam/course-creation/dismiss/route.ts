@@ -8,13 +8,17 @@
  * or cancels an in-progress creation.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {

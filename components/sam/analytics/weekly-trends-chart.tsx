@@ -127,6 +127,7 @@ interface CustomTooltipProps {
     value: number;
     color: string;
     dataKey: string;
+    payload: unknown;
   }>;
   label?: string;
 }
@@ -134,7 +135,7 @@ interface CustomTooltipProps {
 function DailyTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
 
-  const data = payload[0]?.payload as DailyData | undefined;
+  const data = (payload[0]?.payload as DailyData | undefined);
   if (!data) return null;
 
   return (
@@ -167,7 +168,7 @@ function DailyTooltip({ active, payload, label }: CustomTooltipProps) {
 function WeeklyTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
 
-  const data = payload[0]?.payload as WeeklyComparison | undefined;
+  const data = (payload[0]?.payload as WeeklyComparison | undefined);
   if (!data) return null;
 
   return (

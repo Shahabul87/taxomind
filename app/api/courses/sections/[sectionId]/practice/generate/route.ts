@@ -116,9 +116,11 @@ Return ONLY the JSON object. No other text.`;
 interface AIProblem {
   type: string;
   question: string;
+  statement?: string;
   options: Array<{ id: string; text: string; isCorrect: boolean }> | null;
   correctAnswer: string;
   explanation: string;
+  solutionExplanation?: string;
   bloomsLevel: string;
   difficulty: string;
   points: number;
@@ -330,7 +332,7 @@ export async function POST(
           : null,
         correctAnswer: problem.correctAnswer || "",
         explanation: problem.explanation || null,
-        acceptableVariations: null,
+        acceptableVariations: undefined,
         bloomsLevel: mapBloomsLevel(problem.bloomsLevel),
         difficulty: mapDifficulty(problem.difficulty),
         points: problem.points || 10,

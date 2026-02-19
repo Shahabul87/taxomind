@@ -499,7 +499,7 @@ function GraphCanvas({
 
   // Create node position map
   const nodePositions = useMemo(() => {
-    const map = new Map<string, { x: number; y: number }>();
+    const map: globalThis.Map<string, { x: number; y: number }> = new (globalThis.Map)();
     for (const node of nodes) {
       map.set(node.id, {
         x: (node.position?.x ?? 400) - bounds.minX,

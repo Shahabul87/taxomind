@@ -338,8 +338,16 @@ let runtimeProfile: TaxomindRuntimeProfile | null = null;
 function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
   const cache = new Map<string, unknown>();
 
-  // Cast helper for adapter-prisma stores that expect their own Prisma type
-  const prismaArg = prisma as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'];
+  // Cast helper for adapter-prisma stores that expect their own Prisma type.
+  // Each adapter package re-exports PrismaClient from its own @prisma/client copy,
+  // which is structurally identical but nominally different. Using a function-scoped
+  // generic cast keeps things type-safe within each factory call while bridging
+  // the nominal type gap across packages.
+  function castPrisma<T>(factory: (opts: { prisma: T }) => unknown): T {
+    return prisma as unknown as T;
+  }
+  // Quick reference used by most stores
+  const prismaArg = prisma as unknown as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'];
 
   // Lazy batch initializers - create all stores in a group on first access
   let observabilityStores: ReturnType<typeof createPrismaObservabilityStores> | null = null;
@@ -353,7 +361,7 @@ function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
   let selfEvaluationStores: ReturnType<typeof createPrismaSelfEvaluationStores> | null = null;
   const getSelfEvaluationStores = () => {
     if (!selfEvaluationStores) {
-      selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: prismaArg });
+      selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: castPrisma(createPrismaSelfEvaluationStores) });
     }
     return selfEvaluationStores;
   };
@@ -361,7 +369,7 @@ function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
   let metaLearningStores: ReturnType<typeof createPrismaMetaLearningStores> | null = null;
   const getMetaLearningStores = () => {
     if (!metaLearningStores) {
-      metaLearningStores = createPrismaMetaLearningStores({ prisma: prismaArg });
+      metaLearningStores = createPrismaMetaLearningStores({ prisma: castPrisma(createPrismaMetaLearningStores) });
     }
     return metaLearningStores;
   };
@@ -432,10 +440,10 @@ function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
     learningEvent: () => getMetaLearningStores().learningEvent,
 
     // Journey Timeline (from adapter-prisma)
-    journeyTimeline: () => createPrismaJourneyTimelineStore({ prisma: prismaArg }),
+    journeyTimeline: () => createPrismaJourneyTimelineStore({ prisma: castPrisma(createPrismaJourneyTimelineStore) }),
 
     // Presence (realtime user tracking)
-    presence: () => createPrismaPresenceStore({ prisma: prismaArg }),
+    presence: () => createPrismaPresenceStore({ prisma: castPrisma(createPrismaPresenceStore) }),
 
     // Student Profile (mastery tracking)
     studentProfile: () => createPrismaStudentProfileStore({ prisma: prismaArg }),
@@ -444,7 +452,7 @@ function createLazyStores(prisma: PrismaClient = db): TaxomindAgenticStores {
     reviewSchedule: () => createPrismaReviewScheduleStore({ prisma: prismaArg }),
 
     // Push Queue (persistent push notification queue)
-    pushQueue: () => createPrismaPushQueueStore({ prisma: prismaArg as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
+    pushQueue: () => createPrismaPushQueueStore({ prisma: castPrisma(createPrismaPushQueueStore) }),
 
     // Phase 6: Educational Engine Stores
     microlearning: () => createPrismaMicrolearningStore(),

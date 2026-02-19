@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { stageHealthTracker } from '@/lib/sam/pipeline/stage-health-tracker';
 
 interface HealthStatus {
+  [key: string]: unknown;
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
   uptime: number;

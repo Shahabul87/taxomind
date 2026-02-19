@@ -15,7 +15,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
 
 // =============================================================================
@@ -33,6 +35,9 @@ const ApproveRequestSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {
@@ -61,14 +66,12 @@ export async function POST(req: NextRequest) {
         goal: { userId: user.id },
         status: 'PAUSED',
         checkpointData: {
-          not: null,
+          not: Prisma.DbNull,
           path: ['courseId'],
           equals: courseId,
         },
       },
-      select: {
-        id: true,
-        checkpointData: true,
+      include: {
         goal: { select: { userId: true } },
       },
     });

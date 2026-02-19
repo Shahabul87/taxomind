@@ -138,23 +138,34 @@ function buildMockDetailsResponse(quality: Quality): string {
     thinking: 'Creating comprehensive content with practical exercises and clear explanations.',
     details: {
       description:
-        '<h2>Understanding the CSS Box Model</h2>' +
-        '<p>Every HTML element on a web page is represented as a rectangular box. The CSS Box Model describes how these boxes are sized, spaced, and positioned relative to one another. Understanding this model is essential for creating precise, predictable layouts.</p>' +
-        '<h3>The Four Layers</h3>' +
-        '<p>Each box consists of four concentric areas: content, padding, border, and margin. The content area holds the actual text or media. Padding creates space between the content and the border. The border wraps around the padding. Margins create space between the element and its neighbors.</p>' +
-        '<h3>Box-Sizing Property</h3>' +
-        '<p>By default, CSS uses <code>content-box</code> sizing, where width and height apply only to the content area. The <code>border-box</code> model includes padding and border in the declared dimensions, making layout calculations far more intuitive.</p>',
+        '<h2>Why It Was Developed</h2>' +
+        '<p>Hash functions were developed to solve a practical bottleneck: searching through large collections one item at a time was too slow for real systems. Before hash functions, many programs depended on linear scans that became painful as data grew, especially for caching, routing, and account lookup workflows. The motivating problem was speed under real load. Teams needed near-constant-time access by key, not repeated full-list traversal. Hash functions transformed this limitation by mapping a key into a predictable storage location, making modern lookup-heavy applications feasible at scale.</p>' +
+        '<h2>Core Intuition</h2>' +
+        '<p>Think of a hash function as a smart mailroom sorter. You hand the sorter an address label, and it immediately routes the letter to a numbered shelf. You do not search every shelf; you compute where to start. This mental model helps beginners see that hash functions are not magic storage, but deterministic routing rules. The intuition is stable: the same key should produce the same shelf index. Good routing spreads keys across shelves, reducing pileups and keeping retrieval fast even as the number of stored entries grows.</p>' +
+        '<h2>Equation Intuition</h2>' +
+        '<p>A common equation form is <code>index = hash(key) mod capacity</code>. Each term has a role: <code>hash(key)</code> turns the original key into a numeric fingerprint, <code>capacity</code> is the current table size, and <code>mod</code> constrains the index into valid bounds. The structure exists because the hash output can be large, but table slots are finite. The equation shape balances two needs: deterministic placement and bounded storage. If capacity changes, the same key may map differently, which is why resize operations require controlled rehashing.</p>' +
+        '<h2>Step-by-Step Visualization</h2>' +
+        '<p>First, visualize a table with numbered buckets from 0 to N-1. Second, take a key like <code>\"user:42\"</code> and compute its hash value. Third, apply modulo to get a bucket index. Next, check that bucket: if empty, place the record; if occupied, follow the collision strategy. Then, retrieve by repeating the exact same steps with the same key, which leads back to the same location. Finally, monitor load factor as entries grow and picture how increased collisions signal the need to resize for stable performance.</p>' +
+        '<h2>Concrete Example</h2>' +
+        '<p>Consider a table capacity of 10 and a simplified hash output for key <code>\"apple\"</code> equal to 37. Using the rule, <code>37 mod 10 = 7</code>, so the record is stored at bucket 7. Suppose key <code>\"angle\"</code> also maps to bucket 7, creating a collision. With chaining, both entries remain in bucket 7 as a short list. During lookup, the program computes the same bucket first, then compares keys locally. This worked example shows why hash functions give fast average access while collision handling preserves correctness.</p>' +
+        '<h2>Common Confusion + Fix</h2>' +
+        '<p>A common misconception is that hash functions eliminate collisions entirely. Another frequent mistake is assuming a fast hash guarantees fast lookup under any load. The fix is to teach two rules explicitly: collisions are normal, and performance depends on distribution plus load factor. Encourage learners to check bucket occupancy patterns, not just formula correctness. If collisions cluster, choose a stronger hash approach or resize earlier. Remember: a hash function is a routing strategy, not a promise of uniqueness, and the correction is disciplined collision management.</p>',
       learningObjectives: [
-        'Identify the four layers of the CSS Box Model and their functions',
-        'Apply box-sizing: border-box to simplify layout calculations',
-        'Debug spacing issues using browser developer tools',
+        'Apply a hash-function indexing rule to place key-value records into the correct bucket under a given table capacity',
+        'Implement a basic collision-handling decision using chaining when two keys map to the same index',
+        'Demonstrate lookup reasoning by tracing key-to-index computation and validating retrieval outcomes',
       ],
-      keyConceptsCovered: ['box model', 'padding', 'margin', 'border', 'box-sizing', 'margin collapse'],
+      keyConceptsCovered: ['hash function', 'bucket index', 'collision handling', 'load factor', 'rehashing'],
       practicalActivity:
-        'Open your browser dev tools, select any element on a live page, and examine its box model diagram. ' +
-        'Try modifying padding, margin, and border values in real-time to see how the layout shifts. ' +
-        'Then create a simple card component using border-box sizing.',
-      resources: ['https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/The_box_model'],
+        'Watch a short demo video that computes hash indexes for several keys, then observe where each key lands in a 10-slot table. ' +
+        'Next, complete a guided worksheet where you apply the same rule to new keys, predict collisions, and explain your decision for chaining or probing. ' +
+        'Finish by demonstrating your reasoning to a partner and verifying the final lookup results against expected outputs.',
+      creatorGuidelines:
+        'Start with a real production scenario where slow lookup caused user-visible latency, then transition into the mailroom analogy before showing the indexing equation. ' +
+        'On screen, display key, hash output, modulo step, and final bucket side-by-side so learners can track each transformation. ' +
+        'Emphasize that collisions are expected and model calm debugging language when one appears. ' +
+        'Use deliberate pacing: concept, worked example, guided practice, then quick recap with one misconception correction at the end.',
+      resources: ['https://en.wikipedia.org/wiki/Hash_table'],
     },
   };
 

@@ -8,6 +8,7 @@
 import { Metadata } from 'next';
 import { getCourseData, getCourseStats } from './data-fetchers';
 import { getCategoryLayout } from '../_config/category-layouts';
+import type { CategoryLayoutVariant } from '../_config/category-layouts';
 import type { BaseCourse } from '../_types/course.types';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
@@ -15,7 +16,7 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 /**
  * Category-specific keywords for SEO
  */
-const CATEGORY_KEYWORDS = {
+const CATEGORY_KEYWORDS: Record<CategoryLayoutVariant, readonly string[]> = {
   programming: [
     'programming course',
     'coding tutorial',
@@ -57,6 +58,13 @@ const CATEGORY_KEYWORDS = {
     'seo tutorial',
     'content marketing',
     'social media marketing',
+  ],
+  math: [
+    'mathematics course',
+    'math tutorial',
+    'algebra',
+    'calculus',
+    'geometry',
   ],
   default: [
     'online course',

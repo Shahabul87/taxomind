@@ -276,30 +276,29 @@ async function recallPriorConcepts(
   const { knowledgeGraph } = getMemoryStores();
 
   try {
-    // Query knowledge graph for concept entities created by this user
-    const entities = await knowledgeGraph.queryEntities({
-      type: 'concept',
-      properties: { userId },
-      limit: MAX_PRIOR_CONCEPTS,
-    });
+    // Query knowledge graph for concept entities using findEntities
+    const entities = await knowledgeGraph.findEntities('concept', undefined, MAX_PRIOR_CONCEPTS * 3);
 
     if (!entities || entities.length === 0) return [];
 
     const relatedCategories = getRelatedCategories(courseCategory);
 
+    // Filter by userId and category in-memory (findEntities doesn't support property filters)
     return entities
-      .filter((e: Record<string, unknown>) => {
+      .filter((e) => {
         const props = e.properties as Record<string, unknown> | undefined;
+        const entityUserId = props?.userId as string | undefined;
+        if (entityUserId && entityUserId !== userId) return false;
         const entityCategory = props?.courseCategory as string | undefined;
         // Include entities without a category, or whose category is in the related set
         if (!entityCategory) return true;
         return relatedCategories.has(entityCategory.toLowerCase());
       })
       .slice(0, MAX_PRIOR_CONCEPTS)
-      .map((e: Record<string, unknown>) => {
+      .map((e) => {
         const props = (e.properties ?? {}) as Record<string, unknown>;
         return {
-          concept: (e.name as string) ?? 'Unknown',
+          concept: e.name ?? 'Unknown',
           bloomsLevel: (props.bloomsLevel as string) ?? 'UNDERSTAND',
           courseTitle: (props.courseTitle as string) ?? 'Prior Course',
         };
@@ -316,34 +315,33 @@ async function recallQualityPatterns(userId: string): Promise<QualityPatterns | 
   const { sessionContext } = getMemoryStores();
 
   try {
-    // Query session contexts for this user's prior course creation sessions
-    const sessions = await sessionContext.list(userId, { limit: 10 });
+    // Query session context for this user's prior course creation session
+    // SessionContextStore.get returns a single session per userId+courseId
+    const session = await sessionContext.get(userId);
 
-    if (!sessions || sessions.length === 0) return null;
+    if (!session) return null;
 
     const allScores: number[] = [];
     const dimensionTotals: Record<string, { sum: number; count: number }> = {};
     const dimensionKeys = ['uniqueness', 'specificity', 'bloomsAlignment', 'completeness', 'depth'];
 
-    for (const session of sessions) {
-      const insights = (session.insights ?? {}) as Record<string, unknown>;
+    const insights = session.insights as unknown as Record<string, unknown>;
 
-      // Look for stage quality data
-      for (const key of Object.keys(insights)) {
-        if (key.startsWith('stage') && key.endsWith('Quality')) {
-          const stageData = insights[key] as Record<string, unknown> | undefined;
-          if (stageData?.averageScore) {
-            allScores.push(stageData.averageScore as number);
-          }
-          const scores = stageData?.scores as Array<Record<string, number>> | undefined;
-          if (scores) {
-            for (const score of scores) {
-              for (const dim of dimensionKeys) {
-                if (score[dim] !== undefined) {
-                  if (!dimensionTotals[dim]) dimensionTotals[dim] = { sum: 0, count: 0 };
-                  dimensionTotals[dim].sum += score[dim];
-                  dimensionTotals[dim].count++;
-                }
+    // Look for stage quality data
+    for (const key of Object.keys(insights)) {
+      if (key.startsWith('stage') && key.endsWith('Quality')) {
+        const stageData = insights[key] as Record<string, unknown> | undefined;
+        if (stageData?.averageScore) {
+          allScores.push(stageData.averageScore as number);
+        }
+        const scores = stageData?.scores as Array<Record<string, number>> | undefined;
+        if (scores) {
+          for (const score of scores) {
+            for (const dim of dimensionKeys) {
+              if (score[dim] !== undefined) {
+                if (!dimensionTotals[dim]) dimensionTotals[dim] = { sum: 0, count: 0 };
+                dimensionTotals[dim].sum += score[dim];
+                dimensionTotals[dim].count++;
               }
             }
           }
@@ -387,22 +385,18 @@ async function doRecallRelatedConcepts(
   try {
     const results: RelatedConcept[] = [];
 
-    // Query for entities related to the given topics
+    // Query for entities related to the given topics using findEntities(type, query, limit)
     for (const topic of topics.slice(0, 5)) {
-      const entities = await knowledgeGraph.queryEntities({
-        type: 'concept',
-        properties: { userId },
-        nameContains: topic,
-        limit: 3,
-      });
+      const entities = await knowledgeGraph.findEntities('concept', topic, 10);
 
       if (entities) {
         for (const entity of entities) {
           const props = (entity.properties ?? {}) as Record<string, unknown>;
-          // Only include concepts from OTHER courses
+          // Only include concepts from this user and from OTHER courses
+          if (props.userId && props.userId !== userId) continue;
           if (props.courseId !== courseId) {
             results.push({
-              name: (entity.name as string) ?? topic,
+              name: entity.name ?? topic,
               relationship: 'relates_to',
             });
           }
@@ -438,7 +432,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-function groupByField<T extends Record<string, unknown>>(
+function groupByField<T>(
   items: T[],
   field: keyof T,
 ): Record<string, T[]> {

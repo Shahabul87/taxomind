@@ -40,12 +40,12 @@ export function CareerTab({ userId }: CareerTabProps) {
 
           {/* Portfolio Export */}
           <div className="mb-6 sm:mb-8">
-            <PortfolioExport userId={userId} />
+            <PortfolioExport />
           </div>
 
           {/* Certifications */}
           <div className="mb-6 sm:mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <CertificationTracker userId={userId} />
+            <CertificationTracker />
             <SkillToCertificationMap userId={userId} />
           </div>
 

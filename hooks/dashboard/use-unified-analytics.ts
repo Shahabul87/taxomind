@@ -224,10 +224,13 @@ export function usePerformanceMetrics() {
         avgScore: 0,
         accuracy: 0,
         currentStreak: 0,
-        recentScores: [],
+        recentScores: [] as Array<{ score: number }>,
       };
     }
-    return analytics.performance;
+    return {
+      ...analytics.performance,
+      recentScores: (analytics.performance as { recentScores?: Array<{ score: number }> }).recentScores ?? [],
+    };
   }, [analytics]);
 
   // Calculate trend
@@ -240,8 +243,8 @@ export function usePerformanceMetrics() {
 
     if (recent.length === 0 || older.length === 0) return 'stable';
 
-    const recentAvg = recent.reduce((sum, s) => sum + (s.score ?? 0), 0) / recent.length;
-    const olderAvg = older.reduce((sum, s) => sum + (s.score ?? 0), 0) / older.length;
+    const recentAvg = recent.reduce((sum: number, s: { score: number }) => sum + (s.score ?? 0), 0) / recent.length;
+    const olderAvg = older.reduce((sum: number, s: { score: number }) => sum + (s.score ?? 0), 0) / older.length;
 
     const diff = recentAvg - olderAvg;
     if (diff > 5) return 'improving';

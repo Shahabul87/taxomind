@@ -10,9 +10,10 @@
 
 import 'server-only';
 
+import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus } from '@sam-ai/agentic';
+import { PlanStatus } from '@sam-ai/agentic';
 
 interface GoalPlanIds {
   goalId: string;
@@ -38,14 +39,13 @@ export async function initializeAnalyticsGoal(
       title: `PRISM Student Analytics: ${analysisDepth}`,
       description: `Student-level PRISM analytics with ${courseScope} scope. Profile, Reveal, Identify, Suggest, Monitor.`,
       priority: 'medium',
-      status: GoalStatus.ACTIVE,
       context: {
-        type: 'student-analytics',
-        analysisDepth,
-        courseScope,
+        topicIds: [analysisDepth, courseScope],
       },
+      tags: ['student-analytics'],
     });
 
+    const planId = randomUUID();
     const samPlan = await planStore.create({
       goalId: samGoal.id,
       userId,
@@ -54,6 +54,8 @@ export async function initializeAnalyticsGoal(
       overallProgress: 0,
       steps: [
         {
+          id: randomUUID(),
+          planId,
           title: 'Data Collection',
           description: 'Collect cognitive, assessment, and engagement data from database',
           type: 'create_summary',
@@ -64,10 +66,12 @@ export async function initializeAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 1 },
+          executionContext: { previousResults: { stage: 1 } },
           metadata: { analysisDepth },
         },
         {
+          id: randomUUID(),
+          planId,
           title: 'Cognitive Mapping',
           description: 'Compute Bloom&apos;s cognitive map, ceiling, growth edge, velocity, and fragile knowledge',
           type: 'create_summary',
@@ -78,10 +82,12 @@ export async function initializeAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 2 },
+          executionContext: { previousResults: { stage: 2 } },
           metadata: {},
         },
         {
+          id: randomUUID(),
+          planId,
           title: 'Interpretive Analysis',
           description: 'AI-powered interpretation of cognitive patterns and cluster classification',
           type: 'create_summary',
@@ -92,10 +98,12 @@ export async function initializeAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 3 },
+          executionContext: { previousResults: { stage: 3 } },
           metadata: {},
         },
         {
+          id: randomUUID(),
+          planId,
           title: 'Prescriptions & Alerts',
           description: 'Generate actionable prescriptions and priority alerts',
           type: 'create_summary',
@@ -106,10 +114,12 @@ export async function initializeAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 4 },
+          executionContext: { previousResults: { stage: 4 } },
           metadata: {},
         },
         {
+          id: randomUUID(),
+          planId,
           title: 'Report Generation',
           description: 'Generate student-friendly PRISM report with verification questions',
           type: 'create_summary',
@@ -120,13 +130,13 @@ export async function initializeAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 5 },
+          executionContext: { previousResults: { stage: 5 } },
           metadata: {},
         },
       ],
       checkpoints: [],
       checkpointData: {},
-      schedule: {},
+      schedule: { dailyMinutes: 0, sessions: [] },
       fallbackStrategies: [],
     });
 
@@ -205,7 +215,12 @@ export async function completeAnalyticsStep(
     await planStore.updateStep(planId, stepId, {
       status: 'completed',
       completedAt: new Date(),
-      outputs: outputs ?? [],
+      outputs: (outputs ?? []).map((o) => ({
+        name: o,
+        type: 'result' as const,
+        value: o,
+        timestamp: new Date(),
+      })),
     });
   } catch (error) {
     logger.warn('[StudentAnalyticsController] Failed to complete step', {

@@ -236,7 +236,8 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
-    if (!session.userId) {
+    const userId = session.userId;
+    if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -271,7 +272,7 @@ export async function POST(request: NextRequest) {
               content: prompt
             }
           ],
-          userId: session.userId,
+          userId,
           capability: 'course',
         }),
         TIMEOUT_DEFAULTS.AI_GENERATION,

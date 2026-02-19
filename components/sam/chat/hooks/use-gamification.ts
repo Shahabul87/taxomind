@@ -4,6 +4,7 @@ import {
   type GamificationEngine,
   type UserProgress,
   type XPEvent,
+  type XPEventType,
   type GamificationEvent,
 } from '@/lib/sam/gamification';
 import type { XPProgress } from '../types';
@@ -20,7 +21,7 @@ interface UseGamificationReturn {
   xpNotifications: XPEvent[];
   showXpAnimation: boolean;
   isFirstInteraction: boolean;
-  awardXP: (type: string, metadata?: Record<string, unknown>) => void;
+  awardXP: (type: XPEventType, metadata?: Record<string, unknown>) => void;
   checkStreak: () => void;
   setFirstInteractionDone: () => void;
   dismissXpAnimation: () => void;
@@ -76,7 +77,7 @@ export function useGamification(options: UseGamificationOptions = {}): UseGamifi
   const xpProgress = userProgress ? getXPProgress(userProgress) : null;
 
   const awardXP = useCallback(
-    (type: string, metadata?: Record<string, unknown>) => {
+    (type: XPEventType, metadata?: Record<string, unknown>) => {
       engineRef.current?.awardXP(type, metadata);
     },
     []

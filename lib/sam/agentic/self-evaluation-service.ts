@@ -15,6 +15,7 @@ import {
   createQualityTracker,
   type ConfidenceScore,
   type VerificationResult,
+  type ResponseType,
   ConfidenceLevel,
 } from '@sam-ai/agentic';
 
@@ -74,12 +75,26 @@ export class SelfEvaluationService {
       throw new Error('Self-Evaluation not enabled');
     }
 
+    // Map uppercase responseType to lowercase ResponseType expected by @sam-ai/agentic
+    const RESPONSE_TYPE_MAP: Record<string, ResponseType> = {
+      EXPLANATION: 'explanation',
+      ANSWER: 'answer',
+      ASSESSMENT: 'assessment',
+      RECOMMENDATION: 'recommendation',
+      INTERVENTION: 'feedback',
+      TOOL_RESULT: 'answer',
+    };
+
+    const mappedResponseType: ResponseType = context?.responseType
+      ? RESPONSE_TYPE_MAP[context.responseType] ?? 'explanation'
+      : 'explanation';
+
     const score = await this.confidenceScorer.scoreResponse({
       responseId: context?.responseId ?? `response_${Date.now()}`,
       userId: this.userId,
       sessionId: context?.sessionId ?? `session_${Date.now()}`,
       responseText,
-      responseType: context?.responseType ?? 'EXPLANATION',
+      responseType: mappedResponseType,
       topic: context?.topic,
     });
 

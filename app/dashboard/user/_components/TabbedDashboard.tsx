@@ -74,10 +74,10 @@ export function TabbedDashboard({ user }: TabbedDashboardProps) {
         content = <LearningTab user={user} />;
         break;
       case 'cognitive':
-        content = <CognitiveTab user={user} />;
+        content = <CognitiveTab userId={user.id ?? ''} />;
         break;
       case 'analytics':
-        content = <AnalyticsTab user={user} />;
+        content = <AnalyticsTab userId={user.id ?? ''} />;
         break;
       case 'achievements':
         content = <AchievementsTab user={user} />;

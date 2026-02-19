@@ -17,11 +17,11 @@ import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 const VALID_PROVIDERS = ["anthropic", "deepseek", "openai", "gemini", "mistral"] as const;
 
 // Build valid model arrays from registry (with type assertion for Zod)
-const VALID_ANTHROPIC_MODELS = AI_PROVIDERS.anthropic.models as readonly [string, ...string[]];
-const VALID_DEEPSEEK_MODELS = AI_PROVIDERS.deepseek.models as readonly [string, ...string[]];
-const VALID_OPENAI_MODELS = AI_PROVIDERS.openai.models as readonly [string, ...string[]];
-const VALID_GEMINI_MODELS = AI_PROVIDERS.gemini.models as readonly [string, ...string[]];
-const VALID_MISTRAL_MODELS = AI_PROVIDERS.mistral.models as readonly [string, ...string[]];
+const VALID_ANTHROPIC_MODELS = AI_PROVIDERS.anthropic.models as unknown as readonly [string, ...string[]];
+const VALID_DEEPSEEK_MODELS = AI_PROVIDERS.deepseek.models as unknown as readonly [string, ...string[]];
+const VALID_OPENAI_MODELS = AI_PROVIDERS.openai.models as unknown as readonly [string, ...string[]];
+const VALID_GEMINI_MODELS = AI_PROVIDERS.gemini.models as unknown as readonly [string, ...string[]];
+const VALID_MISTRAL_MODELS = AI_PROVIDERS.mistral.models as unknown as readonly [string, ...string[]];
 
 // Validation schema for AI preferences with model validation against registry
 const AIPreferencesSchema = z.object({

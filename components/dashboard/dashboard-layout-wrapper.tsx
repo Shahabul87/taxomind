@@ -42,11 +42,11 @@ interface DashboardLayoutWrapperProps {
 
 export function DashboardLayoutWrapper({ user, children }: DashboardLayoutWrapperProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<DashboardView>('learning');
+  const [activeTab, setActiveTab] = useState<DashboardView>('todos');
 
   // Handle tab change - navigate to dashboard with the selected tab
   const handleTabChange = (tab: DashboardView) => {
-    if (tab === 'learning') {
+    if (tab === 'todos') {
       router.push('/dashboard/user');
     } else {
       router.push(`/dashboard/user?tab=${tab}`);

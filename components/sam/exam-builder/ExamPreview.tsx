@@ -76,7 +76,6 @@ const QUESTION_TYPES: Record<QuestionType, string> = {
   FILL_IN_BLANK: "Fill",
   MATCHING: "Match",
   ORDERING: "Order",
-  CODING: "Code",
 };
 
 export interface PreviewQuestion {

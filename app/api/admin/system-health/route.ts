@@ -410,14 +410,14 @@ async function safeGetSAMHealth(): Promise<SystemHealthData["samHealth"]> {
       Promise.resolve(telemetry.getActiveAlerts()),
     ]);
 
-    const components = Object.entries(health.components).map(
-      ([name, comp]) => ({
-        name,
-        status: (comp.status ?? "unhealthy") as "healthy" | "degraded" | "unhealthy",
-        errorRate: Math.round((comp.errorRate ?? 0) * 10000) / 100,
-        latencyMs: Math.round(comp.latencyMs ?? 0),
-      })
-    );
+	    const components = Object.entries(health.components).map(
+	      ([name, comp]) => ({
+	        name,
+	        status: (comp.status ?? "unhealthy") as "healthy" | "degraded" | "unhealthy",
+	        errorRate: Math.round((((comp as { errorRate?: number }).errorRate ?? 0) * 10000)) / 100,
+	        latencyMs: Math.round(comp.latencyMs ?? 0),
+	      })
+	    );
 
     return {
       healthScore: Math.round(health.healthScore * 100),

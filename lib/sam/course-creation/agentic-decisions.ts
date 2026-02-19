@@ -310,7 +310,7 @@ export async function persistQualityFlag(
     });
 
     const existing = Array.isArray(course?.qualityFlags)
-      ? (course.qualityFlags as CourseQualityFlag[])
+      ? (course.qualityFlags as unknown as CourseQualityFlag[])
       : [];
 
     // Deduplicate: replace older flag for the same chapter position

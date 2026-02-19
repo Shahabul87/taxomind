@@ -12,6 +12,7 @@ import { BLOOMS_LEVELS } from '../types/sam-creator.types';
 import { Sparkles, Lightbulb, Plus, Loader2, ChevronUp, ChevronDown, AlertTriangle, CheckCircle, Info, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { trackAIFeatureUsage } from '@/lib/analytics-tracker';
 
 interface SamLearningDesignAssistanceProps {
   formData: {
@@ -68,6 +69,10 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       const result = await response.json();
       setObjectiveSuggestions(result.objectives || []);
       setShowObjectiveSuggestions(true);
+      trackAIFeatureUsage('sam_learning_objective_suggestions_generated', {
+        count: Array.isArray(result.objectives) ? result.objectives.length : 0,
+        category: formData.courseCategory || 'unknown',
+      });
     } catch (error: any) {
       logger.error('Error generating learning objectives:', error);
       toast.error('Failed to generate learning objectives');
@@ -106,6 +111,12 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       const result = await response.json();
       setBloomsRecommendations(result);
       setShowBloomsRecommendations(true);
+      trackAIFeatureUsage('sam_blooms_recommendations_generated', {
+        recommendedLevels: Array.isArray(result?.recommendations?.recommendations)
+          ? result.recommendations.recommendations.length
+          : 0,
+        category: formData.courseCategory || 'unknown',
+      });
     } catch (error: any) {
       logger.error('Error generating Bloom\'s recommendations:', error);
       toast.error('Failed to generate Bloom\'s recommendations');
@@ -121,6 +132,9 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
         ...prev,
         courseGoals: [...prev.courseGoals, newGoal]
       }));
+      trackAIFeatureUsage('sam_learning_objective_suggestion_applied', {
+        source: 'manual_insert',
+      });
       toast.success('Learning objective added!');
     }
   };
@@ -132,6 +146,10 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
         ? prev.bloomsFocus.filter((l: string) => l !== level)
         : [...prev.bloomsFocus, level]
     }));
+    trackAIFeatureUsage('sam_blooms_recommendation_applied', {
+      mode: 'single',
+      level,
+    });
     toast.success(`${level} level added to focus!`);
   };
 
@@ -140,6 +158,10 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
       ...prev,
       bloomsFocus: recommendations
     }));
+    trackAIFeatureUsage('sam_blooms_recommendation_applied', {
+      mode: 'apply_all',
+      count: recommendations.length,
+    });
     toast.success('Bloom\'s recommendations applied!');
   };
 
@@ -151,6 +173,9 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
         </h3>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 px-2 break-words">
           Get AI-powered suggestions for learning objectives and cognitive focus
+        </p>
+        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 px-2 mt-1 break-words">
+          Suggestions are optional and only applied when you choose Add or Apply.
         </p>
       </div>
 

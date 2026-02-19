@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       const recentActivity = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const activeUsers = await db.user.findMany({
         where: {
-          updatedAt: { gte: recentActivity },
+          lastLoginAt: { gte: recentActivity },
         },
         select: { id: true },
         take: limit,

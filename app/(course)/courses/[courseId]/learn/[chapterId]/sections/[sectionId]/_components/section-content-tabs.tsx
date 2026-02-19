@@ -92,11 +92,6 @@ export function SectionContentTabs({
         setInternalActiveTab(savedTab);
       }
     }
-
-    // Load completed items
-    if (userProgress?.completedItems) {
-      setCompletedItems(new Set(userProgress.completedItems));
-    }
   }, [sectionId, userProgress, externalActiveTab]);
 
   // Save active tab to localStorage - instant switching with forceMount
@@ -140,6 +135,7 @@ export function SectionContentTabs({
     exams: section.exams?.length || 0,
     resources: section.notes?.length || 0,
   };
+  const sectionCompletionPercent = userProgress?.progressPercent ?? 0;
 
   const hasContent = Object.values(contentCounts).some((count) => count > 0);
 
@@ -293,7 +289,7 @@ export function SectionContentTabs({
               </TabsTrigger>
             )}
 
-            {mode === "learning" && userProgress?.progressPercent >= 100 && (
+            {mode === "learning" && sectionCompletionPercent >= 100 && (
               <TabsTrigger value="certificate" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Certificate</span>
@@ -442,7 +438,7 @@ export function SectionContentTabs({
                     <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Ctrl+B</kbd>
                   </div>
                 </div>
-                {mode === "learning" && userProgress?.progressPercent !== undefined && userProgress.progressPercent >= 100 && (
+                {mode === "learning" && sectionCompletionPercent >= 100 && (
                   <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                     Section complete — certificate available in the Certificate tab.
                   </p>
@@ -503,7 +499,7 @@ export function SectionContentTabs({
 
               {/* Video Cards Grid */}
               <div className="grid gap-4 sm:grid-cols-2">
-                {section.videos.map((video: { id: string; title: string; description?: string | null; url?: string; thumbnail?: string | null; platform?: string | null; rating?: number | null; duration?: number | null; author?: string | null; accessTier?: string }, index: number) => {
+                {section.videos.map((video, index: number) => {
                   const videoAccessible = canAccessVideo(video.accessTier);
                   return (
                   <Card key={video.id} className={cn(
@@ -1002,8 +998,19 @@ export function SectionContentTabs({
 
               {/* Math Cards */}
               <div className="grid gap-4">
-                {section.mathExplanations.map((math: { id: string; title: string; content?: string; latex?: string; latexEquation?: string; equation?: string; explanation?: string; imageUrl?: string; mode?: string; isPublished?: boolean; position?: number }, index: number) => (
-                  <div key={math.id} className="relative">
+                {section.mathExplanations.map((math, index: number) => {
+                  const normalizedMath = {
+                    ...math,
+                    content: math.content ?? undefined,
+                    latex: math.latex ?? undefined,
+                    latexEquation: math.latexEquation ?? undefined,
+                    equation: math.equation ?? undefined,
+                    explanation: math.explanation ?? undefined,
+                    imageUrl: math.imageUrl ?? undefined,
+                    mode: math.mode ?? undefined,
+                  };
+                  return (
+                  <div key={normalizedMath.id} className="relative">
                     {/* Card Number Badge */}
                     <div className="absolute -left-2 -top-2 z-10">
                       <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 text-white text-xs font-bold shadow-lg shadow-purple-500/25">
@@ -1011,13 +1018,14 @@ export function SectionContentTabs({
                       </div>
                     </div>
                     <MathLatexRenderer
-                      math={math}
-                      isCompleted={completedItems.has(math.id)}
+                      math={normalizedMath}
+                      isCompleted={completedItems.has(normalizedMath.id)}
                       canMarkComplete={mode === "learning"}
                       onMarkComplete={(id) => markItemComplete(id, "math")}
                     />
                   </div>
-                ))}
+                );
+                })}
               </div>
 
               {/* Quick Reference Footer */}
@@ -1096,7 +1104,11 @@ export function SectionContentTabs({
                 {groupedCodeExplanations.standalone.map((code) => (
                   <CodeSyntaxHighlighter
                     key={code.id}
-                    code={code}
+                    code={{
+                      ...code,
+                      explanation: code.explanation ?? undefined,
+                      language: code.language ?? undefined,
+                    }}
                     isCompleted={completedItems.has(code.id)}
                     canMarkComplete={mode === "learning"}
                     onMarkComplete={(id) => markItemComplete(id, "code")}
@@ -1113,35 +1125,40 @@ export function SectionContentTabs({
               className="space-y-4 data-[state=inactive]:hidden"
             >
               <div className="grid gap-4">
-                {section.exams.map((exam: Record<string, unknown> & {
-                  id: string;
-                  title: string;
-                  description?: string | null;
-                  timeLimit?: number | null;
-                  passingScore: number;
-                  attempts: number;
-                  instructions?: string | null;
-                  _count: { ExamQuestion: number };
-                  UserExamAttempt?: Array<{
-                    id: string;
-                    attemptNumber: number;
-                    status: string;
-                    scorePercentage: number | null;
-                    isPassed: boolean | null;
-                    submittedAt: string | null;
-                    timeSpent: number | null;
-                    correctAnswers: number;
-                    totalQuestions: number;
-                  }>;
-                }) => {
+                {section.exams.map((exam) => {
+                  const examForCard = {
+                    id: exam.id,
+                    title: exam.title,
+                    description: exam.description ?? undefined,
+                    timeLimit: exam.timeLimit ?? undefined,
+                    passingScore: exam.passingScore,
+                    attempts: exam.attempts,
+                    instructions: exam.instructions ?? undefined,
+                    _count: {
+                      ExamQuestion: (exam as { _count?: { ExamQuestion?: number } })._count?.ExamQuestion ?? 0,
+                    },
+                    UserExamAttempt: (exam as {
+                      UserExamAttempt?: Array<{
+                        id: string;
+                        attemptNumber: number;
+                        status: string;
+                        scorePercentage: number | null;
+                        isPassed: boolean | null;
+                        submittedAt: string | null;
+                        timeSpent: number | null;
+                        correctAnswers: number;
+                        totalQuestions: number;
+                      }>;
+                    }).UserExamAttempt,
+                  };
                   // Show locked state for non-enrolled users
                   if (!isEnrolled && !isTeacher) {
                     return (
                       <Card key={exam.id} className="overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-base font-medium text-slate-900 dark:text-white">{exam.title}</CardTitle>
-                          {exam.description && (
-                            <CardDescription className="text-sm text-slate-500 dark:text-slate-400">{exam.description}</CardDescription>
+                          <CardTitle className="text-base font-medium text-slate-900 dark:text-white">{examForCard.title}</CardTitle>
+                          {examForCard.description && (
+                            <CardDescription className="text-sm text-slate-500 dark:text-slate-400">{examForCard.description}</CardDescription>
                           )}
                         </CardHeader>
                         <CardContent>
@@ -1158,8 +1175,8 @@ export function SectionContentTabs({
 
                   return (
                     <ExamCard
-                      key={exam.id}
-                      exam={exam}
+                      key={examForCard.id}
+                      exam={examForCard}
                       sectionId={sectionId}
                       courseId={courseId}
                       chapterId={chapterId}
@@ -1185,13 +1202,13 @@ export function SectionContentTabs({
                 resources={section.notes?.map((note) => ({
                   id: note.id,
                   title: note.title || "Resource",
-                  description: note.description,
-                  type: note.type || "doc",
-                  url: note.url || "#",
-                  size: note.size,
-                  downloadCount: note.downloadCount,
-                  tags: note.tags,
-                  isRequired: note.isRequired,
+                  description: note.content || undefined,
+                  type: "doc" as const,
+                  url: "#",
+                  size: undefined,
+                  downloadCount: undefined,
+                  tags: note.category ? [note.category] : undefined,
+                  isRequired: note.isImportant,
                   category: note.category || "General",
                 }))}
                 sectionId={sectionId}
@@ -1205,24 +1222,24 @@ export function SectionContentTabs({
           )}
 
           {/* Certificate Tab - Show when section is completed */}
-          {mode === "learning" && userProgress?.progressPercent >= 100 && (
+          {mode === "learning" && sectionCompletionPercent >= 100 && (
             <TabsContent
               value="certificate"
               className="space-y-4 data-[state=inactive]:hidden"
             >
               <CompletionCertificate
                 certificateData={{
-                  recipientName: userProgress?.userName || "Student",
+                  recipientName: "Student",
                   courseName: section.title,
                   completionDate: new Date(),
                   certificateId: `CERT-${sectionId}-${userProgress?.userId || "user"}`,
                   issuerName: "Taxomind",
                   issuerTitle: "Director of Education",
-                  score: userProgress?.score,
+                  score: userProgress?.averageScore ?? undefined,
                   timeSpent: userProgress?.timeSpent,
                   sectionsCompleted: 1,
                   totalSections: 1,
-                  skills: section.skills || [],
+                  skills: [],
                 }}
                 courseId={courseId}
                 userId={userProgress?.userId}

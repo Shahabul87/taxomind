@@ -12,7 +12,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus } from '@sam-ai/agentic';
+import { PlanStatus } from '@sam-ai/agentic';
 
 interface GoalPlanIds {
   goalId: string;
@@ -39,11 +39,8 @@ export async function initializeEvaluationGoal(
       title: `Evaluate exam: ${examTitle}`,
       description: `DIAGNOSE framework evaluation for attempt "${attemptId}" with 7-layer cognitive diagnostic pipeline.`,
       priority: 'high',
-      status: GoalStatus.ACTIVE,
-      context: {
-        attemptId,
-        type: 'exam-evaluation',
-      },
+      context: {},
+      tags: ['exam-evaluation', `attempt:${attemptId}`],
     });
 
     const samPlan = await planStore.create({
@@ -54,6 +51,8 @@ export async function initializeEvaluationGoal(
       overallProgress: 0,
       steps: [
         {
+          id: '',
+          planId: '',
           title: 'Load & Prepare',
           description: 'Fetch attempt, questions, answers, and exam metadata',
           type: 'create_summary',
@@ -64,10 +63,12 @@ export async function initializeEvaluationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 1 },
-          metadata: { attemptId },
+          executionContext: {},
+          metadata: { attemptId, stage: 1 },
         },
         {
+          id: '',
+          planId: '',
           title: 'DIAGNOSE Evaluation',
           description: 'Run 7-layer DIAGNOSE framework on each answer: Detect, Identify, Assess, Gap-Map, Name, Outline, Score',
           type: 'create_summary',
@@ -78,10 +79,12 @@ export async function initializeEvaluationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 2 },
-          metadata: { attemptId },
+          executionContext: {},
+          metadata: { attemptId, stage: 2 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Echo-Back Teaching',
           description: 'Generate echo-back teaching for top 3 most impactful answers',
           type: 'create_summary',
@@ -92,10 +95,12 @@ export async function initializeEvaluationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 3 },
-          metadata: { attemptId },
+          executionContext: {},
+          metadata: { attemptId, stage: 3 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Cognitive Profile',
           description: 'Generate aggregate cognitive profile: Bloom&apos;s map, ceiling, growth edge, patterns',
           type: 'create_summary',
@@ -106,10 +111,12 @@ export async function initializeEvaluationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 4 },
-          metadata: { attemptId },
+          executionContext: {},
+          metadata: { attemptId, stage: 4 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Improvement Roadmap',
           description: 'Generate priority-ordered interventions with ARROW phase prescriptions',
           type: 'create_summary',
@@ -120,13 +127,13 @@ export async function initializeEvaluationGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 5 },
-          metadata: { attemptId },
+          executionContext: {},
+          metadata: { attemptId, stage: 5 },
         },
       ],
       checkpoints: [],
       checkpointData: {},
-      schedule: {},
+      schedule: undefined,
       fallbackStrategies: [],
     });
 
@@ -213,7 +220,12 @@ export async function completeEvaluationStep(
     await planStore.updateStep(planId, stepId, {
       status: 'completed',
       completedAt: new Date(),
-      outputs: outputs ?? [],
+      outputs: (outputs ?? []).map((value) => ({
+        name: 'stage-output',
+        type: 'result' as const,
+        value,
+        timestamp: new Date(),
+      })),
     });
   } catch (error) {
     logger.warn('[EvalController] Failed to complete stage step', {
@@ -280,7 +292,7 @@ export async function failEvaluation(
   const { goal: goalStore, plan: planStore } = getGoalStores();
 
   try {
-    const existingPlan = await planStore.getById(planId);
+    const existingPlan = await planStore.get(planId);
     const existingCheckpoint = (existingPlan?.checkpointData ?? {}) as Record<string, unknown>;
 
     await planStore.update(planId, {

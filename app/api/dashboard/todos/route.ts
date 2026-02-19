@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Try to fetch with all includes, fall back progressively if there are schema issues
-    let todos;
+    let todos: Awaited<ReturnType<typeof db.dashboardTodo.findMany>> = [];
     try {
       todos = await db.dashboardTodo.findMany({
         where,

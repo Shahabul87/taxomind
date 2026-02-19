@@ -152,6 +152,26 @@ export const CATEGORY_SEO_CONFIG: Record<CategoryLayoutVariant, CategorySEOConfi
     schemaType: 'Course',
   },
 
+  math: {
+    titleTemplate: '{courseTitle} - Mathematics',
+    titleSuffix: 'Taxomind Math Academy',
+    descriptionTemplate:
+      'Master {courseTitle} with clear proofs, worked examples, and intuitive explanations. {enrollmentCount} students enrolled.',
+    defaultKeywords: [
+      'mathematics course',
+      'math tutorial',
+      'algebra',
+      'calculus',
+      'geometry',
+      'linear algebra',
+      'problem solving',
+    ],
+    ogImageTemplate: '/og/math-course.png',
+    ogType: 'article',
+    twitterCard: 'summary_large_image',
+    schemaType: 'Course',
+  },
+
   default: {
     titleTemplate: '{courseTitle}',
     titleSuffix: 'Taxomind',

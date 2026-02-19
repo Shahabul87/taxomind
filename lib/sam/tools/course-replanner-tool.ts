@@ -30,6 +30,7 @@ import type {
   CourseBlueprintPlan,
   BloomsLevel,
   GeneratedChapter,
+  ContentType,
 } from '../course-creation/types';
 
 // =============================================================================
@@ -48,7 +49,7 @@ const CourseReplannerInputSchema = z.object({
 // =============================================================================
 
 function createCourseReplannerHandler(): ToolHandler {
-  return async (input: Record<string, unknown>): Promise<ToolExecutionResult> => {
+  return async (input, _context): Promise<ToolExecutionResult> => {
     const parsed = CourseReplannerInputSchema.parse(input);
 
     try {
@@ -58,11 +59,9 @@ function createCourseReplannerHandler(): ToolHandler {
         select: {
           title: true,
           description: true,
-          category: true,
-          subcategory: true,
-          targetAudience: true,
+          category: { select: { name: true } },
+          subcategory: { select: { name: true } },
           difficulty: true,
-          totalChapters: true,
           chapters: {
             where: { isPublished: true },
             orderBy: { position: 'asc' },
@@ -84,12 +83,12 @@ function createCourseReplannerHandler(): ToolHandler {
       const courseContext: CourseContext = {
         courseTitle: course.title ?? '',
         courseDescription: course.description ?? '',
-        courseCategory: course.category ?? 'General',
-        courseSubcategory: course.subcategory ?? undefined,
-        targetAudience: course.targetAudience ?? '',
+        courseCategory: course.category?.name ?? 'General',
+        courseSubcategory: course.subcategory?.name ?? undefined,
+        targetAudience: '',
         difficulty: (course.difficulty ?? 'intermediate') as CourseContext['difficulty'],
         courseLearningObjectives: [],
-        totalChapters: course.totalChapters ?? 1,
+        totalChapters: course.chapters.length,
         sectionsPerChapter: 3,
         bloomsFocus: [],
         learningObjectivesPerChapter: 5,
@@ -100,21 +99,19 @@ function createCourseReplannerHandler(): ToolHandler {
       // Build CompletedChapter[] from DB chapters
       const completedChapters: CompletedChapter[] = course.chapters.map((ch) => {
         const sections: CompletedSection[] = ch.sections.map((sec) => ({
+          // GeneratedSection fields
           position: sec.position,
           title: sec.title ?? '',
-          description: sec.description ?? '',
-          bloomsLevel: 'UNDERSTAND' as BloomsLevel,
-          learningObjectives: [],
-          keyTopics: [],
-          contentType: 'explanatory' as const,
+          contentType: 'reading' as ContentType,
+          estimatedDuration: '15 minutes',
+          topicFocus: sec.title ?? '',
+          parentChapterContext: {
+            title: ch.title,
+            bloomsLevel: (ch.targetBloomsLevel ?? 'UNDERSTAND') as BloomsLevel,
+            relevantObjectives: [],
+          },
           // CompletedSection fields
-          content: sec.description ?? '',
-          detailedContent: sec.description ?? '',
-          examples: [],
-          exercises: [],
-          summaryPoints: [],
-          prerequisiteCheck: '',
-          nextStepTeaser: '',
+          id: sec.id,
         }));
 
         const generated: GeneratedChapter = {
@@ -147,11 +144,9 @@ function createCourseReplannerHandler(): ToolHandler {
       for (const ch of completedChapters) {
         for (const topic of ch.keyTopics) {
           conceptTracker.concepts.set(topic.toLowerCase(), {
-            firstIntroduced: ch.position,
-            lastReferenced: ch.position,
-            depth: 1,
+            concept: topic,
+            introducedInChapter: ch.position,
             bloomsLevel: ch.bloomsLevel,
-            relatedConcepts: [],
           });
           if (!conceptTracker.vocabulary.includes(topic)) {
             conceptTracker.vocabulary.push(topic);
@@ -163,7 +158,7 @@ function createCourseReplannerHandler(): ToolHandler {
       let currentBlueprint: CourseBlueprintPlan | null = null;
       const executionPlan = await db.sAMExecutionPlan.findFirst({
         where: {
-          courseId: parsed.courseId,
+          goal: { courseId: parsed.courseId },
           status: { in: ['ACTIVE', 'COMPLETED'] },
         },
         orderBy: { createdAt: 'desc' },
@@ -193,7 +188,7 @@ function createCourseReplannerHandler(): ToolHandler {
           courseTitle: course.title,
           reason: parsed.reason,
           completedChaptersCount: completedChapters.length,
-          totalChapters: course.totalChapters,
+          totalChapters: course.chapters.length,
           newPlan: {
             chapterCount: newBlueprint.chapterPlan.length,
             planConfidence: newBlueprint.planConfidence,
@@ -202,7 +197,7 @@ function createCourseReplannerHandler(): ToolHandler {
             chapters: newBlueprint.chapterPlan.map((entry) => ({
               position: entry.position,
               title: entry.suggestedTitle,
-              bloomsLevel: entry.suggestedBloomsLevel,
+              bloomsLevel: entry.bloomsLevel,
             })),
           },
         },

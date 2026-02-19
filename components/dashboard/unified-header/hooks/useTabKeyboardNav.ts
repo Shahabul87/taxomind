@@ -7,7 +7,7 @@ const TAB_ORDER: DashboardView[] = [
   'todos',
   'analytics',
   'skills',
-  'practice',
+  // 'practice', // Hidden - backend retained for later
   'goals',
   'gaps',
 ];

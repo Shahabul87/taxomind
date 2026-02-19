@@ -46,6 +46,8 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
   const [costLoading, setCostLoading] = useState(false);
   const [costError, setCostError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const estimateAbortRef = useRef<AbortController | null>(null);
+  const estimateRequestSeq = useRef(0);
 
   // Track form values that affect cost in a ref for stable comparison
   const costParamsRef = useRef('');
@@ -58,6 +60,11 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
     learningObjectivesPerChapter: number;
     learningObjectivesPerSection: number;
   }) => {
+    const requestId = ++estimateRequestSeq.current;
+    estimateAbortRef.current?.abort();
+    const controller = new AbortController();
+    estimateAbortRef.current = controller;
+
     setCostLoading(true);
     setCostError(false);
     try {
@@ -65,19 +72,30 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json() as { success: boolean; estimate?: CostEstimate };
+      if (requestId !== estimateRequestSeq.current) return;
       if (data.success && data.estimate) {
         setCostEstimate(data.estimate);
       } else {
         setCostError(true);
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (requestId !== estimateRequestSeq.current) return;
       setCostError(true);
     } finally {
+      if (requestId !== estimateRequestSeq.current) return;
       setCostLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      estimateAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {

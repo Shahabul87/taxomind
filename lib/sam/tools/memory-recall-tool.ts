@@ -45,7 +45,7 @@ const MemoryRecallInputSchema = z.object({
 // =============================================================================
 
 function createMemoryRecallHandler(): ToolHandler {
-  return async (input: Record<string, unknown>): Promise<ToolExecutionResult> => {
+  return async (input, _context): Promise<ToolExecutionResult> => {
     const parsed = MemoryRecallInputSchema.parse(input);
 
     try {

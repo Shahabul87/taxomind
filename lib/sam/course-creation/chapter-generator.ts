@@ -50,9 +50,9 @@ import {
   validateChapterSectionCoverage,
   buildFallbackChapter,
   buildFallbackSection,
-    buildFallbackDetails,
-    traceAICall,
-    sanitizeHtmlOutput,
+  buildFallbackDetails,
+  traceAICall,
+  sanitizeHtmlOutput,
 } from './helpers';
 import { retryWithQualityGate } from './retry-quality-gate';
 import { validateAndFixMath } from './math-validator';
@@ -86,6 +86,13 @@ function stripId<T extends { id: string }>(obj: T): Omit<T, 'id'> {
   return result as Omit<T, 'id'>;
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  const error = new Error('Generation cancelled by user');
+  error.name = 'AbortError';
+  throw error;
+}
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -95,6 +102,7 @@ export interface ChapterGenerationCallbacks {
   onSSEEvent?: OrchestrateOptions['onSSEEvent'];
   onProgress?: OrchestrateOptions['onProgress'];
   enableStreamingThinking?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 // =============================================================================
@@ -140,7 +148,8 @@ export async function generateSingleChapter(
     budgetTracker,
     fallbackTracker,
   } = context;
-  const { onSSEEvent, enableStreamingThinking } = callbacks;
+  const { onSSEEvent, enableStreamingThinking, abortSignal } = callbacks;
+  throwIfAborted(abortSignal);
 
   const totalChapters = courseContext.totalChapters;
   // Strict mode: always use user's requested section count
@@ -202,6 +211,7 @@ export async function generateSingleChapter(
     strategy: s1Strategy,
     buildFallback: () => ({ chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
     executeAttempt: async (attempt, feedback) => {
+      throwIfAborted(abortSignal);
       const s1TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1, {
         totalSectionsOverride: effectiveSectionsPerChapter,
       });
@@ -298,6 +308,7 @@ export async function generateSingleChapter(
 
   // Detect parse errors: fallback generation indicates a parsing failure
   const s1ParseError = bestResult.thinking.includes('Used fallback generation due to parsing error');
+  throwIfAborted(abortSignal);
 
   strategyMonitor.record({
     stage: 1, chapterNumber: chNum, score: bestResult.qualityScore.overall,
@@ -363,6 +374,7 @@ export async function generateSingleChapter(
   // Only fires for borderline quality (55-70) — same gate as Stage 2/3 critics
   // =====================================================================
   try {
+    throwIfAborted(abortSignal);
     const criticReview = await reviewChapterWithCritic({
       userId,
       chapter,
@@ -526,6 +538,7 @@ export async function generateSingleChapter(
     section: GeneratedSection & { id: string },
     secIdx: number,
   ): Promise<void> => {
+    throwIfAborted(abortSignal);
     const sectionRoleName = selectedSections[secIdx]?.displayName ?? section.title;
 
     onSSEEvent?.({
@@ -568,6 +581,7 @@ export async function generateSingleChapter(
       strategy: s3Strategy,
       buildFallback: () => ({ details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
+        throwIfAborted(abortSignal);
         const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
           courseContext, chapter: chapterPlain, section: sectionPlain,
           chapterSections: allChapterSectionsPlain, enrichedContext,
@@ -627,6 +641,7 @@ export async function generateSingleChapter(
     let detQuality = bestDet.qualityScore;
 
     try {
+      throwIfAborted(abortSignal);
       const detailsCriticReview = await reviewDetailsWithCritic({
         userId,
         details,
@@ -718,6 +733,30 @@ export async function generateSingleChapter(
 
     onSSEEvent?.({ type: 'thinking', data: { stage: 3, chapter: chNum, section: section.position, thinking: detThinking } });
 
+    const mathValidation = validateAndFixMath(details.description);
+    if (mathValidation.fixesApplied.length > 0) {
+      details = {
+        ...details,
+        description: mathValidation.html,
+      };
+      onSSEEvent?.({
+        type: 'math_validation',
+        data: {
+          stage: 3,
+          chapter: chNum,
+          section: section.position,
+          fixesApplied: mathValidation.fixesApplied.length,
+          hasUnresolvedIssues: mathValidation.hasUnresolvedIssues,
+        },
+      });
+      logger.info('[ORCHESTRATOR] Applied math validation fixes to section details', {
+        chapter: chNum,
+        section: section.position,
+        fixesApplied: mathValidation.fixesApplied.length,
+        hasUnresolvedIssues: mathValidation.hasUnresolvedIssues,
+      });
+    }
+
     await db.section.update({
       where: { id: section.id },
       data: {
@@ -744,6 +783,7 @@ export async function generateSingleChapter(
   };
 
   for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
+    throwIfAborted(abortSignal);
     const templateSectionDef = selectedSections[secNum - 1];
     const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
 
@@ -774,6 +814,7 @@ export async function generateSingleChapter(
       strategy: s2Strategy,
       buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
+        throwIfAborted(abortSignal);
         const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
           courseContext,
           chapterPlain,
@@ -862,6 +903,7 @@ export async function generateSingleChapter(
     let secQuality = bestSec.qualityScore;
 
     try {
+      throwIfAborted(abortSignal);
       const previousPlainSectionsForCritic = chapterSections.map((s) => stripId(s));
       const sectionCriticReview = await reviewSectionWithCritic({
         userId,

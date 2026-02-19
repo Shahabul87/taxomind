@@ -100,6 +100,7 @@ export function PracticeDashboard({
       bloomsLevel: bloomsLevel as GeneratePracticeSetInput["bloomsLevel"],
       count,
       questionTypes: selectedTypes as GeneratePracticeSetInput["questionTypes"],
+      learningObjectives: [],
     };
 
     const setId = await onGenerate(input);

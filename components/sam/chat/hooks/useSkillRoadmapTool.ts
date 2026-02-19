@@ -111,7 +111,7 @@ export function useSkillRoadmapTool({
       return null;
     }
 
-    return data as SkillRoadmapToolOutput;
+    return data as unknown as SkillRoadmapToolOutput;
   }, []);
 
   /**

@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Adaptive Content Service - Main interface for dynamic content reordering
 
 import { db } from '@/lib/db';

@@ -436,7 +436,7 @@ export async function GET(req: NextRequest) {
         where: { userId: user.id },
         orderBy: { updatedAt: 'desc' },
       });
-      studyStreaks = rawStreaks as typeof studyStreaks;
+      studyStreaks = rawStreaks ? { currentStreak: rawStreaks.currentStreak } : null;
     } catch (e) {
       logger.error('[COURSE_OVERVIEW] Error fetching study streaks:', e);
     }
@@ -689,7 +689,7 @@ export async function GET(req: NextRequest) {
           strengths: strengths.slice(0, 3),
           weaknesses: weaknesses.slice(0, 3),
         },
-      } satisfies CourseAnalytics;
+      } as CourseAnalytics;
     }).filter((c): c is CourseAnalytics => c !== null);
 
     // Calculate summary

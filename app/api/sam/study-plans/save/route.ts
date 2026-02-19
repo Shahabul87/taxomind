@@ -113,7 +113,6 @@ export async function POST(req: NextRequest) {
       title: plan.planTitle,
       description: `AI-generated study plan with ${plan.totalTasks} daily tasks across ${plan.totalWeeks} weeks. Estimated ${Math.round(plan.estimatedHours)} hours total.`,
       priority: 'high',
-      status: 'active',
       targetDate: new Date(validated.targetEndDate),
       context: {
         courseId: validated.courseId,
@@ -121,20 +120,6 @@ export async function POST(req: NextRequest) {
       currentMastery: skillLevelMap[validated.skillLevel] || 'beginner',
       targetMastery: masteryMap[validated.targetMastery] || 'intermediate',
       tags: ['study-plan', 'ai-generated', ...validated.learningStyles],
-      metadata: {
-        planType: 'study_plan',
-        totalWeeks: plan.totalWeeks,
-        totalTasks: plan.totalTasks,
-        estimatedHours: plan.estimatedHours,
-        milestones: plan.milestones,
-        preferences: {
-          learningStyles: validated.learningStyles,
-          motivation: validated.motivation,
-          startDate: validated.startDate,
-          targetEndDate: validated.targetEndDate,
-        },
-        newCourse: validated.newCourse,
-      },
     });
 
     logger.info('[API] Created learning goal', {
@@ -172,7 +157,6 @@ export async function POST(req: NextRequest) {
           order: taskOrder,
           estimatedMinutes: task.estimatedMinutes,
           difficulty: difficultyMap[task.difficulty] || 'medium',
-          status: 'pending',
           prerequisites: [], // First tasks have no prerequisites
           successCriteria: [
             `Complete the ${task.type.toLowerCase()} activity`,

@@ -94,11 +94,14 @@ export class AgenticChatProcessor {
               goalContext: null,
               interventionContext: null,
               confidence: {
-                level: coordResult.confidence >= 0.8 ? 'HIGH' : coordResult.confidence >= 0.5 ? 'MEDIUM' : 'LOW',
+                level: coordResult.confidence >= 0.8 ? 'high' : coordResult.confidence >= 0.5 ? 'medium' : 'low',
                 score: coordResult.confidence,
                 shouldVerify: coordResult.confidence < 0.5,
                 verificationStatus: 'verified',
               },
+              recommendations: null,
+              skillUpdate: null,
+              orchestration: null,
               processingTimeMs: coordResult.executionTimeMs,
               coordinatorContent: coordResult.content,
               coordinatorSuggestions: coordResult.suggestions,
@@ -164,6 +167,9 @@ export class AgenticChatProcessor {
       goalContext,
       interventionContext,
       confidence: null, // Populated by evaluateResponse (fire-and-forget)
+      recommendations: null,
+      skillUpdate: null,
+      orchestration: null,
       processingTimeMs: Date.now() - startTime,
     };
   }
@@ -183,8 +189,8 @@ export class AgenticChatProcessor {
 
       let verificationStatus: 'verified' | 'unverified' | 'failed' | null = null;
 
-      // Verify if confidence is not HIGH
-      if (score.level !== 'HIGH') {
+      // Verify if confidence is not high
+      if (score.level !== 'high') {
         try {
           const verification = await withRetryableTimeout(
             () => this.bridge.verifyResponse(responseText),

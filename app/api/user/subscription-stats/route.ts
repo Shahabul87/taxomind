@@ -58,7 +58,7 @@ const tierLabels: Record<string, string> = {
 };
 
 // Features by tier
-function getFeaturesForTier(tier: string): SubscriptionStatsResponse["data"]["features"] {
+function getFeaturesForTier(tier: string): NonNullable<SubscriptionStatsResponse["data"]>["features"] {
   const baseFeatures = {
     chat: true,
     courseGeneration: false,

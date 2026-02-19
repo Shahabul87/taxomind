@@ -11,6 +11,8 @@ import {
 import type {
   LearningGapDashboardData,
   LearningGapData,
+  LearningGapEvidence,
+  GapAction,
   SkillDecayData,
   TrendAnalysisData,
   GapRecommendation,
@@ -110,36 +112,22 @@ export async function GET() {
       gapScore: 50, // Default gap score
       masteryLevel: 0, // Will be enriched from assessments if available
       targetMasteryLevel: 80,
-      evidence: (gap.evidence ?? []).map((e: Record<string, unknown>) => ({
-        type: (e.type as string) ?? 'assessment',
-        score: (e.score as number) ?? 0,
-        expectedScore: (e.expectedScore as number) ?? 0,
-        date: (e.date as string) ?? new Date().toISOString(),
-        source: (e.source as string) ?? 'Unknown',
-      })),
-      suggestedActions: (gap.suggestedActions ?? []).map((action: string | Record<string, unknown>) => {
-        // Handle both string and object formats
-        if (typeof action === 'string') {
-          return {
-            id: crypto.randomUUID(),
-            type: 'review' as const,
-            title: action,
-            description: '',
-            estimatedTime: 30,
-            priority: 'medium' as const,
-            resourceUrl: undefined,
-          };
-        }
-        return {
-          id: (action.id as string) ?? crypto.randomUUID(),
-          type: (action.type as string) ?? 'review',
-          title: (action.title as string) ?? 'Review Material',
-          description: (action.description as string) ?? '',
-          estimatedTime: (action.estimatedTime as number) ?? 30,
-          priority: (action.priority as string) ?? 'medium',
-          resourceUrl: action.resourceUrl as string | undefined,
-        };
-      }),
+      evidence: (gap.evidence ?? []).map((e) => ({
+        type: ('type' in e ? String(e.type) : 'assessment') as LearningGapEvidence['type'],
+        score: ('score' in e ? Number(e.score) : 0),
+        expectedScore: ('expectedScore' in e ? Number((e as Record<string, unknown>).expectedScore) : 0),
+        date: ('timestamp' in e ? new Date(e.timestamp).toISOString() : new Date().toISOString()),
+        source: ('description' in e ? String(e.description) : 'Unknown'),
+      } satisfies LearningGapEvidence)),
+      suggestedActions: (gap.suggestedActions ?? []).map((action) => ({
+        id: crypto.randomUUID(),
+        type: 'review' as const,
+        title: typeof action === 'string' ? action : String(action),
+        description: '',
+        estimatedTime: 30,
+        priority: 'medium' as const,
+        resourceUrl: undefined,
+      } satisfies GapAction)),
       detectedAt: gap.detectedAt?.toISOString() ?? new Date().toISOString(),
       lastUpdated: gap.detectedAt?.toISOString() ?? new Date().toISOString(),
       resolvedAt: gap.resolvedAt?.toISOString(),
@@ -199,7 +187,7 @@ export async function GET() {
       estimatedTime: rec.estimatedDuration ?? 30,
       priority: mapPriorityFromEnum(rec.priority),
       resourceUrl: rec.resourceUrl ?? undefined,
-      resourceType: rec.resourceId ? 'resource' : undefined,
+      resourceType: rec.resourceId ? 'article' : undefined,
       prerequisites: rec.prerequisites ?? [],
     }));
 

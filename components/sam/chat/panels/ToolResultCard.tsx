@@ -557,7 +557,7 @@ function SessionCard({ data }: { data: unknown }) {
         )}
         {topics.length > 0 && (
           <p style={{ fontSize: 10, color: 'var(--sam-text-secondary)', marginBottom: 4 }}>
-            Topics: {topics.map(safeStr).join(', ')}
+            Topics: {topics.map((t) => safeStr(t)).join(', ')}
           </p>
         )}
       </div>

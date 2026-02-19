@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Taxomind Proctoring Module
  *

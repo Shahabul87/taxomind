@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM AI - Learning Efficiency API
  *

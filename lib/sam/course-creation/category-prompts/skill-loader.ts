@@ -44,11 +44,37 @@ const PRIORITY_ORDER: string[] = [
   'arts-humanities',
 ];
 
+const REQUIRED_MARKDOWN_SECTIONS = [
+  'Domain Expertise',
+  'Teaching Methodology',
+  'Content Type Guidance',
+  'Quality Criteria',
+  'Chapter Sequencing Advice',
+] as const;
+
 // ---------------------------------------------------------------------------
 // Cache
 // ---------------------------------------------------------------------------
 let orderedCache: CategoryPromptEnhancer[] | null = null;
 let generalCache: CategoryPromptEnhancer | null = null;
+
+interface SkillLoadDiagnostics {
+  totalFiles: number;
+  loaded: number;
+  invalidFrontmatter: string[];
+  missingSections: Array<{ file: string; missing: string[] }>;
+  duplicateCategoryIds: string[];
+  missingPriorityIds: string[];
+}
+
+let diagnosticsCache: SkillLoadDiagnostics = {
+  totalFiles: 0,
+  loaded: 0,
+  invalidFrontmatter: [],
+  missingSections: [],
+  duplicateCategoryIds: [],
+  missingPriorityIds: [],
+};
 
 // ---------------------------------------------------------------------------
 // Parsing helpers
@@ -92,20 +118,35 @@ function parseMarkdownSections(body: string): Record<string, string> {
  * Returns null if the file is invalid (logs a warning).
  */
 function parseSkillFile(filePath: string): ParsedCategorySkill | null {
+  const fileName = path.basename(filePath);
   const raw = fs.readFileSync(filePath, 'utf-8');
   const { data, content } = matter(raw);
 
   const result = CategorySkillFrontmatterSchema.safeParse(data);
   if (!result.success) {
     console.warn(
-      `[skill-loader] Invalid frontmatter in ${path.basename(filePath)}: ${result.error.message}`
+      `[skill-loader] Invalid frontmatter in ${fileName}: ${result.error.message}`
     );
+    diagnosticsCache.invalidFrontmatter.push(fileName);
+    return null;
+  }
+
+  const sections = parseMarkdownSections(content);
+  const missing = REQUIRED_MARKDOWN_SECTIONS.filter((section) => {
+    const body = sections[section];
+    return !body || body.trim().length === 0;
+  });
+  if (missing.length > 0) {
+    console.warn(
+      `[skill-loader] Missing required markdown sections in ${fileName}: ${missing.join(', ')}`
+    );
+    diagnosticsCache.missingSections.push({ file: fileName, missing: [...missing] });
     return null;
   }
 
   return {
     frontmatter: result.data,
-    sections: parseMarkdownSections(content),
+    sections,
   };
 }
 
@@ -166,6 +207,22 @@ export function getGeneralEnhancer(): CategoryPromptEnhancer {
 export function clearCache(): void {
   orderedCache = null;
   generalCache = null;
+  diagnosticsCache = {
+    totalFiles: 0,
+    loaded: 0,
+    invalidFrontmatter: [],
+    missingSections: [],
+    duplicateCategoryIds: [],
+    missingPriorityIds: [],
+  };
+}
+
+/**
+ * Latest diagnostics from skill loading.
+ */
+export function getSkillLoadDiagnostics(): SkillLoadDiagnostics {
+  if (!orderedCache || !generalCache) loadAll();
+  return diagnosticsCache;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +230,15 @@ export function clearCache(): void {
 // ---------------------------------------------------------------------------
 
 function loadAll(): void {
+  diagnosticsCache = {
+    totalFiles: 0,
+    loaded: 0,
+    invalidFrontmatter: [],
+    missingSections: [],
+    duplicateCategoryIds: [],
+    missingPriorityIds: [],
+  };
+
   if (!fs.existsSync(SKILLS_DIR)) {
     console.warn(`[skill-loader] Skills directory not found: ${SKILLS_DIR}`);
     orderedCache = [];
@@ -181,12 +247,18 @@ function loadAll(): void {
   }
 
   const files = fs.readdirSync(SKILLS_DIR).filter(f => f.endsWith('.skill.md'));
+  diagnosticsCache.totalFiles = files.length;
   const byId = new Map<string, CategoryPromptEnhancer>();
 
   for (const file of files) {
     const parsed = parseSkillFile(path.join(SKILLS_DIR, file));
     if (parsed) {
+      if (byId.has(parsed.frontmatter.categoryId)) {
+        diagnosticsCache.duplicateCategoryIds.push(parsed.frontmatter.categoryId);
+        console.warn(`[skill-loader] Duplicate categoryId detected: ${parsed.frontmatter.categoryId}`);
+      }
       byId.set(parsed.frontmatter.categoryId, toEnhancer(parsed));
+      diagnosticsCache.loaded += 1;
     }
   }
 
@@ -208,6 +280,12 @@ function loadAll(): void {
 
   orderedCache = ordered;
   generalCache = byId.get('general') ?? createFallbackGeneral();
+  diagnosticsCache.missingPriorityIds = PRIORITY_ORDER.filter((id) => !byId.has(id));
+
+  console.info(
+    `[skill-loader] Loaded ${diagnosticsCache.loaded}/${diagnosticsCache.totalFiles} skill files ` +
+      `(invalid frontmatter: ${diagnosticsCache.invalidFrontmatter.length}, missing sections: ${diagnosticsCache.missingSections.length}, duplicates: ${diagnosticsCache.duplicateCategoryIds.length})`
+  );
 }
 
 /**

@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
     }));
 
     // Optionally include legacy dashboard notifications
-    let legacyNotifications: typeof formattedNotifications = [];
+    let legacyNotifications: Array<Omit<typeof formattedNotifications[number], 'source'> & { source: 'dashboard' }> = [];
     if (query.includeLegacy) {
       const legacyWhere: Record<string, unknown> = { userId };
       if (query.read !== undefined) legacyWhere.read = query.read;
@@ -175,17 +175,17 @@ export async function GET(req: NextRequest) {
         type: n.category as unknown as LearningAlertType,
         title: n.title,
         message: n.description ?? '',
-        icon: null,
-        color: null,
+        icon: null as string | null,
+        color: null as string | null,
         read: n.read,
-        dismissed: false,
+        dismissed: false as boolean,
         createdAt: n.createdAt,
         actionUrl: n.actionUrl,
         actionLabel: n.actionLabel,
-        metadata: n.metadata as Record<string, unknown> | null,
-        activityId: null,
-        goalId: null,
-        courseId: null,
+        metadata: n.metadata,
+        activityId: null as string | null,
+        goalId: null as string | null,
+        courseId: null as string | null,
       }));
     }
 

@@ -164,7 +164,7 @@ export function useLearningAnalyticsTool({
       return null;
     }
 
-    return data as LearningAnalyticsToolOutput;
+    return data as unknown as LearningAnalyticsToolOutput;
   }, []);
 
   /**

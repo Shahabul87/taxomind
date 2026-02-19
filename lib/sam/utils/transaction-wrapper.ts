@@ -24,17 +24,17 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 /**
- * Transaction client type - same as PrismaClient but within a transaction
+ * Transaction client type - derived from the actual db instance for extension compatibility
  */
 export type TransactionClient = Omit<
-  PrismaClient,
+  typeof db,
   '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
 >;
 
@@ -109,11 +109,10 @@ export async function withTransaction<T>(
   const logPrefix = `[${component}]`;
 
   try {
-    const result = await db.$transaction(fn, {
-      maxWait,
-      timeout,
-      isolationLevel,
-    });
+    const result = await db.$transaction(
+      (tx) => fn(tx as TransactionClient),
+      { maxWait, timeout, isolationLevel }
+    );
 
     const durationMs = Date.now() - startTime;
 
@@ -237,10 +236,10 @@ export async function createGoalWithSubGoals(
               goalId: goal.id,
               title: sg.title,
               description: sg.description,
-              type: (sg.type?.toUpperCase() ?? 'LEARN') as 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW' | 'RESEARCH' | 'CREATE',
+              type: (sg.type?.toUpperCase() ?? 'LEARN') as 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW' | 'REFLECT' | 'CREATE',
               order: sg.order,
               estimatedMinutes: sg.estimatedMinutes ?? 30,
-              difficulty: (sg.difficulty?.toUpperCase() ?? 'MEDIUM') as 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT',
+              difficulty: (sg.difficulty?.toUpperCase() ?? 'MEDIUM') as 'EASY' | 'MEDIUM' | 'HARD',
               status: 'PENDING',
             },
           })
@@ -288,7 +287,7 @@ export async function createPlanWithSteps(
           userId: planData.userId,
           startDate: planData.startDate,
           targetDate: planData.targetDate,
-          schedule: planData.schedule ?? {},
+          schedule: (planData.schedule ?? {}) as Prisma.InputJsonValue,
           status: 'DRAFT',
           overallProgress: 0,
         },
@@ -301,7 +300,7 @@ export async function createPlanWithSteps(
             data: {
               planId: plan.id,
               subGoalId: step.subGoalId,
-              type: (step.type?.toUpperCase() ?? 'READ_CONTENT') as 'READ_CONTENT' | 'WATCH_VIDEO' | 'COMPLETE_QUIZ' | 'PRACTICE' | 'REVIEW' | 'DISCUSS' | 'SUBMIT_ASSIGNMENT' | 'CUSTOM',
+              type: (step.type?.toUpperCase() ?? 'READ_CONTENT') as 'READ_CONTENT' | 'WATCH_VIDEO' | 'COMPLETE_EXERCISE' | 'TAKE_QUIZ' | 'REFLECT' | 'PRACTICE_PROBLEM' | 'SOCRATIC_DIALOGUE' | 'SPACED_REVIEW' | 'CREATE_SUMMARY' | 'PEER_DISCUSSION' | 'PROJECT_WORK' | 'RESEARCH',
               title: step.title,
               description: step.description,
               order: step.order,

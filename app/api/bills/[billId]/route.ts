@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { BillCategory, BillStatus } from "@prisma/client";
+import { BillCategory, BillStatus, RecurringType } from "@prisma/client";
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -14,7 +14,7 @@ const BillUpdateSchema = z.object({
   startDate: z.string().or(z.date()).optional(),
   dueDate: z.string().or(z.date()).optional(),
   status: z.nativeEnum(BillStatus).optional(),
-  recurringType: z.string().optional().nullable(),
+  recurringType: z.nativeEnum(RecurringType).optional().nullable(),
   recurringPeriod: z.number().int().positive().optional().nullable(),
   notifyBefore: z.number().int().min(0).max(90).optional(),
   notifyEmail: z.boolean().optional(),

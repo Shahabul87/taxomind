@@ -34,7 +34,8 @@ export { getEmbeddingProvider, getAdapterStatus, resetAdapterCache } from '@/lib
 export { refreshPlatformSettingsCache } from '@/lib/ai/subscription-enforcement';
 
 // Re-export the canonical AICapability type from the single source of truth
-export { type AICapability } from '@/lib/sam/providers/ai-registry';
+import type { AICapability } from '@/lib/sam/providers/ai-registry';
+export type { AICapability };
 
 // Re-export unified subscription gate for route-level access control
 export { withSubscriptionGate, type SubscriptionCategory, type SubscriptionGateResult } from '@/lib/ai/subscription-gate';

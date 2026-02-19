@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const aligner = new BloomsAligner();
     const result = await aligner.evaluate({
       content,
+      type: "explanation",
       targetBloomsLevel: "UNDERSTAND",
     });
 

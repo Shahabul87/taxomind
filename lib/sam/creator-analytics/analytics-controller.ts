@@ -11,7 +11,7 @@ import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { GoalStatus, PlanStatus } from '@sam-ai/agentic';
+import { PlanStatus } from '@sam-ai/agentic';
 
 interface GoalPlanIds {
   goalId: string;
@@ -37,12 +37,10 @@ export async function initializeCreatorAnalyticsGoal(
       title: `PRISM Creator Analytics: ${courseName}`,
       description: `Course-level PRISM analytics with ${focusArea} focus. Cohort cognitive analysis, content quality, root causes, prescriptions.`,
       priority: 'medium',
-      status: GoalStatus.ACTIVE,
       context: {
-        type: 'creator-analytics',
-        courseName,
-        focusArea,
+        courseId: courseName,
       },
+      tags: ['creator-analytics'],
     });
 
     const samPlan = await planStore.create({
@@ -53,6 +51,8 @@ export async function initializeCreatorAnalyticsGoal(
       overallProgress: 0,
       steps: [
         {
+          id: '',
+          planId: '',
           title: 'Data Collection & Aggregation',
           description: 'Collect enrollment, cognitive, assessment, and engagement data across cohort',
           type: 'create_summary',
@@ -63,10 +63,12 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 1 },
-          metadata: { courseName },
+          executionContext: {},
+          metadata: { courseName, stage: 1 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Cohort Cognitive Analysis',
           description: 'Compute Bloom&apos;s distribution, bimodal detection, fragile knowledge alarm, dropout risk',
           type: 'create_summary',
@@ -77,10 +79,12 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 2 },
-          metadata: {},
+          executionContext: {},
+          metadata: { stage: 2 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Content & Assessment Quality',
           description: 'AI analysis of module effectiveness, discrimination indices, Bloom&apos;s alignment',
           type: 'create_summary',
@@ -91,10 +95,12 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 3 },
-          metadata: {},
+          executionContext: {},
+          metadata: { stage: 3 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Root Cause Analysis',
           description: 'Identify root causes (CONTENT/PEDAGOGY/ASSESSMENT/STUDENT/SYSTEM) and predict risks',
           type: 'create_summary',
@@ -105,10 +111,12 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 4 },
-          metadata: {},
+          executionContext: {},
+          metadata: { stage: 4 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Prescription Engine',
           description: 'Generate ROI-scored prescriptions and assessment redesign suggestions',
           type: 'create_summary',
@@ -119,10 +127,12 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 5 },
-          metadata: {},
+          executionContext: {},
+          metadata: { stage: 5 },
         },
         {
+          id: '',
+          planId: '',
           title: 'Report Generation',
           description: 'Generate creator-friendly PRISM report with key metrics and next steps',
           type: 'create_summary',
@@ -133,13 +143,13 @@ export async function initializeCreatorAnalyticsGoal(
           maxRetries: 2,
           inputs: [],
           outputs: [],
-          executionContext: { stage: 6 },
-          metadata: {},
+          executionContext: {},
+          metadata: { stage: 6 },
         },
       ],
       checkpoints: [],
       checkpointData: {},
-      schedule: {},
+      schedule: undefined,
       fallbackStrategies: [],
     });
 
@@ -218,7 +228,12 @@ export async function completeCreatorAnalyticsStep(
     await planStore.updateStep(planId, stepId, {
       status: 'completed',
       completedAt: new Date(),
-      outputs: outputs ?? [],
+      outputs: (outputs ?? []).map((value) => ({
+        name: 'stage-output',
+        type: 'result' as const,
+        value,
+        timestamp: new Date(),
+      })),
     });
   } catch (error) {
     logger.warn('[CreatorAnalyticsController] Failed to complete step', {

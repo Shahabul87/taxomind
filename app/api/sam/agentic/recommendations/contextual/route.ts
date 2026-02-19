@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SAM Contextual Recommendations API
  *

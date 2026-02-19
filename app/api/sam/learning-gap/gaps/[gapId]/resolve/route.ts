@@ -41,7 +41,7 @@ export async function POST(
     const { learningGap: gapStore } = getAnalyticsStores();
 
     // Get the gap first to verify ownership
-    const gap = await gapStore.getGapById(gapId);
+    const gap = await gapStore.get(gapId);
 
     if (!gap) {
       return NextResponse.json({ error: 'Gap not found' }, { status: 404 });
@@ -51,7 +51,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    if (gap.status === 'resolved') {
+    if (gap.isResolved) {
       return NextResponse.json(
         { error: 'Gap is already resolved' },
         { status: 400 }
@@ -59,18 +59,13 @@ export async function POST(
     }
 
     // Mark as resolved
-    const updatedGap = await gapStore.updateGap(gapId, {
-      status: 'resolved',
-      resolvedAt: new Date(),
-      resolution: data.resolution,
-      currentMastery: data.masteryAchieved ?? gap.currentMastery,
-    });
+    const updatedGap = await gapStore.resolve(gapId);
 
     return NextResponse.json({
       success: true,
       data: {
         id: updatedGap.id,
-        status: updatedGap.status,
+        isResolved: updatedGap.isResolved,
         resolvedAt: updatedGap.resolvedAt?.toISOString(),
         message: 'Gap marked as resolved successfully',
       },

@@ -12,7 +12,7 @@
  * - 3: Exemplary - Comprehensive evidence
  */
 
-import type { CourseAnalysisInput } from '../analyzers/deterministic-rubric-engine';
+import type { CourseAnalysisInput, ChapterInput, SectionInput, AssessmentInput } from '../types/course-analysis.types';
 
 // ═══════════════════════════════════════════════════════════════
 // OLC TYPES AND INTERFACES

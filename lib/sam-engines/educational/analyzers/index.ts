@@ -11,31 +11,8 @@ export type { CourseMetadata, CourseTypeDetectionResult, DistributionComparison 
 export { ObjectiveAnalyzer, objectiveAnalyzer } from './objective-analyzer';
 export type { ActionVerbAnalysis } from './objective-analyzer';
 
-// Deterministic Rubric Engine - Phase 1 Implementation
-export {
-  DeterministicRubricEngine,
-  deterministicRubricEngine,
-  serializeAnalysisResult,
-  calculateCourseTypeAlignment,
-} from './deterministic-rubric-engine';
-export type {
-  ResearchCitation,
-  RubricCategory,
-  RubricRule,
-  CourseAnalysisInput,
-  ChapterInput,
-  SectionInput,
-  AssessmentInput,
-  QuestionInput,
-  OptionInput,
-  AttachmentInput,
-  ContentAnalysisInput,
-  DeterministicAnalysisResult,
-  CategoryScore,
-  RuleResult,
-  PrioritizedRecommendation,
-  AnalysisMetadata,
-} from './deterministic-rubric-engine';
+// Deterministic Rubric Engine - Phase 1 Implementation (moved to _deprecated)
+// Re-exports commented out: module moved to lib/_deprecated/sam-engines/educational/deterministic-rubric-engine
 
 // Deep Content Analyzer - Phase 4 Implementation
 export {

@@ -190,16 +190,16 @@ export async function GET(request: NextRequest) {
           userId: { not: user.id },
         },
         include: {
-          user: {
+          User: {
             select: { id: true, name: true, image: true },
           },
         },
         take: 50,
       });
       potentialPeers = enrollments.map((e) => ({
-        id: e.user.id,
-        name: e.user.name,
-        image: e.user.image,
+        id: e.User.id,
+        name: e.User.name,
+        image: e.User.image,
       }));
     } else {
       // Find peers with similar skills - check skill build profiles
@@ -283,7 +283,7 @@ export async function GET(request: NextRequest) {
         // Get shared courses
         const yourEnrollments = await db.enrollment.findMany({
           where: { userId: user.id },
-          select: { courseId: true, course: { select: { title: true } } },
+          select: { courseId: true, Course: { select: { title: true } } },
         });
         const peerEnrollments = await db.enrollment.findMany({
           where: { userId: peer.id },
@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
         const peerCourseIds = new Set(peerEnrollments.map((e) => e.courseId));
         const sharedCourses = yourEnrollments
           .filter((e) => peerCourseIds.has(e.courseId))
-          .map((e) => ({ courseId: e.courseId, courseName: e.course.title }));
+          .map((e) => ({ courseId: e.courseId, courseName: e.Course.title }));
 
         // Calculate activity alignment (prefer peers with history)
         const hasCollaborated = collaboratedPeerIds.has(peer.id);

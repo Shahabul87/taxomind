@@ -102,8 +102,8 @@ export function SamFloatingChatbot({
   const [isLoading, setIsLoading] = useState(false);
   const [pendingContextMessage, setPendingContextMessage] = useState<{ message: string; context?: Record<string, unknown> } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sendMessageRef = useRef<(content: string, context?: Record<string, unknown>) => Promise<void>>(null);
-  const buildCourseContextRef = useRef<() => Record<string, unknown>>(null);
+  const sendMessageRef = useRef<((content: string, context?: Record<string, unknown>) => Promise<void>) | null>(null);
+  const buildCourseContextRef = useRef<(() => Record<string, unknown>) | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

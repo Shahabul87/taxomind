@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from 'next/dynamic';
+import { usePathname } from "next/navigation";
 import { MobileGestureController } from "@/components/mobile/MobileGestureController";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import type { User as NextAuthUser } from 'next-auth';
@@ -31,13 +32,15 @@ interface TeacherCreateClientProps {
 
 export function TeacherCreateClient({ children, user }: TeacherCreateClientProps) {
   const { isMobile } = useViewportHeight();
+  const pathname = usePathname();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const isAICreatorRoute = pathname?.startsWith('/teacher/create/ai-creator');
 
   return (
     <MobileGestureController
       onSidebarOpen={() => setIsMobileSidebarOpen(true)}
       enableEdgeSwipe={isMobile}
-      enableBottomBar={isMobile}
+      enableBottomBar={isMobile && !isAICreatorRoute}
       enablePullToRefresh={false}
     >
       {/* Sidebar */}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Deterministic Rubric Engine
  * Primary analysis engine - replaces LLM-first approach

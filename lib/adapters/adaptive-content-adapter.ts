@@ -20,6 +20,25 @@ import type {
 } from '@sam-ai/educational';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import type { ActivityType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
+
+/**
+ * Map content format to a valid ActivityType enum value
+ */
+function formatToActivityType(format: string): ActivityType {
+  const formatMap: Record<string, ActivityType> = {
+    video: 'VIDEO_WATCH',
+    audio: 'RESOURCE_DOWNLOAD',
+    text: 'SECTION_START',
+    interactive: 'QUIZ_START',
+    quiz: 'QUIZ_START',
+    exercise: 'QUIZ_START',
+    diagram: 'RESOURCE_DOWNLOAD',
+  };
+  return formatMap[format.toLowerCase()] ?? 'NAVIGATION';
+}
 
 /**
  * Map database learning style to adaptive learning style
@@ -178,9 +197,11 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
     try {
       const activity = await db.realtime_activities.create({
         data: {
+          id: randomUUID(),
           userId: interaction.userId,
-          activityType: `CONTENT_${interaction.format.toUpperCase()}`,
-          courseId: interaction.contentId.split('-')[0] || null, // Extract course ID if present
+          activityType: formatToActivityType(interaction.format),
+          action: `content_${interaction.format}`,
+          courseId: interaction.contentId.split('-')[0] || null,
           chapterId: interaction.contentId.split('-')[1] || null,
           duration: interaction.timeSpent,
           timestamp: interaction.timestamp,
@@ -188,11 +209,11 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
             contentId: interaction.contentId,
             format: interaction.format,
             scrollDepth: interaction.scrollDepth,
-            replayCount: interaction.replayCount,
-            pauseCount: interaction.pauseCount,
-            notesTaken: interaction.notesTaken,
+            replayCount: interaction.replayCount ?? null,
+            pauseCount: interaction.pauseCount ?? null,
+            notesTaken: interaction.notesTaken ?? null,
             completed: interaction.completed,
-            checkPerformance: interaction.checkPerformance,
+            checkPerformance: interaction.checkPerformance ?? null,
           },
         },
       });
@@ -261,23 +282,28 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
   ): Promise<AdaptedContent | null> {
     try {
       // Use SAMLearningProfile adaptationHistory for caching
-      const profile = await db.sAMLearningProfile.findFirst({
-        where: {
-          adaptationHistory: {
-            some: {
-              path: ['originalId'],
-              equals: originalId,
-            },
-          },
-        },
+      // JSON array fields don't support `some` filtering — filter in-memory
+      const profiles = await db.sAMLearningProfile.findMany({
+        take: 50,
       });
 
-      if (!profile) return null;
+      // Filter in-memory since Prisma JSON array filtering is limited
+      let cached: Record<string, unknown> | undefined;
+      let profile: typeof profiles[number] | null = null;
+      for (const p of profiles) {
+        const history = p.adaptationHistory as Array<Record<string, unknown>> | null;
+        if (!history) continue;
+        const match = history.find(
+          (h) => h.originalId === originalId && h.targetStyle === style
+        );
+        if (match) {
+          cached = match;
+          profile = p;
+          break;
+        }
+      }
 
-      const history = profile.adaptationHistory as Array<Record<string, unknown>>;
-      const cached = history.find(
-        (h) => h.originalId === originalId && h.targetStyle === style
-      );
+      if (!profile || !cached) return null;
 
       if (!cached) return null;
 
@@ -300,15 +326,9 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
    */
   async cacheContent(content: AdaptedContent): Promise<void> {
     try {
-      const profile = await db.sAMLearningProfile.findFirst({
-        where: {
-          adaptationHistory: {
-            some: {
-              path: ['originalId'],
-              equals: content.originalId,
-            },
-          },
-        },
+      // Find profiles with adaptation history to check for existing cache
+      const profiles = await db.sAMLearningProfile.findMany({
+        take: 50,
       });
 
       const cacheEntry = {
@@ -317,6 +337,16 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
         cachedAt: new Date().toISOString(),
         content,
       };
+
+      // Find profile that has this content cached
+      let profile: typeof profiles[number] | null = null;
+      for (const p of profiles) {
+        const history = p.adaptationHistory as Array<Record<string, unknown>> | null;
+        if (history?.some((h) => h.originalId === content.originalId)) {
+          profile = p;
+          break;
+        }
+      }
 
       if (profile) {
         const history = profile.adaptationHistory as Array<Record<string, unknown>>;
@@ -331,7 +361,7 @@ export class PrismaAdaptiveContentDatabaseAdapter implements AdaptiveContentData
 
         await db.sAMLearningProfile.update({
           where: { id: profile.id },
-          data: { adaptationHistory: newHistory },
+          data: { adaptationHistory: { set: JSON.parse(JSON.stringify(newHistory)) as Prisma.InputJsonValue[] } },
         });
       }
 

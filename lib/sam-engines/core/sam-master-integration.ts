@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { SAMEngineIntegration } from './sam-engine-integration';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';

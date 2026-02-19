@@ -14,7 +14,7 @@
  * Essential Standards must score 3 to achieve QM certification
  */
 
-import type { CourseAnalysisInput } from '../analyzers/deterministic-rubric-engine';
+import type { CourseAnalysisInput, ChapterInput, SectionInput, AssessmentInput, QuestionInput } from '../types/course-analysis.types';
 
 // ═══════════════════════════════════════════════════════════════
 // QM TYPES AND INTERFACES

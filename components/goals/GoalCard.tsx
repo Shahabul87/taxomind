@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { Goal } from '@/app/dashboard/user/goals/_components/GoalsClient';
+import type { Goal } from './types';
 
 interface GoalCardProps {
   goal: Goal;

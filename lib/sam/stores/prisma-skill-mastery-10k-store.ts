@@ -922,10 +922,5 @@ export function createPrismaSkillMastery10KStore(): PrismaSkillMastery10KStore {
   return new PrismaSkillMastery10KStore();
 }
 
-// Export constants for use in other modules
-export {
-  MILESTONE_HOURS,
-  MILESTONE_XP_REWARDS,
-  MILESTONE_BADGE_NAMES,
-  getProficiencyLevel,
-};
+// Export helper for use in other modules (constants are already exported at declaration)
+export { getProficiencyLevel };

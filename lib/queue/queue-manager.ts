@@ -1074,9 +1074,9 @@ export function getQueueManager(): QueueManager {
 export const queueManager = new Proxy({} as QueueManager, {
   get(_target, prop) {
     const instance = getQueueManager();
-    const value = (instance as Record<string | symbol, unknown>)[prop];
+    const value = Reflect.get(instance, prop, instance);
     if (typeof value === 'function') {
-      return (value as Function).bind(instance);
+      return value.bind(instance);
     }
     return value;
   },

@@ -192,6 +192,12 @@ describe('saveCheckpointWithRetry', () => {
 describe('resumeCourseCreation validation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFindUnique.mockResolvedValue({
+      id: 'course-1',
+      userId: 'user-1',
+      isPublished: false,
+      chapters: [],
+    } as never);
   });
 
   it('rejects when no checkpoint exists', async () => {

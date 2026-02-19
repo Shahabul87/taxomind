@@ -281,7 +281,7 @@ export class PrismaKnowledgeGraphDatabaseAdapter implements KnowledgeGraphDataba
       relations,
       rootConcepts: record.rootConcepts,
       terminalConcepts: record.terminalConcepts,
-      stats: record.stats as GraphStats,
+      stats: (typeof record.stats === 'object' && record.stats !== null ? record.stats : {}) as unknown as GraphStats,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };

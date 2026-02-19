@@ -20,6 +20,9 @@ const ALL_BLOOMS_LEVELS: BloomsLevel[] = [
   'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE',
 ];
 
+const conflictWarningKeys = new Set<string>();
+const truncationWarningKeys = new Set<string>();
+
 // =============================================================================
 // Internal helpers
 // =============================================================================
@@ -114,18 +117,30 @@ export function getCategoryEnhancer(
   ].filter((t): t is string => Boolean(t));
 
   const enhancers = getOrderedEnhancers();
-
-  // Try exact match first, then substring match
-  for (const enhancer of enhancers) {
-    for (const matchCategory of enhancer.matchesCategories) {
+  const matchedEnhancers = enhancers.filter((enhancer) =>
+    enhancer.matchesCategories.some((matchCategory) => {
       const matchNorm = normalize(matchCategory);
-      for (const term of searchTerms) {
-        // Exact match
-        if (term === matchNorm) return enhancer;
-        // Substring match (category contains the match term or vice versa)
-        if (term.includes(matchNorm) || matchNorm.includes(term)) return enhancer;
-      }
+      return searchTerms.some((term) =>
+        term === matchNorm || term.includes(matchNorm) || matchNorm.includes(term)
+      );
+    })
+  );
+
+  if (matchedEnhancers.length > 1) {
+    const warningKey = `${category}::${subcategory ?? ''}`;
+    if (!conflictWarningKeys.has(warningKey)) {
+      conflictWarningKeys.add(warningKey);
+      console.warn('[category-registry] Multiple enhancers matched category input; using first by priority order', {
+        category,
+        subcategory,
+        selected: matchedEnhancers[0].categoryId,
+        candidates: matchedEnhancers.map((e) => e.categoryId),
+      });
     }
+  }
+
+  if (matchedEnhancers.length > 0) {
+    return matchedEnhancers[0];
   }
 
   // Fallback to general
@@ -190,6 +205,36 @@ export function getCategoryEnhancers(
     return [getGeneralEnhancer()];
   }
 
+  if (results.length === maxResults) {
+    const remainingMatches = enhancers.filter((enhancer) => {
+      if (seenIds.has(enhancer.categoryId)) return false;
+      return enhancer.matchesCategories.some((matchCategory) => {
+        const matchNorm = normalize(matchCategory);
+        const categoryMatch = categoryNorm === matchNorm || categoryNorm.includes(matchNorm) || matchNorm.includes(categoryNorm);
+        const subcategoryMatch = subcategory
+          ? (() => {
+              const subNorm = normalize(subcategory);
+              return subNorm === matchNorm || subNorm.includes(matchNorm) || matchNorm.includes(subNorm);
+            })()
+          : false;
+        return categoryMatch || subcategoryMatch;
+      });
+    });
+
+    if (remainingMatches.length > 0) {
+      const warningKey = `${category}::${subcategory ?? ''}::${maxResults}`;
+      if (!truncationWarningKeys.has(warningKey)) {
+        truncationWarningKeys.add(warningKey);
+        console.warn('[category-registry] Additional enhancer matches were truncated by maxResults', {
+          category,
+          subcategory,
+          selected: results.map((r) => r.categoryId),
+          truncated: remainingMatches.map((r) => r.categoryId),
+        });
+      }
+    }
+  }
+
   return results;
 }
 
@@ -216,7 +261,7 @@ export function blendEnhancers(
 
   return {
     categoryId: `${primary.categoryId}+${secondary.categoryId}`,
-    displayName: `${primary.displayName} \u00d7 ${secondary.displayName}`,
+    displayName: `${primary.displayName} x ${secondary.displayName}`,
     matchesCategories: [...primary.matchesCategories, ...secondary.matchesCategories],
     domainExpertise: `${primary.domainExpertise}\n\n### Cross-Domain Context\n${extractFirstParagraph(secondary.domainExpertise)}`,
     teachingMethodology: primary.teachingMethodology,

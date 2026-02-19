@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { MarketAnalysisEngine } from '@/lib/sam-engines/business/sam-market-engine';
 import { BloomsAnalysisEngine } from '@/lib/sam-engines/educational/sam-blooms-engine';
 import { AdvancedExamEngine } from '@/lib/sam-engines/educational/sam-exam-engine';

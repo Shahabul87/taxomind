@@ -273,7 +273,7 @@ export const useProgressiveCourseCreation = (userId?: string) => {
 
   // Update patterns based on form data
   const updatePatternsFromFormData = (pattern: UserPattern, formData: CourseFormData) => {
-    if (formData.preferredContentTypes?.length > 0) {
+    if (formData.preferredContentTypes && formData.preferredContentTypes.length > 0) {
       pattern.patterns.preferredContentTypes = formData.preferredContentTypes;
     }
     

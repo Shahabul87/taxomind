@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Enhanced Course Depth Analysis Engine
  * Integrates Webb's DOK, Course Type Detection, Assessment Quality, and Objective Analysis

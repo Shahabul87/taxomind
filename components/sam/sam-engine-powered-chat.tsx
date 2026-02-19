@@ -349,7 +349,7 @@ export function SAMEnginePoweredChat({
                               }
                             : null,
                           processingTimeMs: 0,
-                        } as AgenticChatData)
+                        } as unknown as AgenticChatData)
                       : null;
 
                   setMessages((prev) =>
@@ -690,19 +690,19 @@ export function SAMEnginePoweredChat({
           {!isUser && msg.engineData && showEngineInsights && (
             <div className="mt-2 space-y-2">
               <div className="flex gap-1">
-                {msg.engineData.marketAnalysis && (
+                {!!msg.engineData.marketAnalysis && (
                   <Badge variant="outline" className="text-xs">
                     <TrendingUp className="w-3 h-3 mr-1" />
                     Market
                   </Badge>
                 )}
-                {msg.engineData.bloomsAnalysis && (
+                {!!msg.engineData.bloomsAnalysis && (
                   <Badge variant="outline" className="text-xs">
                     <Brain className="w-3 h-3 mr-1" />
                     Bloom&apos;s
                   </Badge>
                 )}
-                {msg.engineData.courseGuide && (
+                {!!msg.engineData.courseGuide && (
                   <Badge variant="outline" className="text-xs">
                     <BookOpen className="w-3 h-3 mr-1" />
                     Guide

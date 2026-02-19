@@ -7,10 +7,12 @@
  * Returns checkpoint progress data from SAMExecutionPlan for cross-device resume.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import type { CheckpointData } from '@/lib/sam/course-creation/types';
 
 // =============================================================================
@@ -37,8 +39,11 @@ interface ProgressResponse {
 // HANDLER
 // =============================================================================
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Auth
     const user = await currentUser();
     if (!user?.id) {
@@ -55,7 +60,7 @@ export async function GET() {
       where: {
         goal: { userId: user.id },
         status: { in: ['ACTIVE', 'PAUSED', 'FAILED'] },
-        checkpointData: { not: null },
+        checkpointData: { not: Prisma.DbNull },
       },
       orderBy: { updatedAt: 'desc' },
       select: {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLearningMode } from "../../../../_components/learning-mode-context";
-import { SectionYouTubePlayer } from "./section-youtube-player";
+import { SectionYouTubePlayer, type SectionYouTubePlayerRef } from "./section-youtube-player";
 import { SectionContentTabs } from "./section-content-tabs";
 import { SectionHeader } from "./section-header";
 import { SectionSidebar } from "./section-sidebar";
@@ -100,7 +100,7 @@ export function EnterpriseSectionLearning({
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const videoPlayerRef = useRef<{ getPlayerState: () => number; pauseVideo: () => void; playVideo: () => void } | null>(null);
+  const videoPlayerRef = useRef<SectionYouTubePlayerRef | null>(null);
 
   // Initialize analytics tracking
   const analytics = useAnalytics({

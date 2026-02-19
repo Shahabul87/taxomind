@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       }),
       db.groupDiscussionComment.findMany({
         where: groupId ? {
-          discussion: { groupId },
+          GroupDiscussion: { groupId },
         } : userId ? {
           authorId: userId,
         } : {},
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         take: limit * 2,
         include: {
           User: { select: { id: true } },
-          discussion: { select: { authorId: true } },
+          GroupDiscussion: { select: { authorId: true } },
         },
       }),
     ]);
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
         id: comment.id,
         type: 'comment',
         userId: comment.authorId,
-        targetUserId: comment.discussion?.authorId,
+        targetUserId: comment.GroupDiscussion?.authorId,
         contentId: comment.discussionId,
         timestamp: comment.createdAt,
         sentiment,

@@ -74,7 +74,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
     id: course.id,
     title: course.title,
     description: course.description ?? null,
-    whatYouWillLearn: course.whatYouWillLearn ?? [],
+    whatYouWillLearn: [],
     isPublished: course.isPublished ?? false,
     categoryId: course.categoryId ?? null,
     price: course.price ?? null,

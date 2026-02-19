@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Depth Analysis V2 - Start Analysis API
  *

@@ -81,9 +81,6 @@ export async function POST(req: NextRequest) {
         where: { groupId: parsed.data.communityId },
         orderBy: { createdAt: 'desc' },
         take: 100,
-        include: {
-          _count: { select: { comments: true } },
-        },
       }),
       db.groupMember.count({
         where: {
@@ -107,7 +104,7 @@ export async function POST(req: NextRequest) {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const recentDiscussions = discussions.filter(d => d.createdAt > thirtyDaysAgo);
     const postsPerDay = recentDiscussions.length / 30;
-    const totalComments = discussions.reduce((sum, d) => sum + d._count.comments, 0);
+    const totalComments = discussions.reduce((sum, d) => sum + d.commentsCount, 0);
     const commentsPerPost = discussions.length > 0 ? totalComments / discussions.length : 0;
 
     // Estimate active members

@@ -133,14 +133,14 @@ export function NotificationInbox({
     unreadCount = 0,
     isLoading,
     markAsRead,
-    dismissWithFeedback,
+    dismiss,
     clearRead,
     refresh,
   } = useNotifications();
 
   // Memoized filtered notifications
   const filteredNotifications = useMemo(() => {
-    let result = notifications as SAMNotification[];
+    let result = notifications as unknown as SAMNotification[];
 
     // Apply type filter
     if (activeFilter) {
@@ -168,19 +168,19 @@ export function NotificationInbox({
   }, [refresh]);
 
   const handleMarkAllRead = useCallback(async () => {
-    const unreadIds = (notifications as SAMNotification[])
+    const unreadIds = (notifications as unknown as SAMNotification[])
       .filter((n: SAMNotification) => !n.isRead)
       .map((n: SAMNotification) => n.id);
-    for (const id of unreadIds) {
-      await markAsRead?.(id);
+    if (unreadIds.length > 0) {
+      await markAsRead?.(unreadIds);
     }
   }, [notifications, markAsRead]);
 
   const handleDismiss = useCallback(
-    async (id: string, feedback: string) => {
-      await dismissWithFeedback?.(id, feedback);
+    async (id: string, _feedback: string) => {
+      await dismiss?.(id);
     },
-    [dismissWithFeedback]
+    [dismiss]
   );
 
   const handleClearRead = useCallback(async () => {
@@ -199,7 +199,7 @@ export function NotificationInbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const readCount = (notifications as SAMNotification[]).filter(
+  const readCount = (notifications as unknown as SAMNotification[]).filter(
     (n: SAMNotification) => n.isRead
   ).length;
 
@@ -391,13 +391,13 @@ export function NotificationInbox({
                     key={notification.id}
                     notification={notification}
                     index={index}
-                    onMarkRead={() => markAsRead?.(notification.id)}
+                    onMarkRead={() => markAsRead?.([notification.id])}
                     onDismiss={(feedback) =>
                       handleDismiss(notification.id, feedback)
                     }
                     onClick={() => {
                       if (!notification.isRead) {
-                        markAsRead?.(notification.id);
+                        markAsRead?.([notification.id]);
                       }
                       onNotificationClick?.(notification);
                     }}

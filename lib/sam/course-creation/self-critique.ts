@@ -154,7 +154,7 @@ export async function critiqueGeneration(params: {
   userId?: string;
   runId?: string;
 }): Promise<GenerationCritique> {
-  const { thinking, output, stage, bloomsLevel, qualityScore, samResult, conceptTracker, userId, runId } = params;
+  const { thinking, output, stage, bloomsLevel, courseContext, qualityScore, samResult, conceptTracker, userId, runId } = params;
 
   // Try AI-powered critique if userId is available
   if (userId) {
