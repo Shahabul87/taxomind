@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { SAMEngineIntegration } from './sam-engine-integration';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import type { JsonValue } from '@prisma/client/runtime/library';
 
 /**
  * SAM Master Integration
@@ -133,8 +133,8 @@ export class SAMMasterIntegration {
   /**
    * Determine which engines to use based on interaction type
    */
-  private getEngineConfig(interactionType: string, userRole: string) {
-    const configs: Record<string, any> = {
+  private getEngineConfig(interactionType: string, _userRole: string) {
+    const configs: Record<string, EngineConfig> = {
       'COURSE_HELP': {
         useMarketAnalysis: false,
         useBloomsAnalysis: true,
@@ -180,16 +180,19 @@ export class SAMMasterIntegration {
 
       if (!analysis) return null;
 
+      const competitorData = analysis.competitorAnalysis as Record<string, unknown> | null;
+      const trendData = analysis.trendAnalysis as Record<string, unknown> | null;
+
       return {
         marketValue: analysis.marketValue,
         demandScore: analysis.demandScore,
-        competitionLevel: (analysis.competitorAnalysis as any)?.competition ?? 0,
-        growthPotential: (analysis.trendAnalysis as any)?.growthPotential ?? 0,
+        competitionLevel: typeof competitorData?.competition === 'number' ? competitorData.competition : 0,
+        growthPotential: typeof trendData?.growthPotential === 'number' ? trendData.growthPotential : 0,
         position: analysis.marketPosition,
         lastUpdated: analysis.lastAnalyzedAt,
       };
-    } catch (error: any) {
-      logger.error('Error fetching market insights:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching market insights:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -207,7 +210,7 @@ export class SAMMasterIntegration {
       // Get student progress if applicable
       const studentProgress = await db.studentBloomsProgress.findUnique({
         where: {
-          userId_courseId: { userId, courseId } as any,
+          userId_courseId: { userId, courseId },
         },
       });
 
@@ -215,17 +218,17 @@ export class SAMMasterIntegration {
         courseLevel: courseAnalysis ? {
           distribution: courseAnalysis.bloomsDistribution,
           cognitiveDepth: courseAnalysis.cognitiveDepth,
-          gaps: courseAnalysis.gapAnalysis,
+          gaps: Array.isArray(courseAnalysis.gapAnalysis) ? courseAnalysis.gapAnalysis as string[] : [],
         } : null,
         studentProgress: studentProgress ? {
           bloomsScores: studentProgress.bloomsScores,
-          strengthAreas: studentProgress.strengthAreas,
-          weaknessAreas: studentProgress.weaknessAreas,
+          strengthAreas: Array.isArray(studentProgress.strengthAreas) ? studentProgress.strengthAreas as string[] : [],
+          weaknessAreas: Array.isArray(studentProgress.weaknessAreas) ? studentProgress.weaknessAreas as string[] : [],
           lastAssessed: studentProgress.lastAssessedAt,
         } : null,
       };
-    } catch (error: any) {
-      logger.error('Error fetching Blooms insights:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching Blooms insights:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -249,14 +252,14 @@ export class SAMMasterIntegration {
 
       if (!latestGuide?.context) return null;
 
-      const result = latestGuide.context as any;
+      const result = latestGuide.context as Record<string, unknown> | null;
       return {
-        metrics: result?.metrics ?? null,
-        successProbability: result?.successProbability ?? null,
-        criticalActions: result?.criticalActions ?? 0,
+        metrics: (result?.metrics as Record<string, unknown> | null) ?? null,
+        successProbability: typeof result?.successProbability === 'number' ? result.successProbability : null,
+        criticalActions: typeof result?.criticalActions === 'number' ? result.criticalActions : 0,
       };
-    } catch (error: any) {
-      logger.error('Error fetching course guide insights:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching course guide insights:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -289,8 +292,8 @@ export class SAMMasterIntegration {
           trend: m.improvementRate > 0 ? 'improving' : 'stable',
         })),
       };
-    } catch (error: any) {
-      logger.error('Error fetching learning profile:', error);
+    } catch (error: unknown) {
+      logger.error('Error fetching learning profile:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -381,7 +384,9 @@ export class SAMMasterIntegration {
       }
 
       // Content depth
-      if (insights.courseGuide?.metrics?.depth?.overallDepth < 60) {
+      const depthMetrics = insights.courseGuide?.metrics?.depth as Record<string, unknown> | undefined;
+      const overallDepth = typeof depthMetrics?.overallDepth === 'number' ? depthMetrics.overallDepth : 100;
+      if (overallDepth < 60) {
         recommendations.content.push({
           type: 'content',
           priority: 'high',
@@ -473,10 +478,10 @@ export class SAMMasterIntegration {
    * Generate response elements based on strategy
    */
   private async generateResponseElements(
-    strategy: any,
+    strategy: ResponseStrategy,
     context: SAMEnhancedContext
   ) {
-    const elements: any = {
+    const elements: ResponseElements = {
       message: '',
       suggestions: [],
       actions: [],
@@ -519,12 +524,14 @@ export class SAMMasterIntegration {
         // Show course analysis for teachers
         if (context.user.isTeacher && context.engineInsights.courseGuide) {
           const guide = context.engineInsights.courseGuide;
-          elements.message += `Your course has ${guide.metrics?.depth?.overallDepth}% content depth `;
-          elements.message += `with ${guide.successProbability}% success probability.`;
+          const guideDepth = guide.metrics?.depth as Record<string, unknown> | undefined;
+          const guideOverallDepth = typeof guideDepth?.overallDepth === 'number' ? guideDepth.overallDepth : 0;
+          elements.message += `Your course has ${guideOverallDepth}% content depth `;
+          elements.message += `with ${guide.successProbability ?? 0}% success probability.`;
 
           elements.insights.push({
             type: 'metrics',
-            data: guide.metrics,
+            data: guide.metrics as JsonValue,
           });
         }
         break;
@@ -541,8 +548,8 @@ export class SAMMasterIntegration {
   /**
    * Generate actionable items based on context
    */
-  private generateActions(context: SAMEnhancedContext) {
-    const actions = [];
+  private generateActions(context: SAMEnhancedContext): ActionItem[] {
+    const actions: ActionItem[] = [];
 
     // Actions for students (non-teachers)
     if (!context.user.isTeacher) {
@@ -583,15 +590,94 @@ export class SAMMasterIntegration {
 }
 
 // Type definitions
+
+interface EngineConfig {
+  useMarketAnalysis: boolean;
+  useBloomsAnalysis: boolean;
+  useCourseGuide: boolean;
+}
+
+interface ResponseStrategy {
+  primaryIntent: string;
+  useEngineData: boolean;
+  personalize: boolean;
+  includeRecommendations: boolean;
+  includeAnalytics: boolean;
+}
+
+interface SuggestionItem {
+  title: string;
+  description: string;
+  priority: string;
+}
+
+interface ActionItem {
+  label: string;
+  route: string;
+  icon: string;
+}
+
+interface InsightItem {
+  type: string;
+  data: JsonValue;
+}
+
+interface ResponseElements {
+  message: string;
+  suggestions: SuggestionItem[];
+  actions: ActionItem[];
+  insights: InsightItem[];
+}
+
+interface MarketAnalysisInsight {
+  marketValue: number;
+  demandScore: number;
+  competitionLevel: number;
+  growthPotential: number;
+  position: string;
+  lastUpdated: Date;
+}
+
+interface BloomsAnalysisInsight {
+  courseLevel: {
+    distribution: JsonValue;
+    cognitiveDepth: number;
+    gaps: string[];
+  } | null;
+  studentProgress: {
+    bloomsScores: JsonValue;
+    strengthAreas: string[];
+    weaknessAreas: string[];
+    lastAssessed: Date;
+  } | null;
+}
+
+interface CourseGuideInsight {
+  metrics: Record<string, unknown> | null;
+  successProbability: number | null;
+  criticalActions: number;
+}
+
+interface LearningProfileInsight {
+  overallLevel: number;
+  learningStyle: string;
+  bloomsMastery: JsonValue;
+  recentPerformance: Array<{
+    level: string;
+    accuracy: number;
+    trend: string;
+  }>;
+}
+
 // NOTE: Users don't have roles - use isTeacher flag instead
 interface SAMEnhancedContext {
   user: {
     id: string;
     name: string | null;
     isTeacher: boolean;
-    learningProfile: any;
+    learningProfile: LearningProfileInsight | null;
   };
-  course: any;
+  course: CourseContext | null;
   engineInsights: EngineInsights;
   recommendations: PersonalizedRecommendations;
   conversationContext: {
@@ -601,12 +687,21 @@ interface SAMEnhancedContext {
   };
 }
 
+interface CourseContext {
+  id: string;
+  title: string;
+  description: string | null;
+  chapters: number;
+  students: number;
+  Enrollment: number;
+}
+
 interface EngineInsights {
-  marketAnalysis: any;
-  bloomsAnalysis: any;
-  examInsights: any;
-  courseGuide: any;
-  learningProfile: any;
+  marketAnalysis: MarketAnalysisInsight | null;
+  bloomsAnalysis: BloomsAnalysisInsight | null;
+  examInsights: null;
+  courseGuide: CourseGuideInsight | null;
+  learningProfile: LearningProfileInsight | null;
 }
 
 interface PersonalizedRecommendations {
@@ -626,10 +721,13 @@ interface Recommendation {
 
 interface SAMResponse {
   message: string;
-  suggestions: any[];
-  actions: any[];
-  insights: any[];
-  context: any;
+  suggestions: SuggestionItem[];
+  actions: ActionItem[];
+  insights: InsightItem[];
+  context: {
+    engineData: EngineInsights;
+    recommendations: PersonalizedRecommendations;
+  };
 }
 
 // Export singleton instance

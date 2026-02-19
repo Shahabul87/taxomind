@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import React, { useState } from "react";
@@ -28,6 +27,124 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ---------------------------------------------------------------------------
+// Local interfaces for the data shapes consumed by this dashboard.
+// The API may return richer objects than the hook&apos;s base TypeScript types.
+// ---------------------------------------------------------------------------
+
+interface CognitiveDimensionData {
+  name: string;
+  score: number;
+  trend?: string;
+}
+
+interface FitnessExerciseData {
+  exerciseId: string;
+  name: string;
+  dimension: string;
+  duration: number;
+}
+
+interface DashboardCognitiveFitness {
+  overallScore?: number;
+  dimensions?: CognitiveDimensionData[];
+  exercises?: FitnessExerciseData[];
+}
+
+interface DashboardLearningTrait {
+  traitId: string;
+  name: string;
+  strength: number;
+  malleability: number;
+}
+
+interface DashboardPhenotypeCapability {
+  name: string;
+  level: number;
+}
+
+interface DashboardLearningDNA {
+  dnaSequence?: { cognitiveCode?: string };
+  traits?: DashboardLearningTrait[];
+  phenotype?: {
+    type?: string;
+    capabilities?: DashboardPhenotypeCapability[];
+  };
+}
+
+interface BuddyCapabilityObject {
+  capability: string;
+  proficiency: number;
+  specializations?: string[];
+  limitations?: string[];
+}
+
+interface DashboardStudyBuddy {
+  personality?: { type?: string };
+  relationship?: {
+    bondLevel?: number;
+    interactions?: number;
+    helpfulnessScore?: number;
+  };
+  capabilities?: Array<BuddyCapabilityObject | string>;
+}
+
+interface DashboardQuantumState {
+  stateId: string;
+}
+
+interface DashboardQuantumPath {
+  pathId?: string;
+  learningGoal: string;
+  collapsed?: boolean;
+  superposition?: {
+    coherenceLevel?: number;
+    possibleStates?: DashboardQuantumState[];
+  };
+  probability?: {
+    successProbability?: number;
+  };
+}
+
+/**
+ * Wraps the useInnovationFeatures hook and maps its return values
+ * to the property names expected by this dashboard component.
+ */
+function useInnovationDashboard() {
+  const hookResult = useInnovationFeatures({
+    autoLoadStatus: true,
+  });
+
+  return {
+    // The API response is richer than the hook&apos;s typed return;
+    // cast to the shapes this dashboard actually reads.
+    cognitiveFitness: hookResult.cognitiveFitness as DashboardCognitiveFitness | null,
+    learningDNA: hookResult.learningDNA as DashboardLearningDNA | null,
+    studyBuddy: hookResult.studyBuddy as DashboardStudyBuddy | null,
+    quantumPaths: hookResult.quantumPaths as DashboardQuantumPath[],
+    isLoadingFitness: hookResult.isAssessingFitness,
+    isLoadingDNA: hookResult.isGeneratingDNA,
+    isLoadingBuddy: hookResult.isCreatingBuddy,
+    isLoadingPaths: hookResult.isCreatingPath,
+    fitnessError: hookResult.error,
+    dnaError: hookResult.error,
+    buddyError: hookResult.error,
+    pathsError: hookResult.error,
+    assessCognitiveFitness: hookResult.assessCognitiveFitness,
+    generateLearningDNA: hookResult.generateLearningDNA,
+    createStudyBuddy: hookResult.createStudyBuddy,
+    createQuantumPath: hookResult.createQuantumPath,
+    startFitnessExercise: hookResult.startFitnessExercise,
+    completeFitnessExercise: hookResult.completeFitnessExercise,
+    getFitnessRecommendations: hookResult.getFitnessRecommendations,
+    analyzeDNATraits: hookResult.analyzeDNATraits,
+    trackDNAEvolution: hookResult.trackDNAEvolution,
+    interactWithBuddy: hookResult.interactWithBuddy,
+    observeQuantumPath: hookResult.observeQuantumPath,
+    collapseQuantumPath: hookResult.collapseQuantumPath,
+  };
+}
 
 interface InnovationDashboardProps {
   userId?: string;
@@ -67,10 +184,7 @@ export function InnovationDashboard({ userId, className }: InnovationDashboardPr
     interactWithBuddy,
     observeQuantumPath,
     collapseQuantumPath,
-  } = useInnovationFeatures({
-    autoLoad: true,
-    refreshInterval: 300000, // 5 minutes
-  });
+  } = useInnovationDashboard();
 
   // Calculate overview stats
   const hasFeatures = {
@@ -347,7 +461,7 @@ function FeatureOverviewCard({
 
 // Cognitive Fitness Panel
 interface CognitiveFitnessPanelProps {
-  fitness: ReturnType<typeof useInnovationFeatures>["cognitiveFitness"];
+  fitness: DashboardCognitiveFitness | null;
   isLoading: boolean;
   error: string | null;
   onAssess: () => void;
@@ -427,7 +541,7 @@ function CognitiveFitnessPanel({
 
       {/* Dimensions Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {fitness.dimensions?.map((dimension: { name: string; score: number; trend?: string }, index: number) => (
+        {fitness.dimensions?.map((dimension, index) => (
           <Card key={index}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -454,7 +568,7 @@ function CognitiveFitnessPanel({
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {fitness.exercises?.slice(0, 4).map((exercise: { exerciseId: string; name: string; dimension: string; duration: number }, index: number) => (
+            {fitness.exercises?.slice(0, 4).map((exercise, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
@@ -510,7 +624,7 @@ function CognitiveFitnessLoadingSkeleton() {
 
 // Learning DNA Panel
 interface LearningDNAPanelProps {
-  dna: ReturnType<typeof useInnovationFeatures>["learningDNA"];
+  dna: DashboardLearningDNA | null;
   isLoading: boolean;
   error: string | null;
   onGenerate: () => void;
@@ -596,7 +710,7 @@ function LearningDNAPanel({
 
       {/* Traits Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {dna.traits?.map((trait: { traitId: string; name: string; strength: number; malleability: number }, index: number) => (
+        {dna.traits?.map((trait, index) => (
           <Card key={index}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -626,7 +740,7 @@ function LearningDNAPanel({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {dna.phenotype.capabilities.map((cap: { name: string; level: number }, index: number) => (
+              {dna.phenotype.capabilities.map((cap, index) => (
                 <Badge key={index} variant="outline" className="py-1">
                   {cap.name} - Level {cap.level}
                 </Badge>
@@ -666,7 +780,7 @@ function LearningDNALoadingSkeleton() {
 
 // Study Buddy Panel
 interface StudyBuddyPanelProps {
-  buddy: ReturnType<typeof useInnovationFeatures>["studyBuddy"];
+  buddy: DashboardStudyBuddy | null;
   isLoading: boolean;
   error: string | null;
   onCreateBuddy: (preferences: Record<string, unknown>) => void;
@@ -818,7 +932,7 @@ function StudyBuddyPanel({
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {buddy.capabilities.map((cap: { capability: string; proficiency: number; specializations?: string[]; limitations?: string[] } | string, index: number) => {
+              {buddy.capabilities.map((cap, index) => {
                 // Handle both string and object capabilities
                 const capName = typeof cap === "string" ? cap : cap.capability;
                 const proficiency = typeof cap === "object" && cap.proficiency ? Math.round(cap.proficiency * 100) : null;
@@ -859,7 +973,7 @@ function StudyBuddyLoadingSkeleton() {
 
 // Quantum Paths Panel
 interface QuantumPathsPanelProps {
-  paths: ReturnType<typeof useInnovationFeatures>["quantumPaths"];
+  paths: DashboardQuantumPath[];
   isLoading: boolean;
   error: string | null;
   onCreatePath: (goal: string) => void;
@@ -967,7 +1081,7 @@ function QuantumPathsPanel({
                     <div>
                       <h4 className="mb-2 text-sm font-medium">Possible States</h4>
                       <div className="flex flex-wrap gap-2">
-                        {path.superposition.possibleStates.slice(0, 4).map((state: { stateId: string }, stateIndex: number) => (
+                        {path.superposition.possibleStates.slice(0, 4).map((state, stateIndex) => (
                           <Badge key={stateIndex} variant="outline">
                             {state.stateId.replace("state-", "Path ")}
                           </Badge>

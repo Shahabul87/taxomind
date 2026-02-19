@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withCronAuth } from '@/lib/api/cron-auth';
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       const existingReminder = await db.sAMIntervention.findFirst({
         where: {
           userId,
-          type: 'REVIEW_REMINDER',
+          type: 'STREAK_REMINDER',
           createdAt: {
             gte: startOfDay,
           },
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         await db.sAMIntervention.create({
           data: {
             userId,
-            type: 'REVIEW_REMINDER',
+            type: 'STREAK_REMINDER',
             priority,
             message,
             suggestedActions: {
@@ -107,38 +107,36 @@ export async function GET(request: NextRequest) {
           },
         });
         interventionsCreated++;
-      } catch (error) {
-        logger.warn(`[CRON] Failed to create intervention for user ${userId}:`, error);
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        logger.warn(`[CRON] Failed to create intervention for user ${userId}: ${errMsg}`);
       }
 
-      // Create push notification if user has push enabled
+      // Create in-app notification if user has notifications enabled
       try {
-        const user = await db.user.findUnique({
-          where: { id: userId },
-          select: { id: true, notificationPrefs: true },
+        const userPrefs = await db.userNotificationPreferences.findUnique({
+          where: { userId },
+          select: { pushNotifications: true, pushCourseReminders: true },
         });
 
-        const notificationPrefs = user?.notificationPrefs as Record<string, boolean> | null;
-        const pushEnabled = notificationPrefs?.pushEnabled ?? false;
+        const pushEnabled = userPrefs?.pushNotifications ?? false;
+        const remindersEnabled = userPrefs?.pushCourseReminders ?? false;
 
-        if (pushEnabled && (overdueCount > 0 || dueTodayCount > 0)) {
-          await db.pushNotificationQueue.create({
+        if (pushEnabled && remindersEnabled && (overdueCount > 0 || dueTodayCount > 0)) {
+          await db.notification.create({
             data: {
+              id: crypto.randomUUID(),
               userId,
-              type: 'REVIEW_REMINDER',
+              type: 'system',
               title: 'Review Reminder',
-              body: buildShortMessage(overdueCount, dueTodayCount),
-              data: {
-                route: '/practice/reviews',
-                overdueCount,
-                dueTodayCount,
-              },
+              message: buildShortMessage(overdueCount, dueTodayCount),
             },
           });
           notificationsCreated++;
         }
-      } catch (error) {
-        logger.warn(`[CRON] Failed to create push notification for user ${userId}:`, error);
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        logger.warn(`[CRON] Failed to create notification for user ${userId}: ${errMsg}`);
       }
     }
 
@@ -164,8 +162,9 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error) {
-    logger.error('[CRON] Error sending review reminders:', error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`[CRON] Error sending review reminders: ${errMsg}`);
     return NextResponse.json(
       { success: false, error: 'Failed to send review reminders' },
       { status: 500 }

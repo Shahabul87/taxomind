@@ -1,11 +1,11 @@
-// @ts-nocheck
 // Adaptive Content Service - Main interface for dynamic content reordering
 
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { ContentReorderingEngine } from './reordering-engine';
 import { logger } from '@/lib/logger';
-import {
+import type { Prisma } from '@prisma/client';
+import type {
   ContentItem,
   StudentProfile,
   ReorderingStrategy,
@@ -16,8 +16,59 @@ import {
   ContentType,
   AdaptationRecord,
   StudentFeedback,
-  ReorderingAlgorithm
+  ReorderingAlgorithm,
+  LearningStyle,
+  PerformanceMetrics,
+  LearningPreferences,
+  LearningContext,
+  AdaptiveFactors,
+  RuleCondition,
+  BloomsLevel as LocalBloomsLevel,
 } from './types';
+
+/**
+ * Minimal section shape returned by Prisma queries in this service.
+ * Avoids using `any` for the section parameter in helper methods.
+ */
+interface SectionRecord {
+  id: string;
+  title: string;
+  description?: string | null;
+  videoUrl?: string | null;
+  position: number;
+  isPublished: boolean;
+  isFree: boolean;
+  duration?: number | null;
+  chapterId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  type?: string | null;
+  isPreview?: boolean | null;
+  completionStatus?: string | null;
+  resourceUrls?: string | null;
+  practicalActivity?: string | null;
+  keyConceptsCovered?: string | null;
+  chapter?: { id: string; title: string } | null;
+}
+
+/** Interaction record from SAMInteraction table */
+interface SAMInteractionRecord {
+  id: string;
+  userId: string;
+  courseId: string | null;
+  createdAt: Date;
+  context: Prisma.JsonValue;
+  [key: string]: unknown;
+}
+
+/** Learning metrics record */
+interface LearningMetricsRecord {
+  id: string;
+  userId: string | null;
+  courseId: string | null;
+  createdAt: Date;
+  [key: string]: unknown;
+}
 
 export class AdaptiveContentService {
   private reorderingEngine: ContentReorderingEngine;
@@ -72,8 +123,8 @@ export class AdaptiveContentService {
 
   // Get original content items for the request scope
   private async getOriginalContent(request: ReorderingRequest): Promise<ContentItem[]> {
-    let whereClause: any = {
-      courseId: request.courseId
+    const whereClause: Prisma.SectionWhereInput = {
+      chapter: { courseId: request.courseId },
     };
 
     // Add scope filters
@@ -98,12 +149,12 @@ export class AdaptiveContentService {
       id: section.id,
       type: this.mapSectionToContentType(section),
       title: section.title,
-      description: (section as any).description || undefined,
+      description: section.description ?? undefined,
       originalPosition: index,
       currentPosition: index,
       metadata: {
         difficulty: this.inferQuestionDifficulty(section),
-        duration: section.duration || 30,
+        duration: section.duration ?? 30,
         cognitiveLoad: this.inferCognitiveLoad(section),
         bloomsLevel: this.inferBloomsLevel(section),
         learningObjectives: this.extractLearningObjectives(section),
@@ -332,8 +383,8 @@ export class AdaptiveContentService {
       // Update analytics
       await this.updateReorderingAnalytics(result);
 
-    } catch (error: any) {
-      logger.error('Failed to record adaptation:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to record adaptation:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -355,8 +406,8 @@ export class AdaptiveContentService {
       // Learn from feedback for future adaptations
       await this.updateAdaptationLearning(sequenceId, feedback);
       
-    } catch (error: any) {
-      logger.error('Failed to record feedback:', error);
+    } catch (error: unknown) {
+      logger.error('Failed to record feedback:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -413,8 +464,8 @@ export class AdaptiveContentService {
     try {
       const cached = await redis.get(cacheKey);
       return cached ? JSON.parse(cached) : null;
-    } catch (error: any) {
-      logger.error('Cache load error:', error);
+    } catch (error: unknown) {
+      logger.error('Cache load error:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
@@ -422,8 +473,8 @@ export class AdaptiveContentService {
   private async saveSequenceToCache(cacheKey: string, sequence: ContentSequence): Promise<void> {
     try {
       await redis.setex(cacheKey, 1800, JSON.stringify(sequence)); // 30 minutes TTL
-    } catch (error: any) {
-      logger.error('Cache save error:', error);
+    } catch (error: unknown) {
+      logger.error('Cache save error:', error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -446,15 +497,15 @@ export class AdaptiveContentService {
     };
   }
 
-  private mapSectionToContentType(section: any): ContentType {
+  private mapSectionToContentType(section: SectionRecord): ContentType {
     // Simple mapping based on section properties
     if (section.videoUrl) return 'video';
-    if (section.isQuiz) return 'quiz';
-    if (section.hasAssignment) return 'assignment';
+    if (section.type === 'quiz') return 'quiz';
+    if (section.type === 'assignment') return 'assignment';
     return 'text';
   }
 
-  private inferQuestionDifficulty(section: any): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
+  private inferQuestionDifficulty(section: SectionRecord): 'beginner' | 'intermediate' | 'advanced' | 'expert' {
     // Simple inference - could be enhanced with ML
     if (section.position <= 3) return 'beginner';
     if (section.position <= 6) return 'intermediate';
@@ -462,30 +513,31 @@ export class AdaptiveContentService {
     return 'expert';
   }
 
-  private inferCognitiveLoad(section: any): 'low' | 'medium' | 'high' {
-    const duration = section.duration || 30;
+  private inferCognitiveLoad(section: SectionRecord): 'low' | 'medium' | 'high' {
+    const duration = section.duration ?? 30;
     if (duration <= 20) return 'low';
     if (duration <= 45) return 'medium';
     return 'high';
   }
 
-  private inferBloomsLevel(section: any): 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create' {
+  private inferBloomsLevel(_section: SectionRecord): LocalBloomsLevel {
     // Placeholder implementation
     return 'understand';
   }
 
-  private extractLearningObjectives(section: any): string[] {
+  private extractLearningObjectives(_section: SectionRecord): string[] {
     // Extract from description or predefined objectives
     return [];
   }
 
-  private extractConcepts(section: any): string[] {
+  private extractConcepts(section: SectionRecord): string[] {
     // Extract key concepts from title and description
     return [section.title];
   }
 
-  private async calculateAdaptiveFactors(sectionId: string, studentId: string): Promise<any> {
-    const interactions = await db.sAMInteraction.findMany({
+  private async calculateAdaptiveFactors(_sectionId: string, studentId: string): Promise<AdaptiveFactors> {
+    // Query interactions for potential future use in adaptive factor calculation
+    await db.sAMInteraction.findMany({
       where: { userId: studentId },
       take: 20
     });
@@ -503,7 +555,7 @@ export class AdaptiveContentService {
     };
   }
 
-  private inferLearningStyle(interactions: any[]): any {
+  private inferLearningStyle(_interactions: SAMInteractionRecord[]): LearningStyle {
     // Placeholder implementation
     return {
       visual: 0.7,
@@ -515,7 +567,7 @@ export class AdaptiveContentService {
     };
   }
 
-  private calculatePerformanceMetrics(interactions: any[], metrics: any[]): any {
+  private calculatePerformanceMetrics(_interactions: SAMInteractionRecord[], _metrics: LearningMetricsRecord[]): PerformanceMetrics {
     // Placeholder implementation
     return {
       averageCompletionRate: 0.75,
@@ -529,7 +581,7 @@ export class AdaptiveContentService {
     };
   }
 
-  private inferPreferences(interactions: any[], adaptationRecords: AdaptationRecord[]): any {
+  private inferPreferences(_interactions: SAMInteractionRecord[], _adaptationRecords: AdaptationRecord[]): LearningPreferences {
     // Placeholder implementation
     return {
       contentTypePreference: {
@@ -550,11 +602,11 @@ export class AdaptiveContentService {
     };
   }
 
-  private inferLearningPace(interactions: any[]): 'slow' | 'normal' | 'fast' | 'adaptive' {
+  private inferLearningPace(_interactions: SAMInteractionRecord[]): 'slow' | 'normal' | 'fast' | 'adaptive' {
     return 'normal';
   }
 
-  private async getCurrentLearningContext(studentId: string, courseId: string): Promise<any> {
+  private async getCurrentLearningContext(_studentId: string, courseId: string): Promise<LearningContext> {
     // Placeholder implementation
     return {
       currentCourse: courseId,
@@ -582,7 +634,7 @@ export class AdaptiveContentService {
     return [];
   }
 
-  private evaluateCondition(condition: any, profile: StudentProfile, request: ReorderingRequest): boolean {
+  private evaluateCondition(_condition: RuleCondition, _profile: StudentProfile, _request: ReorderingRequest): boolean {
     // Simple condition evaluation
     return true;
   }
@@ -617,7 +669,7 @@ export class AdaptiveContentService {
     return [];
   }
 
-  private calculateAverageImprovement(sequences: ContentSequence[], metric: string): number {
+  private calculateAverageImprovement(_sequences: ContentSequence[], _metric: string): number {
     // Placeholder implementation
     return 10;
   }

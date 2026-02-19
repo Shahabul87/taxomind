@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -11,6 +10,50 @@ import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { type QuestionType, type BloomsLevel, type QuestionDifficulty } from '@prisma/client';
+
+// ============================================================================
+// TYPE VALIDATION HELPERS
+// ============================================================================
+
+const VALID_QUESTION_TYPES: readonly QuestionType[] = [
+  'MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'ESSAY', 'FILL_IN_BLANK',
+] as const;
+
+const VALID_BLOOMS_LEVELS: readonly BloomsLevel[] = [
+  'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE',
+] as const;
+
+const VALID_DIFFICULTIES: readonly QuestionDifficulty[] = [
+  'EASY', 'MEDIUM', 'HARD',
+] as const;
+
+function isValidQuestionType(value: string): value is QuestionType {
+  return (VALID_QUESTION_TYPES as readonly string[]).includes(value);
+}
+
+function isValidBloomsLevel(value: string): value is BloomsLevel {
+  return (VALID_BLOOMS_LEVELS as readonly string[]).includes(value);
+}
+
+function isValidDifficulty(value: string): value is QuestionDifficulty {
+  return (VALID_DIFFICULTIES as readonly string[]).includes(value);
+}
+
+function sanitizeQuestionType(value: string): QuestionType {
+  const upper = value.toUpperCase();
+  return isValidQuestionType(upper) ? upper : 'MULTIPLE_CHOICE';
+}
+
+function sanitizeBloomsLevel(value: string): BloomsLevel {
+  const normalized = normalizeToUppercaseSafe(value) ?? 'UNDERSTAND';
+  return isValidBloomsLevel(normalized) ? normalized : 'UNDERSTAND';
+}
+
+function sanitizeDifficulty(value: string): QuestionDifficulty {
+  const upper = value.toUpperCase();
+  return isValidDifficulty(upper) ? upper : 'MEDIUM';
+}
 
 /**
  * Self-Assessment Exam API
@@ -325,7 +368,7 @@ async function generateTopicBasedQuestions(params: {
         estimatedTime: data.estimatedTime ?? 60,
         tags: data.tags ?? [params.topic.toLowerCase().replace(/\s+/g, '-')],
       };
-    }).filter(Boolean);
+    }).filter((q): q is NonNullable<typeof q> => q !== null);
 
     if (validatedQuestions.length === 0) {
       logger.error('[Self-Assessment] No valid questions after validation');
@@ -564,12 +607,12 @@ export async function POST(request: NextRequest) {
             const questions = generatedExam.questions.map((q, index) => ({
               examId: exam.id,
               question: q.text,
-              questionType: q.type as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY' | 'FILL_IN_BLANK',
+              questionType: sanitizeQuestionType(q.type),
               options: q.options ?? null,
               correctAnswer: q.correctAnswer ?? '',
               points: q.points ?? 1,
-              bloomsLevel: (normalizeToUppercaseSafe(q.bloomsLevel) ?? 'UNDERSTAND') as 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE',
-              difficulty: (q.difficulty as 'EASY' | 'MEDIUM' | 'HARD') ?? 'MEDIUM',
+              bloomsLevel: sanitizeBloomsLevel(q.bloomsLevel),
+              difficulty: sanitizeDifficulty(q.difficulty ?? 'MEDIUM'),
               hint: q.hint ?? null,
               explanation: q.explanation ?? null,
               order: index,
@@ -628,12 +671,12 @@ export async function POST(request: NextRequest) {
             const questions = generatedQuestions.map((q, index) => ({
               examId: exam.id,
               question: q.question,
-              questionType: q.type as 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY' | 'FILL_IN_BLANK',
+              questionType: sanitizeQuestionType(q.type),
               options: q.options,
               correctAnswer: q.correctAnswer,
               points: q.points,
-              bloomsLevel: q.bloomsLevel as 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE',
-              difficulty: q.difficulty as 'EASY' | 'MEDIUM' | 'HARD',
+              bloomsLevel: sanitizeBloomsLevel(q.bloomsLevel),
+              difficulty: sanitizeDifficulty(q.difficulty),
               hint: q.hint,
               explanation: q.explanation,
               order: index,

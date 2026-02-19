@@ -6,6 +6,418 @@ import type { BuddyInteractionType, PathObservationType } from "@sam-ai/educatio
 import { logger } from '@/lib/logger';
 import { createInnovationAdapter } from '@/lib/adapters';
 
+// ============================================================
+// Type definitions for handler data shapes
+// ============================================================
+
+/** A cognitive fitness dimension with score and trend data */
+interface CognitiveDimension {
+  name: string;
+  score: number;
+  trend: string;
+}
+
+/** Cognitive fitness assessment result */
+interface CognitiveFitnessResult {
+  dimensions: CognitiveDimension[];
+  [key: string]: unknown;
+}
+
+/** Fitness insights derived from an assessment */
+interface FitnessInsights {
+  strengths: CognitiveDimension[];
+  weaknesses: CognitiveDimension[];
+  trends: Array<{
+    dimension: string;
+    trend: string;
+    recommendation: string;
+  }>;
+}
+
+/** Exercise details returned from getExerciseDetails */
+interface ExerciseDetails {
+  id: string;
+  name: string;
+  instructions: string;
+  duration: number;
+  difficulty: number;
+}
+
+/** Performance data submitted when completing an exercise */
+interface ExercisePerformance {
+  score?: number;
+  [key: string]: unknown;
+}
+
+/** Data for starting a fitness exercise */
+interface StartFitnessExerciseData {
+  exerciseId: string;
+}
+
+/** Data for completing a fitness exercise */
+interface CompleteFitnessExerciseData {
+  sessionId: string;
+  performance?: ExercisePerformance;
+  duration?: number;
+}
+
+/** A single DNA segment in the helix */
+interface DNASegment {
+  segmentId: string;
+  expression: number;
+  type: string;
+}
+
+/** A single trait in the learning DNA */
+interface DNATrait {
+  traitId: string;
+  name: string;
+  strength: number;
+  malleability: number;
+  linkedTraits: string[];
+}
+
+/** A phenotype capability */
+interface PhenotypeCapability {
+  name: string;
+  applications: string[];
+}
+
+/** DNA sequence data from the innovation engine */
+interface DNASequence {
+  segments: DNASegment[];
+  uniqueMarkers: string[];
+  cognitiveCode: string;
+}
+
+/** Learning DNA result from the innovation engine */
+interface LearningDNAResult {
+  dnaSequence: DNASequence;
+  traits: DNATrait[];
+  phenotype: {
+    capabilities: PhenotypeCapability[];
+  };
+  [key: string]: unknown;
+}
+
+/** Parsed DNA data from database for trait analysis */
+interface ParsedDNAData {
+  traits: DNATrait[];
+  phenotype: {
+    capabilities: PhenotypeCapability[];
+  };
+}
+
+/** DNA visualization data */
+interface DNAVisualization {
+  helixData: Array<{
+    position: string;
+    expression: number;
+    color: string;
+  }>;
+  traitNetwork: Array<{
+    id: string;
+    label: string;
+    size: number;
+    connections: string[];
+  }>;
+}
+
+/** A DNA mutation record */
+interface DNAMutation {
+  type: string;
+  effect: string;
+  [key: string]: unknown;
+}
+
+/** Study buddy preferences */
+interface StudyBuddyPreferences {
+  [key: string]: unknown;
+}
+
+/** Data for creating a study buddy */
+interface CreateStudyBuddyData {
+  preferences: StudyBuddyPreferences;
+}
+
+/** Study buddy result from engine */
+interface StudyBuddyResult {
+  buddyId: string;
+  personality: { type: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+/** Data for interacting with a study buddy */
+interface InteractWithBuddyData {
+  buddyId: string;
+  interactionType: BuddyInteractionType;
+  context?: Record<string, unknown>;
+}
+
+/** Buddy interaction result */
+interface BuddyInteractionResult {
+  type: string;
+  content: string;
+  timestamp?: string;
+  buddyId?: string;
+  userId?: string;
+  [key: string]: unknown;
+}
+
+/** Data for updating buddy personality */
+interface UpdateBuddyPersonalityData {
+  buddyId: string;
+  personalityUpdates: Record<string, unknown>;
+  reason?: string;
+}
+
+/** Data for getting buddy effectiveness */
+interface GetBuddyEffectivenessData {
+  buddyId: string;
+}
+
+/** A buddy interaction record from DB */
+interface BuddyInteractionRecord {
+  interactionType: string;
+  effectiveness?: number;
+  createdAt: Date;
+  [key: string]: unknown;
+}
+
+/** Buddy effectiveness metrics */
+interface BuddyEffectivenessMetrics {
+  overall: number;
+  byType: {
+    conversation: number;
+    quiz: number;
+    encouragement: number;
+    challenge: number;
+    celebration: number;
+  };
+  trend: string;
+}
+
+/** Data for creating a quantum path */
+interface CreateQuantumPathData {
+  learningGoal: string;
+  preferences?: Record<string, unknown>;
+}
+
+/** A quantum state within a superposition */
+interface QuantumState {
+  stateId: string;
+  learningPath?: LearningPathNode[];
+  outcomes?: Array<{ type: string; probability: number }>;
+  energy?: number;
+  probability?: number;
+  constraints?: unknown;
+}
+
+/** A node in a learning path */
+interface LearningPathNode {
+  content: string;
+  duration: number;
+  type: string;
+}
+
+/** Quantum path superposition data */
+interface QuantumSuperposition {
+  possibleStates: QuantumState[];
+  currentProbabilities: Map<string, number> | Record<string, number>;
+  coherenceLevel?: number;
+  decoherenceFactors?: string[];
+}
+
+/** Quantum path entanglement data */
+interface QuantumEntanglement {
+  entanglementId: string;
+  entangledPaths: string[];
+  correlationStrength: number;
+  type: string;
+}
+
+/** Quantum path result from the innovation engine */
+interface QuantumPathResult {
+  superposition: QuantumSuperposition;
+  entanglements: QuantumEntanglement[];
+  [key: string]: unknown;
+}
+
+/** Observation impact data */
+interface ObservationImpact {
+  probabilityShifts: Map<string, number>;
+  collapsedStates: string[];
+  decoherence: number;
+}
+
+/** Observation result from the innovation engine */
+interface ObservationResult {
+  type: string;
+  timestamp: string;
+  pathId: string;
+  userId: string;
+  impact: ObservationImpact;
+  message?: string;
+  [key: string]: unknown;
+}
+
+/** Data for observing a quantum path */
+interface ObserveQuantumPathData {
+  pathId: string;
+  observationType: PathObservationType;
+  observationData?: Record<string, unknown>;
+}
+
+/** Data for getting path probabilities */
+interface GetPathProbabilitiesData {
+  pathId: string;
+}
+
+/** Probability data from the database */
+interface QuantumProbability {
+  successProbability: number;
+  completionTimeDistribution?: unknown;
+  outcomeDistribution?: unknown;
+  uncertaintyPrinciple?: {
+    product: number;
+    positionUncertainty: number;
+    momentumUncertainty: number;
+  };
+}
+
+/** Data for collapsing a quantum path */
+interface CollapseQuantumPathData {
+  pathId: string;
+  reason?: string;
+}
+
+/** Collapse final state data */
+interface CollapseFinalState {
+  learningPath: LearningPathNode[];
+  outcomes: Array<{ type: string; probability: number }>;
+  selectedState: string;
+}
+
+/** Full collapse result data */
+interface CollapseResult {
+  timestamp: string;
+  observation: { type: string; reason: string };
+  finalState: CollapseFinalState;
+  alternativesLost: string[];
+}
+
+/** Quantum path state parsed from database */
+interface ParsedPathState {
+  superposition: QuantumSuperposition & { possibleStates: QuantumState[] };
+  coherenceLevel: number;
+  collapsed: boolean;
+}
+
+/** Detailed probability breakdown per state */
+interface DetailedProbability {
+  stateBreakdown: Array<{
+    state: string;
+    currentProbability: number;
+    successChance: number;
+    effortRequired: number | undefined;
+    constraints: unknown;
+  }>;
+  overallSuccess: number;
+  riskFactors: string[];
+}
+
+/** Probability change tracking */
+interface ProbabilityChanges {
+  changes: Array<{
+    state: string;
+    change: number;
+    direction: string;
+  }>;
+  collapsedStates: string[];
+  decoherence: number;
+}
+
+/** Trait interaction between two traits */
+interface TraitInteraction {
+  trait1: string;
+  trait2: string;
+  synergy: number;
+  effect: string;
+}
+
+/** Trait development prediction */
+interface TraitPrediction {
+  trait: string;
+  currentStrength: number;
+  predictedStrength: number;
+  developmentTime: number;
+  difficulty: string;
+}
+
+/** A learning strategy suggestion */
+interface LearningStrategy {
+  strategy: string;
+  description: string;
+  applications: string[];
+}
+
+/** DNA evolution analysis */
+interface DNAEvolution {
+  stages: Array<{
+    stage: number;
+    date: Date;
+    dominantChanges: string[];
+  }>;
+  overallTrend: string;
+  stabilityScore: number;
+}
+
+/** Next evolution prediction */
+interface NextEvolutionPrediction {
+  predictedChanges: string[];
+  timeframe: string;
+  conditions: string[];
+  probability: number;
+}
+
+/** Quantum visualization data */
+interface QuantumVisualization {
+  states: Array<{
+    id: string;
+    label: string;
+    probability: number | undefined;
+    energy: number | undefined;
+    color: string;
+  }>;
+  entanglements: Array<{
+    source: string;
+    targets: string[];
+    strength: number;
+    type: string;
+  }>;
+  coherence: number | undefined;
+}
+
+/** Outcome prediction per state */
+interface OutcomePrediction {
+  scenario: string;
+  likelihood: number;
+  confidence: string;
+  recommendation: string;
+}
+
+/** Uncertainty analysis result */
+interface UncertaintyAnalysis {
+  interpretation: string;
+  positionInsight: string;
+  momentumInsight: string;
+  recommendation: string;
+}
+
+// ============================================================
+// Innovation engine setup
+// ============================================================
+
 // Create innovation engine singleton
 let innovationEngine: ReturnType<typeof createInnovationEngine> | null = null;
 
@@ -60,11 +472,11 @@ export async function POST(req: NextRequest) {
         break;
 
       case "start-fitness-exercise":
-        result = await handleStartFitnessExercise(data, session.user.id);
+        result = await handleStartFitnessExercise(data as StartFitnessExerciseData, session.user.id);
         break;
 
       case "complete-fitness-exercise":
-        result = await handleCompleteFitnessExercise(data, session.user.id);
+        result = await handleCompleteFitnessExercise(data as CompleteFitnessExerciseData, session.user.id);
         break;
 
       case "get-fitness-recommendations":
@@ -86,36 +498,36 @@ export async function POST(req: NextRequest) {
 
       // Study Buddy actions
       case "create-study-buddy":
-        result = await handleCreateStudyBuddy(session.user.id, data);
+        result = await handleCreateStudyBuddy(session.user.id, data as CreateStudyBuddyData);
         break;
 
       case "interact-with-buddy":
-        result = await handleInteractWithBuddy(data, session.user.id);
+        result = await handleInteractWithBuddy(data as InteractWithBuddyData, session.user.id);
         break;
 
       case "update-buddy-personality":
-        result = await handleUpdateBuddyPersonality(data, session.user.id);
+        result = await handleUpdateBuddyPersonality(data as UpdateBuddyPersonalityData, session.user.id);
         break;
 
       case "get-buddy-effectiveness":
-        result = await handleGetBuddyEffectiveness(data.buddyId);
+        result = await handleGetBuddyEffectiveness((data as GetBuddyEffectivenessData).buddyId);
         break;
 
       // Quantum Learning Paths actions
       case "create-quantum-path":
-        result = await handleCreateQuantumPath(session.user.id, data);
+        result = await handleCreateQuantumPath(session.user.id, data as CreateQuantumPathData);
         break;
 
       case "observe-quantum-path":
-        result = await handleObserveQuantumPath(data, session.user.id);
+        result = await handleObserveQuantumPath(data as ObserveQuantumPathData, session.user.id);
         break;
 
       case "get-path-probabilities":
-        result = await handleGetPathProbabilities(data.pathId);
+        result = await handleGetPathProbabilities((data as GetPathProbabilitiesData).pathId);
         break;
 
       case "collapse-quantum-path":
-        result = await handleCollapseQuantumPath(data, session.user.id);
+        result = await handleCollapseQuantumPath(data as CollapseQuantumPathData, session.user.id);
         break;
 
       default:
@@ -141,7 +553,7 @@ export async function POST(req: NextRequest) {
 
 // === COGNITIVE FITNESS HANDLERS ===
 async function handleAssessCognitiveFitness(userId: string) {
-  const fitness = await samInnovationEngine.assessCognitiveFitness(userId);
+  const fitness = await samInnovationEngine.assessCognitiveFitness(userId) as CognitiveFitnessResult;
 
   // Generate personalized insights
   const insights = generateFitnessInsights(fitness);
@@ -153,7 +565,7 @@ async function handleAssessCognitiveFitness(userId: string) {
   };
 }
 
-async function handleStartFitnessExercise(data: any, userId: string) {
+async function handleStartFitnessExercise(data: StartFitnessExerciseData, userId: string) {
   const { exerciseId } = data;
 
   if (!exerciseId) {
@@ -177,7 +589,7 @@ async function handleStartFitnessExercise(data: any, userId: string) {
   };
 }
 
-async function handleCompleteFitnessExercise(data: any, userId: string) {
+async function handleCompleteFitnessExercise(data: CompleteFitnessExerciseData, userId: string) {
   const { sessionId, performance, duration } = data;
 
   if (!sessionId) {
@@ -227,15 +639,23 @@ async function handleGetFitnessRecommendations(userId: string) {
   }
 
   const fitness = {
-    dimensions: JSON.parse(latestAssessment.dimensions as string),
-    progress: JSON.parse(latestAssessment.progress as string),
+    dimensions: JSON.parse(latestAssessment.dimensions as string) as CognitiveDimension[],
+    progress: JSON.parse(latestAssessment.progress as string) as { weeklyCompleted: number; weeklyGoal: number },
   };
 
   // Generate dynamic recommendations
-  const recommendations = [];
+  const recommendations: Array<{
+    type: string;
+    dimension?: string;
+    message: string;
+    exercises?: string[];
+    priority: string;
+    currentFrequency?: number;
+    targetFrequency?: number;
+  }> = [];
 
   // Dimension-based recommendations
-  fitness.dimensions.forEach((dim: any) => {
+  fitness.dimensions.forEach((dim: CognitiveDimension) => {
     if (dim.score < 60) {
       recommendations.push({
         type: "exercise",
@@ -263,7 +683,7 @@ async function handleGetFitnessRecommendations(userId: string) {
 
 // === LEARNING DNA HANDLERS ===
 async function handleGenerateLearningDNA(userId: string) {
-  const dna = await samInnovationEngine.generateLearningDNA(userId);
+  const dna = await samInnovationEngine.generateLearningDNA(userId) as LearningDNAResult;
 
   // Generate visualization data
   const visualization = generateDNAVisualization(dna);
@@ -289,9 +709,9 @@ async function handleAnalyzeDNATraits(userId: string) {
     throw new Error("Learning DNA not found. Generate it first.");
   }
 
-  const dna = {
-    traits: JSON.parse(latestDNA.traits as string),
-    phenotype: JSON.parse(latestDNA.phenotype as string),
+  const dna: ParsedDNAData = {
+    traits: JSON.parse(latestDNA.traits as string) as DNATrait[],
+    phenotype: JSON.parse(latestDNA.phenotype as string) as { capabilities: PhenotypeCapability[] },
   };
 
   // Analyze trait interactions
@@ -346,7 +766,7 @@ async function handleTrackDNAEvolution(userId: string) {
 }
 
 // === STUDY BUDDY HANDLERS ===
-async function handleCreateStudyBuddy(userId: string, data: any) {
+async function handleCreateStudyBuddy(userId: string, data: CreateStudyBuddyData) {
   const { preferences } = data;
 
   // Check if user already has an active buddy
@@ -364,7 +784,7 @@ async function handleCreateStudyBuddy(userId: string, data: any) {
     };
   }
 
-  const buddy = await samInnovationEngine.createStudyBuddy(userId, preferences);
+  const buddy = await samInnovationEngine.createStudyBuddy(userId, preferences) as StudyBuddyResult;
 
   // Create welcome interaction
   const welcomeInteraction = await samInnovationEngine.interactWithBuddy(
@@ -375,7 +795,7 @@ async function handleCreateStudyBuddy(userId: string, data: any) {
       topic: "introduction",
       message: "Hello! I'm excited to learn together!",
     }
-  );
+  ) as BuddyInteractionResult;
 
   return {
     buddy,
@@ -384,21 +804,21 @@ async function handleCreateStudyBuddy(userId: string, data: any) {
   };
 }
 
-async function handleInteractWithBuddy(data: any, userId: string) {
+async function handleInteractWithBuddy(data: InteractWithBuddyData, userId: string) {
   const { buddyId, interactionType, context } = data;
 
   if (!buddyId || !interactionType) {
     throw new Error("Buddy ID and interaction type are required");
   }
 
-  let interaction;
+  let interaction: BuddyInteractionResult;
   try {
     interaction = await samInnovationEngine.interactWithBuddy(
       buddyId,
       userId,
       interactionType,
       context || {}
-    );
+    ) as BuddyInteractionResult;
   } catch (engineError) {
     // Fallback: Generate a simple interaction response if engine fails
     logger.warn("InnovationEngine interactWithBuddy failed, using fallback:", engineError);
@@ -412,7 +832,7 @@ async function handleInteractWithBuddy(data: any, userId: string) {
   }
 
   // Track interaction effectiveness (non-blocking)
-  trackInteractionEffectiveness(buddyId, interaction).catch((err) =>
+  trackInteractionEffectiveness(buddyId, interaction).catch((err: unknown) =>
     logger.warn("Failed to track interaction effectiveness:", err)
   );
 
@@ -437,12 +857,12 @@ function getDefaultBuddyResponse(interactionType: string): string {
     challenge: "Here's a challenge for you: Try to complete one more learning module today!",
     quiz: "Let's test your knowledge! What's the main concept you learned in your last session?",
     conversation: "I'm here to help! What would you like to discuss about your learning journey?",
-    celebration: "🎉 Congratulations on your progress! You should be proud of yourself!",
+    celebration: "Congratulations on your progress! You should be proud of yourself!",
   };
   return responses[interactionType] || "I'm here to support your learning journey!";
 }
 
-async function handleUpdateBuddyPersonality(data: any, userId: string) {
+async function handleUpdateBuddyPersonality(data: UpdateBuddyPersonalityData, userId: string) {
   const { buddyId, personalityUpdates } = data;
 
   if (!buddyId) {
@@ -462,7 +882,7 @@ async function handleUpdateBuddyPersonality(data: any, userId: string) {
   }
 
   // Update personality
-  const currentPersonality = JSON.parse(buddy.personality as string);
+  const currentPersonality = JSON.parse(buddy.personality as string) as Record<string, unknown>;
   const updatedPersonality = {
     ...currentPersonality,
     ...personalityUpdates,
@@ -506,7 +926,7 @@ async function handleGetBuddyEffectiveness(buddyId: string) {
     where: { buddyId },
     orderBy: { createdAt: "desc" },
     take: 100,
-  });
+  }) as BuddyInteractionRecord[];
 
   const effectiveness = calculateBuddyEffectiveness(interactions);
 
@@ -532,8 +952,8 @@ async function handleGetBuddyEffectiveness(buddyId: string) {
 }
 
 // === QUANTUM PATHS HANDLERS ===
-async function handleCreateQuantumPath(userId: string, data: any) {
-  const { learningGoal, preferences } = data;
+async function handleCreateQuantumPath(userId: string, data: CreateQuantumPathData) {
+  const { learningGoal } = data;
 
   if (!learningGoal) {
     throw new Error("Learning goal is required");
@@ -557,7 +977,7 @@ async function handleCreateQuantumPath(userId: string, data: any) {
   const quantumPath = await samInnovationEngine.createQuantumPath(
     userId,
     learningGoal
-  );
+  ) as QuantumPathResult;
 
   // Generate initial visualization
   const visualization = generateQuantumVisualization(quantumPath);
@@ -569,20 +989,20 @@ async function handleCreateQuantumPath(userId: string, data: any) {
   };
 }
 
-async function handleObserveQuantumPath(data: any, userId: string) {
+async function handleObserveQuantumPath(data: ObserveQuantumPathData, userId: string) {
   const { pathId, observationType, observationData } = data;
 
   if (!pathId || !observationType) {
     throw new Error("Path ID and observation type are required");
   }
 
-  let observation;
+  let observation: ObservationResult;
   try {
     observation = await samInnovationEngine.observeQuantumPath(
       pathId,
       observationType,
       { ...observationData, userId }
-    );
+    ) as ObservationResult;
   } catch (engineError) {
     // Fallback: Generate a simple observation response if engine fails
     logger.warn("InnovationEngine observeQuantumPath failed, using fallback:", engineError);
@@ -609,14 +1029,14 @@ async function handleObserveQuantumPath(data: any, userId: string) {
     throw new Error("Quantum path not found");
   }
 
-  const pathState = {
-    superposition: JSON.parse(updatedPath.superposition as string),
-    coherenceLevel: updatedPath.coherenceLevel || 1,
+  const pathState: ParsedPathState = {
+    superposition: JSON.parse(updatedPath.superposition as string) as QuantumSuperposition & { possibleStates: QuantumState[] },
+    coherenceLevel: (updatedPath.coherenceLevel as number) || 1,
     collapsed: updatedPath.collapsed,
   };
 
   // Safely calculate probability changes with fallback
-  let probabilityChanges;
+  let probabilityChanges: ProbabilityChanges;
   try {
     probabilityChanges = calculateProbabilityChanges(observation);
   } catch {
@@ -655,8 +1075,8 @@ async function handleGetPathProbabilities(pathId: string) {
     throw new Error("Quantum path not found");
   }
 
-  const probability = JSON.parse(path.probability as string);
-  const superposition = JSON.parse(path.superposition as string);
+  const probability = JSON.parse(path.probability as string) as QuantumProbability;
+  const superposition = JSON.parse(path.superposition as string) as QuantumSuperposition & { possibleStates: QuantumState[] };
 
   // Calculate detailed probabilities
   const detailedProbabilities = calculateDetailedProbabilities(
@@ -673,11 +1093,13 @@ async function handleGetPathProbabilities(pathId: string) {
     timeEstimates: probability.completionTimeDistribution,
     outcomeDistribution: probability.outcomeDistribution,
     predictions,
-    uncertaintyAnalysis: analyzeUncertainty(probability.uncertaintyPrinciple),
+    uncertaintyAnalysis: probability.uncertaintyPrinciple
+      ? analyzeUncertainty(probability.uncertaintyPrinciple)
+      : null,
   };
 }
 
-async function handleCollapseQuantumPath(data: any, userId: string) {
+async function handleCollapseQuantumPath(data: CollapseQuantumPathData, userId: string) {
   const { pathId, reason } = data;
 
   if (!pathId) {
@@ -685,19 +1107,19 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
   }
 
   // Helper to safely parse JSON (handles both string and object)
-  const safeJsonParse = (value: unknown, fallback: unknown = {}) => {
+  const safeJsonParse = (value: unknown, fallback: unknown = {}): Record<string, unknown> => {
     if (typeof value === "string") {
       try {
-        return JSON.parse(value);
+        return JSON.parse(value) as Record<string, unknown>;
       } catch {
-        return fallback;
+        return fallback as Record<string, unknown>;
       }
     }
-    return value || fallback;
+    return (value || fallback) as Record<string, unknown>;
   };
 
   // Helper to generate safe next steps
-  const safeGenerateNextSteps = (finalState: any): string[] => {
+  const safeGenerateNextSteps = (finalState: CollapseFinalState): string[] => {
     try {
       return generateNextSteps(finalState);
     } catch {
@@ -721,7 +1143,7 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
         outcomes: [{ type: "success", probability: 0.7 }],
         selectedState: "state-traditional",
       },
-      alternativesLost: [],
+      alternativesLost: [] as string[],
     },
     learningPath: [
       { content: "Begin your learning journey", duration: 30, type: "introduction" },
@@ -752,14 +1174,16 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
 
     if (path.collapsed) {
       // Already collapsed - return existing collapse data
-      const existingCollapse = safeJsonParse(path.collapse, null);
+      const existingCollapse = safeJsonParse(path.collapse, null) as CollapseResult | null;
       if (existingCollapse) {
         return {
           finalState: existingCollapse,
           learningPath: existingCollapse.finalState?.learningPath || [],
           expectedOutcome: existingCollapse.finalState?.outcomes?.[0] || { type: "success", probability: 0.7 },
           alternativesLost: existingCollapse.alternativesLost?.length || 0,
-          nextSteps: safeGenerateNextSteps(existingCollapse.finalState),
+          nextSteps: existingCollapse.finalState
+            ? safeGenerateNextSteps(existingCollapse.finalState)
+            : ["1. Review your collapsed learning path"],
         };
       }
       return getDefaultCollapseResponse();
@@ -789,7 +1213,7 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
       });
 
       if (collapsedPath?.collapse) {
-        const finalState = safeJsonParse(collapsedPath.collapse, null);
+        const finalState = safeJsonParse(collapsedPath.collapse, null) as CollapseResult | null;
         if (finalState?.finalState) {
           return {
             finalState,
@@ -803,11 +1227,11 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
     }
 
     // Fallback: Create collapse data manually
-    const superposition = safeJsonParse(path.superposition, { possibleStates: [] });
-    const probability = safeJsonParse(path.probability, { successProbability: 0.7 });
+    const superposition = safeJsonParse(path.superposition, { possibleStates: [] }) as { possibleStates?: QuantumState[]; [key: string]: unknown };
+    const probability = safeJsonParse(path.probability, { successProbability: 0.7 }) as { successProbability?: number; [key: string]: unknown };
 
-    const possibleStates = superposition.possibleStates || [];
-    const selectedState = possibleStates[0] || {
+    const possibleStates: QuantumState[] = superposition.possibleStates || [];
+    const selectedState: QuantumState = possibleStates[0] || {
       stateId: "state-traditional",
       learningPath: [
         { content: "Begin your learning journey", duration: 30, type: "introduction" },
@@ -817,7 +1241,7 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
       outcomes: [{ type: "success", probability: probability.successProbability || 0.7 }],
     };
 
-    const fallbackCollapse = {
+    const fallbackCollapse: CollapseResult = {
       timestamp: new Date().toISOString(),
       observation: { type: "assessment", reason: reason || "Manual collapse" },
       finalState: {
@@ -825,7 +1249,7 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
         outcomes: selectedState.outcomes || [{ type: "success", probability: 0.7 }],
         selectedState: selectedState.stateId || "state-traditional",
       },
-      alternativesLost: possibleStates.slice(1).map((s: any) => s.stateId || "unknown"),
+      alternativesLost: possibleStates.slice(1).map((s: QuantumState) => s.stateId || "unknown"),
     };
 
     // Update the path in the database
@@ -858,11 +1282,11 @@ async function handleCollapseQuantumPath(data: any, userId: string) {
 }
 
 // === HELPER FUNCTIONS ===
-function generateFitnessInsights(fitness: any): any {
-  const insights = {
-    strengths: fitness.dimensions.filter((d: any) => d.score > 70),
-    weaknesses: fitness.dimensions.filter((d: any) => d.score < 50),
-    trends: fitness.dimensions.map((d: any) => ({
+function generateFitnessInsights(fitness: CognitiveFitnessResult): FitnessInsights {
+  const insights: FitnessInsights = {
+    strengths: fitness.dimensions.filter((d: CognitiveDimension) => d.score > 70),
+    weaknesses: fitness.dimensions.filter((d: CognitiveDimension) => d.score < 50),
+    trends: fitness.dimensions.map((d: CognitiveDimension) => ({
       dimension: d.name,
       trend: d.trend,
       recommendation: d.trend === "declining" ? "Increase focus" : "Maintain",
@@ -872,7 +1296,7 @@ function generateFitnessInsights(fitness: any): any {
   return insights;
 }
 
-async function getExerciseDetails(exerciseId: string): Promise<any> {
+async function getExerciseDetails(exerciseId: string): Promise<ExerciseDetails> {
   // In a real implementation, this would fetch from a database
   return {
     id: exerciseId,
@@ -886,20 +1310,20 @@ async function getExerciseDetails(exerciseId: string): Promise<any> {
 async function updateCognitiveDimensions(
   userId: string,
   exerciseId: string,
-  performance: any
+  performance: ExercisePerformance | undefined
 ): Promise<void> {
   // Update cognitive dimensions based on exercise performance
   // This would involve complex calculations in a real implementation
 }
 
-async function checkFitnessMilestones(userId: string): Promise<any[]> {
+async function checkFitnessMilestones(userId: string): Promise<unknown[]> {
   // Check if user achieved any milestones
   return [];
 }
 
-function calculateImprovement(performance: any): number {
+function calculateImprovement(performance: ExercisePerformance | undefined): number {
   // Calculate improvement percentage
-  return performance.score ? performance.score * 0.1 : 0;
+  return performance?.score ? performance.score * 0.1 : 0;
 }
 
 function getRecommendedExercises(dimension: string): string[] {
@@ -914,15 +1338,15 @@ function getRecommendedExercises(dimension: string): string[] {
   return exerciseMap[dimension] || [];
 }
 
-function generateDNAVisualization(dna: any): any {
+function generateDNAVisualization(dna: LearningDNAResult): DNAVisualization {
   // Generate visualization data for DNA
   return {
-    helixData: dna.dnaSequence.segments.map((s: any) => ({
+    helixData: dna.dnaSequence.segments.map((s: DNASegment) => ({
       position: s.segmentId,
       expression: s.expression,
       color: getSegmentColor(s.type),
     })),
-    traitNetwork: dna.traits.map((t: any) => ({
+    traitNetwork: dna.traits.map((t: DNATrait) => ({
       id: t.traitId,
       label: t.name,
       size: t.strength,
@@ -941,32 +1365,32 @@ function getSegmentColor(type: string): string {
   return colorMap[type] || "#6B7280";
 }
 
-function identifyUniqueStrengths(dna: any): string[] {
+function identifyUniqueStrengths(dna: LearningDNAResult): string[] {
   // Identify unique combination of traits
-  const strengths = [];
-  
+  const strengths: string[] = [];
+
   if (dna.dnaSequence.uniqueMarkers.length > 0) {
     strengths.push(...dna.dnaSequence.uniqueMarkers);
   }
 
   dna.traits
-    .filter((t: any) => t.strength > 0.8)
-    .forEach((t: any) => {
+    .filter((t: DNATrait) => t.strength > 0.8)
+    .forEach((t: DNATrait) => {
       strengths.push(`Strong ${t.name}`);
     });
 
   return strengths;
 }
 
-function generateShareableCode(dna: any): string {
+function generateShareableCode(dna: LearningDNAResult): string {
   // Generate a shareable code for DNA profile
   return Buffer.from(dna.dnaSequence.cognitiveCode).toString("base64").slice(0, 8);
 }
 
-function analyzeTraitInteractions(traits: any[]): any {
+function analyzeTraitInteractions(traits: DNATrait[]): TraitInteraction[] {
   // Analyze how traits interact with each other
-  const interactions = [];
-  
+  const interactions: TraitInteraction[] = [];
+
   for (let i = 0; i < traits.length; i++) {
     for (let j = i + 1; j < traits.length; j++) {
       if (traits[i].linkedTraits.includes(traits[j].traitId)) {
@@ -983,12 +1407,12 @@ function analyzeTraitInteractions(traits: any[]): any {
   return interactions;
 }
 
-function calculateSynergy(trait1: any, trait2: any): number {
+function calculateSynergy(trait1: DNATrait, trait2: DNATrait): number {
   return (trait1.strength + trait2.strength) / 2 * 1.2;
 }
 
-function predictTraitDevelopment(traits: any[]): any {
-  return traits.map((trait: any) => ({
+function predictTraitDevelopment(traits: DNATrait[]): TraitPrediction[] {
+  return traits.map((trait: DNATrait) => ({
     trait: trait.name,
     currentStrength: trait.strength,
     predictedStrength: Math.min(1, trait.strength + trait.malleability * 0.2),
@@ -997,13 +1421,13 @@ function predictTraitDevelopment(traits: any[]): any {
   }));
 }
 
-function generateLearningStrategies(dna: any): any[] {
-  const strategies: any[] = [];
+function generateLearningStrategies(dna: ParsedDNAData): LearningStrategy[] {
+  const strategies: LearningStrategy[] = [];
 
   // Based on dominant traits
   dna.traits
-    .filter((t: any) => t.strength > 0.7)
-    .forEach((trait: any) => {
+    .filter((t: DNATrait) => t.strength > 0.7)
+    .forEach((trait: DNATrait) => {
       strategies.push({
         strategy: `Leverage your ${trait.name}`,
         description: `Use ${trait.name} as a foundation for learning`,
@@ -1012,7 +1436,7 @@ function generateLearningStrategies(dna: any): any[] {
     });
 
   // Based on phenotype
-  dna.phenotype.capabilities.forEach((cap: any) => {
+  dna.phenotype.capabilities.forEach((cap: PhenotypeCapability) => {
     strategies.push({
       strategy: `Build on ${cap.name}`,
       description: `Expand your ${cap.name} to new areas`,
@@ -1033,9 +1457,17 @@ function getTraitApplications(traitName: string): string[] {
   return applicationMap[traitName] || ["General learning"];
 }
 
-function analyzeDNAEvolution(dnaHistory: any[]): any {
+/** Database record shape for learningDNA entries */
+interface LearningDNARecord {
+  createdAt: Date;
+  traits: unknown;
+  mutations: unknown;
+  [key: string]: unknown;
+}
+
+function analyzeDNAEvolution(dnaHistory: LearningDNARecord[]): DNAEvolution {
   // Analyze how DNA changed over time
-  const evolution = {
+  const evolution: DNAEvolution = {
     stages: dnaHistory.map((dna, index) => ({
       stage: index + 1,
       date: dna.createdAt,
@@ -1048,16 +1480,16 @@ function analyzeDNAEvolution(dnaHistory: any[]): any {
   return evolution;
 }
 
-function identifyDominantChanges(previousDNA: any, currentDNA: any): string[] {
+function identifyDominantChanges(previousDNA: LearningDNARecord, currentDNA: LearningDNARecord): string[] {
   // Compare two DNA snapshots to find major changes
   const changes: string[] = [];
-  
-  const prevTraits = JSON.parse(previousDNA.traits as string);
-  const currTraits = JSON.parse(currentDNA.traits as string);
-  
+
+  const prevTraits = JSON.parse(previousDNA.traits as string) as DNATrait[];
+  const currTraits = JSON.parse(currentDNA.traits as string) as DNATrait[];
+
   // Find new traits
-  currTraits.forEach((trait: any) => {
-    if (!prevTraits.find((p: any) => p.name === trait.name)) {
+  currTraits.forEach((trait: DNATrait) => {
+    if (!prevTraits.find((p: DNATrait) => p.name === trait.name)) {
       changes.push(`New trait: ${trait.name}`);
     }
   });
@@ -1065,14 +1497,14 @@ function identifyDominantChanges(previousDNA: any, currentDNA: any): string[] {
   return changes;
 }
 
-function identifyMutations(dnaHistory: any[]): any[] {
+function identifyMutations(dnaHistory: LearningDNARecord[]): DNAMutation[] {
   if (dnaHistory.length < 2) return [];
-  
-  const latestDNA = JSON.parse(dnaHistory[dnaHistory.length - 1].mutations as string);
+
+  const latestDNA = JSON.parse(dnaHistory[dnaHistory.length - 1].mutations as string) as DNAMutation[];
   return latestDNA;
 }
 
-function predictNextEvolution(evolution: any, mutations: any[]): any {
+function predictNextEvolution(evolution: DNAEvolution, mutations: DNAMutation[]): NextEvolutionPrediction {
   return {
     predictedChanges: ["Enhanced pattern recognition", "Improved learning speed"],
     timeframe: "3-6 months",
@@ -1081,11 +1513,11 @@ function predictNextEvolution(evolution: any, mutations: any[]): any {
   };
 }
 
-function extractMajorChanges(dna: any): string[] {
-  const mutations = JSON.parse(dna.mutations as string);
+function extractMajorChanges(dna: LearningDNARecord): string[] {
+  const mutations = JSON.parse(dna.mutations as string) as DNAMutation[];
   return mutations
-    .filter((m: any) => m.type === "beneficial")
-    .map((m: any) => m.effect);
+    .filter((m: DNAMutation) => m.type === "beneficial")
+    .map((m: DNAMutation) => m.effect);
 }
 
 function getStudyBuddyTips(personalityType: string): string[] {
@@ -1120,7 +1552,7 @@ function getStudyBuddyTips(personalityType: string): string[] {
   return tipsMap[personalityType] || ["Get to know your buddy", "Be consistent", "Have fun!"];
 }
 
-function generateResponseOptions(interaction: any): string[] {
+function generateResponseOptions(interaction: BuddyInteractionResult): string[] {
   // Generate contextual response options
   switch (interaction.type) {
     case "question":
@@ -1134,7 +1566,7 @@ function generateResponseOptions(interaction: any): string[] {
   }
 }
 
-async function trackInteractionEffectiveness(buddyId: string, interaction: any): Promise<void> {
+async function trackInteractionEffectiveness(buddyId: string, interaction: BuddyInteractionResult): Promise<void> {
   // Track how effective the interaction was
   // This would update buddy effectiveness metrics
 }
@@ -1145,13 +1577,13 @@ async function checkBuddyAdjustment(buddyId: string): Promise<boolean> {
     where: { buddyId },
     orderBy: { createdAt: "desc" },
     take: 20,
-  });
+  }) as BuddyInteractionRecord[];
 
   const avgEffectiveness = calculateAverageEffectiveness(recentInteractions);
   return avgEffectiveness < 0.6;
 }
 
-function calculateBuddyEffectiveness(interactions: any[]): any {
+function calculateBuddyEffectiveness(interactions: BuddyInteractionRecord[]): BuddyEffectivenessMetrics {
   return {
     overall: calculateAverageEffectiveness(interactions),
     byType: {
@@ -1165,27 +1597,27 @@ function calculateBuddyEffectiveness(interactions: any[]): any {
   };
 }
 
-function calculateAverageEffectiveness(interactions: any[]): number {
+function calculateAverageEffectiveness(interactions: BuddyInteractionRecord[]): number {
   if (interactions.length === 0) return 0;
-  
+
   const total = interactions.reduce((sum, i) => sum + (i.effectiveness || 0), 0);
   return total / interactions.length;
 }
 
-function calculateTypeEffectiveness(interactions: any[], type: string): number {
+function calculateTypeEffectiveness(interactions: BuddyInteractionRecord[], type: string): number {
   const typeInteractions = interactions.filter((i) => i.interactionType === type);
   return calculateAverageEffectiveness(typeInteractions);
 }
 
-function calculateEffectivenessTrend(interactions: any[]): string {
+function calculateEffectivenessTrend(interactions: BuddyInteractionRecord[]): string {
   if (interactions.length < 10) return "insufficient_data";
-  
+
   const recent = interactions.slice(0, 10);
   const older = interactions.slice(10, 20);
-  
+
   const recentAvg = calculateAverageEffectiveness(recent);
   const olderAvg = calculateAverageEffectiveness(older);
-  
+
   if (recentAvg > olderAvg + 0.1) return "improving";
   if (recentAvg < olderAvg - 0.1) return "declining";
   return "stable";
@@ -1211,17 +1643,17 @@ async function calculateProgressCorrelation(userId: string, buddyCreatedAt: Date
     },
   });
 
-  const avgBefore = progressBefore.reduce((sum, p) => sum + (p.progressPercent || 0), 0) / 
+  const avgBefore = progressBefore.reduce((sum, p) => sum + (p.progressPercent || 0), 0) /
     Math.max(1, progressBefore.length);
-  
-  const avgAfter = progressAfter.reduce((sum, p) => sum + (p.progressPercent || 0), 0) / 
+
+  const avgAfter = progressAfter.reduce((sum, p) => sum + (p.progressPercent || 0), 0) /
     Math.max(1, progressAfter.length);
 
   return (avgAfter - avgBefore) / 100; // Normalized improvement
 }
 
-function generateBuddyImprovements(effectiveness: any, interactions: any[]): string[] {
-  const improvements = [];
+function generateBuddyImprovements(effectiveness: BuddyEffectivenessMetrics, interactions: BuddyInteractionRecord[]): string[] {
+  const improvements: string[] = [];
 
   if (effectiveness.overall < 0.6) {
     improvements.push("Consider adjusting buddy personality to better match your style");
@@ -1239,9 +1671,9 @@ function generateBuddyImprovements(effectiveness: any, interactions: any[]): str
   return improvements;
 }
 
-function groupInteractionsByType(interactions: any[]): Record<string, number> {
+function groupInteractionsByType(interactions: BuddyInteractionRecord[]): Record<string, number> {
   const groups: Record<string, number> = {};
-  
+
   interactions.forEach((i) => {
     groups[i.interactionType] = (groups[i.interactionType] || 0) + 1;
   });
@@ -1249,16 +1681,18 @@ function groupInteractionsByType(interactions: any[]): Record<string, number> {
   return groups;
 }
 
-function generateQuantumVisualization(quantumPath: any): any {
+function generateQuantumVisualization(quantumPath: QuantumPathResult): QuantumVisualization {
   return {
-    states: quantumPath.superposition.possibleStates.map((state: any) => ({
+    states: quantumPath.superposition.possibleStates.map((state: QuantumState) => ({
       id: state.stateId,
       label: state.stateId.replace("state-", ""),
-      probability: quantumPath.superposition.currentProbabilities.get(state.stateId),
+      probability: quantumPath.superposition.currentProbabilities instanceof Map
+        ? quantumPath.superposition.currentProbabilities.get(state.stateId)
+        : (quantumPath.superposition.currentProbabilities as Record<string, number>)[state.stateId],
       energy: state.energy,
-      color: getStateColor(state.probability),
+      color: getStateColor(state.probability || 0),
     })),
-    entanglements: quantumPath.entanglements.map((ent: any) => ({
+    entanglements: quantumPath.entanglements.map((ent: QuantumEntanglement) => ({
       source: ent.entanglementId,
       targets: ent.entangledPaths,
       strength: ent.correlationStrength,
@@ -1284,9 +1718,9 @@ function getQuantumPathTips(): string[] {
   ];
 }
 
-function calculateProbabilityChanges(observation: any): any {
-  const changes: any[] = [];
-  
+function calculateProbabilityChanges(observation: ObservationResult): ProbabilityChanges {
+  const changes: Array<{ state: string; change: number; direction: string }> = [];
+
   observation.impact.probabilityShifts.forEach((shift: number, stateId: string) => {
     changes.push({
       state: stateId,
@@ -1302,16 +1736,19 @@ function calculateProbabilityChanges(observation: any): any {
   };
 }
 
-function generatePathRecommendations(pathState: any): string[] {
-  const recommendations = [];
+function generatePathRecommendations(pathState: ParsedPathState): string[] {
+  const recommendations: string[] = [];
 
   if (pathState.coherenceLevel < 0.5) {
     recommendations.push("Consider making a decisive choice to prevent random collapse");
   }
 
-  const probabilities = Array.from(pathState.superposition.currentProbabilities.values()) as number[];
+  const currentProbs = pathState.superposition.currentProbabilities;
+  const probabilities: number[] = currentProbs instanceof Map
+    ? Array.from(currentProbs.values())
+    : Object.values(currentProbs as Record<string, number>);
   const maxProb = Math.max(...probabilities);
-  
+
   if (maxProb > 0.8) {
     recommendations.push("One path is becoming dominant - prepare for potential collapse");
   }
@@ -1323,12 +1760,17 @@ function generatePathRecommendations(pathState: any): string[] {
   return recommendations;
 }
 
-function calculateDetailedProbabilities(superposition: any, probability: any): any {
+function calculateDetailedProbabilities(
+  superposition: QuantumSuperposition & { possibleStates: QuantumState[] },
+  probability: QuantumProbability
+): DetailedProbability {
   return {
-    stateBreakdown: superposition.possibleStates.map((state: any) => ({
+    stateBreakdown: superposition.possibleStates.map((state: QuantumState) => ({
       state: state.stateId,
-      currentProbability: superposition.currentProbabilities[state.stateId] || 0,
-      successChance: state.outcomes[0].probability,
+      currentProbability: superposition.currentProbabilities instanceof Map
+        ? (superposition.currentProbabilities.get(state.stateId) || 0)
+        : ((superposition.currentProbabilities as Record<string, number>)[state.stateId] || 0),
+      successChance: state.outcomes?.[0]?.probability || 0,
       effortRequired: state.energy,
       constraints: state.constraints,
     })),
@@ -1337,22 +1779,22 @@ function calculateDetailedProbabilities(superposition: any, probability: any): a
   };
 }
 
-function identifyRiskFactors(superposition: any): string[] {
-  const risks = [];
+function identifyRiskFactors(superposition: QuantumSuperposition): string[] {
+  const risks: string[] = [];
 
-  if (superposition.coherenceLevel < 0.3) {
+  if ((superposition.coherenceLevel || 0) < 0.3) {
     risks.push("Low coherence - high uncertainty");
   }
 
-  if (superposition.decoherenceFactors.length > 3) {
+  if ((superposition.decoherenceFactors || []).length > 3) {
     risks.push("Multiple decoherence factors present");
   }
 
   return risks;
 }
 
-function generateOutcomePredictions(probabilities: any): any[] {
-  return probabilities.stateBreakdown.map((state: any) => ({
+function generateOutcomePredictions(probabilities: DetailedProbability): OutcomePrediction[] {
+  return probabilities.stateBreakdown.map((state) => ({
     scenario: state.state,
     likelihood: state.currentProbability * state.successChance,
     confidence: calculateConfidence(state.currentProbability, state.successChance),
@@ -1367,7 +1809,7 @@ function calculateConfidence(probability: number, successChance: number): string
   return "low";
 }
 
-function analyzeUncertainty(uncertaintyPrinciple: any): any {
+function analyzeUncertainty(uncertaintyPrinciple: NonNullable<QuantumProbability['uncertaintyPrinciple']>): UncertaintyAnalysis {
   return {
     interpretation: interpretUncertainty(uncertaintyPrinciple.product),
     positionInsight: `Your current position in the learning path has ${
@@ -1376,8 +1818,8 @@ function analyzeUncertainty(uncertaintyPrinciple: any): any {
     momentumInsight: `Your learning speed has ${
       uncertaintyPrinciple.momentumUncertainty > 0.5 ? "high" : "low"
     } uncertainty`,
-    recommendation: uncertaintyPrinciple.product > 0.25 
-      ? "High uncertainty - maintain flexibility" 
+    recommendation: uncertaintyPrinciple.product > 0.25
+      ? "High uncertainty - maintain flexibility"
       : "Low uncertainty - you can plan ahead",
   };
 }
@@ -1388,17 +1830,17 @@ function interpretUncertainty(product: number): string {
   return "High uncertainty - many possibilities remain open";
 }
 
-function generateNextSteps(finalState: any): string[] {
-  const steps = [];
+function generateNextSteps(finalState: CollapseFinalState): string[] {
+  const steps: string[] = [];
 
-  finalState.learningPath.forEach((node: any, index: number) => {
+  finalState.learningPath.forEach((node: LearningPathNode, index: number) => {
     if (index < 3) { // First 3 steps
       steps.push(`${index + 1}. ${node.content} (${node.duration} minutes)`);
     }
   });
 
   steps.push(`Total path duration: ${
-    finalState.learningPath.reduce((sum: number, node: any) => sum + node.duration, 0) / 60
+    finalState.learningPath.reduce((sum: number, node: LearningPathNode) => sum + node.duration, 0) / 60
   } hours`);
 
   return steps;
@@ -1468,7 +1910,7 @@ export async function GET(req: NextRequest) {
         }
         break;
 
-      case "quantum-paths":
+      case "quantum-paths": {
         const paths = await db.quantumLearningPath.findMany({
           where: {
             userId,
@@ -1483,8 +1925,9 @@ export async function GET(req: NextRequest) {
           probability: JSON.parse(path.probability as string),
         }));
         break;
+      }
 
-      default:
+      default: {
         // Overview of all innovation features
         const [fitness, dna, buddy, quantumPaths] = await Promise.all([
           db.cognitiveFitnessAssessment.findFirst({
@@ -1515,6 +1958,7 @@ export async function GET(req: NextRequest) {
           },
         };
         break;
+      }
     }
 
     return NextResponse.json({

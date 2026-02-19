@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 import { db } from '@/lib/db';
 import type { ComparisonData, ComparisonMetric, ComparisonInsight } from '@/components/sam/learning-gap/types';
+import type { SkillAssessment, TopicProgress, LearningGap } from '@sam-ai/agentic';
 
 // ============================================================================
 // GET - Get peer comparison data
@@ -21,11 +21,11 @@ export async function GET() {
     const userId = session.user.id;
     const analyticsStores = getAnalyticsStores();
 
-    // Get user's data
-    const [userAssessments, userProgress, userGaps] = await Promise.all([
-      analyticsStores.skillAssessment.getAssessmentsForUser(userId),
-      analyticsStores.topicProgress.getProgressForUser(userId),
-      analyticsStores.learningGap.getGapsForUser(userId),
+    // Get user's data (store methods are getByUser, not getXxxForUser)
+    const [userAssessments, userProgress, userGaps]: [SkillAssessment[], TopicProgress[], LearningGap[]] = await Promise.all([
+      analyticsStores.skillAssessment.getByUser(userId),
+      analyticsStores.topicProgress.getByUser(userId),
+      analyticsStores.learningGap.getByUser(userId),
     ]);
 
     // Get peer count
@@ -42,10 +42,10 @@ export async function GET() {
       : 0;
 
     const userAvgMastery = userProgress.length > 0
-      ? userProgress.reduce((sum, p) => sum + (p.mastery ?? 0), 0) / userProgress.length
+      ? userProgress.reduce((sum, p) => sum + (p.masteryScore ?? 0), 0) / userProgress.length
       : 0;
 
-    const userActiveGaps = userGaps.filter((g) => g.status === 'active').length;
+    const userActiveGaps = userGaps.filter((g) => !g.isResolved).length;
 
     // Get aggregated peer data (in production, would use actual peer statistics)
     // For now, we calculate reasonable peer averages based on the platform
@@ -263,7 +263,7 @@ function calculatePercentile(
   value: number,
   mean: number,
   stdDev: number,
-  lowerIsBetter = false
+  lowerIsBetter: boolean = false
 ): number {
   // Calculate z-score and convert to percentile
   const zScore = (value - mean) / stdDev;

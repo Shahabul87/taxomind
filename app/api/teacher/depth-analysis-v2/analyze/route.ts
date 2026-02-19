@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Depth Analysis V2 - Start Analysis API
  *
@@ -10,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
-import { type IssueType } from '@prisma/client';
+import { type IssueType, type IssueSeverity } from '@prisma/client';
 import { AIAccessDeniedError } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import {
@@ -38,20 +37,28 @@ const AnalyzeSchema = z.object({
 // CONSTANTS
 // ============================================================================
 
-const VALID_ISSUE_TYPES = new Set([
+const VALID_ISSUE_TYPES: readonly IssueType[] = [
   'STRUCTURE', 'CONTENT', 'FLOW', 'DUPLICATE', 'CONSISTENCY',
   'DEPTH', 'OBJECTIVE', 'ASSESSMENT', 'TIME', 'PREREQUISITE', 'GAP',
-]);
+] as const;
 
-function sanitizeIssueType(type: string): string {
-  return VALID_ISSUE_TYPES.has(type) ? type : 'CONTENT';
+function isValidIssueType(value: string): value is IssueType {
+  return (VALID_ISSUE_TYPES as readonly string[]).includes(value);
 }
 
-const VALID_SEVERITIES = new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']);
+function sanitizeIssueType(type: string): IssueType {
+  return isValidIssueType(type) ? type : 'CONTENT';
+}
 
-function sanitizeIssueSeverity(severity: string): string {
+const VALID_SEVERITIES: readonly IssueSeverity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
+
+function isValidIssueSeverity(value: string): value is IssueSeverity {
+  return (VALID_SEVERITIES as readonly string[]).includes(value);
+}
+
+function sanitizeIssueSeverity(severity: string): IssueSeverity {
   const upper = severity?.toUpperCase?.() || 'MEDIUM';
-  return VALID_SEVERITIES.has(upper) ? upper : 'MEDIUM';
+  return isValidIssueSeverity(upper) ? upper : 'MEDIUM';
 }
 
 /**
@@ -255,14 +262,7 @@ async function fetchCourseData(
             id: q.id,
             question: q.question,
             type: q.questionType,
-            bloomsLevel: q.bloomsLevel as
-              | 'REMEMBER'
-              | 'UNDERSTAND'
-              | 'APPLY'
-              | 'ANALYZE'
-              | 'EVALUATE'
-              | 'CREATE'
-              | undefined,
+            bloomsLevel: q.bloomsLevel ?? undefined,
             options: q.options,
             correctAnswer: q.correctAnswer,
           })),
@@ -351,7 +351,7 @@ function convertAIResultToDbFormat(
           position: issue.affectedChapterIndices[1] || 0,
         },
         issue: issue.title,
-        severity: issue.severity as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
+        severity: sanitizeIssueSeverity(issue.severity),
         suggestion: issue.fix.how,
       })),
     cognitiveJumps: aiResult.crossChapter.progressionIssues
@@ -573,7 +573,7 @@ async function saveAnalysisResults(
         thinSections: result.contentAnalysis.thinSections,
         contentFlowAnalysis: result.flowAnalysis,
         contentHash: result.contentHash,
-        status: (result.status === 'NEEDS_REANALYSIS' ? 'NEEDS_REANALYSIS' : 'COMPLETED') as 'COMPLETED' | 'NEEDS_REANALYSIS',
+        status: result.status === 'NEEDS_REANALYSIS' ? 'NEEDS_REANALYSIS' : 'COMPLETED',
         analysisMethod: result.analysisMethod,
         previousVersionId,
       },
@@ -590,8 +590,8 @@ async function saveAnalysisResults(
         data: result.issues.map((issue) => ({
           id: issue.id,
           analysisId: analysis.id,
-          type: sanitizeIssueType(issue.type) as IssueType,
-          severity: sanitizeIssueSeverity(issue.severity) as typeof issue.severity,
+          type: sanitizeIssueType(issue.type),
+          severity: sanitizeIssueSeverity(issue.severity),
           status: issue.status,
           chapterId: issue.location.chapterId,
           chapterTitle: issue.location.chapterTitle,
@@ -718,7 +718,7 @@ export async function POST(req: NextRequest) {
     if (useSSE) {
       // Return SSE stream for progress updates
       const encoder = new TextEncoder();
-      const stream = new ReadableStream({
+      const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
           const sendEvent = (event: string, data: unknown) => {
             controller.enqueue(

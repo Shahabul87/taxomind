@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Learning Analytics Generation API
  *
@@ -188,6 +187,26 @@ function getTimeOfDay(date: Date): string {
   if (hour < 17) return 'Afternoon';
   if (hour < 21) return 'Evening';
   return 'Night';
+}
+
+/** Derive a numeric mastery level (0-10) from SkillMastery10K proficiency data */
+const PROFICIENCY_LEVEL_MAP: Record<string, number> = {
+  BEGINNER: 1,
+  NOVICE: 2,
+  INTERMEDIATE: 3,
+  COMPETENT: 4,
+  PROFICIENT: 5,
+  ADVANCED: 6,
+  EXPERT: 7,
+  MASTER: 8,
+};
+
+function getSkillMasteryLevel(skill: { proficiencyLevel: string; progressPercentage: number }): number {
+  return PROFICIENCY_LEVEL_MAP[skill.proficiencyLevel] ?? Math.round(skill.progressPercentage / 12.5);
+}
+
+function getSkillDisplayName(skill: { skillName: string; skill: { name: string } | null }): string {
+  return skill.skill?.name ?? skill.skillName;
 }
 
 async function generateRecommendations(
@@ -506,22 +525,22 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const skillsInProgress = skillMastery.filter((s) => s.currentLevel < 5).length;
-        const skillsMastered = skillMastery.filter((s) => s.currentLevel >= 5).length;
+        const skillsInProgress = skillMastery.filter((s) => getSkillMasteryLevel(s) < 5).length;
+        const skillsMastered = skillMastery.filter((s) => getSkillMasteryLevel(s) >= 5).length;
 
         const averageMasteryLevel = skillMastery.length > 0
-          ? Math.round(skillMastery.reduce((a, b) => a + b.currentLevel, 0) / skillMastery.length)
+          ? Math.round(skillMastery.reduce((sum, s) => sum + getSkillMasteryLevel(s), 0) / skillMastery.length)
           : 0;
 
         // Identify weak and strong areas
         const weakAreas = skillMastery
-          .filter((s) => s.currentLevel < 3)
-          .map((s) => s.skill.name)
+          .filter((s) => getSkillMasteryLevel(s) < 3)
+          .map((s) => getSkillDisplayName(s))
           .slice(0, 5);
 
         const strongAreas = skillMastery
-          .filter((s) => s.currentLevel >= 4)
-          .map((s) => s.skill.name)
+          .filter((s) => getSkillMasteryLevel(s) >= 4)
+          .map((s) => getSkillDisplayName(s))
           .slice(0, 5);
 
         // Stage 4: Generating result
@@ -578,12 +597,21 @@ export async function POST(req: NextRequest) {
           result.goals = {
             activeGoals: learningGoals.filter((g) => g.status === 'ACTIVE').length,
             completedGoals: learningGoals.filter((g) => g.status === 'COMPLETED').length,
-            goalProgress: learningGoals.map((g) => ({
-              id: g.id,
-              title: g.title,
-              progress: g.progressPercentage ?? 0,
-              dueDate: g.targetDate?.toISOString(),
-            })),
+            goalProgress: learningGoals.map((g) => {
+              const totalSubGoals = g.subGoals.length;
+              const completedSubGoals = g.subGoals.filter(
+                (sg) => sg.status === 'COMPLETED'
+              ).length;
+              const progress = totalSubGoals > 0
+                ? Math.round((completedSubGoals / totalSubGoals) * 100)
+                : 0;
+              return {
+                id: g.id,
+                title: g.title,
+                progress,
+                dueDate: g.targetDate?.toISOString(),
+              };
+            }),
           };
         }
 

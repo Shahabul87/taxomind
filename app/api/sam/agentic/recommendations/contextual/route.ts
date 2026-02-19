@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Contextual Recommendations API
  *
@@ -63,58 +62,56 @@ export async function GET(request: NextRequest) {
 
     const recommendations: ContextualRecommendation[] = [];
 
-    // 1. Check for prerequisites that need review
+    // 1. Get current section and its chapter position to find prerequisite chapters
     const currentSection = await db.section.findUnique({
       where: { id: query.sectionId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        position: true,
+        chapterId: true,
         chapter: {
-          include: {
-            Course: {
-              include: {
-                chapters: {
-                  where: {
-                    position: {
-                      lt: await db.chapter.findUnique({
-                        where: { id: await db.section.findUnique({
-                          where: { id: query.sectionId },
-                          select: { chapterId: true },
-                        }).then(s => s?.chapterId ?? ''),
-                        },
-                        select: { position: true },
-                      }).then(c => c?.position ?? 0),
-                    },
-                  },
-                  include: {
-                    sections: {
-                      include: {
-                        user_progress: {
-                          where: { userId: query.userId },
-                        },
-                      },
-                    },
-                  },
-                  orderBy: { position: 'asc' },
-                },
-              },
-            },
+          select: {
+            id: true,
+            position: true,
+            courseId: true,
           },
         },
       },
     });
 
-    // 2. Check for incomplete previous sections
-    if (currentSection?.chapter?.Course?.chapters) {
-      const previousChapters = currentSection.chapter.Course.chapters;
+    // 2. Check for incomplete previous sections (prerequisites)
+    if (currentSection?.chapter) {
+      const currentChapterPosition = currentSection.chapter.position;
+      const courseId = currentSection.chapter.courseId;
+
+      // Fetch previous chapters with their sections and user progress
+      const previousChapters = await db.chapter.findMany({
+        where: {
+          courseId,
+          position: { lt: currentChapterPosition },
+        },
+        include: {
+          sections: {
+            include: {
+              user_progress: {
+                where: { userId: query.userId },
+              },
+            },
+          },
+        },
+        orderBy: { position: 'asc' },
+      });
 
       for (const chapter of previousChapters) {
         for (const section of chapter.sections) {
-          const progress = section.user_progress?.[0];
+          const progress = section.user_progress[0];
           if (!progress?.isCompleted) {
             recommendations.push({
               id: `review-${section.id}`,
               type: 'prerequisite',
               title: `Review: ${section.title}`,
-              description: `Complete this prerequisite section for better understanding`,
+              description: 'Complete this prerequisite section for better understanding',
               priority: 'high',
               confidence: 0.9,
               action: {
@@ -128,10 +125,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Check for spaced repetition reviews due
-    const dueReviews = await db.sAMSpacedRepetitionReview.findMany({
+    const dueReviews = await db.spacedRepetitionSchedule.findMany({
       where: {
         userId: query.userId,
-        courseId: query.courseId,
         nextReviewDate: {
           lte: new Date(),
         },
@@ -144,13 +140,13 @@ export async function GET(request: NextRequest) {
       recommendations.push({
         id: `sr-${review.id}`,
         type: 'review',
-        title: `Review Due: ${review.topicId}`,
+        title: `Review Due: ${review.conceptId}`,
         description: 'Spaced repetition review to reinforce learning',
         priority: 'medium',
         confidence: 0.85,
         action: {
           label: 'Start Review',
-          href: `/dashboard/user?tab=reviews`,
+          href: '/dashboard/user?tab=reviews',
         },
         metadata: {
           interval: review.interval,
@@ -163,39 +159,39 @@ export async function GET(request: NextRequest) {
     const gaps = await db.sAMLearningGap.findMany({
       where: {
         userId: query.userId,
-        courseId: query.courseId,
-        resolved: false,
+        isResolved: false,
       },
       take: 2,
       orderBy: { severity: 'desc' },
     });
 
     for (const gap of gaps) {
+      const severityStr = String(gap.severity);
       recommendations.push({
         id: `gap-${gap.id}`,
         type: 'practice',
         title: `Practice: ${gap.topicId}`,
-        description: gap.description || 'Address this learning gap with targeted practice',
-        priority: gap.severity === 'HIGH' ? 'high' : 'medium',
-        confidence: gap.confidence,
+        description: gap.conceptName ?? 'Address this learning gap with targeted practice',
+        priority: severityStr === 'CRITICAL' ? 'high' : 'medium',
+        confidence: 0.7,
         action: {
           label: 'Start Practice',
         },
         metadata: {
-          gapType: gap.gapType,
+          conceptId: gap.conceptId,
         },
       });
     }
 
     // 5. Suggest next section if current is almost complete
-    const currentProgress = await db.userProgress.findFirst({
+    const currentProgress = await db.user_progress.findFirst({
       where: {
         userId: query.userId,
         sectionId: query.sectionId,
       },
     });
 
-    if (currentProgress && currentProgress.overallProgress >= 80) {
+    if (currentProgress && (currentProgress.overallProgress ?? 0) >= 80) {
       const nextSection = await db.section.findFirst({
         where: {
           chapterId: currentSection?.chapterId,
@@ -222,31 +218,32 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 6. Check SAM recommendations table
+    // 6. Check SAM recommendations table for pending recommendations
     const samRecommendations = await db.sAMRecommendation.findMany({
       where: {
         userId: query.userId,
-        status: 'PENDING',
-        OR: [
-          { context: { path: ['courseId'], equals: query.courseId } },
-          { context: { path: ['sectionId'], equals: query.sectionId } },
-        ],
+        isCompleted: false,
+        isDismissed: false,
       },
       take: 2,
       orderBy: { priority: 'desc' },
     });
 
     for (const rec of samRecommendations) {
+      const typeStr = String(rec.type).toLowerCase();
+      const priorityStr = String(rec.priority);
       recommendations.push({
         id: rec.id,
-        type: (rec.type?.toLowerCase() as RecommendationType) || 'related',
+        type: (typeStr === 'review' || typeStr === 'practice' || typeStr === 'next' || typeStr === 'related' || typeStr === 'prerequisite')
+          ? typeStr as RecommendationType
+          : 'related',
         title: rec.title,
-        description: rec.reason || 'Personalized recommendation from SAM',
-        priority: rec.priority === 'HIGH' ? 'high' : rec.priority === 'MEDIUM' ? 'medium' : 'low',
+        description: rec.description ?? 'Personalized recommendation from SAM',
+        priority: priorityStr === 'HIGH' || priorityStr === 'CRITICAL' ? 'high' : priorityStr === 'MEDIUM' ? 'medium' : 'low',
         confidence: rec.confidence,
-        action: rec.actionUrl ? {
+        action: rec.resourceUrl ? {
           label: 'View',
-          href: rec.actionUrl,
+          href: rec.resourceUrl,
         } : undefined,
       });
     }
@@ -272,7 +269,7 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString(),
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Error fetching contextual recommendations:', error);
 
     if (error instanceof z.ZodError) {

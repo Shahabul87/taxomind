@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Unified Streaming API Route
  *
@@ -19,6 +18,7 @@ import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 
 import {
+  type PipelineContext,
   initializeSubsystems,
   runAuthStage,
   runValidationStage,
@@ -33,7 +33,11 @@ import {
   runMemoryPersistenceStage,
 } from '@/lib/sam/pipeline';
 import { streamAIResponse, emitDeferredSSEEvents } from '@/lib/sam/pipeline/streaming-adapter';
-import { checkConversationalToolInvoke, executeConversationalTool } from '@/lib/sam/conversational-tool-handler';
+import {
+  checkConversationalToolInvoke,
+  executeConversationalTool,
+  type ConversationalToolResult,
+} from '@/lib/sam/conversational-tool-handler';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
     // 3-4. Run pre-streaming stages (context gathering + memory)
     const preStreamStages: Array<{
       name: string;
-      run: () => Promise<typeof ctx>;
+      run: () => Promise<PipelineContext>;
     }> = [
       { name: 'context-gathering', run: () => runContextGatheringStage(ctx) },
       { name: 'memory', run: () => runMemoryStage(ctx, subsystems) },
@@ -96,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Check for conversational tool invocation BEFORE streaming
     // This allows conversational tools (like skill roadmap builder) to drive the interaction
-    let conversationalToolResult: Awaited<ReturnType<typeof executeConversationalTool>> = null;
+    let conversationalToolResult: ConversationalToolResult | null = null;
     try {
       const toolCheck = await checkConversationalToolInvoke(ctx);
 
@@ -118,12 +122,14 @@ export async function POST(request: NextRequest) {
               result: conversationalToolResult.result,
               reasoning: 'Conversational tool auto-invoked based on user intent',
               confidence: 0.95,
+              awaitingConfirmation: false,
             },
           };
         }
       }
-    } catch (toolError) {
-      logger.warn('[SAM_STREAM] Conversational tool check failed:', toolError);
+    } catch (toolError: unknown) {
+      const toolErrorMsg = toolError instanceof Error ? toolError.message : String(toolError);
+      logger.warn('[SAM_STREAM] Conversational tool check failed:', toolErrorMsg);
     }
 
     // 6. Create SSE stream
@@ -181,7 +187,7 @@ export async function POST(request: NextRequest) {
           if (!conversationalToolResult?.success) {
             const deferredStages: Array<{
               name: string;
-              run: () => Promise<typeof ctx>;
+              run: () => Promise<PipelineContext>;
             }> = [
               { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems) },
               { name: 'tutoring', run: () => runTutoringStage(ctx) },
@@ -223,7 +229,7 @@ export async function POST(request: NextRequest) {
           emitDeferredSSEEvents(ctx, controller);
 
           controller.close();
-        } catch (error) {
+        } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           logger.error('[SAM_STREAM] Stream error:', errorMessage);
 

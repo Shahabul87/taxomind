@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Social Engine - Collaboration Effectiveness Route
  * POST /api/sam/social-engine/effectiveness
@@ -79,11 +78,11 @@ export async function POST(req: NextRequest) {
             user: { select: { id: true, name: true } },
           },
         },
-        discussions: {
+        GroupDiscussion: {
           take: 50,
           orderBy: { createdAt: 'desc' },
           include: {
-            _count: { select: { comments: true } },
+            _count: { select: { GroupDiscussionComment: true } },
           },
         },
       },
@@ -97,8 +96,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate activity metrics
-    const totalDiscussions = group.discussions.length;
-    const totalComments = group.discussions.reduce((sum, d) => sum + d._count.comments, 0);
+    const totalDiscussions = group.GroupDiscussion.length;
+    const totalComments = group.GroupDiscussion.reduce((sum, d) => sum + d._count.GroupDiscussionComment, 0);
     const activityLevel = totalDiscussions + totalComments;
 
     // Build SocialLearningGroup object

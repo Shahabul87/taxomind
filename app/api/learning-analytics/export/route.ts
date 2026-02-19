@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Learning Analytics Export
  *
@@ -7,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, type APIAuthContext, createErrorResponse, ApiError } from '@/lib/api';
+import { withAuth, type APIAuthContext, ApiError } from '@/lib/api';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -72,7 +71,7 @@ async function handler(req: NextRequest, context: APIAuthContext) {
   const enrollments = await db.purchase.findMany({
     where: { userId },
     include: {
-      course: {
+      Course: {
         include: {
           chapters: {
             include: {
@@ -105,7 +104,7 @@ async function handler(req: NextRequest, context: APIAuthContext) {
       },
       UserAnswer: {
         include: {
-          ExamQuestion: { select: { id: true, bloomsLevel: true, title: true, questionType: true } },
+          ExamQuestion: { select: { id: true, bloomsLevel: true, question: true, questionType: true } },
         },
       },
     },
@@ -114,10 +113,10 @@ async function handler(req: NextRequest, context: APIAuthContext) {
   });
 
   // Query section completions
-  const completions = await db.user_Progress.findMany({
+  const completions = await db.user_progress.findMany({
     where: { userId, isCompleted: true },
     include: {
-      section: {
+      Section: {
         include: {
           chapter: {
             include: { course: true },
@@ -133,19 +132,19 @@ async function handler(req: NextRequest, context: APIAuthContext) {
     courseTitle: attempt.Exam.section.chapter?.course?.title ?? 'Unknown Course',
     activityType: 'exam',
     activityTitle: `Exam: ${attempt.Exam.section.title ?? 'Section Exam'}`,
-    score: attempt.score,
+    score: attempt.scorePercentage ?? null,
     completedAt: attempt.createdAt.toISOString(),
     timeSpentMinutes: Math.round((attempt.timeSpent ?? 0) / 60),
-    bloomsLevel: attempt.UserAnswer[0]?.ExamQuestion.bloomLevel ?? 'N/A',
+    bloomsLevel: attempt.UserAnswer[0]?.ExamQuestion.bloomsLevel ?? 'N/A',
   }));
 
   // Add section completions
   for (const completion of completions) {
-    if (completion.section && completion.createdAt >= sinceDate) {
+    if (completion.Section && completion.createdAt >= sinceDate) {
       activities.push({
-        courseTitle: completion.section.chapter?.course?.title ?? 'Unknown Course',
+        courseTitle: completion.Section.chapter?.course?.title ?? 'Unknown Course',
         activityType: 'section_complete',
-        activityTitle: completion.section.title,
+        activityTitle: completion.Section.title,
         score: null,
         completedAt: completion.createdAt.toISOString(),
         timeSpentMinutes: 0,
@@ -156,17 +155,17 @@ async function handler(req: NextRequest, context: APIAuthContext) {
 
   // Build course progress
   const courseProgress: ExportCourseProgress[] = enrollments.map((enrollment) => {
-    const course = enrollment.course;
-    const totalSections = course.chapters.reduce((sum, ch) => sum + ch.sections.length, 0);
+    const course = enrollment.Course;
+    const totalSections = course.chapters.reduce((sum: number, ch) => sum + ch.sections.length, 0);
     const completedSections = completions.filter(
-      (c) => c.section?.chapter?.course?.id === course.id
+      (c) => c.Section?.chapter?.course?.id === course.id
     ).length;
     const courseExams = examAttempts.filter(
       (a) => a.Exam.section.chapter?.course?.id === course.id
     );
     const avgScore =
       courseExams.length > 0
-        ? Math.round(courseExams.reduce((s, a) => s + (a.score ?? 0), 0) / courseExams.length)
+        ? Math.round(courseExams.reduce((s: number, a) => s + (a.scorePercentage ?? 0), 0) / courseExams.length)
         : 0;
     const lastAttempt = courseExams[0]?.createdAt;
 
@@ -184,7 +183,7 @@ async function handler(req: NextRequest, context: APIAuthContext) {
   const bloomsCounts: Record<string, { correct: number; total: number }> = {};
   for (const attempt of examAttempts) {
     for (const answer of attempt.UserAnswer) {
-      const level = answer.ExamQuestion.bloomLevel ?? 'UNKNOWN';
+      const level = answer.ExamQuestion.bloomsLevel ?? 'UNKNOWN';
       if (!bloomsCounts[level]) bloomsCounts[level] = { correct: 0, total: 0 };
       bloomsCounts[level].total++;
       if (answer.isCorrect) bloomsCounts[level].correct++;
@@ -276,7 +275,7 @@ async function handler(req: NextRequest, context: APIAuthContext) {
       averageExamScore:
         examAttempts.length > 0
           ? Math.round(
-              examAttempts.reduce((s, a) => s + (a.score ?? 0), 0) / examAttempts.length
+              examAttempts.reduce((s: number, a) => s + (a.scorePercentage ?? 0), 0) / examAttempts.length
             )
           : 0,
     },

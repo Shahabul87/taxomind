@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Fairness Audit Cron Job
  *
@@ -10,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { z } from 'zod';
@@ -19,6 +19,13 @@ import {
 } from '@sam-ai/safety';
 
 import { withCronAuth } from '@/lib/api/cron-auth';
+
+/**
+ * Type guard for checking if a value is a record/object.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 const querySchema = z.object({
   daysSince: z.coerce.number().int().min(1).max(90).optional().default(7),
@@ -150,8 +157,9 @@ export async function GET(req: NextRequest) {
         })),
       },
     });
-  } catch (error) {
-    logger.error('[SAM_FAIRNESS_AUDIT] Error running fairness audit:', error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(`[SAM_FAIRNESS_AUDIT] Error running fairness audit: ${errMsg}`);
     return NextResponse.json(
       { error: 'Failed to run fairness audit' },
       { status: 500 }
@@ -168,16 +176,12 @@ async function fetchRecentEvaluations(
   limit: number,
   courseId?: string
 ): Promise<EvaluationWithDemographics[]> {
-  // Fetch SAM evaluation samples from the database
-  const samples = await db.samEvaluationSample.findMany({
+  // Fetch completed self-assessment attempts as evaluation samples
+  const attempts = await db.selfAssessmentAttempt.findMany({
     where: {
       createdAt: { gte: sinceDate },
-      ...(courseId && {
-        context: {
-          path: ['courseId'],
-          equals: courseId,
-        },
-      }),
+      status: 'GRADED',
+      ...(courseId ? { exam: { courseId } } : {}),
     },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -185,9 +189,9 @@ async function fetchRecentEvaluations(
       user: {
         select: {
           id: true,
-          enrollments: {
+          Enrollment: {
             select: {
-              course: {
+              Course: {
                 select: {
                   categoryId: true,
                   category: {
@@ -200,27 +204,39 @@ async function fetchRecentEvaluations(
           },
         },
       },
+      exam: {
+        select: {
+          courseId: true,
+          title: true,
+        },
+      },
     },
   });
 
-  // Transform to evaluation format
-  return samples.map((sample) => {
-    const context = sample.context as Record<string, unknown> | null;
-    const studentInfo = context?.studentInfo as Record<string, unknown> | undefined;
+  // Transform to evaluation format expected by fairness auditor
+  return attempts.map((attempt) => {
+    const aiSummary = isRecord(attempt.aiEvaluationSummary) ? attempt.aiEvaluationSummary : null;
+    const cogProfile = isRecord(attempt.cognitiveProfile) ? attempt.cognitiveProfile : null;
+    const enrollment = attempt.user.Enrollment[0];
+    const subject = enrollment?.Course?.category?.name ?? undefined;
 
     return {
-      id: sample.id,
-      text: sample.response,
-      score: (context?.score as number) ?? 0,
-      maxScore: (context?.maxScore as number) ?? 100,
-      studentId: sample.userId,
-      targetGradeLevel: (studentInfo?.gradeLevel as number) ?? undefined,
-      subject: (context?.subject as string) ?? undefined,
+      id: attempt.id,
+      text: typeof aiSummary?.feedback === 'string' ? aiSummary.feedback : '',
+      score: attempt.scorePercentage ?? 0,
+      maxScore: 100,
+      studentId: attempt.userId,
+      targetGradeLevel: undefined,
+      subject,
       demographics: {
-        gradeLevel: (studentInfo?.gradeLevel as number) ?? undefined,
-        subject: (context?.subject as string) ?? undefined,
-        learnerType: (studentInfo?.learnerType as 'visual' | 'auditory' | 'kinesthetic' | 'reading-writing') ?? undefined,
-        performanceLevel: (studentInfo?.performanceLevel as 'low' | 'medium' | 'high') ?? undefined,
+        gradeLevel: undefined,
+        subject,
+        learnerType: (typeof cogProfile?.learnerType === 'string'
+          ? cogProfile.learnerType as 'visual' | 'auditory' | 'kinesthetic' | 'reading-writing'
+          : undefined),
+        performanceLevel: (typeof cogProfile?.performanceLevel === 'string'
+          ? cogProfile.performanceLevel as 'low' | 'medium' | 'high'
+          : undefined),
       },
     };
   });
@@ -232,25 +248,26 @@ async function storeAuditResult(
   courseId?: string
 ): Promise<void> {
   try {
-    // Store audit result in the observability metrics table
-    await db.sAMObservabilityMetrics.create({
+    // Store audit result in the SAM metrics table
+    await db.sAMMetric.create({
       data: {
-        component: 'fairness-audit',
-        metricName: 'fairness_score',
-        metricValue: result.fairnessScore,
-        sampleCount: result.evaluationsAnalyzed,
-        tags: {
+        name: 'fairness_audit.fairness_score',
+        value: result.fairnessScore,
+        labels: {
+          component: 'fairness-audit',
           passed: result.passed,
           criticalIssues: result.criticalIssues,
           highPriorityRecommendations: result.highPriorityRecommendations,
           demographicDisparities: result.demographicDisparities,
           courseId: courseId ?? 'all',
+          sampleCount: result.evaluationsAnalyzed,
         },
         timestamp: new Date(),
       },
     });
-  } catch (error) {
-    logger.warn('[SAM_FAIRNESS_AUDIT] Failed to store audit result:', error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn(`[SAM_FAIRNESS_AUDIT] Failed to store audit result: ${errMsg}`);
   }
 }
 
@@ -269,6 +286,7 @@ async function queueAdminNotification(
     for (const admin of admins) {
       await db.notification.create({
         data: {
+          id: crypto.randomUUID(),
           userId: admin.id,
           type: 'system',
           title: 'SAM Fairness Audit Alert',
@@ -277,12 +295,6 @@ async function queueAdminNotification(
               ? `Disparities in: ${result.demographicDisparities.join(', ')}`
               : ''
           }`,
-          data: {
-            type: 'fairness_audit',
-            courseId: courseId ?? 'all',
-            fairnessScore: result.fairnessScore,
-            criticalIssues: result.criticalIssues,
-          },
         },
       });
     }
@@ -291,7 +303,8 @@ async function queueAdminNotification(
       adminCount: admins.length,
       criticalIssues: result.criticalIssues,
     });
-  } catch (error) {
-    logger.warn('[SAM_FAIRNESS_AUDIT] Failed to queue admin notifications:', error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn(`[SAM_FAIRNESS_AUDIT] Failed to queue admin notifications: ${errMsg}`);
   }
 }

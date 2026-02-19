@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Social Engine - Group Dynamics Route
  * POST /api/sam/social-engine/dynamics
@@ -80,12 +79,12 @@ export async function POST(req: NextRequest) {
               user: { select: { id: true, name: true, createdAt: true } },
             },
           },
-          discussions: {
+          GroupDiscussion: {
             take: 100,
             orderBy: { createdAt: 'desc' },
             include: {
               User: { select: { id: true } },
-              _count: { select: { comments: true } },
+              _count: { select: { GroupDiscussionComment: true } },
             },
           },
         },
@@ -99,7 +98,7 @@ export async function POST(req: NextRequest) {
       // Get recent comment activity
       db.groupDiscussionComment.findMany({
         where: {
-          discussion: { groupId: parsed.data.groupId },
+          GroupDiscussion: { groupId: parsed.data.groupId },
           createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
         },
         select: {
@@ -119,15 +118,16 @@ export async function POST(req: NextRequest) {
     // Calculate activity metrics per member
     const memberActivityMap = new Map<string, number>();
     discussionStats.forEach(stat => {
-      memberActivityMap.set(stat.authorId, (memberActivityMap.get(stat.authorId) || 0) + stat._count);
+      const count = stat._count?._all ?? 0;
+      memberActivityMap.set(stat.authorId, (memberActivityMap.get(stat.authorId) || 0) + count);
     });
     recentActivity.forEach(activity => {
       memberActivityMap.set(activity.authorId, (memberActivityMap.get(activity.authorId) || 0) + 0.5);
     });
 
     // Calculate total activity level
-    const totalDiscussions = group.discussions.length;
-    const totalComments = group.discussions.reduce((sum, d) => sum + d._count.comments, 0);
+    const totalDiscussions = group.GroupDiscussion.length;
+    const totalComments = group.GroupDiscussion.reduce((sum, d) => sum + d._count.GroupDiscussionComment, 0);
     const activityLevel = totalDiscussions + totalComments;
 
     // Calculate collaboration score based on participation distribution

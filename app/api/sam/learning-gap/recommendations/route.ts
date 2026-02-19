@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 import type { GapRecommendation } from '@/components/sam/learning-gap/types';
+import type { Recommendation, LearningGap } from '@sam-ai/agentic';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -37,39 +37,40 @@ export async function GET(req: NextRequest) {
 
     const { recommendation: recStore, learningGap: gapStore } = getAnalyticsStores();
 
-    // Get recommendations
-    let recommendations = await recStore.getRecommendationsForUser(session.user.id, {
-      limit: query.limit * 2, // Get more to filter
-    });
+    // Get recommendations (store method is getByUser, not getRecommendationsForUser)
+    let recommendations: Recommendation[] = await recStore.getByUser(
+      session.user.id,
+      query.limit * 2 // Get more to filter
+    );
 
     // Filter by gapId if specified
     if (query.gapId) {
-      recommendations = recommendations.filter((r) => r.contextId === query.gapId);
+      recommendations = recommendations.filter((r) => r.targetConceptId === query.gapId);
     }
 
-    // Get active gaps to enrich recommendations
-    const gaps = await gapStore.getGapsForUser(session.user.id);
-    const gapMap = new Map(gaps.map((g) => [g.id, g]));
+    // Get active gaps to enrich recommendations (store method is getByUser, not getGapsForUser)
+    const gaps: LearningGap[] = await gapStore.getByUser(session.user.id);
+    const gapMap = new Map<string, LearningGap>(gaps.map((g) => [g.id, g]));
 
     // Transform recommendations
-    let gapRecommendations: GapRecommendation[] = recommendations.map((rec) => {
-      const relatedGap = gapMap.get(rec.contextId ?? '');
+    let gapRecommendations: GapRecommendation[] = recommendations.map((rec): GapRecommendation => {
+      const relatedGap = gapMap.get(rec.targetConceptId ?? '');
 
       return {
         id: rec.id,
-        gapId: rec.contextId ?? '',
-        type: mapRecommendationType(rec.type ?? 'content'),
+        gapId: rec.targetConceptId ?? '',
+        type: mapRecommendationType(String(rec.type ?? 'content')),
         title: rec.title ?? 'Learning Recommendation',
         description: rec.description ?? '',
-        reason: rec.reason ?? (relatedGap
-          ? `Helps address your ${relatedGap.skillName ?? 'skill'} gap`
-          : 'Based on your learning patterns'),
-        expectedImpact: rec.expectedImpact ?? Math.round(15 + Math.random() * 20),
+        reason: relatedGap
+          ? `Helps address your ${relatedGap.conceptName ?? 'skill'} gap`
+          : 'Based on your learning patterns',
+        expectedImpact: Math.round(15 + Math.random() * 20),
         difficulty: mapDifficulty(rec.difficulty),
-        estimatedTime: rec.estimatedTime ?? 30,
-        priority: mapPriority(rec.priority ?? 0.5),
+        estimatedTime: rec.estimatedDuration ?? 30,
+        priority: mapPriority(String(rec.priority ?? 'medium')),
         resourceUrl: rec.resourceUrl ?? undefined,
-        resourceType: mapResourceType(rec.resourceType),
+        resourceType: mapResourceType(String(rec.type)),
         prerequisites: rec.prerequisites ?? [],
       };
     });
@@ -91,9 +92,10 @@ export async function GET(req: NextRequest) {
     gapRecommendations = gapRecommendations.slice(0, query.limit);
 
     // Add AI-generated recommendations if we don&apos;t have enough
-    if (gapRecommendations.length < query.limit && gaps.length > 0) {
+    const activeGaps = gaps.filter((g) => !g.isResolved);
+    if (gapRecommendations.length < query.limit && activeGaps.length > 0) {
       const additionalRecs = generateAIRecommendations(
-        gaps.filter((g) => g.status === 'active'),
+        activeGaps,
         query.limit - gapRecommendations.length
       );
       gapRecommendations.push(...additionalRecs);
@@ -103,7 +105,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         recommendations: gapRecommendations,
-        totalGaps: gaps.filter((g) => g.status === 'active').length,
+        totalGaps: activeGaps.length,
       },
     });
   } catch (error) {
@@ -181,13 +183,7 @@ function mapResourceType(type: string | undefined): GapRecommendation['resourceT
 }
 
 function generateAIRecommendations(
-  activeGaps: Array<{
-    id: string;
-    skillName?: string | null;
-    severity?: number | string | null;
-    currentMastery?: number | null;
-    targetMastery?: number | null;
-  }>,
+  activeGaps: LearningGap[],
   count: number
 ): GapRecommendation[] {
   const recommendations: GapRecommendation[] = [];
@@ -230,10 +226,17 @@ function generateAIRecommendations(
   for (let i = 0; i < Math.min(count, activeGaps.length * templates.length); i++) {
     const gap = activeGaps[i % activeGaps.length];
     const template = templates[Math.floor(i / activeGaps.length) % templates.length];
-    const skillName = gap.skillName ?? 'this skill';
+    const skillName = gap.conceptName ?? 'this skill';
 
-    const severity = typeof gap.severity === 'number' ? gap.severity : 50;
-    const priority: 'high' | 'medium' | 'low' = severity >= 70 ? 'high' : severity >= 40 ? 'medium' : 'low';
+    // Map severity string to numeric priority
+    const severityToPriority: Record<string, 'high' | 'medium' | 'low'> = {
+      critical: 'high',
+      moderate: 'medium',
+      minor: 'low',
+    };
+    const priority: 'high' | 'medium' | 'low' = severityToPriority[gap.severity] ?? 'medium';
+    const severityToNum: Record<string, number> = { critical: 80, moderate: 50, minor: 20 };
+    const severity = severityToNum[gap.severity] ?? 50;
 
     recommendations.push({
       id: `ai-rec-${gap.id}-${i}`,

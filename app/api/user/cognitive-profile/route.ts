@@ -1,10 +1,9 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { CognitiveLevel, CognitiveMilestoneType } from '@prisma/client';
+import { CognitiveLevel } from '@prisma/client';
 
 // ==========================================
 // Zod Validation Schemas
@@ -99,6 +98,26 @@ const LEVEL_NAMES: Record<CognitiveLevel, { name: string; number: number }> = {
 };
 
 const BLOOM_LEVELS = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'] as const;
+
+// ==========================================
+// Type Guards
+// ==========================================
+
+/** Safely parse a JSON field into a Record<string, number>, returning null if invalid */
+function parseJsonAsRecord(value: unknown): Record<string, number> | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    const result: Record<string, number> = {};
+    for (const [key, val] of Object.entries(record)) {
+      if (typeof val === 'number') {
+        result[key] = val;
+      }
+    }
+    return Object.keys(result).length > 0 ? result : null;
+  }
+  return null;
+}
 
 // ==========================================
 // Helper Functions
@@ -396,9 +415,9 @@ export async function POST(request: NextRequest) {
         status: 'COMPLETED',
       },
       include: {
-        exam: {
+        Exam: {
           include: {
-            bloomsProfile: true,
+            ExamBloomsProfile: true,
           },
         },
       },
@@ -426,12 +445,15 @@ export async function POST(request: NextRequest) {
 
     // Process exam attempts
     for (const attempt of examAttempts) {
-      if (attempt.exam?.bloomsProfile) {
-        const profile = attempt.exam.bloomsProfile;
-        const distribution = profile.distribution as Record<string, number>;
-        const score = attempt.score ?? 0;
-        const maxScore = attempt.maxScore ?? 100;
-        const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+      if (attempt.Exam?.ExamBloomsProfile) {
+        const profile = attempt.Exam.ExamBloomsProfile;
+        const distribution = parseJsonAsRecord(profile.actualDistribution);
+        if (!distribution) continue;
+        const percentage = attempt.scorePercentage ?? (
+          attempt.totalQuestions > 0
+            ? (attempt.correctAnswers / attempt.totalQuestions) * 100
+            : 0
+        );
 
         // Weight by both the exam&apos;s Bloom&apos;s distribution and the student&apos;s performance
         for (const [level, weight] of Object.entries(distribution)) {
@@ -448,7 +470,7 @@ export async function POST(request: NextRequest) {
 
     // Process Bloom&apos;s progress data
     for (const progress of bloomsProgress) {
-      const levelData = progress.levelData as Record<string, number> | null;
+      const levelData = parseJsonAsRecord(progress.bloomsScores);
       if (levelData) {
         for (const [level, score] of Object.entries(levelData)) {
           const normalizedLevel = level.toLowerCase();

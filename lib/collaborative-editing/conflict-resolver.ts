@@ -1,7 +1,15 @@
-import { Server as SocketIOServer } from 'socket.io';
+import { Server as SocketIOServer, Socket } from 'socket.io';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { Operation } from './operational-transform';
+
+/** Socket with user data attached during authentication */
+interface AuthenticatedSocket extends Socket {
+  data: {
+    user: { id: string; name?: string };
+    [key: string]: unknown;
+  };
+}
 
 export interface ConflictData {
   id: string;
@@ -16,7 +24,7 @@ export interface ConflictData {
   detectedAt: Date;
   resolvedAt?: Date;
   resolution?: 'ACCEPT_FIRST' | 'ACCEPT_SECOND' | 'MERGE' | 'MANUAL';
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ConflictResolution {
@@ -43,13 +51,13 @@ export class ConflictResolver {
     try {
       // Check for different types of conflicts
       const conflictType = this.determineConflictType(operation1, operation2);
-      
+
       if (!conflictType) {
         return null; // No conflict detected
       }
 
       const priority = this.calculatePriority(operation1, operation2, conflictType);
-      
+
       const conflict: ConflictData = {
         id: `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         sessionId,
@@ -74,8 +82,9 @@ export class ConflictResolver {
       this.activeConflicts.set(conflict.id, conflict);
 
       return conflict;
-    } catch (error: any) {
-      logger.error('Error detecting conflict:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error detecting conflict:', message);
       return null;
     }
   }
@@ -83,11 +92,11 @@ export class ConflictResolver {
   async resolveConflict(
     conflictId: string,
     resolution: ConflictResolution,
-    socket: any
+    socket: AuthenticatedSocket
   ): Promise<boolean> {
     try {
       const conflict = this.activeConflicts.get(conflictId) || await this.loadConflict(conflictId);
-      
+
       if (!conflict) {
         logger.warn(`Conflict ${conflictId} not found`);
         return false;
@@ -95,7 +104,7 @@ export class ConflictResolver {
 
       // Apply resolution strategy
       const result = await this.applyResolution(conflict, resolution);
-      
+
       if (result) {
         // Update conflict status
         conflict.status = 'RESOLVED';
@@ -115,13 +124,14 @@ export class ConflictResolver {
       }
 
       return false;
-    } catch (error: any) {
-      logger.error('Error resolving conflict:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error resolving conflict:', message);
       return false;
     }
   }
 
-  async handleConflictResolution(socket: any, data: {
+  async handleConflictResolution(socket: AuthenticatedSocket, data: {
     conflictId: string;
     resolution: 'ACCEPT_FIRST' | 'ACCEPT_SECOND' | 'MERGE' | 'MANUAL';
     mergedOperation?: Operation;
@@ -153,8 +163,9 @@ export class ConflictResolver {
           error: 'Failed to resolve conflict',
         });
       }
-    } catch (error: any) {
-      logger.error('Error handling conflict resolution:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error handling conflict resolution:', message);
       socket.emit('error', { message: 'Failed to handle conflict resolution' });
     }
   }
@@ -171,23 +182,10 @@ export class ConflictResolver {
         },
       });
 
-      return conflicts.map(conflict => ({
-        id: conflict.id,
-        sessionId: conflict.sessionId,
-        user1Id: conflict.user1Id,
-        user2Id: conflict.user2Id,
-        conflictType: conflict.conflictType as any,
-        operation1: JSON.parse(conflict.operation1Data || '{}') as any,
-        operation2: JSON.parse(conflict.operation2Data || '{}') as any,
-        status: conflict.resolved ? 'RESOLVED' : 'PENDING' as any,
-        priority: conflict.priority as any,
-        detectedAt: conflict.createdAt,
-        resolvedAt: conflict.resolvedAt || undefined,
-        resolution: conflict.resolutionType as any,
-        metadata: conflict.metadata as Record<string, any> || { description: conflict.description },
-      }));
-    } catch (error: any) {
-      logger.error('Error getting active conflicts:', error);
+      return conflicts.map(conflict => this.mapDbConflictToConflictData(conflict));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error getting active conflicts:', message);
       return [];
     }
   }
@@ -195,22 +193,23 @@ export class ConflictResolver {
   async suggestResolution(conflictId: string): Promise<ConflictResolution | null> {
     try {
       const conflict = this.activeConflicts.get(conflictId) || await this.loadConflict(conflictId);
-      
+
       if (!conflict) {
         return null;
       }
 
       // Get appropriate strategy for conflict type
       const strategy = this.resolutionStrategies.get(conflict.conflictType);
-      
+
       if (strategy) {
         return await strategy(conflict);
       }
 
       // Default fallback strategy
       return this.createDefaultResolution(conflict);
-    } catch (error: any) {
-      logger.error('Error suggesting resolution:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error suggesting resolution:', message);
       return null;
     }
   }
@@ -225,7 +224,7 @@ export class ConflictResolver {
     }
 
     // Check for concurrent edits in close proximity
-    if (this.operationsNearby(operation1, operation2) && 
+    if (this.operationsNearby(operation1, operation2) &&
         Math.abs(operation1.timestamp.getTime() - operation2.timestamp.getTime()) < 1000) {
       return 'CONCURRENT_EDIT';
     }
@@ -246,7 +245,7 @@ export class ConflictResolver {
     if (operation1.type === 'delete' && operation2.type === 'delete') {
       const op1End = operation1.position + (operation1.length || 0);
       const op2End = operation2.position + (operation2.length || 0);
-      
+
       return !(op1End <= operation2.position || op2End <= operation1.position);
     }
 
@@ -264,8 +263,8 @@ export class ConflictResolver {
     conflictType: ConflictData['conflictType']
   ): ConflictData['priority'] {
     // High priority for overlapping deletes
-    if (conflictType === 'EDIT_OVERLAP' && 
-        operation1.type === 'delete' && 
+    if (conflictType === 'EDIT_OVERLAP' &&
+        operation1.type === 'delete' &&
         operation2.type === 'delete') {
       return 'HIGH';
     }
@@ -301,10 +300,75 @@ export class ConflictResolver {
           resolutionType: conflict.resolution,
         },
       });
-    } catch (error: any) {
-      logger.error('Error storing conflict:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error storing conflict:', message);
       throw error;
     }
+  }
+
+  /**
+   * Map a database conflict record to the ConflictData interface.
+   * Uses validated string-literal casts for known enum-like fields.
+   */
+  private mapDbConflictToConflictData(conflict: {
+    id: string;
+    sessionId: string;
+    user1Id: string;
+    user2Id: string;
+    conflictType: string;
+    priority: string;
+    operation1Data: string | null;
+    operation2Data: string | null;
+    resolved: boolean;
+    createdAt: Date;
+    resolvedAt: Date | null;
+    resolutionType: string | null;
+    description: string | null;
+    metadata: unknown;
+  }): ConflictData {
+    const validConflictTypes = ['EDIT_OVERLAP', 'CONCURRENT_EDIT', 'VERSION_MISMATCH', 'LOCK_CONFLICT'] as const;
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+    const validResolutions = ['ACCEPT_FIRST', 'ACCEPT_SECOND', 'MERGE', 'MANUAL'] as const;
+
+    const conflictType = validConflictTypes.includes(conflict.conflictType as typeof validConflictTypes[number])
+      ? (conflict.conflictType as ConflictData['conflictType'])
+      : 'CONCURRENT_EDIT';
+
+    const priority = validPriorities.includes(conflict.priority as typeof validPriorities[number])
+      ? (conflict.priority as ConflictData['priority'])
+      : 'LOW';
+
+    const resolution = conflict.resolutionType && validResolutions.includes(conflict.resolutionType as typeof validResolutions[number])
+      ? (conflict.resolutionType as ConflictData['resolution'])
+      : undefined;
+
+    const status: ConflictData['status'] = conflict.resolved ? 'RESOLVED' : 'PENDING';
+
+    const rawMetadata = conflict.metadata;
+    const metadata: Record<string, unknown> = (
+      rawMetadata !== null &&
+      typeof rawMetadata === 'object' &&
+      !Array.isArray(rawMetadata)
+    )
+      ? rawMetadata as Record<string, unknown>
+      : { description: conflict.description };
+
+    return {
+      id: conflict.id,
+      sessionId: conflict.sessionId,
+      user1Id: conflict.user1Id,
+      user2Id: conflict.user2Id,
+      conflictType,
+      operation1: JSON.parse(conflict.operation1Data || '{}') as Operation,
+      operation2: JSON.parse(conflict.operation2Data || '{}') as Operation,
+      status,
+      priority,
+      detectedAt: conflict.createdAt,
+      resolvedAt: conflict.resolvedAt || undefined,
+      resolution,
+      metadata,
+    };
   }
 
   private async loadConflict(conflictId: string): Promise<ConflictData | null> {
@@ -315,23 +379,10 @@ export class ConflictResolver {
 
       if (!dbConflict) return null;
 
-      return {
-        id: dbConflict.id,
-        sessionId: dbConflict.sessionId,
-        user1Id: dbConflict.user1Id,
-        user2Id: dbConflict.user2Id,
-        conflictType: dbConflict.conflictType as any,
-        operation1: JSON.parse(dbConflict.operation1Data || '{}') as any,
-        operation2: JSON.parse(dbConflict.operation2Data || '{}') as any,
-        status: dbConflict.resolved ? 'RESOLVED' : 'PENDING' as any,
-        priority: dbConflict.priority as any,
-        detectedAt: dbConflict.createdAt,
-        resolvedAt: dbConflict.resolvedAt || undefined,
-        resolution: dbConflict.resolutionType as any,
-        metadata: dbConflict.metadata as Record<string, any> || { description: dbConflict.description },
-      };
-    } catch (error: any) {
-      logger.error('Error loading conflict:', error);
+      return this.mapDbConflictToConflictData(dbConflict);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error loading conflict:', message);
       return null;
     }
   }
@@ -365,8 +416,9 @@ export class ConflictResolver {
         default:
           return false;
       }
-    } catch (error: any) {
-      logger.error('Error applying resolution:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error applying resolution:', message);
       return false;
     }
   }
@@ -393,8 +445,9 @@ export class ConflictResolver {
           },
         },
       });
-    } catch (error: any) {
-      logger.error('Error updating conflict status:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error updating conflict status:', message);
       throw error;
     }
   }
@@ -402,7 +455,7 @@ export class ConflictResolver {
   private async notifyConflictResolution(
     conflict: ConflictData,
     resolution: ConflictResolution,
-    socket: any
+    socket: AuthenticatedSocket
   ): Promise<void> {
     try {
       const session = await db.collaborativeSession.findUnique({
@@ -420,8 +473,9 @@ export class ConflictResolver {
           timestamp: new Date(),
         });
       }
-    } catch (error: any) {
-      logger.error('Error notifying conflict resolution:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error notifying conflict resolution:', message);
     }
   }
 
@@ -429,7 +483,7 @@ export class ConflictResolver {
     // Strategy for edit overlaps
     this.resolutionStrategies.set('EDIT_OVERLAP', async (conflict) => {
       // Prefer the more recent operation
-      const moreRecent = conflict.operation1.timestamp > conflict.operation2.timestamp ? 
+      const moreRecent = conflict.operation1.timestamp > conflict.operation2.timestamp ?
         'ACCEPT_FIRST' : 'ACCEPT_SECOND';
 
       return {
@@ -445,7 +499,7 @@ export class ConflictResolver {
       // Try to merge if both are inserts
       if (conflict.operation1.type === 'insert' && conflict.operation2.type === 'insert') {
         const mergedContent = (conflict.operation1.content || '') + (conflict.operation2.content || '');
-        
+
         const mergedOperation: Operation = {
           ...conflict.operation1,
           content: mergedContent,
@@ -455,7 +509,7 @@ export class ConflictResolver {
 
         return {
           conflictId: conflict.id,
-          resolution: 'MERGE',
+          resolution: 'MERGE' as const,
           mergedOperation,
           reason: 'Automatic merge of concurrent inserts',
           resolvedBy: 'system',
@@ -465,7 +519,7 @@ export class ConflictResolver {
       // Default to first operation
       return {
         conflictId: conflict.id,
-        resolution: 'ACCEPT_FIRST',
+        resolution: 'ACCEPT_FIRST' as const,
         reason: 'Default resolution for concurrent edits',
         resolvedBy: 'system',
       };
@@ -475,7 +529,7 @@ export class ConflictResolver {
     this.resolutionStrategies.set('VERSION_MISMATCH', async (conflict) => {
       return {
         conflictId: conflict.id,
-        resolution: 'ACCEPT_SECOND',
+        resolution: 'ACCEPT_SECOND' as const,
         reason: 'Accepting operation with higher version',
         resolvedBy: 'system',
       };
@@ -499,23 +553,10 @@ export class ConflictResolver {
         take: limit,
       });
 
-      return conflicts.map(conflict => ({
-        id: conflict.id,
-        sessionId: conflict.sessionId,
-        user1Id: conflict.user1Id,
-        user2Id: conflict.user2Id,
-        conflictType: conflict.conflictType as any,
-        operation1: JSON.parse(conflict.operation1Data || '{}') as any,
-        operation2: JSON.parse(conflict.operation2Data || '{}') as any,
-        status: conflict.resolved ? 'RESOLVED' : 'PENDING' as any,
-        priority: conflict.priority as any,
-        detectedAt: conflict.createdAt,
-        resolvedAt: conflict.resolvedAt || undefined,
-        resolution: conflict.resolutionType as any,
-        metadata: conflict.metadata as Record<string, any> || { description: conflict.description },
-      }));
-    } catch (error: any) {
-      logger.error('Error getting conflict history:', error);
+      return conflicts.map(conflict => this.mapDbConflictToConflictData(conflict));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error getting conflict history:', message);
       return [];
     }
   }
@@ -535,8 +576,9 @@ export class ConflictResolver {
       });
 
       logger.info(`Cleaned up old conflicts for session ${sessionId}`);
-    } catch (error: any) {
-      logger.error('Error cleaning up old conflicts:', error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('Error cleaning up old conflicts:', message);
     }
   }
 }

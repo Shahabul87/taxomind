@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
-import type { TrendAnalysisData, TrendDirection } from '@/components/sam/learning-gap/types';
+import type { TrendAnalysisData, TrendDirection, TrendMetricPoint } from '@/components/sam/learning-gap/types';
+import type { TopicProgress, LearningGap, SkillAssessment } from '@sam-ai/agentic';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -33,11 +33,11 @@ export async function GET(req: NextRequest) {
 
     const analyticsStores = getAnalyticsStores();
 
-    // Fetch data
-    const [topicProgress, gaps, assessments] = await Promise.all([
-      analyticsStores.topicProgress.getProgressForUser(session.user.id),
-      analyticsStores.learningGap.getGapsForUser(session.user.id),
-      analyticsStores.skillAssessment.getAssessmentsForUser(session.user.id),
+    // Fetch data (store methods are getByUser, not getXxxForUser)
+    const [topicProgress, gaps, assessments]: [TopicProgress[], LearningGap[], SkillAssessment[]] = await Promise.all([
+      analyticsStores.topicProgress.getByUser(session.user.id),
+      analyticsStores.learningGap.getByUser(session.user.id, true),
+      analyticsStores.skillAssessment.getByUser(session.user.id),
     ]);
 
     // Calculate period boundaries
@@ -48,17 +48,17 @@ export async function GET(req: NextRequest) {
 
     // Calculate current period metrics
     const currentProgress = topicProgress.filter(
-      (p) => p.updatedAt && p.updatedAt >= currentPeriodStart
+      (p) => p.lastAccessedAt && p.lastAccessedAt >= currentPeriodStart
     );
     const previousProgress = topicProgress.filter(
-      (p) => p.updatedAt && p.updatedAt >= previousPeriodStart && p.updatedAt < currentPeriodStart
+      (p) => p.lastAccessedAt && p.lastAccessedAt >= previousPeriodStart && p.lastAccessedAt < currentPeriodStart
     );
 
     const currentAvgMastery = currentProgress.length > 0
-      ? currentProgress.reduce((sum, p) => sum + (p.mastery ?? 0), 0) / currentProgress.length
+      ? currentProgress.reduce((sum, p) => sum + (p.masteryScore ?? 0), 0) / currentProgress.length
       : 0;
     const previousAvgMastery = previousProgress.length > 0
-      ? previousProgress.reduce((sum, p) => sum + (p.mastery ?? 0), 0) / previousProgress.length
+      ? previousProgress.reduce((sum, p) => sum + (p.masteryScore ?? 0), 0) / previousProgress.length
       : 0;
 
     const masteryChange = currentAvgMastery - previousAvgMastery;
@@ -66,10 +66,10 @@ export async function GET(req: NextRequest) {
 
     // Assessment trends
     const currentAssessments = assessments.filter(
-      (a) => a.createdAt && a.createdAt >= currentPeriodStart
+      (a) => a.assessedAt && a.assessedAt >= currentPeriodStart
     );
     const previousAssessments = assessments.filter(
-      (a) => a.createdAt && a.createdAt >= previousPeriodStart && a.createdAt < currentPeriodStart
+      (a) => a.assessedAt && a.assessedAt >= previousPeriodStart && a.assessedAt < currentPeriodStart
     );
 
     const currentAvgScore = currentAssessments.length > 0
@@ -83,17 +83,17 @@ export async function GET(req: NextRequest) {
     const scoreDirection: TrendDirection = scoreChange > 5 ? 'improving' : scoreChange < -5 ? 'declining' : 'stable';
 
     // Gap trends
-    const activeGaps = gaps.filter((g) => g.status === 'active').length;
+    const activeGaps = gaps.filter((g) => !g.isResolved).length;
     const resolvedGaps = gaps.filter(
-      (g) => g.status === 'resolved' && g.resolvedAt && g.resolvedAt >= currentPeriodStart
+      (g) => g.isResolved && g.resolvedAt && g.resolvedAt >= currentPeriodStart
     ).length;
     const newGaps = gaps.filter(
-      (g) => g.detectedAt && g.detectedAt >= currentPeriodStart && g.status === 'active'
+      (g) => g.detectedAt && g.detectedAt >= currentPeriodStart && !g.isResolved
     ).length;
 
     // Generate data points
-    const generateDataPoints = (baseValue: number, trend: TrendDirection, numPoints: number) => {
-      const points = [];
+    const generateDataPoints = (baseValue: number, trend: TrendDirection, numPoints: number): TrendMetricPoint[] => {
+      const points: TrendMetricPoint[] = [];
       const interval = periodDays / numPoints;
       for (let i = numPoints; i >= 0; i--) {
         const date = new Date(now.getTime() - i * interval * 24 * 60 * 60 * 1000);
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
         currentValue: activeGaps,
         previousValue: activeGaps + resolvedGaps,
         changePercent: resolvedGaps > 0 ? Math.round((-resolvedGaps / (activeGaps + resolvedGaps)) * 100) : 0,
-        direction: resolvedGaps > newGaps ? 'improving' as TrendDirection : resolvedGaps < newGaps ? 'declining' as TrendDirection : 'stable' as TrendDirection,
+        direction: deriveTrendDirection(resolvedGaps, newGaps),
         dataPoints: generateDataPoints(activeGaps || 3, 'declining', numDataPoints),
         unit: '',
       },
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
         currentValue: currentProgress.length,
         previousValue: previousProgress.length,
         changePercent: previousProgress.length > 0 ? Math.round(((currentProgress.length - previousProgress.length) / previousProgress.length) * 100) : 0,
-        direction: currentProgress.length > previousProgress.length ? 'improving' as TrendDirection : currentProgress.length < previousProgress.length ? 'declining' as TrendDirection : 'stable' as TrendDirection,
+        direction: deriveActivityDirection(currentProgress.length, previousProgress.length),
         dataPoints: generateDataPoints(currentProgress.length || 5, 'stable', numDataPoints),
         unit: 'topics',
       },
@@ -237,4 +237,22 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/** Derive trend direction from resolved vs new gap counts */
+function deriveTrendDirection(resolved: number, newCount: number): TrendDirection {
+  if (resolved > newCount) return 'improving';
+  if (resolved < newCount) return 'declining';
+  return 'stable';
+}
+
+/** Derive activity trend direction from current vs previous counts */
+function deriveActivityDirection(current: number, previous: number): TrendDirection {
+  if (current > previous) return 'improving';
+  if (current < previous) return 'declining';
+  return 'stable';
 }

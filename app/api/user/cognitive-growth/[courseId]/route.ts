@@ -1,9 +1,24 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Type guard to validate that a Prisma JSON value is a Record<string, number>.
+ * Used for levelData, startingDistribution, and currentDistribution fields
+ * which are stored as Json in the database.
+ */
+function isNumberRecord(v: unknown): v is Record<string, number> {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return false;
+  return Object.values(v as Record<string, unknown>).every(
+    (val) => typeof val === 'number'
+  );
+}
 
 // ==========================================
 // Zod Validation Schemas
@@ -240,10 +255,12 @@ export async function GET(
       where: { userId, courseId },
     });
 
-    let currentDistribution = courseGrowth.currentDistribution as Record<string, number> | null;
+    let currentDistribution: Record<string, number> | null = isNumberRecord(courseGrowth.currentDistribution)
+      ? courseGrowth.currentDistribution
+      : null;
 
-    if (bloomsProgress?.levelData) {
-      const levelData = bloomsProgress.levelData as Record<string, number>;
+    if (bloomsProgress?.levelData && isNumberRecord(bloomsProgress.levelData)) {
+      const levelData = bloomsProgress.levelData;
       currentDistribution = {
         remember: levelData.REMEMBER || levelData.remember || 0,
         understand: levelData.UNDERSTAND || levelData.understand || 0,
@@ -291,7 +308,9 @@ export async function GET(
     }
 
     // Calculate level growth
-    const startDist = courseGrowth.startingDistribution as Record<string, number> | null;
+    const startDist: Record<string, number> | null = isNumberRecord(courseGrowth.startingDistribution)
+      ? courseGrowth.startingDistribution
+      : null;
     const levelGrowth = currentDistribution && startDist
       ? Object.keys(currentDistribution).reduce((sum, key) => {
           return sum + ((currentDistribution?.[key] || 0) - (startDist[key] || 0));

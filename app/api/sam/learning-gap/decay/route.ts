@@ -1,10 +1,13 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getStore } from '@/lib/sam/taxomind-context';
 import type { SkillDecayData, DecayRiskLevel } from '@/components/sam/learning-gap/types';
+import type { SkillBuildProfile } from '@sam-ai/educational';
+
+/** Type for profile records returned by getUserSkillProfiles */
+type ProfileRecord = SkillBuildProfile;
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -36,26 +39,27 @@ export async function GET(req: NextRequest) {
     const skillBuildTrackStore = getStore('skillBuildTrack');
 
     // Fetch skill build profiles
-    const profiles = await skillBuildTrackStore.getProfilesForUser(session.user.id);
+    const profiles: ProfileRecord[] = await skillBuildTrackStore.getUserSkillProfiles(session.user.id);
 
     // Transform and calculate decay data
     let decayData: SkillDecayData[] = profiles
-      .filter((profile) => profile.lastPracticedAt)
-      .map((profile) => {
+      .filter((profile): profile is ProfileRecord & { lastPracticedAt: Date } => !!profile.lastPracticedAt)
+      .map((profile): SkillDecayData => {
         const daysSince = getDaysSince(profile.lastPracticedAt);
-        const decayRate = calculateDecayRate(profile.currentMastery ?? 0);
+        const masteryScore = profile.dimensions.mastery ?? 0;
+        const decayRate = calculateDecayRate(masteryScore);
         const riskLevel = calculateRiskLevel(daysSince, decayRate);
 
         return {
           skillId: profile.skillId,
-          skillName: profile.skillName ?? 'Unknown Skill',
-          currentMastery: profile.currentMastery ?? 0,
+          skillName: profile.skill?.name ?? 'Unknown Skill',
+          currentMastery: masteryScore,
           riskLevel,
           daysSinceLastPractice: daysSince,
           decayRate,
-          predictedDecayDate: calculateDecayDate(profile.currentMastery ?? 0, decayRate),
-          predictions: generateDecayPredictions(profile.currentMastery ?? 0, decayRate),
-          lastPracticedAt: profile.lastPracticedAt?.toISOString() ?? new Date().toISOString(),
+          predictedDecayDate: calculateDecayDate(masteryScore, decayRate),
+          predictions: generateDecayPredictions(masteryScore, decayRate),
+          lastPracticedAt: profile.lastPracticedAt.toISOString(),
           reviewDeadline: daysSince > 7 ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : undefined,
         };
       });
@@ -73,9 +77,9 @@ export async function GET(req: NextRequest) {
     decayData = decayData.slice(0, query.limit);
 
     // Calculate summary
-    const allData = profiles.map((profile) => {
-      const daysSince = getDaysSince(profile.lastPracticedAt);
-      const decayRate = calculateDecayRate(profile.currentMastery ?? 0);
+    const allData: DecayRiskLevel[] = profiles.map((profile): DecayRiskLevel => {
+      const daysSince = getDaysSince(profile.lastPracticedAt ?? null);
+      const decayRate = calculateDecayRate(profile.dimensions.mastery ?? 0);
       return calculateRiskLevel(daysSince, decayRate);
     });
 

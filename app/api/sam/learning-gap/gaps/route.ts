@@ -1,10 +1,37 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 import type { LearningGapData, GapSeverity } from '@/components/sam/learning-gap/types';
+import type { LearningGap } from '@sam-ai/agentic';
+
+// ============================================================================
+// STORE RETURN TYPES
+// ============================================================================
+
+/** Shape of a single gap record from the store */
+type GapRecord = LearningGap;
+
+/** Evidence entry as stored in the JSON evidence array */
+interface GapEvidenceEntry {
+  type?: string;
+  score?: number;
+  expectedScore?: number;
+  date?: string;
+  source?: string;
+}
+
+/** Suggested action entry from the store */
+interface GapSuggestedAction {
+  id?: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  estimatedTime?: number;
+  priority?: string;
+  resourceUrl?: string;
+}
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -40,27 +67,27 @@ export async function GET(req: NextRequest) {
     const { learningGap: gapStore } = getAnalyticsStores();
 
     // Fetch gaps from store
-    const rawGaps = await gapStore.getByUser(session.user.id, true);
+    const rawGaps: GapRecord[] = await gapStore.getByUser(session.user.id, true);
 
     // Filter by status and severity
     let filteredGaps = rawGaps;
 
     if (query.status !== 'all') {
-      filteredGaps = filteredGaps.filter((g: typeof rawGaps[number]) => {
+      filteredGaps = filteredGaps.filter((g) => {
         const status = g.isResolved ? 'resolved' : 'active';
         return status === query.status;
       });
     }
 
     if (query.severity !== 'all') {
-      filteredGaps = filteredGaps.filter((g: typeof rawGaps[number]) => {
+      filteredGaps = filteredGaps.filter((g) => {
         return g.severity === query.severity;
       });
     }
 
     // Sort by severity (critical first) then by detection date (newest first)
     const severityOrder: Record<string, number> = { critical: 0, moderate: 1, minor: 2 };
-    filteredGaps.sort((a: typeof rawGaps[number], b: typeof rawGaps[number]) => {
+    filteredGaps.sort((a, b) => {
       const sevA = severityOrder[a.severity] ?? 2;
       const sevB = severityOrder[b.severity] ?? 2;
       if (sevA !== sevB) return sevA - sevB;
@@ -72,37 +99,58 @@ export async function GET(req: NextRequest) {
     const paginatedGaps = filteredGaps.slice(query.offset, query.offset + query.limit);
 
     // Transform to response format
-    const gaps: LearningGapData[] = paginatedGaps.map((gap: typeof rawGaps[number]) => ({
-      id: gap.id,
-      skillId: gap.skillId ?? '',
-      skillName: gap.skillName ?? 'Unknown Skill',
-      topicId: gap.topicId ?? undefined,
-      topicName: gap.topicName ?? undefined,
-      severity: mapSeverity(gap.severity ?? 0),
-      status: gap.status === 'resolved' ? 'resolved' : gap.status === 'resolving' ? 'resolving' : 'active',
-      gapScore: gap.gapScore ?? 50,
-      masteryLevel: gap.currentMastery ?? 0,
-      targetMasteryLevel: gap.targetMastery ?? 80,
-      evidence: (gap.evidence ?? []).map((e: Record<string, unknown>) => ({
-        type: (e.type as string) ?? 'assessment',
-        score: (e.score as number) ?? 0,
-        expectedScore: (e.expectedScore as number) ?? 0,
-        date: (e.date as string) ?? new Date().toISOString(),
-        source: (e.source as string) ?? 'Unknown',
-      })),
-      suggestedActions: (gap.suggestedActions ?? []).map((a: Record<string, unknown>) => ({
-        id: (a.id as string) ?? crypto.randomUUID(),
-        type: (a.type as string) ?? 'review',
-        title: (a.title as string) ?? 'Review Material',
-        description: (a.description as string) ?? '',
-        estimatedTime: (a.estimatedTime as number) ?? 30,
-        priority: (a.priority as string) ?? 'medium',
-        resourceUrl: a.resourceUrl as string | undefined,
-      })),
-      detectedAt: gap.detectedAt?.toISOString() ?? new Date().toISOString(),
-      lastUpdated: gap.updatedAt?.toISOString() ?? new Date().toISOString(),
-      resolvedAt: gap.resolvedAt?.toISOString(),
-    }));
+    // Note: LearningGap from @sam-ai/agentic uses conceptId/conceptName;
+    // we map these to skillId/skillName for the dashboard response.
+    const gaps: LearningGapData[] = paginatedGaps.map((gap) => {
+      // Evidence is stored as GapEvidence[] but may contain extended fields at runtime
+      const evidenceArray = (gap.evidence ?? []) as unknown as GapEvidenceEntry[];
+      // suggestedActions is string[] in the store type but may contain objects at runtime
+      const actionsArray = (gap.suggestedActions ?? []) as unknown as (string | GapSuggestedAction)[];
+
+      return {
+        id: gap.id,
+        skillId: gap.conceptId ?? '',
+        skillName: gap.conceptName ?? 'Unknown Skill',
+        topicId: gap.topicId ?? undefined,
+        topicName: undefined,
+        severity: mapSeverity(gap.severity ?? 'moderate'),
+        status: gap.isResolved ? 'resolved' as const : 'active' as const,
+        gapScore: 50,
+        masteryLevel: 0,
+        targetMasteryLevel: 80,
+        evidence: evidenceArray.map((e) => ({
+          type: (e.type ?? 'assessment') as 'assessment' | 'practice' | 'quiz' | 'activity',
+          score: e.score ?? 0,
+          expectedScore: e.expectedScore ?? 0,
+          date: e.date ?? new Date().toISOString(),
+          source: e.source ?? 'Unknown',
+        })),
+        suggestedActions: actionsArray.map((a) => {
+          if (typeof a === 'string') {
+            return {
+              id: crypto.randomUUID(),
+              type: 'review' as const,
+              title: a,
+              description: '',
+              estimatedTime: 30,
+              priority: 'medium' as const,
+            };
+          }
+          return {
+            id: a.id ?? crypto.randomUUID(),
+            type: (a.type ?? 'review') as 'review' | 'practice' | 'tutorial' | 'assessment',
+            title: a.title ?? 'Review Material',
+            description: a.description ?? '',
+            estimatedTime: a.estimatedTime ?? 30,
+            priority: (a.priority ?? 'medium') as 'high' | 'medium' | 'low',
+            resourceUrl: a.resourceUrl,
+          };
+        }),
+        detectedAt: gap.detectedAt instanceof Date ? gap.detectedAt.toISOString() : new Date().toISOString(),
+        lastUpdated: gap.detectedAt instanceof Date ? gap.detectedAt.toISOString() : new Date().toISOString(),
+        resolvedAt: gap.resolvedAt instanceof Date ? gap.resolvedAt.toISOString() : undefined,
+      };
+    });
 
     return NextResponse.json({
       success: true,

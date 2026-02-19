@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Mastery Decay Cron Job
  *
@@ -23,25 +22,41 @@ import { getStore, getPracticeStores } from '@/lib/sam/taxomind-context';
 
 import { withCronAuth } from '@/lib/api/cron-auth';
 
+// ============================================================================
+// BLOOM'S MASTERY FIELD TYPES
+// ============================================================================
+
+/** The six Bloom's taxonomy mastery field names on CognitiveSkillProgress */
+type BloomsMasteryField =
+  | 'rememberMastery'
+  | 'understandMastery'
+  | 'applyMastery'
+  | 'analyzeMastery'
+  | 'evaluateMastery'
+  | 'createMastery';
+
+/** Bloom's taxonomy levels used as keys */
+type BloomsLevelKey = 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE';
+
 /** Bloom's-weighted decay rates (%/day). Higher cognition = faster decay. */
-const BLOOMS_DECAY_RATES: Record<string, number> = {
+const BLOOMS_DECAY_RATES: Record<BloomsLevelKey, number> = {
   REMEMBER: 0.2,
   UNDERSTAND: 0.3,
   APPLY: 0.4,
   ANALYZE: 0.5,
   EVALUATE: 0.6,
   CREATE: 0.7,
-};
+} as const;
 
 /** Mastery field names keyed by Bloom's level */
-const BLOOMS_MASTERY_FIELDS: Record<string, string> = {
+const BLOOMS_MASTERY_FIELDS: Record<BloomsLevelKey, BloomsMasteryField> = {
   REMEMBER: 'rememberMastery',
   UNDERSTAND: 'understandMastery',
   APPLY: 'applyMastery',
   ANALYZE: 'analyzeMastery',
   EVALUATE: 'evaluateMastery',
   CREATE: 'createMastery',
-};
+} as const;
 
 /** Days of inactivity before decay starts */
 const DECAY_GRACE_PERIOD_DAYS = 30;
@@ -143,7 +158,7 @@ export async function GET(req: NextRequest) {
     // Process each user
     for (const userId of activeUsers) {
       try {
-        // Get user&apos;s skill profiles
+        // Get user's skill profiles
         const profiles = await skillBuildTrackStore.getUserSkillProfiles(userId);
 
         // Get spaced repetition stats
@@ -163,7 +178,9 @@ export async function GET(req: NextRequest) {
               skillName: profile.skill?.name ?? profile.skillId,
               currentRetention: profile.dimensions.retention,
               daysUntilLevelDrop: profile.decay.daysUntilLevelDrop,
-              riskLevel: profile.decay.riskLevel as 'MEDIUM' | 'HIGH' | 'CRITICAL',
+              riskLevel: (profile.decay.riskLevel === 'CRITICAL' || profile.decay.riskLevel === 'HIGH')
+                ? profile.decay.riskLevel
+                : 'MEDIUM',
               recommendedReviewDate: profile.decay.recommendedReviewDate,
             });
           }
@@ -326,22 +343,22 @@ async function applyBloomsWeightedDecay(
         );
 
         // Apply per-level decay
-        const updates: Record<string, number> = {};
+        const updates: Partial<Record<BloomsMasteryField, number>> = {};
         let totalWeightedMastery = 0;
         let totalWeight = 0;
 
-        for (const [level, fieldName] of Object.entries(BLOOMS_MASTERY_FIELDS)) {
-          const currentValue = (record as Record<string, number>)[fieldName] ?? 0;
+        for (const [level, fieldName] of Object.entries(BLOOMS_MASTERY_FIELDS) as [BloomsLevelKey, BloomsMasteryField][]) {
+          const currentValue = record[fieldName] ?? 0;
           if (currentValue <= 0) continue;
 
-          const decayRate = BLOOMS_DECAY_RATES[level] ?? 0.5;
+          const decayRate = BLOOMS_DECAY_RATES[level];
           const decayAmount = daysSinceLastDecay * decayRate;
           const newValue = Math.max(0, Math.round((currentValue - decayAmount) * 100) / 100);
 
           updates[fieldName] = newValue;
 
           // Weight for overall: higher levels contribute more
-          const weight = BLOOMS_DECAY_RATES[level] ?? 0.5;
+          const weight = BLOOMS_DECAY_RATES[level];
           totalWeightedMastery += newValue * weight;
           totalWeight += weight;
         }
@@ -417,7 +434,9 @@ async function applyBloomsWeightedDecay(
 
         // Use the record's bloomsLevel or default to ANALYZE
         const bloomsLevel = record.bloomsLevel ?? 'ANALYZE';
-        const decayRate = BLOOMS_DECAY_RATES[bloomsLevel] ?? 0.5;
+        const decayRate = (bloomsLevel in BLOOMS_DECAY_RATES)
+          ? BLOOMS_DECAY_RATES[bloomsLevel as BloomsLevelKey]
+          : 0.5;
         const decayAmount = daysSinceLastDecay * decayRate;
         const newRetention = Math.max(
           0,
@@ -589,7 +608,7 @@ async function sendDecayNotifications(
             });
           }
         } catch (pushError) {
-          // Push notification is optional, don&apos;t fail the whole process
+          // Push notification is optional, don't fail the whole process
           logger.warn('[SAM_MASTERY_DECAY] Failed to queue push notification', { userId, error: pushError });
         }
       }

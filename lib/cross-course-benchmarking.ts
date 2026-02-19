@@ -5,7 +5,7 @@
  * for cognitive performance across courses, programs, and institutions.
  */
 
-import { BloomsLevel, QuestionType, QuestionDifficulty } from '@prisma/client';
+import { BloomsLevel, QuestionDifficulty } from '@prisma/client';
 
 export interface BenchmarkingScope {
   scopeType: 'course' | 'program' | 'department' | 'institution' | 'system';
@@ -1168,7 +1168,7 @@ export interface InteractivityConfig {
 export interface BenchmarkAppendix {
   title: string;
   type: 'methodology' | 'data_tables' | 'statistical_details' | 'technical_specifications' | 'glossary';
-  content: any;
+  content: Record<string, unknown>;
   references: string[];
 }
 
@@ -1254,7 +1254,7 @@ export class CrossCourseBenchmarkingSystem {
     timeFrame: TimeFrame
   ): Promise<EntityComparison> {
     
-    const comparisons: Record<string, any> = {};
+    const comparisons: Record<string, DimensionComparisonResult> = {};
     
     for (const dimension of comparisonDimensions) {
       comparisons[dimension.name] = await this.performDimensionComparison(
@@ -1362,7 +1362,7 @@ export class CrossCourseBenchmarkingSystem {
   /**
    * Private helper methods
    */
-  private async collectBenchmarkData(scope: BenchmarkingScope): Promise<any> {
+  private async collectBenchmarkData(scope: BenchmarkingScope): Promise<BenchmarkData> {
     // Mock data collection - replace with actual data aggregation
     return {
       entities: scope.includedEntities,
@@ -1373,19 +1373,19 @@ export class CrossCourseBenchmarkingSystem {
     };
   }
 
-  private async validateBenchmarkData(data: any, scope: BenchmarkingScope): Promise<void> {
+  private async validateBenchmarkData(data: BenchmarkData, _scope: BenchmarkingScope): Promise<void> {
     // Data validation logic
     if (!data.entities || data.entities.length === 0) {
       throw new Error('No entities found for benchmarking');
     }
-    
+
     // Additional validation checks...
   }
 
   // Additional implementation methods would continue here...
   // For brevity, providing placeholder implementations
 
-  private async generateExecutiveSummary(data: any, scope: BenchmarkingScope): Promise<BenchmarkExecutiveSummary> {
+  private async generateExecutiveSummary(_data: BenchmarkData, _scope: BenchmarkingScope): Promise<BenchmarkExecutiveSummary> {
     return {
       keyFindings: [],
       performanceHighlights: [],
@@ -1395,117 +1395,323 @@ export class CrossCourseBenchmarkingSystem {
     };
   }
 
-  private async performanceComparison(data: any, scope: BenchmarkingScope): Promise<PerformanceComparison> {
+  private async performanceComparison(_data: BenchmarkData, _scope: BenchmarkingScope): Promise<PerformanceComparison> {
+    const emptyEfficiencyMetric: EfficiencyMetric = {
+      entityScores: {},
+      benchmarkScore: 0,
+      topPerformers: [],
+      improvementOpportunities: [],
+      bestPractices: [],
+    };
+
+    const emptyQualityMetric: QualityMetric = {
+      entityScores: {},
+      qualityStandards: [],
+      gapAnalysis: { criticalGaps: [], moderateGaps: [], minorGaps: [], gapPrioritization: [] },
+      improvementPlan: { immediateActions: [], shortTermGoals: [], longTermGoals: [], resourceAllocation: [], successMetrics: [] },
+    };
+
+    const emptyProgressionMetric: ProgressionMetric = {
+      entityProgression: {},
+      averageProgression: { rate: 0, consistency: 0, trajectory: 'constant', projectedOutcome: 0, confidenceInterval: [0, 0] },
+      progressionVariability: 0,
+      accelerationFactors: [],
+      bottleneckAnalysis: { identifiedBottlenecks: [], systemicBottlenecks: [], resolutionStrategies: [] },
+    };
+
     return {
       overallRankings: [],
-      bloomsLevelComparison: {} as any,
-      difficultyComparison: {} as any,
-      efficiencyComparison: {} as any,
-      qualityComparison: {} as any,
-      progressionComparison: {} as any
+      bloomsLevelComparison: {
+        levelPerformance: {} as Record<BloomsLevel, LevelPerformanceComparison>,
+        levelDistribution: {} as Record<BloomsLevel, DistributionComparison>,
+        levelProgression: {} as Record<BloomsLevel, ProgressionComparison>,
+        gapAnalysis: { identifiedGaps: [], gapSeverity: {}, commonPatterns: [], systemicIssues: [] },
+      },
+      difficultyComparison: {
+        difficultyCalibration: { calibrationAccuracy: {}, calibrationConsistency: {}, studentPerceptionAlignment: {}, recommendedAdjustments: [] },
+        difficultyProgression: { progressionQuality: {}, scaffoldingEffectiveness: {}, leapDetection: [], smoothnessScore: {} },
+        difficultyAlignment: { learningObjectiveAlignment: {}, instructionalAlignment: {}, assessmentAlignment: {}, overallAlignment: {} },
+        difficultyEffectiveness: { learningEffectiveness: {}, engagementEffectiveness: {}, retentionEffectiveness: {}, transferEffectiveness: {} },
+      },
+      efficiencyComparison: {
+        learningEfficiency: emptyEfficiencyMetric,
+        timeEfficiency: emptyEfficiencyMetric,
+        resourceEfficiency: emptyEfficiencyMetric,
+        costEffectiveness: emptyEfficiencyMetric,
+      },
+      qualityComparison: {
+        instructionalQuality: emptyQualityMetric,
+        assessmentQuality: emptyQualityMetric,
+        contentQuality: emptyQualityMetric,
+        outcomeQuality: emptyQualityMetric,
+      },
+      progressionComparison: {
+        // Fields from first ProgressionComparison declaration (Bloom's level tracking)
+        level: 'REMEMBER' as BloomsLevel,
+        progressionRates: {},
+        masteryTimelines: {},
+        plateauAnalysis: { plateauEntities: [], averagePlateauDuration: 0, plateauCauses: [], interventionSuccess: 0 },
+        breakthroughAnalysis: { breakthroughEntities: [], breakthroughTriggers: [], sustainabilityRate: 0, replicabilityScore: 0 },
+        // Fields from second ProgressionComparison declaration (metric tracking)
+        learningVelocity: emptyProgressionMetric,
+        masteryProgression: emptyProgressionMetric,
+        retentionProgression: emptyProgressionMetric,
+        transferProgression: emptyProgressionMetric,
+      },
     };
   }
 
-  private async cognitiveAnalysis(data: any, scope: BenchmarkingScope): Promise<CrossCourseCognitiveAnalysis> {
+  private async cognitiveAnalysis(_data: BenchmarkData, _scope: BenchmarkingScope): Promise<CrossCourseCognitiveAnalysis> {
     return {
-      cognitiveLoadAnalysis: {} as any,
-      scaffoldingAnalysis: {} as any,
-      transferAnalysis: {} as any,
-      metacognitionAnalysis: {} as any
+      cognitiveLoadAnalysis: {
+        loadDistribution: { entityLoadProfiles: {}, averageLoadProfile: { bloomsLoadDistribution: {} as Record<BloomsLevel, number>, peakLoad: 0, averageLoad: 0, loadProgression: [], sustainabilityScore: 0 }, loadVariability: 0, optimalLoadTargets: {} as Record<BloomsLevel, number> },
+        loadManagement: { managementEffectiveness: {}, managementStrategies: [], adaptiveCapabilities: {}, studentFeedbackIntegration: {} },
+        overloadAnalysis: { overloadFrequency: {}, overloadTriggers: [], recoveryStrategies: [], preventionMeasures: [] },
+        optimizationOpportunities: [],
+      },
+      scaffoldingAnalysis: {
+        scaffoldingEffectiveness: { entityEffectiveness: {}, scaffoldingTypes: {}, targetedSupport: {}, adaptiveScaffolding: {} },
+        scaffoldingConsistency: { consistencyScores: {}, variabilityFactors: [], standardizationOpportunities: [], qualityAssurance: {} },
+        scaffoldingGaps: [],
+        scaffoldingBestPractices: [],
+      },
+      transferAnalysis: {
+        transferPatterns: [],
+        transferBarriers: [],
+        transferFacilitators: [],
+        transferOptimization: [],
+      },
+      metacognitionAnalysis: {
+        metacognitiveDevelopment: { developmentLevels: {}, developmentTrajectories: {}, developmentFactors: [], interventionEffectiveness: {} },
+        selfRegulationSkills: { skillLevels: {}, skillGaps: [], developmentStrategies: [], outcomeImpact: {} },
+        reflectivePractices: { practiceFrequency: {}, practiceQuality: {}, practiceOutcomes: {}, improvementOpportunities: [] },
+        strategicLearning: { strategyUsage: {}, strategyEffectiveness: {}, strategyAdaptation: {}, strategyInnovation: {} },
+      },
     };
   }
 
-  private async statisticalAnalysis(data: any, scope: BenchmarkingScope): Promise<StatisticalAnalysis> {
+  private async statisticalAnalysis(_data: BenchmarkData, _scope: BenchmarkingScope): Promise<StatisticalAnalysis> {
     return {
-      descriptiveStatistics: {} as any,
-      inferentialStatistics: {} as any,
-      correlationAnalysis: {} as any,
-      regressionAnalysis: {} as any,
-      clusterAnalysis: {} as any
+      descriptiveStatistics: {
+        centralTendency: { mean: {}, median: {}, mode: {}, trimmedMean: {} },
+        variability: { range: {}, variance: {}, standardDeviation: {}, coefficientOfVariation: {}, interquartileRange: {} },
+        distribution: { skewness: {}, kurtosis: {}, normalityTests: {}, distributionType: {} },
+        outlierDetection: { outliers: {}, outlierMethods: [], outlierImpact: {}, treatmentRecommendations: {} },
+      },
+      inferentialStatistics: {
+        hypothesisTests: [],
+        confidenceIntervals: [],
+        effectSizes: [],
+        powerAnalysis: [],
+      },
+      correlationAnalysis: {
+        correlationMatrix: { variables: [], correlations: [], pValues: [], significanceFlags: [] },
+        significantCorrelations: [],
+        correlationPatterns: [],
+        partialCorrelations: [],
+      },
+      regressionAnalysis: {
+        models: [],
+        modelComparison: { models: [], comparisonMetrics: [], bestModel: '', selectionCriteria: '' },
+        predictiveAccuracy: { trainingAccuracy: 0, testingAccuracy: 0, crossValidationAccuracy: 0, predictionIntervals: [] },
+        featureImportance: [],
+      },
+      clusterAnalysis: {
+        clusteringSolutions: [],
+        optimalClustering: '',
+        clusterCharacteristics: [],
+        clusterStability: { stabilityScore: 0, consistencyMeasure: 0, robustnessTest: [], recommendedUse: '' },
+      },
     };
   }
 
-  private async generateRecommendations(data: any, scope: BenchmarkingScope, analysis: any): Promise<BenchmarkRecommendations> {
+  private async generateRecommendations(
+    _data: BenchmarkData,
+    _scope: BenchmarkingScope,
+    _analysis: PartialAnalysisResults
+  ): Promise<BenchmarkRecommendations> {
     return {
       strategicRecommendations: [],
       operationalRecommendations: [],
       tacticalRecommendations: [],
       systemRecommendations: [],
-      implementationPlan: {} as any
+      implementationPlan: {
+        phases: [],
+        timeline: { startDate: new Date(), endDate: new Date(), majorMilestones: [], criticalPath: [], bufferTime: 0 },
+        resourceAllocation: { humanResources: [], financialResources: [], technicalResources: [], timeAllocation: [] },
+        riskManagement: { identifiedRisks: [], mitigationStrategies: [], contingencyPlans: [], monitoringProtocols: [] },
+        monitoringPlan: {
+          monitoringObjectives: [],
+          keyMetrics: [],
+          dataCollection: { dataSources: [], collectionMethods: [], dataQuality: [], dataGovernance: [], automationLevel: '' },
+          reportingSchedule: { reportTypes: [], audiences: [], frequency: '', deliveryMethod: '', customization: [] },
+          reviewProcess: { reviewCycle: '', reviewers: [], reviewCriteria: [], decisionPoints: [], adaptationMechanisms: [] },
+        },
+      },
     };
   }
 
-  private async generateVisualizations(data: any, scope: BenchmarkingScope): Promise<BenchmarkVisualization[]> {
+  private async generateVisualizations(_data: BenchmarkData, _scope: BenchmarkingScope): Promise<BenchmarkVisualization[]> {
     return [];
   }
 
-  private async generateAppendices(data: any, scope: BenchmarkingScope, options: any): Promise<BenchmarkAppendix[]> {
+  private async generateAppendices(_data: BenchmarkData, _scope: BenchmarkingScope, _options: BenchmarkingOptions): Promise<BenchmarkAppendix[]> {
     return [];
   }
 
-  private async enhanceBenchmarkReport(report: BenchmarkReport, options: any): Promise<void> {
+  private async enhanceBenchmarkReport(_report: BenchmarkReport, _options: BenchmarkingOptions): Promise<void> {
     // Report enhancement logic
   }
 
   // Additional placeholder methods...
-  private calculateOverallRankings(entities: string[], comparisons: any): EntityRanking[] {
+  private calculateOverallRankings(_entities: string[], _comparisons: Record<string, DimensionComparisonResult>): EntityRanking[] {
     return [];
   }
 
-  private identifyComparisonPatterns(comparisons: any): any[] {
+  private identifyComparisonPatterns(_comparisons: Record<string, DimensionComparisonResult>): ComparisonPattern[] {
     return [];
   }
 
-  private generateComparisonInsights(comparisons: any, patterns: any[]): string[] {
+  private generateComparisonInsights(_comparisons: Record<string, DimensionComparisonResult>, _patterns: ComparisonPattern[]): string[] {
     return [];
   }
 
-  private async performDimensionComparison(entities: string[], dimension: ComparisonDimension, timeFrame: TimeFrame): Promise<any> {
-    return {};
+  private async performDimensionComparison(_entities: string[], _dimension: ComparisonDimension, _timeFrame: TimeFrame): Promise<DimensionComparisonResult> {
+    return { scores: {}, rankings: [] };
   }
 
-  private async collectTrendData(entities: string[], metrics: string[], timeFrames: TimeFrame[]): Promise<any> {
-    return {};
+  private async collectTrendData(_entities: string[], _metrics: string[], _timeFrames: TimeFrame[]): Promise<TrendData> {
+    return { dataPoints: {} };
   }
 
-  private async analyzeMetricTrend(metric: string, trendData: any): Promise<any> {
-    return {};
+  private async analyzeMetricTrend(_metric: string, _trendData: TrendData): Promise<MetricTrendResult> {
+    return { metric: _metric, direction: 'stable', magnitude: 0 };
   }
 
-  private async analyzeEntityTrend(entity: string, trendData: any): Promise<any> {
-    return {};
+  private async analyzeEntityTrend(_entity: string, _trendData: TrendData): Promise<EntityTrendResult> {
+    return { entity: _entity, direction: 'stable', magnitude: 0 };
   }
 
-  private identifyTrendPatterns(metricTrends: any[], entityTrends: any[]): any[] {
+  private identifyTrendPatterns(_metricTrends: MetricTrendResult[], _entityTrends: EntityTrendResult[]): TrendPatternResult[] {
     return [];
   }
 
-  private generateTrendPredictions(trendData: any, patterns: any[]): any[] {
+  private generateTrendPredictions(_trendData: TrendData, _patterns: TrendPatternResult[]): TrendPrediction[] {
     return [];
   }
 
-  private async analyzeTopPerformers(topPerformers: string[], area: string): Promise<any> {
-    return {};
+  private async analyzeTopPerformers(_topPerformers: string[], _area: string): Promise<TopPerformerAnalysis> {
+    return { performers: [], commonTraits: [] };
   }
 
-  private async performComparativeAnalysis(topPerformers: string[], others: string[], area: string): Promise<any> {
-    return {};
+  private async performComparativeAnalysis(_topPerformers: string[], _others: string[], _area: string): Promise<ComparativeAnalysisResult> {
+    return { differences: [], similarities: [] };
   }
 
-  private extractBestPractices(topPerformerAnalysis: any, comparativeAnalysis: any): any[] {
+  private extractBestPractices(_topPerformerAnalysis: TopPerformerAnalysis, _comparativeAnalysis: ComparativeAnalysisResult): IdentifiedPractice[] {
     return [];
   }
 
-  private assessPracticeTransferability(practices: any[], entities: string[]): any {
-    return {};
+  private assessPracticeTransferability(_practices: IdentifiedPractice[], _entities: string[]): TransferabilityAssessment {
+    return { overallScore: 0, practiceScores: {} };
   }
 
-  private generateImplementationGuidance(practices: any[]): string[] {
+  private generateImplementationGuidance(_practices: IdentifiedPractice[]): string[] {
     return [];
   }
 }
 
 // Supporting interfaces
+
+/** Internal benchmark data collected from data sources */
+interface BenchmarkData {
+  entities: BenchmarkEntity[];
+  performanceData: Record<string, unknown>;
+  cognitiveData: Record<string, unknown>;
+  assessmentData: Record<string, unknown>;
+  demographicData: Record<string, unknown>;
+}
+
+/** Partial analysis results passed between methods */
+interface PartialAnalysisResults {
+  executiveSummary: BenchmarkExecutiveSummary;
+  performanceComparison: PerformanceComparison;
+  cognitiveAnalysis: CrossCourseCognitiveAnalysis;
+  statisticalAnalysis: StatisticalAnalysis;
+}
+
+/** Result of comparing a single dimension across entities */
+interface DimensionComparisonResult {
+  scores: Record<string, number>;
+  rankings: EntityRanking[];
+}
+
+/** A pattern identified in entity comparisons */
+interface ComparisonPattern {
+  pattern: string;
+  affectedEntities: string[];
+  significance: number;
+}
+
+/** Collected trend data points */
+interface TrendData {
+  dataPoints: Record<string, Record<string, number[]>>;
+}
+
+/** Result of analyzing a single metric trend */
+interface MetricTrendResult {
+  metric: string;
+  direction: 'up' | 'down' | 'stable';
+  magnitude: number;
+}
+
+/** Result of analyzing a single entity trend */
+interface EntityTrendResult {
+  entity: string;
+  direction: 'up' | 'down' | 'stable';
+  magnitude: number;
+}
+
+/** A pattern found across trends */
+interface TrendPatternResult {
+  pattern: string;
+  strength: number;
+  relatedMetrics: string[];
+}
+
+/** A prediction derived from trends */
+interface TrendPrediction {
+  metric: string;
+  predictedValue: number;
+  confidence: number;
+  horizon: string;
+}
+
+/** Analysis of top-performing entities */
+interface TopPerformerAnalysis {
+  performers: string[];
+  commonTraits: string[];
+}
+
+/** Comparative analysis between top performers and others */
+interface ComparativeAnalysisResult {
+  differences: string[];
+  similarities: string[];
+}
+
+/** A best practice identified from analysis */
+interface IdentifiedPractice {
+  practice: string;
+  effectiveness: number;
+  source: string;
+}
+
+/** Assessment of how transferable practices are */
+interface TransferabilityAssessment {
+  overallScore: number;
+  practiceScores: Record<string, number>;
+}
+
 export interface BenchmarkingOptions {
   includeVisualizations?: boolean;
   includeStatisticalDetails?: boolean;
@@ -1524,26 +1730,26 @@ export interface ComparisonDimension {
 
 export interface EntityComparison {
   entities: string[];
-  comparisons: Record<string, any>;
+  comparisons: Record<string, DimensionComparisonResult>;
   overallRankings: EntityRanking[];
-  patterns: any[];
+  patterns: ComparisonPattern[];
   insights: string[];
   generatedDate: Date;
 }
 
 export interface TrendAnalysis {
-  metricTrends: any[];
-  entityTrends: any[];
-  trendPatterns: any[];
-  predictions: any[];
+  metricTrends: MetricTrendResult[];
+  entityTrends: EntityTrendResult[];
+  trendPatterns: TrendPatternResult[];
+  predictions: TrendPrediction[];
   analysisDate: Date;
 }
 
 export interface BestPracticesAnalysis {
   performanceArea: string;
   topPerformers: string[];
-  identifiedPractices: any[];
-  transferabilityAssessment: any;
+  identifiedPractices: IdentifiedPractice[];
+  transferabilityAssessment: TransferabilityAssessment;
   implementationGuidance: string[];
   analysisDate: Date;
 }

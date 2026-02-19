@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Taxomind Peer Review Module
  *

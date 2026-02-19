@@ -25,7 +25,7 @@ export interface IntegrationConfiguration {
   timeout: number; // milliseconds
   batchSize: number;
   webhookUrl?: string;
-  customSettings: Record<string, any>;
+  customSettings: Record<string, unknown>;
   featureFlags: FeatureFlag[];
 }
 
@@ -175,7 +175,7 @@ export interface WebhookEvent {
   integrationId: string;
   providerId: string;
   eventType: WebhookEventType;
-  payload: any;
+  payload: unknown;
   timestamp: Date;
   signature: string;
   verified: boolean;
@@ -214,7 +214,7 @@ export interface JWTConfig extends CredentialConfig {
   issuer: string;
   audience: string;
   expiresIn: number;
-  customClaims?: Record<string, any>;
+  customClaims?: Record<string, unknown>;
 }
 
 export interface BasicAuthConfig extends CredentialConfig {
@@ -229,7 +229,7 @@ export interface FieldMapping {
   sourceField: string;
   targetField: string;
   transformation?: TransformationType;
-  defaultValue?: any;
+  defaultValue?: unknown;
   required: boolean;
   validation?: FieldValidation;
   customLogic?: string;
@@ -289,7 +289,7 @@ export interface SyncSchedule {
 export interface FilterCriteria {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   dataType: DataType;
   caseSensitive?: boolean;
   negated?: boolean;
@@ -345,7 +345,7 @@ export interface IntegrationEvent {
   integrationId: string;
   eventType: IntegrationEventType;
   timestamp: Date;
-  payload: any;
+  payload: unknown;
   metadata: EventMetadata;
   status: EventStatus;
   processingResult?: EventProcessingResult;
@@ -475,7 +475,7 @@ export interface CredentialConfig {
   type: AuthMethod;
   encrypted: boolean;
   expiresAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TokenManagement {
@@ -661,7 +661,7 @@ export interface DataMappingResult {
   targetField: string;
   transformation: string;
   success: boolean;
-  value: any;
+  value: unknown;
   error?: string;
 }
 
@@ -669,7 +669,7 @@ export interface ValidationResult {
   field: string;
   rule: string;
   success: boolean;
-  value: any;
+  value: unknown;
   error?: string;
   suggestion?: string;
 }
@@ -677,17 +677,17 @@ export interface ValidationResult {
 export interface DataConflict {
   recordId: string;
   field: string;
-  sourceValue: any;
-  targetValue: any;
+  sourceValue: unknown;
+  targetValue: unknown;
   resolution: ConflictResolutionStrategy;
-  resolvedValue: any;
+  resolvedValue: unknown;
   timestamp: Date;
 }
 
 export interface TransformationResult {
   transformationId: string;
-  sourceData: any;
-  transformedData: any;
+  sourceData: unknown;
+  transformedData: unknown;
   success: boolean;
   error?: string;
   performanceMetrics: TransformationPerformance;
@@ -708,7 +708,7 @@ export interface WebhookProcessingResult {
   action: string;
   recordsAffected: number;
   error?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 // Additional supporting types
@@ -722,12 +722,12 @@ export interface PKCEConfig {
 export interface TransformationLogic {
   type: 'javascript' | 'sql' | 'regex' | 'template' | 'custom';
   expression: string;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   functions?: string[];
 }
 
 export interface TransformationParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TransformationValidation {
@@ -737,12 +737,12 @@ export interface TransformationValidation {
 }
 
 export interface ValidationParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ScheduleCondition {
   type: 'data_change' | 'threshold' | 'time_window' | 'external_trigger';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface ThroughputMetrics {
@@ -788,8 +788,8 @@ export interface ResourceUsageMetrics {
 export interface AlertChannel {
   type: 'email' | 'sms' | 'slack' | 'webhook' | 'push';
   endpoint: string;
-  authentication?: any;
-  formatting?: any;
+  authentication?: Record<string, unknown>;
+  formatting?: Record<string, unknown>;
 }
 
 export interface AlertRule {
@@ -834,12 +834,12 @@ export interface EventProcessingResult {
   processingTime: number; // milliseconds
   actions: ProcessingAction[];
   errors: ProcessingError[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface WebhookAuthentication {
   type: 'none' | 'basic' | 'bearer' | 'hmac' | 'jwt';
-  credentials?: any;
+  credentials?: Record<string, unknown>;
   verification: boolean;
 }
 
@@ -853,7 +853,7 @@ export interface WebhookRetryPolicy {
 export interface WebhookFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   caseSensitive?: boolean;
 }
 
@@ -895,12 +895,12 @@ export interface TokenRotationPolicy {
 
 export interface PermissionCondition {
   type: 'time' | 'location' | 'device' | 'user_attribute' | 'custom';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface FlagCondition {
   type: 'user_attribute' | 'time' | 'random' | 'custom';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface AlertThreshold {
@@ -954,7 +954,7 @@ export interface EscalationLevel {
 
 export interface SuppressionCondition {
   type: 'metric' | 'event' | 'time' | 'custom';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface TemplateFormatting {
@@ -966,8 +966,8 @@ export interface TemplateFormatting {
 export interface ProcessingAction {
   type: string;
   target: string;
-  parameters: Record<string, any>;
-  result: any;
+  parameters: Record<string, unknown>;
+  result: unknown;
 }
 
 export interface ProcessingError {
@@ -986,7 +986,7 @@ export interface TransformationPerformance {
 
 export interface ErrorResolution {
   strategy: 'retry' | 'skip' | 'manual' | 'default_value' | 'custom';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   resolvedAt?: Date;
   resolvedBy?: string;
 }
@@ -994,15 +994,15 @@ export interface ErrorResolution {
 export interface ErrorContext {
   operation: string;
   stage: string;
-  inputData: any;
-  configuration: any;
-  environment: Record<string, any>;
+  inputData: unknown;
+  configuration: unknown;
+  environment: Record<string, unknown>;
 }
 
 export interface SyncMetadata {
   initiatedBy: string;
   reason: string;
-  configuration: any;
+  configuration: unknown;
   environment: string;
   version: string;
 }
@@ -1019,99 +1019,99 @@ export interface FieldValidation {
 
 // Missing interface definitions
 export interface AttributeMappingConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface GroupMappingConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SessionManagementConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MetricsSyncConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ReportingConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface DashboardIntegrationConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CustomDimensionConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ContentImportConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MetadataSyncConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface LicensingConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface QualityAssuranceConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface NotificationConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AutomationRule {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ChannelMappingConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface TemplateManagementConfig {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ErrorTracking {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // All remaining missing interfaces
-export interface DataTypeMapping { [key: string]: any; }
-export interface ContentSyncConfig { [key: string]: any; }
-export interface EnrollmentSyncConfig { [key: string]: any; }
-export interface LoggingConfig { [key: string]: any; }
-export interface ComplianceMonitoring { [key: string]: any; }
-export interface CourseMappingRule { [key: string]: any; }
-export interface CategoryMappingConfig { [key: string]: any; }
-export interface ContentMappingConfig { [key: string]: any; }
-export interface UserAttributeMapping { [key: string]: any; }
-export interface RoleMappingConfig { [key: string]: any; }
-export interface GradeMappingConfig { [key: string]: any; }
-export interface IdentityProviderConfig { [key: string]: any; }
-export interface ServiceProviderConfig { [key: string]: any; }
-export interface SSOAttributeMapping { [key: string]: any; }
-export interface SSOSessionConfig { [key: string]: any; }
-export interface ProvisioningRule { [key: string]: any; }
-export interface DeprovisioningRule { [key: string]: any; }
-export interface EventTypeMapping { [key: string]: any; }
-export interface CustomEventConfig { [key: string]: any; }
-export interface EventFilterConfig { [key: string]: any; }
-export interface EventEnrichmentConfig { [key: string]: any; }
-export interface EventBatchingConfig { [key: string]: any; }
-export interface LibraryAuthConfig { [key: string]: any; }
-export interface SearchCapabilityConfig { [key: string]: any; }
-export interface DownloadRightsConfig { [key: string]: any; }
-export interface UsageTrackingConfig { [key: string]: any; }
-export interface MessageRoutingRule { [key: string]: any; }
-export interface ChannelPriorityConfig { [key: string]: any; }
-export interface FallbackChannelConfig { [key: string]: any; }
-export interface MessageFormattingConfig { [key: string]: any; }
-export interface DeliveryTrackingConfig { [key: string]: any; }
-export interface MetadataMappingConfig { [key: string]: any; }
+export interface DataTypeMapping { [key: string]: unknown; }
+export interface ContentSyncConfig { [key: string]: unknown; }
+export interface EnrollmentSyncConfig { [key: string]: unknown; }
+export interface LoggingConfig { [key: string]: unknown; }
+export interface ComplianceMonitoring { [key: string]: unknown; }
+export interface CourseMappingRule { [key: string]: unknown; }
+export interface CategoryMappingConfig { [key: string]: unknown; }
+export interface ContentMappingConfig { [key: string]: unknown; }
+export interface UserAttributeMapping { [key: string]: unknown; }
+export interface RoleMappingConfig { [key: string]: unknown; }
+export interface GradeMappingConfig { [key: string]: unknown; }
+export interface IdentityProviderConfig { [key: string]: unknown; }
+export interface ServiceProviderConfig { [key: string]: unknown; }
+export interface SSOAttributeMapping { [key: string]: unknown; }
+export interface SSOSessionConfig { [key: string]: unknown; }
+export interface ProvisioningRule { [key: string]: unknown; }
+export interface DeprovisioningRule { [key: string]: unknown; }
+export interface EventTypeMapping { [key: string]: unknown; }
+export interface CustomEventConfig { [key: string]: unknown; }
+export interface EventFilterConfig { [key: string]: unknown; }
+export interface EventEnrichmentConfig { [key: string]: unknown; }
+export interface EventBatchingConfig { [key: string]: unknown; }
+export interface LibraryAuthConfig { [key: string]: unknown; }
+export interface SearchCapabilityConfig { [key: string]: unknown; }
+export interface DownloadRightsConfig { [key: string]: unknown; }
+export interface UsageTrackingConfig { [key: string]: unknown; }
+export interface MessageRoutingRule { [key: string]: unknown; }
+export interface ChannelPriorityConfig { [key: string]: unknown; }
+export interface FallbackChannelConfig { [key: string]: unknown; }
+export interface MessageFormattingConfig { [key: string]: unknown; }
+export interface DeliveryTrackingConfig { [key: string]: unknown; }
+export interface MetadataMappingConfig { [key: string]: unknown; }

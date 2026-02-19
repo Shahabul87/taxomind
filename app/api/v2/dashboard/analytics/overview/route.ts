@@ -1,12 +1,10 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import {
   subDays,
-  startOfDay,
-  endOfDay,
   eachDayOfInterval,
   format,
 } from 'date-fns';
@@ -112,11 +110,11 @@ async function fetchStudyTimeData(
   courseId?: string
 ) {
   try {
-    const where: Record<string, unknown> = {
+    const where: Prisma.LearningActivityWhereInput = {
       userId,
       createdAt: { gte: startDate },
+      ...(courseId ? { courseId } : {}),
     };
-    if (courseId) where.courseId = courseId;
 
     // Get total study time (use actualDuration if available, otherwise estimatedDuration)
     const totalMinutes = await db.learningActivity.aggregate({
@@ -183,13 +181,15 @@ async function fetchStudyTimeData(
  */
 async function fetchCourseProgress(userId: string, courseId?: string) {
   try {
-    const where: Record<string, unknown> = { userId };
-    if (courseId) where.courseId = courseId;
+    const where: Prisma.EnrollmentWhereInput = {
+      userId,
+      ...(courseId ? { courseId } : {}),
+    };
 
     const enrollments = await db.enrollment.findMany({
       where,
       include: {
-        course: {
+        Course: {
           select: {
             id: true,
             title: true,
@@ -204,24 +204,36 @@ async function fetchCourseProgress(userId: string, courseId?: string) {
             },
           },
         },
-        completedSections: {
-          select: { id: true },
-        },
+      },
+    });
+
+    // Fetch completed sections for this user separately
+    const userCompletedSections = await db.user_progress.findMany({
+      where: {
+        userId,
+        isCompleted: true,
+        sectionId: { not: null },
+      },
+      select: {
+        sectionId: true,
+        courseId: true,
       },
     });
 
     return enrollments.map((enrollment) => {
-      const totalSections = enrollment.course.chapters.reduce(
-        (sum, chapter) => sum + chapter.sections.length,
+      const totalSections = enrollment.Course.chapters.reduce(
+        (sum: number, chapter) => sum + chapter.sections.length,
         0
       );
-      const completedSections = enrollment.completedSections.length;
+      const completedSections = userCompletedSections.filter(
+        (p) => p.courseId === enrollment.Course.id
+      ).length;
       const progress = totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
 
       return {
-        courseId: enrollment.course.id,
-        courseTitle: enrollment.course.title,
-        courseImage: enrollment.course.imageUrl,
+        courseId: enrollment.Course.id,
+        courseTitle: enrollment.Course.title,
+        courseImage: enrollment.Course.imageUrl,
         totalSections,
         completedSections,
         progress: Math.round(progress),
@@ -229,7 +241,7 @@ async function fetchCourseProgress(userId: string, courseId?: string) {
         lastAccessedAt: enrollment.updatedAt,
       };
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[COURSE_PROGRESS]', error);
     return [];
   }
@@ -291,11 +303,11 @@ async function fetchPerformanceMetrics(
       where: {
         userId,
         createdAt: { gte: startDate },
-        status: 'COMPLETED',
+        status: 'GRADED',
         ...(courseId ? { exam: { courseId } } : {}),
       },
       select: {
-        score: true,
+        scorePercentage: true,
         totalQuestions: true,
         correctAnswers: true,
         createdAt: true,
@@ -306,7 +318,7 @@ async function fetchPerformanceMetrics(
     // Calculate metrics
     const avgScore =
       examAttempts.length > 0
-        ? examAttempts.reduce((sum, a) => sum + (a.score ?? 0), 0) / examAttempts.length
+        ? examAttempts.reduce((sum: number, a) => sum + (a.scorePercentage ?? 0), 0) / examAttempts.length
         : 0;
 
     const totalQuestions = examAttempts.reduce((sum, a) => sum + (a.totalQuestions ?? 0), 0);
@@ -329,7 +341,7 @@ async function fetchPerformanceMetrics(
       currentStreak: streak?.currentStreak ?? 0,
       longestStreak: streak?.longestStreak ?? 0,
       recentScores: examAttempts.slice(0, 10).map((a) => ({
-        score: a.score,
+        score: a.scorePercentage,
         date: a.createdAt,
       })),
     };
@@ -368,10 +380,10 @@ async function fetchSAMInsightsSummary(userId: string) {
     });
 
     // Get active goals count
-    const activeGoals = await db.sAMGoal.count({
+    const activeGoals = await db.sAMLearningGoal.count({
       where: {
         userId,
-        status: 'active',
+        status: 'ACTIVE',
       },
     });
 

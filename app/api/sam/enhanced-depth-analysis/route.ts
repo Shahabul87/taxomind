@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Enhanced Depth Analysis API Route
  *
@@ -36,13 +35,26 @@ import {
   // Evidence Service
   createEvidenceService,
   type EvidenceSummary,
+  PrismaAnalysisEvidenceStore,
   // Content Ingestion
   createContentIngestionPipeline,
   type IngestionResult,
+  PrismaContentSourceStore,
   // LLM Adapter
   createDepthAnalysisLLMAdapter,
   type LLMProvider,
 } from '@sam-ai/educational';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/** Shape of a question option stored as Json in ExamQuestion.options */
+interface ExamQuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -212,7 +224,7 @@ async function fetchCourseData(courseId: string, userId: string): Promise<Course
             bloomsLevel: q.bloomsLevel ?? undefined,
             explanation: q.explanation ?? undefined,
             options: Array.isArray(q.options)
-              ? (q.options as Array<{ id: string; text: string; isCorrect: boolean }>)
+              ? (q.options as ExamQuestionOption[])
               : [],
           })),
         })),
@@ -351,7 +363,7 @@ export async function GET(req: NextRequest) {
           { status: 400 }
         );
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[EnhancedDepthAnalysis] GET error:', error);
     console.error('[EnhancedDepthAnalysis] GET error details:', error);
 
@@ -400,7 +412,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = (await req.json()) as { action?: string; data?: unknown };
     const { action, data } = body;
 
     if (!action) {
@@ -687,19 +699,20 @@ export async function POST(req: NextRequest) {
               title: section.title,
               description: section.description ?? '',
               chapterId: chapter.id,
-              content: section.description ?? section.title,
             }))
           ),
           assessments: validated.includeAssessments
             ? courseData.chapters.flatMap((chapter) =>
                 chapter.sections.flatMap((section) =>
-                  section.exams.map((exam) => ({
+                  (section.exams ?? []).map((exam) => ({
                     id: exam.id,
                     title: exam.title,
+                    type: 'exam' as const,
                     sectionId: section.id,
-                    questions: exam.ExamQuestion.map((q) => ({
+                    questions: (exam.ExamQuestion ?? []).map((q) => ({
                       id: q.id,
-                      text: q.question,
+                      text: q.question ?? q.text,
+                      type: q.type ?? 'unknown',
                       bloomsLevel: q.bloomsLevel ?? undefined,
                     })),
                   }))
@@ -708,15 +721,15 @@ export async function POST(req: NextRequest) {
             : [],
         };
 
-        const alignmentResult: AlignmentAnalysisResult = await alignmentEngine.analyze(courseForAlignment);
+        const alignmentResult: AlignmentAnalysisResult = await alignmentEngine.analyzeAlignment(courseForAlignment);
 
         result = {
           alignment: alignmentResult,
           courseId: validated.courseId,
           summary: {
-            totalObjectives: alignmentResult.summary.objectivesCovered,
-            alignedObjectives: alignmentResult.summary.objectivesCovered,
-            overallScore: alignmentResult.summary.overallAlignmentScore,
+            totalObjectives: alignmentResult.summary.totalObjectives,
+            alignedObjectives: alignmentResult.summary.fullyCoveredObjectives,
+            overallScore: alignmentResult.alignmentScore,
             gaps: alignmentResult.gaps.length,
           },
         };
@@ -724,7 +737,7 @@ export async function POST(req: NextRequest) {
         logger.info('[EnhancedDepthAnalysis] Alignment matrix generated', {
           userId: session.user.id,
           courseId: validated.courseId,
-          alignmentScore: alignmentResult.summary.overallAlignmentScore,
+          alignmentScore: alignmentResult.alignmentScore,
         });
         break;
       }
@@ -750,8 +763,9 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Create content ingestion pipeline
-        const pipeline = createContentIngestionPipeline({
+        // Create content ingestion pipeline with required storage
+        const contentSourceStore = new PrismaContentSourceStore(db);
+        const pipeline = createContentIngestionPipeline(contentSourceStore, {
           logger: {
             info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
             warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
@@ -764,30 +778,26 @@ export async function POST(req: NextRequest) {
           ? course.attachments.filter((a) => validated.attachmentIds?.includes(a.id))
           : course.attachments;
 
-        const ingestionResults: IngestionResult[] = [];
-
-        for (const attachment of attachmentsToProcess) {
-          try {
-            const ingestionResult = await pipeline.ingest({
-              id: attachment.id,
-              name: attachment.name,
-              url: attachment.url,
-              courseId: course.id,
-            });
-            ingestionResults.push(ingestionResult);
-          } catch (err) {
-            logger.warn('[EnhancedDepthAnalysis] Failed to ingest attachment', {
-              attachmentId: attachment.id,
-              error: err instanceof Error ? err.message : 'Unknown error',
-            });
-          }
+        // Ingest the entire course through the pipeline
+        let ingestionResult: IngestionResult | null = null;
+        try {
+          ingestionResult = await pipeline.ingestCourse({
+            id: course.id,
+            title: course.title ?? '',
+            chapters: [],
+          });
+        } catch (err: unknown) {
+          logger.warn('[EnhancedDepthAnalysis] Failed to ingest course content', {
+            courseId: course.id,
+            error: err instanceof Error ? err.message : 'Unknown error',
+          });
         }
 
         result = {
           courseId: validated.courseId,
           totalAttachments: attachmentsToProcess.length,
-          successfulExtractions: ingestionResults.filter((r) => r.status === 'completed').length,
-          results: ingestionResults,
+          successfulExtractions: ingestionResult?.processedSources ?? 0,
+          results: ingestionResult,
         };
 
         logger.info('[EnhancedDepthAnalysis] Content extraction completed', {
@@ -810,8 +820,10 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Create evidence service
+        // Create evidence service with required store
+        const analysisEvidenceStore = new PrismaAnalysisEvidenceStore(db);
         const evidenceService = createEvidenceService({
+          store: analysisEvidenceStore,
           logger: {
             info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
             warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
@@ -819,29 +831,24 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Get evidence summary
-        const evidenceSummary: EvidenceSummary = await evidenceService.getSummary({
-          courseId: validated.courseId,
-          minConfidence: validated.confidenceThreshold,
-          limit: validated.limit,
-        });
+        // Get evidence summary for the course analysis
+        const evidenceSummary: EvidenceSummary = await evidenceService.getSummary(validated.courseId);
 
         result = {
           evidence: evidenceSummary,
           courseId: validated.courseId,
           summary: {
-            totalEvidence: evidenceSummary.totalCount,
+            totalEvidence: evidenceSummary.totalEvidence,
             avgConfidence: evidenceSummary.averageConfidence,
-            highConfidenceCount: evidenceSummary.confidenceDistribution.high,
-            mediumConfidenceCount: evidenceSummary.confidenceDistribution.medium,
-            lowConfidenceCount: evidenceSummary.confidenceDistribution.low,
+            highConfidenceCount: evidenceSummary.highConfidenceCount,
+            lowConfidenceCount: evidenceSummary.lowConfidenceCount,
           },
         };
 
         logger.info('[EnhancedDepthAnalysis] Evidence summary retrieved', {
           userId: session.user.id,
           courseId: validated.courseId,
-          totalEvidence: evidenceSummary.totalCount,
+          totalEvidence: evidenceSummary.totalEvidence,
         });
         break;
       }
@@ -873,11 +880,14 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Create LLM adapter
+        // Create LLM adapter with proper provider config
         const llmAdapter = createDepthAnalysisLLMAdapter({
-          provider: validated.provider as LLMProvider,
-          apiKey,
+          provider: {
+            provider: validated.provider as LLMProvider,
+            apiKey,
+          },
           logger: {
+            debug: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
             info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
             warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
             error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
@@ -895,18 +905,21 @@ export async function POST(req: NextRequest) {
           case 'blooms':
             llmResult = await llmAdapter.classifyBlooms({
               text: contentToAnalyze,
+              contentType: 'mixed',
               context: 'course_content',
             });
             break;
           case 'dok':
             llmResult = await llmAdapter.classifyDOK({
               text: contentToAnalyze,
+              contentType: 'content',
               context: 'course_content',
             });
             break;
           case 'multi-framework':
             llmResult = await llmAdapter.classifyMultiFramework({
               text: contentToAnalyze,
+              contentType: 'mixed',
               frameworks: ['blooms', 'dok', 'solo', 'fink', 'marzano'],
             });
             break;
@@ -928,10 +941,7 @@ export async function POST(req: NextRequest) {
             break;
           case 'recommendations':
             llmResult = await llmAdapter.generateRecommendations({
-              courseId: validated.courseId,
-              courseTitle: courseData.title,
-              currentDistribution: {}, // Would need existing analysis
-              focusAreas: ['content_gaps', 'cognitive_balance'],
+              focusAreas: ['blooms_balance', 'alignment_gaps', 'content_complexity'],
             });
             break;
         }
@@ -965,7 +975,7 @@ export async function POST(req: NextRequest) {
       data: result,
       metadata: { timestamp: new Date().toISOString() },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[EnhancedDepthAnalysis] POST error:', error);
 
     if (error instanceof z.ZodError) {

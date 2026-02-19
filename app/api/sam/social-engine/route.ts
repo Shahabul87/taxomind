@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM Social Engine - Main Route
  * GET/POST /api/sam/social-engine
@@ -172,7 +171,7 @@ export async function POST(req: NextRequest) {
           where: { id: parsed.data.communityId },
           include: {
             members: true,
-            discussions: { take: 100, orderBy: { createdAt: 'desc' } },
+            GroupDiscussion: { take: 100, orderBy: { createdAt: 'desc' } },
           },
         });
 
@@ -197,7 +196,7 @@ export async function POST(req: NextRequest) {
           activeMembers: Math.max(1, activeMembers),
           topics: ['learning', 'collaboration'],
           activityMetrics: {
-            postsPerDay: group.discussions.length / 30,
+            postsPerDay: group.GroupDiscussion.length / 30,
             commentsPerPost: 2.5,
             averageResponseTime: 120,
             engagementRate: 0.4,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * SAM AI - Learning Efficiency API
  *
@@ -11,6 +10,8 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { getStore, getAnalyticsStores } from '@/lib/sam/taxomind-context';
+import type { LearningSession } from '@sam-ai/agentic';
+import type { SkillBuildProfile } from '@sam-ai/educational';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -104,27 +105,34 @@ export async function GET(request: NextRequest) {
       period: searchParams.get('period') || 'month',
     });
 
-    const { learningSession, topicProgress } = getAnalyticsStores();
+    const { learningSession } = getAnalyticsStores();
     const skillBuildTrackStore = getStore('skillBuildTrack');
 
     const periodStart = getPeriodStartDate(validatedParams.period);
 
-    // Get learning sessions for the period
-    const sessions = await learningSession.findByUserId(user.id);
-    const periodSessions = sessions.filter((s) => new Date(s.startedAt) >= periodStart);
+    // Get learning sessions for the period (store method is getByUser, not findByUserId)
+    const sessions: LearningSession[] = await learningSession.getByUser(user.id);
+    const periodSessions = sessions.filter((s) => new Date(s.startTime) >= periodStart);
 
     // Get skill profiles for efficiency analysis
-    const skillProfiles = await skillBuildTrackStore.getUserSkillProfiles(user.id);
+    const skillProfiles: SkillBuildProfile[] = await skillBuildTrackStore.getUserSkillProfiles(user.id);
+
+    // Helper to derive a score from a session (percentage of correct answers)
+    const deriveSessionScore = (s: LearningSession): number => {
+      if (s.questionsAnswered > 0) {
+        return Math.round((s.correctAnswers / s.questionsAnswered) * 100);
+      }
+      return 0;
+    };
 
     // Calculate time distribution by hour
-    const timeDistribution: Map<number, { sessions: number; totalScore: number; totalDuration: number }> =
-      new Map();
+    const timeDistribution = new Map<number, { sessions: number; totalScore: number; totalDuration: number }>();
 
     for (const session of periodSessions) {
-      const hour = new Date(session.startedAt).getHours();
-      const existing = timeDistribution.get(hour) || { sessions: 0, totalScore: 0, totalDuration: 0 };
+      const hour = new Date(session.startTime).getHours();
+      const existing = timeDistribution.get(hour) ?? { sessions: 0, totalScore: 0, totalDuration: 0 };
       existing.sessions++;
-      existing.totalScore += session.score ?? 0;
+      existing.totalScore += deriveSessionScore(session);
       existing.totalDuration += session.duration ?? 0;
       timeDistribution.set(hour, existing);
     }
@@ -147,19 +155,19 @@ export async function GET(request: NextRequest) {
     // Calculate session efficiency
     const sessionEfficiency: SessionEfficiency[] = periodSessions
       .slice(0, 20)
-      .map((session) => {
+      .map((session): SessionEfficiency => {
         const duration = session.duration ?? 1;
-        const score = session.score ?? 0;
+        const score = deriveSessionScore(session);
         // Efficiency = score gained per minute of study
         const efficiency = duration > 0 ? (score / duration) * 60 : 0;
 
         return {
           sessionId: session.id,
-          date: session.startedAt,
+          date: session.startTime,
           duration,
           scoreGained: score,
           efficiency: Math.round(efficiency * 100) / 100,
-          skillId: session.skillId ?? undefined,
+          skillId: session.topicId ?? undefined,
         };
       });
 
@@ -169,7 +177,7 @@ export async function GET(request: NextRequest) {
     const avgSessionDuration = totalSessions > 0 ? totalMinutes / totalSessions : 0;
     const avgScore =
       totalSessions > 0
-        ? periodSessions.reduce((sum, s) => sum + (s.score ?? 0), 0) / totalSessions
+        ? periodSessions.reduce((sum, s) => sum + deriveSessionScore(s), 0) / totalSessions
         : 0;
 
     // Calculate efficiency scores
@@ -189,16 +197,16 @@ export async function GET(request: NextRequest) {
     const midpoint = new Date(
       (periodStart.getTime() + new Date().getTime()) / 2
     );
-    const firstHalf = periodSessions.filter((s) => new Date(s.startedAt) < midpoint);
-    const secondHalf = periodSessions.filter((s) => new Date(s.startedAt) >= midpoint);
+    const firstHalf = periodSessions.filter((s) => new Date(s.startTime) < midpoint);
+    const secondHalf = periodSessions.filter((s) => new Date(s.startTime) >= midpoint);
 
     const firstHalfAvg =
       firstHalf.length > 0
-        ? firstHalf.reduce((sum, s) => sum + (s.score ?? 0), 0) / firstHalf.length
+        ? firstHalf.reduce((sum, s) => sum + deriveSessionScore(s), 0) / firstHalf.length
         : 0;
     const secondHalfAvg =
       secondHalf.length > 0
-        ? secondHalf.reduce((sum, s) => sum + (s.score ?? 0), 0) / secondHalf.length
+        ? secondHalf.reduce((sum, s) => sum + deriveSessionScore(s), 0) / secondHalf.length
         : 0;
 
     const trend = calculateEfficiencyTrend(secondHalfAvg, firstHalfAvg);
@@ -212,13 +220,26 @@ export async function GET(request: NextRequest) {
     };
 
     // Calculate skill-specific efficiency if requested
-    let skillEfficiency = null;
+    interface SkillEfficiencyResult {
+      skillId: string;
+      skillName: string;
+      masteryScore: number;
+      retentionScore: number;
+      applicationScore: number;
+      totalSessions: number;
+      totalMinutes: number;
+      averageScore: number;
+      learningSpeed: number;
+      trend: string;
+    }
+
+    let skillEfficiency: SkillEfficiencyResult | null = null;
     if (validatedParams.skillId) {
       const skillProfile = skillProfiles.find((p) => p.skillId === validatedParams.skillId);
       if (skillProfile) {
         skillEfficiency = {
           skillId: skillProfile.skillId,
-          skillName: skillProfile.skill?.name || skillProfile.skillId,
+          skillName: skillProfile.skill?.name ?? skillProfile.skillId,
           masteryScore: skillProfile.dimensions.mastery,
           retentionScore: skillProfile.dimensions.retention,
           applicationScore: skillProfile.dimensions.application,
