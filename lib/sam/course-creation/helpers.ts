@@ -25,7 +25,7 @@ import type {
   ChapterPlanEntry,
 } from './types';
 import type { TemplateSectionDef } from './chapter-templates';
-import { analyzeSectionDescriptionStructure } from './section-description-structure';
+import { analyzeSectionDescriptionStructure, scoreSectionDescriptionStructure } from './section-description-structure';
 
 // =============================================================================
 // PROMPT SANITIZATION
@@ -508,25 +508,11 @@ export function scoreDetails(
   if (det.keyConceptsCovered.length < 3) depth -= 15;
   if (!det.resources || det.resources.length === 0) depth -= 5;
 
-  // Section Description quality protocol checks
+  // Structure adherence penalty (consolidated scoring)
   const structureAnalysis = analyzeSectionDescriptionStructure(det.description);
-  if (structureAnalysis.missingHeadings.length > 0 || structureAnalysis.unexpectedHeadings.length > 0) {
-    depth -= 30;
-  }
-  if (structureAnalysis.issues.some((issue) => issue.includes('Heading order'))) {
-    depth -= 10;
-  }
-  if (structureAnalysis.issues.some((issue) => issue.includes('must have at least'))) {
-    depth -= 15;
-  }
-
-  const semanticChecks = structureAnalysis.semanticChecks;
-  if (!semanticChecks.hasMotivationProblem) depth -= 8;
-  if (!semanticChecks.hasCoreMentalModel) depth -= 8;
-  if (!semanticChecks.hasEquationIntuitionCompliance) depth -= 10;
-  if (!semanticChecks.hasStepwiseVisualization) depth -= 8;
-  if (!semanticChecks.hasConcreteExample) depth -= 8;
-  if (!semanticChecks.hasMisconceptionAndFix) depth -= 8;
+  const structureScore = scoreSectionDescriptionStructure(structureAnalysis);
+  if (structureScore < 70) depth -= 20;
+  else if (structureScore < 90) depth -= 10;
 
   // Word count check (strip HTML tags, count words)
   const plainText = det.description.replace(/<[^>]*>/g, ' ');
@@ -666,6 +652,25 @@ export function buildFallbackSection(
     },
     templateRole: templateDef?.role,
   };
+}
+
+function buildFallbackObjectives(topic: string, bloomsLevel: BloomsLevel, count: number): string[] {
+  const verbSets: Record<BloomsLevel, string[]> = {
+    REMEMBER: ['Define', 'List', 'Identify', 'Recall'],
+    UNDERSTAND: ['Explain', 'Describe', 'Summarize', 'Interpret'],
+    APPLY: ['Apply', 'Demonstrate', 'Implement', 'Use'],
+    ANALYZE: ['Analyze', 'Compare', 'Differentiate', 'Examine'],
+    EVALUATE: ['Evaluate', 'Assess', 'Justify', 'Critique'],
+    CREATE: ['Design', 'Construct', 'Develop', 'Formulate'],
+  };
+  const verbs = verbSets[bloomsLevel] ?? verbSets.UNDERSTAND;
+  const templates = [
+    `${verbs[0]} the core principles of ${topic} and their practical applications`,
+    `${verbs[1]} how ${topic} relates to real-world scenarios in this domain`,
+    `${verbs[2]} ${topic} techniques to solve common problems in this area`,
+    `${verbs[3]} the key components of ${topic} and their interactions`,
+  ];
+  return templates.slice(0, count);
 }
 
 export function buildFallbackDetails(
@@ -1024,16 +1029,13 @@ export function buildFallbackDetails(
     ].join('\n');
   }
 
-  // Ensure fallback always adheres to the strict section-description protocol.
-  if (!analyzeSectionDescriptionStructure(description).isValid) {
-    description = buildProtocolDescriptionFallback();
-  }
+  // Template-specific fallbacks are now accepted as-is since structure is a
+  // quality penalty, not a hard gate. This lets section-type-appropriate content
+  // survive instead of being replaced by generic protocol fallback.
 
   return {
     description,
-    learningObjectives: Array.from({ length: ctx.learningObjectivesPerSection }, (_, i) =>
-      `Explain key aspects of ${topic} (${i + 1})`
-    ),
+    learningObjectives: buildFallbackObjectives(topic, chapter.bloomsLevel, ctx.learningObjectivesPerSection),
     keyConceptsCovered: [topic, `${topic} fundamentals`, 'Practical applications'],
     practicalActivity: `Complete the ${section.contentType} exercises on ${topic}.`,
     creatorGuidelines,

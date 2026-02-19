@@ -57,6 +57,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // 4. Clean up DB dedupe locks so the next creation attempt is not blocked.
+    //    These locks are created by the orchestrate route and keyed by
+    //    `${userId}:${requestId|fingerprint}` with endpoint 'sam_orchestrate_dedupe_lock'.
+    try {
+      await db.rateLimit.deleteMany({
+        where: {
+          identifier: { startsWith: `${user.id}:` },
+          endpoint: 'sam_orchestrate_dedupe_lock',
+        },
+      });
+    } catch {
+      // Best-effort lock cleanup
+    }
+
     logger.info('[DISMISS_API] Cancelled active creation plans', {
       userId: user.id,
       dismissed: result.count,

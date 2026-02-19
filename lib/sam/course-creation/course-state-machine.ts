@@ -132,7 +132,7 @@ export class CourseCreationStateMachine {
     const machineConfig: AgentStateMachineConfig = {
       planStore,
       autoSaveInterval: 15000,
-      maxStepRetries: 2,
+      maxStepRetries: 1,
     };
 
     this.machine = new AgentStateMachine(machineConfig);
@@ -360,7 +360,7 @@ export class CourseCreationStateMachine {
       status: 'pending' as const,
       estimatedMinutes: 3,
       retryCount: 0,
-      maxRetries: 2,
+      maxRetries: 1,
       metadata: { chapterNumber: index + 1 + offset },
     }));
 
@@ -372,12 +372,12 @@ export class CourseCreationStateMachine {
       checkpoints: [],
       fallbackStrategies: [
         {
-          trigger: { type: 'step_failed', threshold: 2 },
+          trigger: { type: 'step_failed', threshold: 1 },
           action: { type: 'retry' },
           priority: 1,
         },
         {
-          trigger: { type: 'step_failed', threshold: 3 },
+          trigger: { type: 'step_failed', threshold: 2 },
           action: { type: 'skip', parameters: { reason: 'Max retries exhausted' } },
           priority: 2,
         },

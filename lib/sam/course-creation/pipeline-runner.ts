@@ -27,6 +27,7 @@ import type {
   CourseBlueprintPlan,
   AgenticDecision,
   CreationProgress,
+  ResumeState,
 } from './types';
 import type { CategoryPromptEnhancer } from './category-prompts';
 
@@ -73,6 +74,7 @@ export interface PipelineRunnerOptions {
   startChapter: number;
   totalChapters: number;
   effectiveSectionsPerChapter: number;
+  resumeState?: ResumeState;
 }
 
 export interface PipelineRunnerResult {
@@ -95,7 +97,7 @@ export async function runPipeline(
     blueprintPlan: initialBlueprintPlan, recalledMemory, strategyMonitor,
     chapterTemplate, categoryPrompt, categoryEnhancer, experimentVariant,
     chapterSectionCounts, budgetTracker, fallbackTracker, stepIds,
-    startChapter, totalChapters,
+    startChapter, totalChapters, resumeState,
   } = options;
 
   let chaptersCreated = completedChapters.length;
@@ -181,6 +183,13 @@ export async function runPipeline(
       experimentVariant,
       budgetTracker,
       fallbackTracker,
+      ...(resumeState && chNum === resumeState.completedChapterCount + 1
+        ? {
+            partialChapterDbId: resumeState.partialChapterDbId,
+            partialChapterSectionIds: resumeState.partialChapterSectionIds,
+            sectionsWithDetails: resumeState.sectionsWithDetails,
+          }
+        : {}),
     }));
   } catch (error) {
     const isAbort = abortSignal?.aborted || (error instanceof Error && error.name === 'AbortError');

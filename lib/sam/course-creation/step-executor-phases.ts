@@ -35,14 +35,12 @@ import {
 } from './memory-persistence';
 import { recallChapterContext } from './memory-recall';
 import {
-  evaluateChapterOutcomeWithAI,
+  evaluateChapterOutcome,
   applyAgenticDecision,
   generateBridgeContent,
   persistQualityFlag,
 } from './agentic-decisions';
 import { replanRemainingChapters } from './course-planner';
-import { regenerateChapter, regenerateSectionsOnly, regenerateDetailsOnly } from './chapter-regenerator';
-import { diagnoseChapterIssues } from './healing-loop';
 import { saveCheckpointWithRetry } from './checkpoint-manager';
 import { PROMPT_VERSION } from './prompts';
 import { BudgetExceededError } from './pipeline-budget';
@@ -326,32 +324,24 @@ export async function phaseDecisionMaking(
 ): Promise<void> {
   const { config, state, chapterNumber } = ctx;
 
-  // 8. AI-driven agentic decision
+  // 8. Rule-based agentic decision (replaced AI call to reduce overhead)
   if (chapterResult.agenticDecision && chapterNumber < config.totalChapters && state.blueprintPlan) {
-    try {
-      state.lastAgenticDecision = await evaluateChapterOutcomeWithAI(
-        config.userId,
-        chapterResult.completedChapter,
-        state.completedChapters,
-        state.qualityScores,
-        state.blueprintPlan,
-        state.conceptTracker,
-        config.courseContext,
-        config.runId,
-      );
+    state.lastAgenticDecision = evaluateChapterOutcome(
+      chapterResult.completedChapter,
+      state.qualityScores,
+      state.blueprintPlan,
+      state.conceptTracker,
+    );
 
-      config.onSSEEvent?.({
-        type: 'agentic_decision',
-        data: {
-          chapter: chapterNumber,
-          action: state.lastAgenticDecision.action,
-          reasoning: state.lastAgenticDecision.reasoning,
-          decisionType: 'ai_decision',
-        },
-      });
-    } catch {
-      state.lastAgenticDecision = chapterResult.agenticDecision;
-    }
+    config.onSSEEvent?.({
+      type: 'agentic_decision',
+      data: {
+        chapter: chapterNumber,
+        action: state.lastAgenticDecision.action,
+        reasoning: state.lastAgenticDecision.reasoning,
+        decisionType: 'rule_based',
+      },
+    });
 
     // 9. Apply decision
     applyAgenticDecision(state.lastAgenticDecision, state.strategyMonitor, state.healingQueue);
@@ -526,98 +516,36 @@ export async function phaseDecisionMaking(
 // ============================================================================
 
 /**
- * Process up to 2 chapters from the healing queue per step.
- * Uses AI diagnosis to determine the appropriate healing strategy.
+ * Deferred inline healing — logs quality issues for post-processing instead of
+ * regenerating during the pipeline. The post-processor already runs reflection +
+ * healing after the pipeline completes, so inline healing adds redundant AI calls.
  *
- * Step 12: Inline healing with targeted regeneration.
+ * Step 12: Mark chapters for deferred healing (no AI calls).
  */
 export async function phaseInlineHealing(ctx: StepExecutorContext): Promise<void> {
   const { config, state } = ctx;
 
   if (state.healingQueue.length === 0) return;
 
-  const MAX_INLINE_HEALS_PER_STEP = 2;
-  const chaptersToHeal = state.healingQueue.splice(0, MAX_INLINE_HEALS_PER_STEP);
+  // Drain the queue and log for post-processing instead of regenerating inline
+  const chaptersToHeal = state.healingQueue.splice(0, state.healingQueue.length);
   for (const healChapterNum of chaptersToHeal) {
     const healTarget = state.completedChapters.find(ch => ch.position === healChapterNum);
     if (!healTarget) continue;
 
-    config.onSSEEvent?.({ type: 'inline_healing', data: { chapter: healChapterNum } });
-    try {
-      // AI diagnosis before regeneration
-      const strategy = await diagnoseChapterIssues(
-        config.userId,
-        healTarget,
-        'Flagged by agentic decision for inline healing',
-        'medium',
-        config.courseContext,
-        config.runId,
-      );
+    logger.info('[CourseStateMachine] Deferring healing to post-processing', {
+      chapter: healChapterNum,
+      title: healTarget.title,
+    });
 
-      config.onSSEEvent?.({
-        type: 'healing_diagnosis',
-        data: { position: healChapterNum, strategy: strategy.type, reasoning: strategy.reasoning },
-      });
-
-      if (strategy.type === 'skip_healing') {
-        logger.info('[CourseStateMachine] AI recommends skipping inline healing', { chapter: healChapterNum });
-        continue;
-      }
-
-      const regenOptions = {
-        userId: config.userId,
-        courseId: config.courseId,
-        chapterId: healTarget.id,
-        chapterPosition: healChapterNum,
-        onSSEEvent: config.onSSEEvent,
-      };
-
-      let healResult;
-      switch (strategy.type) {
-        case 'sections_only':
-          healResult = await regenerateSectionsOnly(regenOptions);
-          break;
-        case 'details_only':
-          healResult = await regenerateDetailsOnly(regenOptions);
-          break;
-        case 'targeted_sections':
-          healResult = await regenerateSectionsOnly({
-            ...regenOptions,
-            targetSectionPositions: strategy.targetSections,
-          });
-          break;
-        case 'full_regeneration':
-        default:
-          healResult = await regenerateChapter(regenOptions);
-          break;
-      }
-
-      config.onSSEEvent?.({
-        type: 'inline_healing_complete',
-        data: {
-          chapter: healChapterNum,
-          success: healResult.success,
-          qualityScore: healResult.qualityScore,
-          strategy: strategy.type,
-        },
-      });
-
-      // Update quality flag with healing outcome
-      if (healResult.success) {
-        const healedFlag: CourseQualityFlag = {
-          chapterPosition: healChapterNum,
-          chapterTitle: healTarget.title,
-          reason: `Auto-healed via ${strategy.type}: ${strategy.reasoning}`,
-          severity: 'medium',
-          action: 'auto_healed',
-          healingStrategy: strategy.type,
-          timestamp: new Date().toISOString(),
-        };
-        persistQualityFlag(config.courseId, healedFlag).catch(() => {});
-      }
-    } catch {
-      logger.warn('[CourseStateMachine] Inline healing failed', { chapter: healChapterNum });
-    }
+    config.onSSEEvent?.({
+      type: 'healing_deferred',
+      data: {
+        chapter: healChapterNum,
+        title: healTarget.title,
+        reason: 'Deferred to post-processing for efficiency',
+      },
+    });
   }
 }
 

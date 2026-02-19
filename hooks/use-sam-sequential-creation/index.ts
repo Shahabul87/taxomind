@@ -570,6 +570,15 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
       };
     }
 
+    // Dismiss any stale ACTIVE/DRAFT plans from previous failed attempts.
+    // This prevents 409 ALREADY_RUNNING when the user starts a new creation
+    // after a previous one crashed or timed out without proper cleanup.
+    try {
+      await fetch('/api/sam/course-creation/dismiss', { method: 'POST' });
+    } catch {
+      // Best-effort — if dismiss fails, the orchestrate endpoint will check anyway
+    }
+
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
     const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 

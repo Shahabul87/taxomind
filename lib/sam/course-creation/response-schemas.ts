@@ -12,7 +12,6 @@
 
 import { z } from 'zod';
 import { BLOOMS_LEVELS } from './types';
-import { analyzeSectionDescriptionStructure } from './section-description-structure';
 
 // =============================================================================
 // Stage 1: Chapter Response Schema
@@ -59,16 +58,7 @@ export const AISectionResponseSchema = z.object({
 export const AIDetailsResponseSchema = z.object({
   thinking: z.string().optional(),
   details: z.object({
-    description: z.string().min(100).superRefine((description, ctx) => {
-      const analysis = analyzeSectionDescriptionStructure(description);
-      if (analysis.isValid) return;
-      for (const issue of analysis.issues.slice(0, 8)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: issue,
-        });
-      }
-    }),
+    description: z.string().min(100),
     learningObjectives: z.array(z.string().min(5)).min(1),
     keyConceptsCovered: z.array(z.string()).optional(),
     practicalActivity: z.string().min(10),

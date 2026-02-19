@@ -36,10 +36,6 @@ import { buildBlueprintBlock } from './course-planner';
 import { evaluateChapterOutcome, buildAdaptiveGuidance } from './agentic-decisions';
 import {
   reviewChapterWithCritic,
-  reviewSectionWithCritic,
-  reviewDetailsWithCritic,
-  buildSectionCriticFeedbackBlock,
-  buildDetailsCriticFeedbackBlock,
 } from './chapter-critic';
 import { critiqueGeneration } from './self-critique';
 import { parseChapterResponse, parseSectionResponse, parseDetailsResponse } from './response-parsers';
@@ -91,6 +87,10 @@ function throwIfAborted(signal?: AbortSignal): void {
   const error = new Error('Generation cancelled by user');
   error.name = 'AbortError';
   throw error;
+}
+
+function splitLines(value: string | null | undefined): string[] {
+  return (value ?? '').split('\n').map(s => s.trim()).filter(Boolean);
 }
 
 // =============================================================================
@@ -147,6 +147,9 @@ export async function generateSingleChapter(
     runId,
     budgetTracker,
     fallbackTracker,
+    partialChapterDbId,
+    partialChapterSectionIds,
+    sectionsWithDetails,
   } = context;
   const { onSSEEvent, enableStreamingThinking, abortSignal } = callbacks;
   throwIfAborted(abortSignal);
@@ -188,6 +191,52 @@ export async function generateSingleChapter(
       throw new BudgetExceededError(budgetTracker.getSnapshot());
     }
   };
+
+  let chapter: GeneratedChapter;
+  let chapterWithId: GeneratedChapter & { id: string };
+  let chThinking = '';
+  let chQuality: QualityScore = buildDefaultQualityScore(70);
+
+  // Resume support: continue from an in-progress chapter row if one exists.
+  const resumePartialChapter = partialChapterDbId
+    ? await db.chapter.findFirst({
+        where: { id: partialChapterDbId, courseId, position: chNum },
+        include: { sections: { orderBy: { position: 'asc' } } },
+      })
+    : null;
+
+  if (resumePartialChapter) {
+    chapter = {
+      position: resumePartialChapter.position,
+      title: resumePartialChapter.title,
+      description: resumePartialChapter.description ?? '',
+      bloomsLevel: (resumePartialChapter.targetBloomsLevel ?? 'UNDERSTAND') as GeneratedChapter['bloomsLevel'],
+      learningObjectives: splitLines(resumePartialChapter.courseGoals),
+      keyTopics: [],
+      prerequisites: resumePartialChapter.prerequisites ?? '',
+      estimatedTime: resumePartialChapter.estimatedTime ?? '1-2 hours',
+      topicsToExpand: [],
+      conceptsIntroduced: [],
+    };
+    chapterWithId = { ...chapter, id: resumePartialChapter.id };
+    generatedChapters.push(chapterWithId);
+    chThinking = `Resuming chapter ${chNum} from checkpointed partial data`;
+
+    onSSEEvent?.({
+      type: 'item_complete',
+      data: { stage: 1, chapter: chNum, title: chapter.title, id: resumePartialChapter.id },
+    });
+    onSSEEvent?.({ type: 'thinking', data: { stage: 1, chapter: chNum, thinking: chThinking } });
+
+    logger.info('[ORCHESTRATOR] Resuming partial chapter generation', {
+      courseId,
+      chapter: chNum,
+      chapterId: resumePartialChapter.id,
+      existingSections: resumePartialChapter.sections.length,
+      checkpointedSectionIds: partialChapterSectionIds?.length ?? 0,
+      expectedSections: effectiveSectionsPerChapter,
+    });
+  } else {
 
   // =====================================================================
   // STAGE 1: Generate this chapter
@@ -316,7 +365,7 @@ export async function generateSingleChapter(
     parseError: s1ParseError,
   });
 
-  const { chapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
+  ({ chapter, thinking: chThinking, qualityScore: chQuality } = bestResult);
   chQuality.chapterNumber = chNum;
   chQuality.stage = 1;
   localQualityScores.push(chQuality);
@@ -352,7 +401,7 @@ export async function generateSingleChapter(
     },
   });
 
-  const chapterWithId = { ...chapter, id: dbChapter.id };
+  chapterWithId = { ...chapter, id: dbChapter.id };
   generatedChapters.push(chapterWithId);
   chaptersCreated++;
 
@@ -502,6 +551,8 @@ export async function generateSingleChapter(
     });
   }
 
+  }
+
   // Select template sections for prompt guidance only (count is locked to user's choice)
   const selectedSections = selectTemplateSections(
     chapterTemplate,
@@ -528,6 +579,58 @@ export async function generateSingleChapter(
     conceptsIntroduced: chapterWithId.conceptsIntroduced,
   };
 
+  const existingSectionsByPosition = new Map<number, NonNullable<typeof resumePartialChapter>['sections'][number]>();
+  if (resumePartialChapter) {
+    for (const sec of resumePartialChapter.sections) {
+      existingSectionsByPosition.set(sec.position, sec);
+      const resumedSection: GeneratedSection & { id: string } = {
+        id: sec.id,
+        position: sec.position,
+        title: sec.title,
+        contentType: (sec.type ?? 'video') as GeneratedSection['contentType'],
+        estimatedDuration: sec.duration ? `${sec.duration} minutes` : '15-20 minutes',
+        topicFocus: sec.title,
+        parentChapterContext: {
+          title: chapterPlain.title,
+          bloomsLevel: chapterPlain.bloomsLevel,
+          relevantObjectives: chapterPlain.learningObjectives.slice(0, 2),
+        },
+        conceptsIntroduced: [],
+        conceptsReferenced: [],
+        templateRole: selectedSections[sec.position - 1]?.role,
+      };
+      chapterSections.push(resumedSection);
+      if (!allSectionTitles.includes(resumedSection.title)) {
+        allSectionTitles.push(resumedSection.title);
+      }
+
+      onSSEEvent?.({
+        type: 'item_complete',
+        data: { stage: 2, chapter: chNum, section: sec.position, title: sec.title, id: sec.id },
+      });
+
+      const hasDetails = (sectionsWithDetails?.has(sec.id) ?? false)
+        || (!!sec.description && sec.description.length > 100);
+      if (hasDetails) {
+        completedSections.push({
+          ...resumedSection,
+          details: {
+            description: sec.description ?? '',
+            learningObjectives: splitLines(sec.learningObjectives),
+            keyConceptsCovered: splitLines(sec.keyConceptsCovered),
+            practicalActivity: sec.practicalActivity ?? '',
+            creatorGuidelines: sec.creatorGuidelines ?? '',
+            resources: splitLines(sec.resourceUrls),
+          },
+        });
+        onSSEEvent?.({
+          type: 'item_complete',
+          data: { stage: 3, chapter: chNum, section: sec.position, title: sec.title, id: sec.id },
+        });
+      }
+    }
+  }
+
   // Per-chapter Bloom's-filtered category prompt for Stage 2/3 (reduces ~400 tokens per call)
   const chapterCategoryPrompt = rawCategoryEnhancer
     ? composeCategoryPrompt(rawCategoryEnhancer, chapterPlain.bloomsLevel)
@@ -540,6 +643,17 @@ export async function generateSingleChapter(
   ): Promise<void> => {
     throwIfAborted(abortSignal);
     const sectionRoleName = selectedSections[secIdx]?.displayName ?? section.title;
+
+    // Granular progress event so the UI shows real-time status during Stage 3
+    onSSEEvent?.({
+      type: 'detail_progress',
+      data: {
+        chapter: chNum,
+        section: section.position,
+        totalSections: effectiveSectionsPerChapter,
+        message: `Generating details for Section ${chNum}.${section.position}: ${sectionRoleName}...`,
+      },
+    });
 
     onSSEEvent?.({
       type: 'item_generating',
@@ -640,82 +754,6 @@ export async function generateSingleChapter(
     let { details, thinking: detThinking } = bestDet;
     let detQuality = bestDet.qualityScore;
 
-    try {
-      throwIfAborted(abortSignal);
-      const detailsCriticReview = await reviewDetailsWithCritic({
-        userId,
-        details,
-        section: sectionPlain,
-        chapter: chapterPlain,
-        qualityScore: detQuality.overall,
-        courseContext,
-        runId,
-      });
-
-      if (detailsCriticReview) {
-        onSSEEvent?.({
-          type: 'critic_review',
-          data: {
-            stage: 3, chapter: chNum, section: section.position,
-            verdict: detailsCriticReview.verdict,
-            confidence: detailsCriticReview.confidence,
-            improvements: detailsCriticReview.actionableImprovements.length,
-          },
-        });
-
-        if (detailsCriticReview.verdict === 'revise' && detailsCriticReview.actionableImprovements.length > 0) {
-          const criticFeedback = buildDetailsCriticFeedbackBlock(detailsCriticReview);
-          const s3RetryStrategy = strategyMonitor.getStrategy(3, chNum);
-          const s3CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, section.position, {
-            totalSectionsOverride: effectiveSectionsPerChapter,
-            sectionDefOverride: s3TemplateDef,
-            sequenceOverride: selectedSections,
-          });
-          const { systemPrompt: s3CriticSystem, userPrompt: s3CriticUser } = buildStage3Prompt({
-            courseContext, chapter: chapterPlain, section: sectionPlain,
-            chapterSections: allChapterSectionsPlain, enrichedContext,
-            categoryPrompt: chapterCategoryPrompt, variant: experimentVariant,
-            templatePrompt: s3CriticTemplatePrompt, completedSections,
-            recalledMemory: recalledMemory ?? undefined,
-            onPromptBudgetAlert: (alert) => emitPromptBudgetAlert(alert, 3, section.position),
-          });
-          const augmentedCriticUser = `${s3CriticUser}${criticFeedback}`;
-
-          const s3CriticResponse = await traceAICall(
-            { runId, stage: 3, chapter: chNum, section: section.position, label: `Stage3 Ch${chNum}S${section.position} critic-retry` },
-            () => runSAMChatWithPreference({
-              userId,
-              capability: 'course',
-              messages: [{ role: 'user', content: augmentedCriticUser }],
-              systemPrompt: s3CriticSystem,
-              maxTokens: s3RetryStrategy.maxTokens,
-              temperature: s3RetryStrategy.temperature,
-            }),
-          );
-          const criticResult = parseDetailsResponse(s3CriticResponse, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
-          const criticSam = await validateDetailsWithSAM(criticResult.details, sectionPlain, chapterPlain.bloomsLevel, criticResult.qualityScore, courseContext);
-          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
-
-          if (criticBlended.overall > detQuality.overall) {
-            details = criticResult.details;
-            detQuality = criticBlended;
-            logger.info('[ORCHESTRATOR] Details critic revision accepted', {
-              chapter: chNum, section: section.position,
-              improvement: criticBlended.overall - bestDet.qualityScore.overall,
-            });
-          }
-
-          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3-critic-retry' });
-          trackBudget(7000);
-        }
-      }
-    } catch (detailsCriticError) {
-      logger.warn('[ORCHESTRATOR] Details critic review failed, proceeding with original', {
-        chapter: chNum, section: section.position,
-        error: detailsCriticError instanceof Error ? detailsCriticError.message : String(detailsCriticError),
-      });
-    }
-
     detQuality.chapterNumber = chNum;
     detQuality.stage = 3;
     localQualityScores.push(detQuality);
@@ -786,6 +824,38 @@ export async function generateSingleChapter(
     throwIfAborted(abortSignal);
     const templateSectionDef = selectedSections[secNum - 1];
     const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+
+    const existingSection = existingSectionsByPosition.get(secNum);
+    if (existingSection) {
+      const sectionWithId = chapterSections.find(s => s.id === existingSection.id)
+        ?? {
+          id: existingSection.id,
+          position: existingSection.position,
+          title: existingSection.title,
+          contentType: (existingSection.type ?? 'video') as GeneratedSection['contentType'],
+          estimatedDuration: existingSection.duration ? `${existingSection.duration} minutes` : '15-20 minutes',
+          topicFocus: existingSection.title,
+          parentChapterContext: {
+            title: chapterPlain.title,
+            bloomsLevel: chapterPlain.bloomsLevel,
+            relevantObjectives: chapterPlain.learningObjectives.slice(0, 2),
+          },
+          conceptsIntroduced: [],
+          conceptsReferenced: [],
+          templateRole: templateSectionDef?.role,
+        };
+      if (!chapterSections.some(s => s.id === sectionWithId.id)) {
+        chapterSections.push(sectionWithId);
+      }
+      if (!allSectionTitles.includes(sectionWithId.title)) {
+        allSectionTitles.push(sectionWithId.title);
+      }
+      const alreadyHasDetails = completedSections.some(s => s.id === sectionWithId.id);
+      if (!alreadyHasDetails) {
+        await generateSectionDetails(sectionWithId, secNum - 1);
+      }
+      continue;
+    }
 
     onSSEEvent?.({
       type: 'item_generating',
@@ -901,82 +971,6 @@ export async function generateSingleChapter(
     let { section, thinking: secThinking } = bestSec;
     section.templateRole = templateSectionDef?.role;
     let secQuality = bestSec.qualityScore;
-
-    try {
-      throwIfAborted(abortSignal);
-      const previousPlainSectionsForCritic = chapterSections.map((s) => stripId(s));
-      const sectionCriticReview = await reviewSectionWithCritic({
-        userId,
-        section,
-        chapter: chapterPlain,
-        priorSections: previousPlainSectionsForCritic,
-        qualityScore: secQuality.overall,
-        courseContext,
-        runId,
-      });
-
-      if (sectionCriticReview) {
-        onSSEEvent?.({
-          type: 'critic_review',
-          data: {
-            stage: 2, chapter: chNum, section: secNum,
-            verdict: sectionCriticReview.verdict,
-            confidence: sectionCriticReview.confidence,
-            improvements: sectionCriticReview.actionableImprovements.length,
-          },
-        });
-
-        if (sectionCriticReview.verdict === 'revise' && sectionCriticReview.actionableImprovements.length > 0) {
-          const criticFeedback = buildSectionCriticFeedbackBlock(sectionCriticReview);
-          const s2RetryStrategy = strategyMonitor.getStrategy(2, chNum);
-          const s2CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum, {
-            totalSectionsOverride: effectiveSectionsPerChapter,
-            sectionDefOverride: templateSectionDef,
-            sequenceOverride: selectedSections,
-          });
-          const { systemPrompt: s2CriticSystem, userPrompt: s2CriticUser } = buildStage2Prompt(
-            courseContext, chapterPlain, secNum, previousPlainSectionsForCritic, allSectionTitles,
-            enrichedContext, chapterCategoryPrompt, experimentVariant, s2CriticTemplatePrompt,
-            recalledMemory ?? undefined,
-            (alert) => emitPromptBudgetAlert(alert, 2, secNum),
-          );
-          const augmentedCriticUser = `${s2CriticUser}${criticFeedback}`;
-
-          const s2CriticResponse = await traceAICall(
-            { runId, stage: 2, chapter: chNum, section: secNum, label: `Stage2 Ch${chNum}S${secNum} critic-retry` },
-            () => runSAMChatWithPreference({
-              userId,
-              capability: 'course',
-              messages: [{ role: 'user', content: augmentedCriticUser }],
-              systemPrompt: s2CriticSystem,
-              maxTokens: s2RetryStrategy.maxTokens,
-              temperature: s2RetryStrategy.temperature,
-            }),
-          );
-          const criticResult = parseSectionResponse(s2CriticResponse, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
-          const criticSam = await validateSectionWithSAM(criticResult.section, criticResult.qualityScore, courseContext);
-          const criticBlended = blendScores(criticResult.qualityScore, criticSam);
-
-          if (criticBlended.overall > secQuality.overall) {
-            section = criticResult.section;
-            section.templateRole = templateSectionDef?.role;
-            secQuality = criticBlended;
-            logger.info('[ORCHESTRATOR] Section critic revision accepted', {
-              chapter: chNum, section: secNum,
-              improvement: criticBlended.overall - bestSec.qualityScore.overall,
-            });
-          }
-
-          await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2-critic-retry' });
-          trackBudget(5000);
-        }
-      }
-    } catch (sectionCriticError) {
-      logger.warn('[ORCHESTRATOR] Section critic review failed, proceeding with original', {
-        chapter: chNum, section: secNum,
-        error: sectionCriticError instanceof Error ? sectionCriticError.message : String(sectionCriticError),
-      });
-    }
 
     secQuality.chapterNumber = chNum;
     secQuality.stage = 2;

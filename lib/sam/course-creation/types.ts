@@ -669,6 +669,12 @@ export interface ChapterStepContext {
   budgetTracker?: import('./pipeline-budget').PipelineBudgetTracker;
   /** Tracks fallback usage — halts pipeline when rate exceeds threshold */
   fallbackTracker?: import('./response-parsers').FallbackTracker;
+  /** Resume-only: existing partial chapter row to continue instead of restarting Stage 1 */
+  partialChapterDbId?: string;
+  /** Resume-only: existing partial section row IDs in the partial chapter */
+  partialChapterSectionIds?: string[];
+  /** Resume-only: section IDs in partial chapter that already have Stage 3 details */
+  sectionsWithDetails?: Set<string>;
 }
 
 /** Result of generating a single chapter (all 3 stages) */

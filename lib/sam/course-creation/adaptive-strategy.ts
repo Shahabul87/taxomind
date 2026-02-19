@@ -57,9 +57,9 @@ export interface DegradationReport {
 const DEFAULTS: GenerationStrategy = {
   temperature: 0.7,
   maxTokens: 4000,
-  retryThreshold: 60,
-  maxRetries: 2,
-  enableSelfCritique: true,
+  retryThreshold: 55,
+  maxRetries: 1,
+  enableSelfCritique: false,
 };
 
 /** Stage-specific token limits */
@@ -72,8 +72,8 @@ const STAGE_TOKEN_LIMITS: Record<1 | 2 | 3, { min: number; default: number; max:
 /** Bounds for adapted values */
 const BOUNDS = {
   temperature: { min: 0.4, max: 0.9 },
-  retryThreshold: { min: 50, max: 70 },
-  maxRetries: { min: 1, max: 3 },
+  retryThreshold: { min: 45, max: 70 },
+  maxRetries: { min: 1, max: 2 },
 };
 
 /** Number of recent items to consider for trend analysis */
@@ -98,7 +98,7 @@ const PARSE_ERRORS_BEFORE_ADAPT = 2;
 const OVERSIZED_PATTERN_WINDOW = 5;
 
 /** How many times all retries were exhausted before increasing max retries */
-const EXHAUSTED_RETRIES_BEFORE_INCREASE = 2;
+const EXHAUSTED_RETRIES_BEFORE_INCREASE = 3;
 
 // ============================================================================
 // AdaptiveStrategyMonitor

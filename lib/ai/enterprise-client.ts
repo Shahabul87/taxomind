@@ -740,10 +740,15 @@ export const aiClient = {
       messages,
       maxTokens = 2000,
       temperature = 0.7,
-      extended = false,
+      extended: explicitExtended,
       provider: explicitProvider,
       capability,
     } = options;
+
+    // Auto-detect extended timeout for course generation capability (180s vs 60s).
+    // Course prompts are large (blueprint + context + templates) and routinely exceed 60s.
+    // Mirrors the same logic in user-scoped-adapter.ts for consistency.
+    const extended = explicitExtended ?? (capability === 'course');
 
     const requestId = generateRequestId();
     const feature = CAPABILITY_TO_FEATURE[capability ?? 'chat'];
@@ -914,10 +919,13 @@ export const aiClient = {
       messages,
       maxTokens = 2000,
       temperature = 0.7,
-      extended = false,
+      extended: explicitExtended,
       provider: explicitProvider,
       capability,
     } = options;
+
+    // Auto-detect extended timeout for course generation (same as chat method)
+    const extended = explicitExtended ?? (capability === 'course');
 
     const requestId = generateRequestId();
     const feature = CAPABILITY_TO_FEATURE[capability ?? 'chat'];

@@ -269,13 +269,14 @@ export async function orchestrateCourseCreation(
   const sloTracker = new CourseCreationSLOTracker(runId);
 
   // Initialize pipeline budget tracker (3x the estimated token spend)
-  // Accurate call count per chapter:
-  //   Stage 1: 1 gen + 1 self-critique + 1 critic + 1 critic-retry = 4 calls
-  //   Stage 2: sectionsPerChapter × (1 gen + 1 critic + 1 critic-retry) = spc × 3
-  //   Stage 3: sectionsPerChapter × (1 gen + 1 critic + 1 critic-retry) = spc × 3
-  //   Between-chapter: 1 agentic decision
-  // Total per chapter: 5 + sectionsPerChapter × 6
-  const estimatedCallsPerChapter = 5 + effectiveSectionsPerChapter * 6;
+  // Optimized call count per chapter (critics + self-critique + AI decisions removed):
+  //   Stage 1: 1 gen + 1 critic (chapter-level, kept) = 2 calls
+  //   Stage 2: sectionsPerChapter × 1 gen = spc × 1
+  //   Stage 3: sectionsPerChapter × 1 gen = spc × 1
+  //   Between-chapter: 1 rule-based decision (no AI call)
+  //   Retries: +1 max per stage (rare, budgeted as ~1 extra call)
+  // Total per chapter: 3 + sectionsPerChapter × 2 (+ ~spc retries budgeted)
+  const estimatedCallsPerChapter = 3 + effectiveSectionsPerChapter * 3;
   const estimatedTotalCalls = config.totalChapters * estimatedCallsPerChapter + 2; // +2 for overhead
   const estimatedTokensPerCall = 6000;
   const estimatedTotalTokens = estimatedTotalCalls * estimatedTokensPerCall;
@@ -537,6 +538,7 @@ export async function orchestrateCourseCreation(
       startChapter,
       totalChapters,
       effectiveSectionsPerChapter,
+      resumeState,
     });
     chaptersCreated = pipelineResult.chaptersCreated;
     sectionsCreated = pipelineResult.sectionsCreated;

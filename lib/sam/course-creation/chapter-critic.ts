@@ -94,8 +94,8 @@ const STAGE_CRITIC_TIMEOUT_MS = 8_000;
 const MIN_REVISE_CONFIDENCE = 60;
 
 /** Borderline quality range — only fire Stage 2/3 critics within this range (cost optimization) */
-const BORDERLINE_MIN = 55;
-const BORDERLINE_MAX = 70;
+const BORDERLINE_MIN = 45;
+const BORDERLINE_MAX = 58;
 
 // ============================================================================
 // Critic Persona

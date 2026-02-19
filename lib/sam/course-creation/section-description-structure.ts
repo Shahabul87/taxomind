@@ -14,7 +14,7 @@ export const REQUIRED_SECTION_DESCRIPTION_HEADINGS = [
   'Common Confusion + Fix',
 ] as const;
 
-export const MIN_WORDS_PER_SECTION_DESCRIPTION_BLOCK = 80;
+export const MIN_WORDS_PER_SECTION_DESCRIPTION_BLOCK = 50;
 
 interface ParsedSectionBlock {
   heading: string;
@@ -227,4 +227,37 @@ export function analyzeSectionDescriptionStructure(html: string): SectionDescrip
       hasMisconceptionAndFix,
     },
   };
+}
+
+/**
+ * Converts a structure analysis into a 0–100 quality score instead of binary pass/fail.
+ * Higher score = better structural adherence. Used by scoreDetails() as a quality penalty.
+ */
+export function scoreSectionDescriptionStructure(analysis: SectionDescriptionStructureAnalysis): number {
+  let score = 100;
+
+  // Missing headings: -12 each (6 headings × 12 = 72 max penalty)
+  score -= analysis.missingHeadings.length * 12;
+
+  // Unexpected headings: -5 each
+  score -= analysis.unexpectedHeadings.length * 5;
+
+  // Word count violations: proportional penalty per section
+  for (const heading of REQUIRED_SECTION_DESCRIPTION_HEADINGS) {
+    const wc = analysis.sectionWordCounts[heading] ?? 0;
+    if (wc > 0 && wc < MIN_WORDS_PER_SECTION_DESCRIPTION_BLOCK) {
+      score -= Math.round((1 - wc / MIN_WORDS_PER_SECTION_DESCRIPTION_BLOCK) * 10);
+    }
+  }
+
+  // Semantic checks: penalty for each missing quality signal
+  const sc = analysis.semanticChecks;
+  if (!sc.hasMotivationProblem) score -= 5;
+  if (!sc.hasCoreMentalModel) score -= 5;
+  if (!sc.hasEquationIntuitionCompliance) score -= 3;
+  if (!sc.hasStepwiseVisualization) score -= 5;
+  if (!sc.hasConcreteExample) score -= 5;
+  if (!sc.hasMisconceptionAndFix) score -= 5;
+
+  return Math.max(0, score);
 }
