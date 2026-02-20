@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
 
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 
 
 interface FileUploadFormProps {

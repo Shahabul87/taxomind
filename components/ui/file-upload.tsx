@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { UploadCloud, X } from "lucide-react";
 
 interface FileUploadProps {
-  onUpload: (files: File[]) => void;
+  onUpload?: (files: File[]) => void;
+  /** @deprecated Use onUpload instead */
+  onChange?: (files: File[]) => void;
   accept?: string;
   multiple?: boolean;
   maxSize?: number; // in bytes
@@ -14,11 +16,13 @@ interface FileUploadProps {
 
 export function FileUpload({
   onUpload,
+  onChange,
   accept = "image/*",
   multiple = false,
   maxSize = 4 * 1024 * 1024, // 4MB default
   className
 }: FileUploadProps) {
+  const handleFiles = onUpload ?? onChange ?? (() => {});
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +60,7 @@ export function FileUpload({
     const validFiles = validateFiles(files);
     
     if (validFiles.length > 0) {
-      onUpload(validFiles);
+      handleFiles(validFiles);
     }
   };
 
@@ -65,7 +69,7 @@ export function FileUpload({
     if (files) {
       const validFiles = validateFiles(files);
       if (validFiles.length > 0) {
-        onUpload(validFiles);
+        handleFiles(validFiles);
       }
     }
   };

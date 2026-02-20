@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import axios from "axios";
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 import { logger } from '@/lib/logger';
 
 // Define the type for each uploaded file

@@ -10,7 +10,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 import { cn } from "@/lib/utils";
 import { ensureHttpsUrl, getFallbackImageUrl } from "@/lib/cloudinary-utils";
 

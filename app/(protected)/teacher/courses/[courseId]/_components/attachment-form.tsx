@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 import { cn } from "@/lib/utils";
 
 interface AttachmentFormProps {

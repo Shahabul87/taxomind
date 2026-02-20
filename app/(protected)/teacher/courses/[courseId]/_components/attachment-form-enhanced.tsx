@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
 
 import { Button } from "@/components/ui/button";
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 import { cn } from "@/lib/utils";
 import { ContentAnalysisResults } from "@/components/sam/content-analysis-results";
 import { Badge } from "@/components/ui/badge";

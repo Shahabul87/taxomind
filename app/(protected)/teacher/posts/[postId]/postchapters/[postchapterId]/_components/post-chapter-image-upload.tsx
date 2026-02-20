@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { PostChapterSection } from "@prisma/client";
 import Image from "next/image";
-import { FileUpload } from "@/fileupload/file-upload";
+import { FileUpload } from "@/components/ui/file-upload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logger } from '@/lib/logger';
