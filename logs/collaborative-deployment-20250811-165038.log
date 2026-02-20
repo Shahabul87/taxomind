@@ -1,6 +1,0 @@
-[0;32m[2025-08-11 16:50:38] Starting collaborative editing deployment for: staging[0m
-[0;32m[2025-08-11 16:50:38] 🚀 Starting collaborative editing deployment[0m
-[0;32m[2025-08-11 16:50:38] Environment: staging[0m
-[0;32m[2025-08-11 16:50:38] Log file: ./logs/collaborative-deployment-20250811-165038.log[0m
-[0;32m[2025-08-11 16:50:38] Checking prerequisites...[0m
-[0;31m[2025-08-11 16:50:38] ERROR: DATABASE_URL environment variable not set[0m

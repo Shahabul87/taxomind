@@ -1,6 +1,0 @@
-
-> taxomind@1.0.0 admin:create
-> tsx scripts/admin-cli.ts create --email sham251087@gmail.com --name Super Admin --password ShaM2510*##&*
-
-- Creating admin account...
-[?25l[2K[1G[36m?[39m [1mUser sham251087@gmail.com exists. Promote to admin?[22m [90m›[39m [90m(Y/n)[39m

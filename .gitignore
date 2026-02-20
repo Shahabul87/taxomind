@@ -25,6 +25,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# build logs
+*.log
+
+# generated reports
+/playwright-report/
+/screenshots/
+/logs/
+/.temp_types/
+
 # playwright MCP
 .playwright-mcp/
 
