@@ -135,9 +135,20 @@ export function SAMLearningObjectivesGeneratorModal({
     setSelectedObjectives(new Set());
 
     try {
-      const bloomsFocusText = bloomsFocus.length > 0
-        ? `- Bloom's Taxonomy Focus Levels: ${bloomsFocus.join(', ')}`
+      const hasBloomsFocus = bloomsFocus.length > 0;
+      const bloomsFocusText = hasBloomsFocus
+        ? `- Bloom's Taxonomy Focus Levels (MANDATORY): ${bloomsFocus.join(', ')}`
         : '- Bloom\'s Taxonomy Focus: Cover all levels (Remember through Create)';
+
+      // Build distribution instruction so objectives spread across selected levels
+      const bloomsDistribution = hasBloomsFocus
+        ? `\n\nBLOOM'S LEVEL DISTRIBUTION (MANDATORY):
+You MUST distribute the ${generateCount} objectives across ONLY these levels: ${bloomsFocus.join(', ')}.
+- Every objective MUST belong to one of these levels: ${bloomsFocus.join(', ')}
+- Do NOT generate objectives at levels outside this list
+- Spread objectives as evenly as possible across the selected levels
+- The "bloomsLevel" field in your response MUST be one of: ${bloomsFocus.map(l => `"${l}"`).join(', ')}`
+        : '';
 
       const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
@@ -160,16 +171,16 @@ CRITICAL RULES:
 1. Every objective MUST be specifically about "${courseTitle}" — directly reference the subject matter
 2. Each objective MUST start with a Bloom's Taxonomy action verb
 3. Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
-${bloomsFocus.length > 0 ? `4. Prioritize objectives at these Bloom's levels: ${bloomsFocus.join(', ')}` : '4. Cover different cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create)'}
+${hasBloomsFocus ? `4. ONLY use these Bloom's levels: ${bloomsFocus.join(', ')}. Do NOT use any other levels.` : '4. Cover different cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create)'}
 5. Avoid duplicating existing objectives
 6. Focus on what students will be able to DO after completing the course
 7. Align objectives with the course overview and target audience
-
+${bloomsDistribution}
 Return a JSON array with exactly ${generateCount} objectives in this format:
 [
   {
     "objective": "Full learning objective statement starting with action verb",
-    "bloomsLevel": "REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE",
+    "bloomsLevel": "${hasBloomsFocus ? bloomsFocus.join('|') : 'REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE'}",
     "actionVerb": "The action verb used (e.g., Define, Explain, Implement)"
   }
 ]
@@ -247,7 +258,22 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
 
       // If still no objectives, create fallback
       if (parsedObjectives.length === 0) {
-        parsedObjectives = generateFallbackObjectives(courseTitle, difficulty || 'Intermediate');
+        parsedObjectives = generateFallbackObjectives(courseTitle, difficulty || 'Intermediate', bloomsFocus);
+      }
+
+      // Post-generation validation: enforce Bloom's focus levels
+      if (bloomsFocus.length > 0) {
+        const allowedLevels = new Set(bloomsFocus.map(l => l.toUpperCase()));
+        parsedObjectives = parsedObjectives.map(obj => {
+          if (allowedLevels.has(obj.bloomsLevel.toUpperCase())) return obj;
+          // Re-classify using action verb if the AI returned a wrong level
+          const detectedLevel = detectBloomsLevel(obj.actionVerb);
+          if (allowedLevels.has(detectedLevel)) {
+            return { ...obj, bloomsLevel: detectedLevel };
+          }
+          // Assign to the first selected level as last resort
+          return { ...obj, bloomsLevel: bloomsFocus[0].toUpperCase() };
+        });
       }
 
       // Filter out any that match existing objectives
@@ -733,20 +759,55 @@ function detectBloomsLevel(verb: string): string {
   return 'UNDERSTAND';
 }
 
-// Fallback objective generator
-function generateFallbackObjectives(courseTitle: string, difficulty: string): ObjectiveSuggestion[] {
-  const templates = [
-    { verb: 'Understand', level: 'UNDERSTAND', template: `Understand the fundamental concepts and principles of ${courseTitle}` },
-    { verb: 'Apply', level: 'APPLY', template: `Apply learned techniques to solve real-world problems related to ${courseTitle}` },
-    { verb: 'Analyze', level: 'ANALYZE', template: `Analyze complex scenarios and identify appropriate solutions using ${courseTitle} knowledge` },
-    { verb: 'Create', level: 'CREATE', template: `Create original projects demonstrating mastery of ${courseTitle} concepts` },
-    { verb: 'Evaluate', level: 'EVALUATE', template: `Evaluate different approaches and best practices in ${courseTitle}` },
-    { verb: 'Implement', level: 'APPLY', template: `Implement industry-standard practices and methodologies for ${courseTitle}` },
-  ];
+// Fallback objective generator — respects selected Bloom's focus levels
+function generateFallbackObjectives(courseTitle: string, difficulty: string, bloomsFocus: string[] = []): ObjectiveSuggestion[] {
+  const allTemplates: Record<string, { verb: string; template: string }[]> = {
+    REMEMBER: [
+      { verb: 'Identify', template: `Identify the key concepts and terminology used in ${courseTitle}` },
+      { verb: 'Define', template: `Define the foundational principles underlying ${courseTitle}` },
+    ],
+    UNDERSTAND: [
+      { verb: 'Explain', template: `Explain the fundamental concepts and principles of ${courseTitle}` },
+      { verb: 'Summarize', template: `Summarize the core methodologies and frameworks in ${courseTitle}` },
+    ],
+    APPLY: [
+      { verb: 'Apply', template: `Apply learned techniques to solve real-world problems related to ${courseTitle}` },
+      { verb: 'Implement', template: `Implement industry-standard practices and methodologies for ${courseTitle}` },
+    ],
+    ANALYZE: [
+      { verb: 'Analyze', template: `Analyze complex scenarios and identify appropriate solutions using ${courseTitle} knowledge` },
+      { verb: 'Differentiate', template: `Differentiate between various approaches and strategies within ${courseTitle}` },
+    ],
+    EVALUATE: [
+      { verb: 'Evaluate', template: `Evaluate different approaches and best practices in ${courseTitle}` },
+      { verb: 'Assess', template: `Assess the effectiveness of solutions and strategies in ${courseTitle}` },
+    ],
+    CREATE: [
+      { verb: 'Create', template: `Create original projects demonstrating mastery of ${courseTitle} concepts` },
+      { verb: 'Design', template: `Design comprehensive solutions applying ${courseTitle} principles` },
+    ],
+  };
 
-  return templates.map(t => ({
-    objective: t.template,
-    bloomsLevel: t.level,
-    actionVerb: t.verb,
-  }));
+  // Use selected levels, or fall back to a balanced set
+  const levels = bloomsFocus.length > 0
+    ? bloomsFocus.map(l => l.toUpperCase())
+    : ['UNDERSTAND', 'APPLY', 'ANALYZE', 'CREATE', 'EVALUATE'];
+
+  const results: ObjectiveSuggestion[] = [];
+  let levelIdx = 0;
+  while (results.length < 6 && levelIdx < levels.length * 2) {
+    const level = levels[levelIdx % levels.length];
+    const templates = allTemplates[level] ?? allTemplates['UNDERSTAND'];
+    const templateIdx = Math.floor(levelIdx / levels.length);
+    if (templateIdx < templates.length) {
+      results.push({
+        objective: templates[templateIdx].template,
+        bloomsLevel: level,
+        actionVerb: templates[templateIdx].verb,
+      });
+    }
+    levelIdx++;
+  }
+
+  return results;
 }

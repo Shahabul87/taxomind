@@ -444,6 +444,19 @@ export async function POST(request: NextRequest) {
               chaptersCreated: result.chaptersCreated,
               sectionsCreated: result.sectionsCreated,
             });
+          } else if (result.courseId) {
+            // Safety net: emit 'complete' for the resume early-return path
+            // (checkpoint-manager returns {success:true} when all chapters
+            // are already done, but doesn't emit an SSE event itself).
+            // The frontend's handleComplete() deduplicates, so a second
+            // 'complete' from the normal orchestrator path is harmless.
+            sendSSE('complete', {
+              courseId: result.courseId,
+              chaptersCreated: result.chaptersCreated ?? 0,
+              sectionsCreated: result.sectionsCreated ?? 0,
+              totalTime: result.stats?.totalTime ?? 0,
+              averageQualityScore: result.stats?.averageQualityScore ?? 0,
+            });
           }
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Unknown error';

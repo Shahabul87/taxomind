@@ -402,10 +402,16 @@ const TimingDisplay = memo(function TimingDisplay({
   timing,
   isCreating,
   startTime,
+  serverCompletedItems,
+  serverTotalItems,
+  phase,
 }: {
   timing?: CreationProgress['timing'];
   isCreating: boolean;
   startTime: number;
+  serverCompletedItems?: number;
+  serverTotalItems?: number;
+  phase?: string;
 }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -422,7 +428,17 @@ const TimingDisplay = memo(function TimingDisplay({
   if (!isCreating || startTime === 0) return null;
 
   const elapsedMs = elapsed || timing?.elapsedMs || 0;
-  const hasEta = timing && timing.itemsCompleted >= 2 && timing.estimatedRemainingMs !== null;
+
+  // Prefer server-side counters (accurate across reconnects) over
+  // client-side timestamp counts which double-count on auto-reconnect.
+  const completedItems = serverCompletedItems ?? timing?.itemsCompleted ?? 0;
+  const totalItems = serverTotalItems ?? timing?.totalItems ?? 0;
+
+  const hasEta = timing && completedItems >= 2 && timing.estimatedRemainingMs !== null;
+  // When ETA hits 0 but we're still actively creating, show "Finishing up..."
+  // instead of the misleading "~0s remaining".
+  const isActivePhase = phase && phase !== 'complete' && phase !== 'error' && phase !== 'idle' && phase !== 'paused';
+  const isFinishing = hasEta && timing.estimatedRemainingMs === 0 && isActivePhase;
 
   return (
     <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -432,14 +448,16 @@ const TimingDisplay = memo(function TimingDisplay({
       </div>
       <div className="flex items-center gap-1.5">
         <Timer className="h-3.5 w-3.5" />
-        {hasEta ? (
+        {isFinishing ? (
+          <span className="text-amber-600">Finishing up...</span>
+        ) : hasEta ? (
           <span>~{formatDuration(timing.estimatedRemainingMs!)} remaining</span>
         ) : (
           <span className="text-muted-foreground/60">Calculating ETA...</span>
         )}
       </div>
-      {timing && timing.itemsCompleted > 0 && (
-        <span>{timing.itemsCompleted}/{timing.totalItems} items</span>
+      {completedItems > 0 && (
+        <span>{Math.min(completedItems, totalItems)}/{totalItems} items</span>
       )}
     </div>
   );
@@ -709,6 +727,9 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
               timing={progress.timing}
               isCreating={isCreating}
               startTime={startTimeRef.current}
+              serverCompletedItems={progress.serverCompletedItems}
+              serverTotalItems={progress.serverTotalItems}
+              phase={progress.state.phase}
             />
           )}
 
