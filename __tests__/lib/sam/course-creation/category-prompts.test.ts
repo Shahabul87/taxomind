@@ -311,7 +311,7 @@ describe('Category Prompt Enhancers', () => {
       // Combined categoryId
       expect(blended.categoryId).toBe('music+finance-accounting');
       // Combined display name
-      expect(blended.displayName).toContain('\u00d7');
+      expect(blended.displayName).toContain(' x ');
       // Primary expertise preserved (starts with primary's content)
       expect(blended.domainExpertise).toContain(primary.domainExpertise);
       // Cross-domain section present

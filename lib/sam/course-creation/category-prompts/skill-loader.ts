@@ -90,13 +90,29 @@ function parseMarkdownSections(body: string): Record<string, string> {
   const lines = body.split('\n');
   let currentHeading = '';
   let currentContent: string[] = [];
+  // Headings with no content before the next H2 become aliases —
+  // their key maps to the next heading's content. This handles the
+  // common skill-file pattern:
+  //   ## Teaching Methodology        ← required section name (empty)
+  //   ## PROGRAMMING TEACHING METHODOLOGY  ← domain-specific heading (has content)
+  let emptyAliases: string[] = [];
 
   for (const line of lines) {
     const h2Match = line.match(/^## (.+)$/);
     if (h2Match) {
       // Save previous section
       if (currentHeading) {
-        sections[currentHeading] = currentContent.join('\n').trim();
+        const trimmed = currentContent.join('\n').trim();
+        if (trimmed) {
+          sections[currentHeading] = trimmed;
+          for (const alias of emptyAliases) {
+            sections[alias] = trimmed;
+          }
+          emptyAliases = [];
+        } else {
+          // Heading had no content — remember it as an alias
+          emptyAliases.push(currentHeading);
+        }
       }
       currentHeading = h2Match[1].trim();
       currentContent = [];
@@ -107,7 +123,11 @@ function parseMarkdownSections(body: string): Record<string, string> {
 
   // Save last section
   if (currentHeading) {
-    sections[currentHeading] = currentContent.join('\n').trim();
+    const trimmed = currentContent.join('\n').trim();
+    sections[currentHeading] = trimmed;
+    for (const alias of emptyAliases) {
+      sections[alias] = trimmed;
+    }
   }
 
   return sections;

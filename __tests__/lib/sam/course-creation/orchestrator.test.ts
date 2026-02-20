@@ -279,6 +279,17 @@ jest.mock('@/lib/sam/course-creation/course-state-machine', () => {
   };
 });
 
+// Mock chapter-templates — override getMinimumSectionsForDifficulty so that
+// effectiveSectionsPerChapter = max(userRequested, minimum) respects the test's
+// sectionsPerChapter: 2 instead of being clamped up to the template's 4 required.
+jest.mock('@/lib/sam/course-creation/chapter-templates', () => {
+  const actual = jest.requireActual('@/lib/sam/course-creation/chapter-templates');
+  return {
+    ...actual,
+    getMinimumSectionsForDifficulty: jest.fn().mockReturnValue(2),
+  };
+});
+
 // Mock memory persistence
 jest.mock('@/lib/sam/course-creation/memory-persistence', () => ({
   persistConceptsBackground: jest.fn(),
