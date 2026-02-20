@@ -690,11 +690,16 @@ Return ONLY valid JSON array:
 ]`;
 
   try {
+    // Reasoning models (deepseek-reasoner) use max_tokens for total completion
+    // (reasoning + output). Scale with objective count so reasoning doesn't
+    // consume the entire budget, leaving zero tokens for JSON output.
+    const maxTokens = Math.min(8192, 2000 + objectives.length * 1200);
+
     const responseText = await runSAMChatWithPreference({
       userId,
       capability: 'course',
       systemPrompt: 'You are a learning objective scoring expert specializing in Bloom\'s taxonomy. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 2500,
+      maxTokens,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -939,7 +944,9 @@ Return ONLY valid JSON:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course quality auditor. Evaluate coherence between course components. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 1500,
+      // Scale token budget for reasoning models — coherence analysis reasons
+      // over each objective + title + overview combination.
+      maxTokens: Math.min(8192, 2000 + objectives.length * 800),
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
