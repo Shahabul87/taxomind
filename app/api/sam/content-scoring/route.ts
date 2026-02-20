@@ -237,9 +237,9 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     // Scoring timeout: reasoning models (deepseek-reasoner) need more time.
-    // Single item = 60s, batch = 90s. Falls back to heuristic on timeout.
-    const SCORING_TIMEOUT_SINGLE = 60_000;
-    const SCORING_TIMEOUT_BATCH = 90_000;
+    // Single item = 90s, batch = 120s. Falls back to heuristic on timeout.
+    const SCORING_TIMEOUT_SINGLE = 90_000;
+    const SCORING_TIMEOUT_BATCH = 120_000;
 
     switch (data.type) {
       case 'title':
@@ -438,9 +438,9 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course title scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
-      // Reasoning models (deepseek-reasoner) need high max_tokens because
-      // reasoning tokens count toward the limit before the actual JSON output.
-      maxTokens: 8000,
+      // Keep maxTokens modest — actual JSON output is <500 tokens.
+      // Reasoning models use internal thinking tokens separately from output tokens.
+      maxTokens: 2500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -521,7 +521,7 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course overview scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 8000,
+      maxTokens: 2500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -694,7 +694,7 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a learning objective scoring expert specializing in Bloom\'s taxonomy. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 8000,
+      maxTokens: 2500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -939,7 +939,7 @@ Return ONLY valid JSON:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course quality auditor. Evaluate coherence between course components. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 4000,
+      maxTokens: 1500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });

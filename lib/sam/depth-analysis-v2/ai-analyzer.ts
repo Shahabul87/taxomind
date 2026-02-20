@@ -283,7 +283,7 @@ export async function runAIAnalysis(
       temperature: 0.3,
       systemPrompt,
       messages: [{ role: 'user', content: overviewPrompt }],
-      extended: true, // Use 180s timeout for complex analysis
+      extended: true, // Use extended timeout for complex analysis
     });
 
     result.overview = parseCourseOverviewResponse(overviewResponse);
@@ -557,7 +557,7 @@ export async function runAIAnalysis(
         temperature: 0.3,
         systemPrompt,
         messages: [{ role: 'user', content: chapterPrompt }],
-        extended: true, // Use 180s timeout for complex analysis
+        extended: true, // Use extended timeout for complex analysis
       });
 
       const chapterResult = parseChapterAnalysisResponse(
@@ -849,7 +849,7 @@ export async function runAIAnalysis(
       temperature: 0.3,
       systemPrompt,
       messages: [{ role: 'user', content: crossChapterPrompt }],
-      extended: true, // Use 180s timeout for complex analysis
+      extended: true, // Use extended timeout for complex analysis
     });
 
     result.crossChapter = parseCrossChapterResponse(crossChapterResponse);

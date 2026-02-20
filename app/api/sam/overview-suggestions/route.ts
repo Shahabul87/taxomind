@@ -80,17 +80,7 @@ export async function POST(req: NextRequest) {
 async function generateOverviewSuggestions(userId: string, request: OverviewSuggestionRequest): Promise<OverviewSuggestionResponse> {
   const { title, category, subcategory, difficulty, intent, targetAudience, currentOverview, count = 3, refinementContext } = request;
 
-  const systemPrompt = `You are a senior course copywriter who has written 500+ course descriptions for top platforms. You follow a rigorous internal process before returning any output.
-
-Your process:
-1. UNDERSTAND the course topic deeply — what problem does it solve? Who needs it?
-2. IDENTIFY ${count} distinct angles (practical skills vs career impact vs knowledge depth)
-3. DRAFT each overview following the mandatory 4-part structure
-4. SELF-CHECK each draft: Is it 150-250 words? Does it reference "${title}" specifically? Does it sell the transformation?
-5. REVISE any draft that reads generically — add specific skills, tools, or deliverables
-6. RETURN only overviews you would be proud to publish on Coursera
-
-Return ONLY valid JSON. No markdown fences, no extra text.`;
+  const systemPrompt = `You are a senior course copywriter who has written 500+ course descriptions for top platforms. Generate ${count} distinct, high-quality course overviews that each take a DIFFERENT angle (practical skills vs career impact vs knowledge depth). Every overview must be 150-250 words, reference "${title}" specifically, and sell a concrete transformation. Return ONLY valid JSON. No markdown fences, no extra text.`;
 
   // Build refinement block if refining weak overviews
   let refinementBlock = '';
@@ -121,44 +111,19 @@ Focus on fixing the specific weaknesses while keeping the overviews on-topic.
 
   const prompt = `COURSE TITLE: "${title}"
 ${contextBlock}${refinementBlock}
-STEP 1 — AUDIENCE EMPATHY:
-Before writing, answer these internally:
-- What specific problem does a "${title}" student face today?
-- What concrete skill gap are they trying to close?
-- What would they type into a search bar to find this course?
-- What transformation would make them feel the course was worth it?
+Generate ${count} overviews. Each MUST follow this 4-part structure:
 
-STEP 2 — WRITE ${count} OVERVIEWS:
-Each overview MUST follow this 4-part structure:
-
-PART 1: HOOK (1-2 sentences)
-→ Open with the specific problem, opportunity, or aspiration. Reference "${title}" directly.
-
-PART 2: WHAT YOU'LL LEARN (2-3 sentences)
-→ List 3-5 CONCRETE skills, tools, frameworks, or techniques. Name them specifically.
-→ Bad: "You'll learn important concepts" / Good: "You'll master React hooks, Context API, and performance profiling with Chrome DevTools"
-
-PART 3: TRANSFORMATION (1-2 sentences)
-→ What students will confidently DO after completing the course. Use action verbs.
-
-PART 4: WHO THIS IS FOR (1 sentence)
-→ Specific audience + prerequisites.
+1. HOOK (1-2 sentences): Open with the specific problem or aspiration. Reference "${title}" directly.
+2. WHAT YOU'LL LEARN (2-3 sentences): List 3-5 CONCRETE skills, tools, or techniques by name. Bad: "important concepts" / Good: "React hooks, Context API, and Chrome DevTools profiling"
+3. TRANSFORMATION (1-2 sentences): What students will confidently DO after completing the course.
+4. WHO THIS IS FOR (1 sentence): Specific audience + prerequisites.
 
 CONSTRAINTS:
-- 150-250 words per overview (count carefully)
-- Each overview emphasizes a DIFFERENT angle
-- Every overview must mention "${title}" or its core keyword at least twice
+- 150-250 words per overview
+- Each overview takes a DIFFERENT angle (practical skills vs career impact vs knowledge depth)
+- Mention "${title}" or its core keyword at least twice per overview
 - Match vocabulary to ${difficulty || 'BEGINNER'} level
-
-STEP 3 — SELF-REVIEW:
-Before returning, verify each overview:
-- References the specific topic (not generic)?
-- Lists concrete skills/tools (not vague promises)?
-- Has all 4 parts present?
-- Is 150-250 words?
-- Would you enroll based on reading this?
-
-If any check fails, revise before returning.
+- Reference specific skills/tools — no vague promises
 
 Return ONLY this JSON:
 {"suggestions":["Overview 1","Overview 2","Overview 3"],"reasoning":"How the ${count} overviews differ in angle"}`;

@@ -512,7 +512,7 @@ async function getAdapter(options: {
 }): Promise<AIAdapter> {
   const { provider, userId, extended = false, capability } = options;
   const timeoutConfig: CreateAdapterOptions = extended
-    ? { timeout: 180000, maxRetries: 1 }
+    ? { timeout: 100000, maxRetries: 1 }
     : { timeout: 60000, maxRetries: 2 };
 
   const settings = await getPlatformSettings();
@@ -745,8 +745,11 @@ export const aiClient = {
       capability,
     } = options;
 
-    // Auto-detect extended timeout for course generation capability (180s vs 60s).
+    // Auto-detect extended timeout for course generation capability (100s vs 60s).
     // Course prompts are large (blueprint + context + templates) and routinely exceed 60s.
+    // The adapter timeout (100s) is set slightly above the route-level withRetryableTimeout (90s)
+    // so the route timeout fires first with a clean OperationTimeoutError, and the adapter's
+    // AbortController cleans up the HTTP connection shortly after — preventing dangling fetches.
     // Mirrors the same logic in user-scoped-adapter.ts for consistency.
     const extended = explicitExtended ?? (capability === 'course');
 

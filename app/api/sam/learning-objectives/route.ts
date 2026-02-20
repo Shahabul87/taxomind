@@ -114,17 +114,7 @@ You MUST distribute objectives across ONLY these levels: ${bloomsFocus.join(', '
     ? `\nEXISTING OBJECTIVES (do NOT duplicate these):\n${existingObjectives.map(o => `- ${o}`).join('\n')}`
     : '';
 
-  const systemPrompt = `You are a senior instructional designer with expertise in Bloom's taxonomy and backward design. You systematically design learning objectives that are measurable, specific, and aligned to course content.
-
-Your process:
-1. DECOMPOSE the course topic into 4-6 key skill areas
-2. MAP each skill area to the appropriate Bloom's level
-3. WRITE objectives using the ABCD format (Audience, Behavior, Condition, Degree)
-4. SELF-CHECK each objective: Is it measurable? Is the verb correct for the claimed Bloom's level? Is it specific to this course (not generic)?
-5. VERIFY coverage: Do the objectives collectively cover the breadth of the course?
-6. RETURN only objectives scoring at least 70 by your own assessment
-
-Return ONLY valid JSON. No markdown fences, no extra text.`;
+  const systemPrompt = `You are a senior instructional designer with expertise in Bloom's taxonomy and backward design. Generate measurable, course-specific learning objectives using the ABCD format (Audience, Behavior, Condition, Degree). Every objective must use the correct action verb for its Bloom's level and reference specific skills from the course — not generic filler. Return ONLY valid JSON. No markdown fences, no extra text.`;
 
   // Build context block — omit empty fields instead of "Not specified"
   const contextLines: string[] = [];
@@ -143,10 +133,8 @@ ${contextBlock}
 ${bloomsConstraint}
 ${existingBlock}
 
-STEP 1 — TOPIC DECOMPOSITION:
-Before writing objectives, identify 4-6 key skill areas that "${title}" covers. For each skill area, determine the appropriate Bloom's level based on the difficulty (${difficulty || 'BEGINNER'}).
+Generate ${count} learning objectives for "${title}".
 
-STEP 2 — WRITE ${count} OBJECTIVES:
 For each objective:
 - START with a measurable action verb from the correct Bloom's level
 - INCLUDE the specific skill, tool, or concept from "${title}"
@@ -161,21 +149,11 @@ VERB REFERENCE:
 - EVALUATE: evaluate, assess, critique, justify, recommend
 - CREATE: create, design, develop, construct, produce
 
-STEP 3 — COVERAGE CHECK:
-Verify that your ${count} objectives collectively:
+QUALITY REQUIREMENTS:
 - Cover at least 3 different skill areas of "${title}"
-- Are distributed across the required Bloom's levels
-- Progress from foundational to advanced (if difficulty allows)
-- Each references a SPECIFIC aspect of "${title}" (not generic)
-
-STEP 4 — QUALITY GATE:
-For each objective, verify:
-- Action verb matches claimed Bloom's level?
-- Would a student know EXACTLY what they need to demonstrate?
-- Is it specific to THIS course or could it apply to any course?
-- Could an instructor design an assessment for this objective?
-
-Remove any objective that fails any check and replace it.
+- Distribute across the required Bloom's levels
+- Every objective must be specific to THIS course — not generic
+- Each must be measurable (an instructor could design an assessment for it)
 
 Return ONLY this JSON:
 {"objectives":[{"objective":"Full text","bloomsLevel":"LEVEL","actionVerb":"verb"}]}`;
