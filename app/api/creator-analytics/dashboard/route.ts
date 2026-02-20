@@ -3,6 +3,14 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import type {
+  CreatorAnalytics,
+  CoursePerformanceItem,
+  CognitiveSkillsProgress,
+  SuggestionItem,
+  CommunityFeedbackItem,
+  LearnerInsights,
+} from "@/app/(protected)/my-courses/analytics/_components/creator-types";
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -12,85 +20,34 @@ const CreatorAnalyticsRequestSchema = z.object({
   timeframe: z.enum(['week', 'month', 'quarter', 'year', 'all']).default('month')
 });
 
-interface CreatorAnalytics {
-  overview: {
-    totalCourses: number;
-    totalLearners: number;
-    totalViews: number;
-    averageRating: number;
-    totalRatings: number;
-    totalShares: number;
-    totalCompletions: number;
-    monthlyGrowth: number;
+// Internal types for Prisma query results
+interface ExamAnswerWithQuestion {
+  isCorrect: boolean | null;
+  ExamQuestion: {
+    bloomsLevel: string | null;
+    difficulty: string | null;
   };
-  coursePerformance: Array<{
-    courseId: string;
-    courseTitle: string;
-    learners: number;
-    completionRate: number;
-    averageRating: number;
-    totalRatings: number;
-    averageStudyTime: number;
-    views: number;
-    shares: number;
-    createdAt: string;
-    lastActivity: string;
-    difficulty: 'beginner' | 'intermediate' | 'advanced';
-    tags: string[];
-  }>;
-  learnerInsights: {
-    demographics: {
-      experienceLevels: { [key: string]: number };
-      mostActiveCountries: Array<{ country: string; count: number }>;
-      ageGroups: { [key: string]: number };
-    };
-    engagementMetrics: {
-      averageTimePerSection: number;
-      mostPopularSections: Array<{
-        sectionTitle: string;
-        courseTitle: string;
-        engagementScore: number;
-      }>;
-      dropoffPoints: Array<{
-        sectionTitle: string;
-        courseTitle: string;
-        dropoffRate: number;
-      }>;
-    };
-    performanceData: {
-      averageExamScores: number;
-      cognitiveSkillsProgress: {
-        remember: number;
-        understand: number;
-        apply: number;
-        analyze: number;
-        evaluate: number;
-        create: number;
-      };
-      commonStrugglingAreas: Array<{
-        area: string;
-        courseTitle: string;
-        strugglingPercentage: number;
-      }>;
-    };
+}
+
+interface ExamAttemptWithAnswers {
+  id: string;
+  startedAt: Date;
+  timeSpent: number | null;
+  scorePercentage: number | null;
+  UserAnswer: ExamAnswerWithQuestion[];
+  User: {
+    id: string;
+    name: string | null;
+    email: string | null;
   };
-  communityFeedback: Array<{
-    courseId: string;
-    courseTitle: string;
-    learnerName: string;
-    rating: number;
-    review: string;
-    createdAt: string;
-    helpful: boolean;
-  }>;
-  suggestions: Array<{
-    type: 'content_improvement' | 'new_course' | 'engagement' | 'difficulty_adjustment';
-    title: string;
-    description: string;
-    relatedCourse?: string;
-    priority: 'high' | 'medium' | 'low';
-    estimatedImpact: string;
-  }>;
+}
+
+interface SectionEngagementData {
+  sectionTitle: string;
+  courseTitle: string;
+  courseId: string;
+  engagementScore: number;
+  dropoffRate: number;
 }
 
 // POST endpoint for creator analytics dashboard
@@ -104,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Parse and validate request
     const body = await req.json();
     const parseResult = CreatorAnalyticsRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
         { error: 'Invalid request format', details: parseResult.error.errors },
@@ -118,7 +75,7 @@ export async function POST(req: NextRequest) {
     const timeFilter = getTimeFilter(timeframe);
 
     // Generate creator analytics
-    const analytics = await generateCreatorAnalytics(user.id, timeFilter);
+    const analytics = await generateCreatorAnalytics(user.id, timeFilter, timeframe);
 
     return NextResponse.json({
       success: true,
@@ -130,12 +87,13 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Creator analytics error:', error);
+    const message = error instanceof Error ? error.message : 'Something went wrong';
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+        message: process.env.NODE_ENV === 'development' ? message : 'Something went wrong'
       },
       { status: 500 }
     );
@@ -158,7 +116,39 @@ function getTimeFilter(timeframe: string): Date {
   }
 }
 
-async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Promise<CreatorAnalytics> {
+function getPreviousPeriodFilter(timeframe: string): { from: Date; to: Date } {
+  const now = new Date();
+  switch (timeframe) {
+    case 'week': {
+      const to = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const from = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      return { from, to };
+    }
+    case 'month': {
+      const to = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const from = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      return { from, to };
+    }
+    case 'quarter': {
+      const to = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const from = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+      return { from, to };
+    }
+    case 'year': {
+      const to = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      const from = new Date(now.getTime() - 730 * 24 * 60 * 60 * 1000);
+      return { from, to };
+    }
+    default:
+      return { from: new Date(0), to: new Date(0) };
+  }
+}
+
+async function generateCreatorAnalytics(
+  creatorId: string,
+  timeFilter: Date,
+  timeframe: string
+): Promise<CreatorAnalytics> {
   // Get all courses created by this user
   const createdCourses = await db.course.findMany({
     where: {
@@ -225,37 +215,34 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
   const totalCourses = createdCourses.length;
   const allPurchases = createdCourses.flatMap(course => course.Purchase);
   const totalLearners = new Set(allPurchases.map(p => p.userId)).size;
-  
-  // Mock data for metrics not in current schema
-  const totalViews = totalLearners * 3; // Estimate 3 views per learner
-  const totalShares = Math.floor(totalLearners * 0.1); // 10% share rate
-  
+
+  // Estimate views/shares from learner count (no dedicated tracking table yet)
+  const totalViews = totalLearners * 3;
+  const totalShares = Math.floor(totalLearners * 0.1);
+
   // Calculate ratings and completions
   let totalRatings = 0;
   let totalRatingSum = 0;
   let totalCompletions = 0;
-  let totalStudyTime = 0;
 
-  const coursePerformance: any[] = [];
-  const allExamAttempts: any[] = [];
-  const sectionEngagement: any[] = [];
+  const coursePerformance: CoursePerformanceItem[] = [];
+  const allExamAttempts: ExamAttemptWithAnswers[] = [];
+  const sectionEngagement: SectionEngagementData[] = [];
 
   createdCourses.forEach(course => {
     const coursePurchases = course.Purchase;
     const learners = coursePurchases.length;
-    
+
     // Calculate completion rate
     const allSections = course.chapters.flatMap(ch => ch.sections);
-    const completedByLearner = new Map();
-    
+    const completedByLearner = new Map<string, number>();
+
     allSections.forEach(section => {
       section.user_progress.forEach(progress => {
         if (progress.isCompleted) {
           const userId = progress.userId;
-          if (!completedByLearner.has(userId)) {
-            completedByLearner.set(userId, 0);
-          }
-          completedByLearner.set(userId, completedByLearner.get(userId) + 1);
+          const current = completedByLearner.get(userId) ?? 0;
+          completedByLearner.set(userId, current + 1);
         }
       });
     });
@@ -263,32 +250,31 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
     const completedLearners = Array.from(completedByLearner.values())
       .filter(completed => completed === allSections.length).length;
     const completionRate = learners > 0 ? (completedLearners / learners) * 100 : 0;
-    
+
     totalCompletions += completedLearners;
 
     // Collect exam attempts for this course
-    const courseExamAttempts = course.chapters.flatMap(ch => 
+    const courseExamAttempts: ExamAttemptWithAnswers[] = course.chapters.flatMap(ch =>
       ch.sections.flatMap(s => s.exams.flatMap(e => e.UserExamAttempt))
     );
     allExamAttempts.push(...courseExamAttempts);
 
     // Calculate average study time
-    const averageStudyTime = courseExamAttempts.length > 0 
-      ? courseExamAttempts.reduce((sum, attempt) => sum + (attempt.timeSpent || 0), 0) / courseExamAttempts.length
+    const averageStudyTime = courseExamAttempts.length > 0
+      ? courseExamAttempts.reduce((sum, attempt) => sum + (attempt.timeSpent ?? 0), 0) / courseExamAttempts.length
       : 0;
-    totalStudyTime += averageStudyTime;
 
     // Mock ratings (would come from a ratings table in real implementation)
-    const mockRating = 4.2 + (Math.random() * 0.6); // 4.2-4.8 range
-    const ratingCount = Math.floor(learners * 0.3); // 30% leave ratings
+    const mockRating = 4.2 + (Math.random() * 0.6);
+    const ratingCount = Math.floor(learners * 0.3);
     totalRatings += ratingCount;
     totalRatingSum += mockRating * ratingCount;
 
     // Track section engagement
     allSections.forEach(section => {
       const sectionProgress = section.user_progress.length;
-      const engagementScore = sectionProgress > 0 ? (sectionProgress / learners) * 100 : 0;
-      
+      const engagementScore = learners > 0 ? (sectionProgress / learners) * 100 : 0;
+
       sectionEngagement.push({
         sectionTitle: section.title,
         courseTitle: course.title,
@@ -298,6 +284,10 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
       });
     });
 
+    const lastAttemptTime = courseExamAttempts.length > 0
+      ? Math.max(...courseExamAttempts.map(a => new Date(a.startedAt).getTime()))
+      : new Date(course.createdAt).getTime();
+
     coursePerformance.push({
       courseId: course.id,
       courseTitle: course.title,
@@ -306,14 +296,12 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
       averageRating: mockRating,
       totalRatings: ratingCount,
       averageStudyTime,
-      views: learners * 2, // Mock: 2 views per learner
-      shares: Math.floor(learners * 0.05), // Mock: 5% share rate
+      views: learners * 2,
+      shares: Math.floor(learners * 0.05),
       createdAt: course.createdAt.toISOString(),
-      lastActivity: courseExamAttempts.length > 0 
-        ? Math.max(...courseExamAttempts.map(a => new Date(a.startedAt).getTime()))
-        : new Date(course.createdAt).getTime(),
-      difficulty: 'intermediate' as const, // Would be from course metadata
-      tags: course.categoryId ? [course.categoryId] : [] // Simplified tags
+      lastActivity: new Date(lastAttemptTime).toISOString(),
+      difficulty: 'intermediate' as const,
+      tags: course.categoryId ? [course.categoryId] : []
     });
   });
 
@@ -326,13 +314,13 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
   const learnerInsights = generateLearnerInsights(allPurchases, sectionEngagement, allExamAttempts);
 
   // Generate community feedback (mock data)
-  const communityFeedback = generateMockFeedback(createdCourses, allPurchases);
+  const communityFeedback = generateMockFeedback(createdCourses);
 
   // Generate AI suggestions
   const suggestions = generateAISuggestions(coursePerformance, sectionEngagement, cognitiveSkillsProgress);
 
-  // Calculate monthly growth (mock)
-  const monthlyGrowth = 15.5; // Would calculate from historical data
+  // Calculate real growth from previous period
+  const monthlyGrowth = await calculateGrowth(creatorId, timeframe, totalLearners);
 
   return {
     overview: {
@@ -352,16 +340,51 @@ async function generateCreatorAnalytics(creatorId: string, timeFilter: Date): Pr
   };
 }
 
-function calculateLearnersCognitiveProgress(examAttempts: any[]): any {
-  const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
-  const progress: any = {};
+async function calculateGrowth(
+  creatorId: string,
+  timeframe: string,
+  currentLearners: number
+): Promise<number> {
+  if (timeframe === 'all') return 0;
+
+  const { from, to } = getPreviousPeriodFilter(timeframe);
+
+  const courseIds = await db.course.findMany({
+    where: { userId: creatorId, isPublished: true },
+    select: { id: true }
+  });
+
+  if (courseIds.length === 0) return 0;
+
+  const previousPurchases = await db.purchase.findMany({
+    where: {
+      courseId: { in: courseIds.map(c => c.id) },
+      createdAt: { gte: from, lt: to }
+    },
+    select: { userId: true }
+  });
+
+  const previousLearners = new Set(previousPurchases.map(p => p.userId)).size;
+
+  if (previousLearners === 0) {
+    return currentLearners > 0 ? 100 : 0;
+  }
+
+  return ((currentLearners - previousLearners) / previousLearners) * 100;
+}
+
+function calculateLearnersCognitiveProgress(
+  examAttempts: ExamAttemptWithAnswers[]
+): CognitiveSkillsProgress {
+  const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'] as const;
+  const progress: Record<string, number> = {};
 
   bloomsLevels.forEach(level => {
     let correct = 0;
     let total = 0;
 
     examAttempts.forEach(attempt => {
-      attempt.UserAnswer.forEach((answer: any) => {
+      attempt.UserAnswer.forEach((answer) => {
         if (answer.ExamQuestion.bloomsLevel === level) {
           total++;
           if (answer.isCorrect) correct++;
@@ -372,11 +395,15 @@ function calculateLearnersCognitiveProgress(examAttempts: any[]): any {
     progress[level.toLowerCase()] = total > 0 ? (correct / total) * 100 : 0;
   });
 
-  return progress;
+  return progress as unknown as CognitiveSkillsProgress;
 }
 
-function generateLearnerInsights(purchases: any[], sectionEngagement: any[], examAttempts: any[]): any {
-  // Mock demographics data
+function generateLearnerInsights(
+  purchases: { userId: string; createdAt: Date }[],
+  sectionEngagement: SectionEngagementData[],
+  examAttempts: ExamAttemptWithAnswers[]
+): LearnerInsights {
+  // Mock demographics data (would come from user profiles in real implementation)
   const demographics = {
     experienceLevels: {
       'beginner': Math.floor(purchases.length * 0.4),
@@ -399,22 +426,24 @@ function generateLearnerInsights(purchases: any[], sectionEngagement: any[], exa
   };
 
   // Calculate engagement metrics
-  const averageTimePerSection = examAttempts.length > 0 
-    ? examAttempts.reduce((sum, attempt) => sum + (attempt.timeSpent || 0), 0) / examAttempts.length / 60
+  const averageTimePerSection = examAttempts.length > 0
+    ? examAttempts.reduce((sum, attempt) => sum + (attempt.timeSpent ?? 0), 0) / examAttempts.length / 60
     : 0;
 
-  const mostPopularSections = sectionEngagement
+  const mostPopularSections = [...sectionEngagement]
     .sort((a, b) => b.engagementScore - a.engagementScore)
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(({ sectionTitle, courseTitle, engagementScore }) => ({ sectionTitle, courseTitle, engagementScore }));
 
   const dropoffPoints = sectionEngagement
     .filter(section => section.dropoffRate > 50)
     .sort((a, b) => b.dropoffRate - a.dropoffRate)
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(({ sectionTitle, courseTitle, dropoffRate }) => ({ sectionTitle, courseTitle, dropoffRate }));
 
   // Calculate performance data
-  const averageExamScores = examAttempts.length > 0 
-    ? examAttempts.reduce((sum, attempt) => sum + (attempt.scorePercentage || 0), 0) / examAttempts.length
+  const averageExamScores = examAttempts.length > 0
+    ? examAttempts.reduce((sum, attempt) => sum + (attempt.scorePercentage ?? 0), 0) / examAttempts.length
     : 0;
 
   const commonStrugglingAreas = [
@@ -437,17 +466,25 @@ function generateLearnerInsights(purchases: any[], sectionEngagement: any[], exa
   };
 }
 
-function generateMockFeedback(courses: any[], purchases: any[]): any[] {
-  const feedback: any[] = [];
-  
+interface CourseWithPurchases {
+  id: string;
+  title: string;
+  Purchase: { userId: string; createdAt: Date }[];
+}
+
+function generateMockFeedback(
+  courses: CourseWithPurchases[]
+): CommunityFeedbackItem[] {
+  const feedback: CommunityFeedbackItem[] = [];
+
   courses.slice(0, 3).forEach(course => {
     const coursePurchases = course.Purchase.slice(0, 3);
-    
-    coursePurchases.forEach((purchase: any, index: number) => {
+
+    coursePurchases.forEach((_purchase, index: number) => {
       feedback.push({
         courseId: course.id,
         courseTitle: course.title,
-        learnerName: `Learner ${index + 1}`, // Mock learner name since we don't have user relation
+        learnerName: `Learner ${index + 1}`,
         rating: 4 + Math.random(),
         review: "This course was really helpful and well-structured. The content was engaging and practical.",
         createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -459,8 +496,12 @@ function generateMockFeedback(courses: any[], purchases: any[]): any[] {
   return feedback;
 }
 
-function generateAISuggestions(coursePerformance: any[], sectionEngagement: any[], cognitiveProgress: any): any[] {
-  const suggestions: any[] = [];
+function generateAISuggestions(
+  coursePerformance: CoursePerformanceItem[],
+  sectionEngagement: SectionEngagementData[],
+  _cognitiveProgress: CognitiveSkillsProgress
+): SuggestionItem[] {
+  const suggestions: SuggestionItem[] = [];
 
   // Content improvement suggestions
   const lowPerformanceCourses = coursePerformance.filter(course => course.completionRate < 60);
@@ -481,7 +522,7 @@ function generateAISuggestions(coursePerformance: any[], sectionEngagement: any[
     suggestions.push({
       type: 'engagement',
       title: 'Address High Drop-off Sections',
-      description: `Several sections have high drop-off rates. Consider adding interactive elements, examples, or breaking them into smaller parts.`,
+      description: 'Several sections have high drop-off rates. Consider adding interactive elements, examples, or breaking them into smaller parts.',
       priority: 'medium',
       estimatedImpact: '+10% engagement'
     });
