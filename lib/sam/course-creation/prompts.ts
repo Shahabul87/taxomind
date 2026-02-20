@@ -16,9 +16,9 @@
  * Included in SSE events and checkpoints for quality correlation.
  */
 export const PROMPT_VERSIONS = {
-  stage1: '2.1.0',
-  stage2: '2.1.0',
-  stage3: '2.1.0',
+  stage1: '2.2.0',
+  stage2: '2.2.0',
+  stage3: '2.2.0',
 } as const;
 
 export type PromptStage = keyof typeof PROMPT_VERSIONS;
@@ -348,6 +348,37 @@ export function getStage3DesignExpertise(variant?: string): string {
 }
 
 /**
+ * Title quality framework — injected into Stage 1 and Stage 2 prompts.
+ * Ensures AI generates MIT/Stanford/Caltech-level curiosity-driven titles
+ * instead of generic academic patterns.
+ */
+const TITLE_QUALITY_FRAMEWORK = `## TITLE QUALITY — MIT/Stanford Standard
+
+Your titles must follow the CURIOSITY-OUTCOME pattern used by the world&apos;s best courses. A great title has two parts: (1) THE HOOK — a question, paradox, or provocative claim, and (2) THE PAYOFF — what specific capability the student gains.
+
+### Title Patterns (use these as structural templates — adapt to your topic)
+- **Question + Answer**: "Why Does X Fail at Y? — Building Z That Actually Works"
+- **Paradox**: "The More Data You Have, the Less You Know — Taming the Curse of Dimensionality"
+- **Challenge**: "Can You Build X with Only Y? — Constraint-Driven Design"
+- **Story**: "How Netflix Serves 200M Users — The Architecture Behind Distributed Caching"
+- **Failure**: "When Gradient Descent Gets Lost — Navigating Saddle Points and Plateaus"
+- **Reversal**: "Everything You Know About X Is Wrong — Rethinking Y from First Principles"
+- **Specificity**: "From 23 Minutes to 45 Seconds — How Indexing Transforms Database Queries"
+
+### Anti-Patterns (NEVER generate these — they signal low effort and lose the reader)
+- "Introduction to X" — boring, says nothing specific
+- "Understanding X" — passive, vague
+- "Working with X" — generic, no curiosity
+- "Overview of X" — textbook table-of-contents style
+- "Basics of X" / "X Fundamentals" — condescending, uninspiring
+- "Exploring X" / "Deep Dive into X" — filler words
+- "X: Concepts and Applications" — academic paper style, not a learning experience
+- Any title that could be a Wikipedia section heading
+
+### Litmus Test
+Would a busy professional stop scrolling and click on this title? If not, rewrite it. The title should make someone think "I NEED to know this."`;
+
+/**
  * Chapter-level design principles — injected into Stage 1 prompts.
  * Guides SAM on what makes a chapter pedagogically excellent.
  */
@@ -389,7 +420,25 @@ ARROW drives the arc; traditional principles sharpen specific aspects:
 | Key Topics | Disconnected list | ARROW-sequenced progression: application → intuition → theory → failure → design |
 | Activities | Passive (read, watch) | Prediction challenges, diagnosis puzzles, design reviews, constraint sprints, build tasks |
 | Prerequisites | Missing or "None" | Specific skills/concepts from previous chapters |
-| Concepts | Reuses same terms | Introduces 3-7 NEW concepts that extend prior knowledge |`;
+| Concepts | Reuses same terms | Introduces 3-7 NEW concepts that extend prior knowledge |
+
+### ANTI-PATTERN GALLERY — NEVER Generate These
+
+**The Wikipedia Chapter Structure:**
+BAD: "Introduction to Machine Learning" with chapters: "History of ML", "Types of ML", "Supervised Learning", "Unsupervised Learning"
+WHY: This is a textbook table of contents, not a learning journey. No hooks, no applications, no curiosity. A student has zero reason to keep reading.
+
+**The Textbook Chapter Title:**
+BAD: "Chapter 3: Gradient Descent" or "Database Fundamentals"
+WHY: Dry, predictable, could be a Wikipedia heading. No curiosity, no outcome, no reason to click.
+
+**The Syllabus Description:**
+BAD: "This chapter covers the basics of gradient descent and how it is used in neural networks."
+WHY: No hook, no specificity, no curiosity. Could be about anything. Does not tell the student WHY they should care.
+
+**The Vague Learning Objective:**
+BAD: "Understand the concept of gradient descent" or "Learn about databases"
+WHY: Not measurable, no condition, no degree. How would you assess this? Use ABCD method instead.`;
 
 /**
  * Section-level design principles — injected into Stage 2 prompts.
@@ -427,7 +476,25 @@ Sections within a chapter should follow the ARROW progression:
 3. **Active Engagement**: Every section includes something the student DOES, not just reads
 4. **Cognitive Load Management**: No section introduces more than 3 new concepts (Sweller)
 5. **Connection**: Every section references at least one concept from a prior section or chapter
-6. **Variety**: Consecutive sections should use different content types when possible`;
+6. **Variety**: Consecutive sections should use different content types when possible
+
+### SECTION ANTI-PATTERNS — NEVER Generate These
+
+**The Textbook Section Title:**
+BAD: "3.1 Definition of Gradient Descent", "3.2 Mathematical Formulation", "3.3 Implementation"
+WHY: Dry, sequential, predictable. A reader would rather watch paint dry. Use curiosity-driven titles instead.
+
+**The Shallow Description:**
+BAD: "This section covers the basics of gradient descent and how it is used in neural networks."
+WHY: No hook, no specificity, no curiosity. Could be about anything. The reader learns nothing from reading this.
+
+**The Content-Type Mismatch:**
+BAD: A "quiz" section that is actually a reading passage, or an "assignment" that only explains theory
+WHY: Content type must match what the student actually DOES. If it says "assignment", the student must DO something hands-on.
+
+**The Disconnected Section:**
+BAD: A section that introduces a concept never mentioned in previous or subsequent sections
+WHY: Every section must connect to the learning arc. Isolated concepts confuse students and waste cognitive load.`;
 
 /**
  * Detail-level design principles — injected into Stage 3 prompts.
@@ -438,12 +505,55 @@ const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
 ### Writing Lesson Content (Rich HTML Descriptions)
 A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 700-1200 words of structured HTML, organized into exactly 6 sections with these h2 headings in this exact order:
 
-1. **&lt;h2&gt;Why It Was Developed&lt;/h2&gt;** — Explain the concrete problem/limitation that motivated this concept.
-2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — Give a beginner-friendly mental model and analogy.
-3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — If math exists, explain what each term means and why the equation is shaped that way. If no math is needed, explicitly say why no equation is required.
-4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — Describe how the learner should mentally visualize the process in sequence.
-5. **&lt;h2&gt;Concrete Example&lt;/h2&gt;** — Provide a worked mini-scenario with concrete inputs/outputs.
-6. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — Name a typical misconception and the correction.
+1. **&lt;h2&gt;Why It Was Developed&lt;/h2&gt;** — THE ORIGIN STORY
+   Do not just name the problem. Make the reader FEEL the frustration:
+   - What were people trying to do before this concept existed?
+   - What specific failure or limitation forced this invention?
+   - Who was working on it, and what were they struggling with?
+   - What was the "aha moment" that led to the breakthrough?
+   - CONCRETIZE: Use a real historical example or a specific scenario where the lack of this concept caused visible failure.
+
+2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — THE MENTAL MODEL FACTORY
+   Your job is to build a mental model so strong that the reader can PREDICT the math before seeing it:
+   - Start with: "Imagine you are [specific role] and you need to [specific task]..."
+   - Build the analogy with EXPLICIT MAPPING: Real-world element maps to Concept element
+   - Include a PREDICTION PROMPT: "Before we see the formal definition, what do you think should happen when [X changes]?"
+   - Include a PHYSICAL INTUITION: Something the reader can feel/visualize in their body or daily experience
+   - The analogy must be PRECISE enough that 4+ elements of the concept map to specific elements of the analogy
+   - End with: "With this mental picture, let us see if the formal definition matches what you would expect..."
+
+3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — NOTATION FOR WHAT YOU ALREADY KNOW
+   If the topic involves math/equations:
+   - Present the equation as CONFIRMATION of the intuition already built, not as new information
+   - For EVERY term: "This term represents [intuitive meaning]. In our analogy, this is [analogy element]."
+   - For the EQUATION SHAPE: "The equation is a [ratio/product/sum] because [intuitive reason]."
+   - "What happens if we make [this term] very large? Very small? Zero? Negative?" — connect to physical intuition
+   - Include a NUMERICAL PREDICTION: "We predicted [X]. The equation gives us [calculation] = [result]. This matches because..."
+   If the topic has no math:
+   - Explicitly state: "This concept is non-mathematical because [reason]."
+   - Replace with a DECISION FRAMEWORK or PROCESS DIAGRAM that serves the same structuring purpose.
+
+4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — THE MENTAL MOVIE
+   Guide the reader through a mental simulation:
+   - "Close your eyes and picture [starting state]..."
+   - Step 1: "Now imagine [first change]. What happens to [element]?"
+   - Step 2: "Next, [second change] occurs. Notice how [element] responds..."
+   - Each step should include WHAT CHANGES and WHY
+   - End with: "If you can replay this mental movie and predict the outcome, you understand [concept]."
+
+5. **&lt;h2&gt;Concrete Example&lt;/h2&gt;** — THE PROOF IT WORKS
+   A fully worked mini-scenario:
+   - State the setup with SPECIFIC numbers: "Suppose we have 1,000 data points, each with 50 features..."
+   - Walk through each step: Input, Process, Output with actual values
+   - Show the RESULT and connect back to intuition: "Notice how this matches our prediction from Core Intuition"
+   - Include a VARIATION: "What if we changed [parameter] to [different value]? The result would be [X] because [intuitive reason]."
+
+6. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — THE TRAP DETECTOR
+   Name the specific misconception with a memorable label:
+   - "THE [NAME] TRAP: Many learners think [misconception] because [why it seems logical]."
+   - "WHY IT IS WRONG: [Specific reason, referring back to the Core Intuition analogy]."
+   - "THE FIX: Instead, think of it as [correct mental model]. Remember from our [analogy name]: [mapping that makes the correction obvious]."
+   - Include a quick SELF-TEST: "If you find yourself thinking [X], ask yourself [Y] — if the answer is [Z], you have fallen into this trap."
 
 **HTML Rules:**
 - Use ONLY these tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote
@@ -805,6 +915,8 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   const systemPrompt = `${designExpertise}
 ${domainExpertise}
 
+${TITLE_QUALITY_FRAMEWORK}
+
 ${CHAPTER_DESIGN_PRINCIPLES}
 
 ${CHAPTER_THINKING_FRAMEWORK}`;
@@ -849,7 +961,7 @@ ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     },
     {
       label: 'templateBlock',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.HIGH,
       content: templateBlock,
     },
     {
@@ -914,8 +1026,8 @@ Return a JSON object with this EXACT structure:
   "thinking": "Your 3-5 sentence reasoning covering: (1) which course objective this chapter serves, (2) why this topic belongs at this position, (3) how it builds on prior chapters, (4) the learning arc within the chapter",
   "chapter": {
     "position": ${currentChapterNumber},
-    "title": "Specific, outcome-oriented chapter title (e.g., 'Building Responsive Layouts with CSS Grid' not 'CSS Layouts')",
-    "description": "150-300 word description structured as: (1) The Problem — what real-world challenge this chapter addresses, (2) The Journey — what students will learn and do, (3) The Outcome — what students can accomplish after this chapter, (4) The Connection — how this links to the broader course arc",
+    "title": "A curiosity-driven title following the TITLE QUALITY framework above. Use the CURIOSITY-OUTCOME pattern: (1) THE HOOK — a question, paradox, or provocative claim, (2) THE PAYOFF — what specific capability the student gains. NEVER use 'Introduction to X', 'Understanding X', 'Overview of X', or any Wikipedia-style heading.",
+    "description": "200-350 word description that creates CRYSTAL-CLEAR anticipation. Structure: (1) THE HOOK — Open with a mind-blowing real-world fact, question, or scenario that makes this chapter irresistible (1-2 sentences), (2) THE PROBLEM — What challenge or puzzle does this chapter solve? What fails if you do not understand this? (2-3 sentences), (3) THE JOURNEY MAP — Specific steps the reader will take: 'We will start by X, then discover Y, then build Z' — use active verbs, make it feel like an adventure (3-4 sentences), (4) THE CAPABILITY — What SPECIFIC, MEASURABLE thing can the reader DO after this chapter? Not vague ('understand X') but concrete ('build a working Y that does Z with W% accuracy'), (5) THE BRIDGE — One sentence connecting to what came before and what comes next in the course. TONE: Write as if explaining to a brilliant friend over coffee — excited, specific, honest about difficulty. NEVER use 'In this chapter we will learn...' framing.",
     "bloomsLevel": "${bloomsLevel}",
     "learningObjectives": [
       // EXACTLY ${ctx.learningObjectivesPerChapter} objectives — no more, no less
@@ -1076,6 +1188,8 @@ This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}).
   const systemPrompt = `${designExpertise}
 ${domainExpertise}
 
+${TITLE_QUALITY_FRAMEWORK}
+
 ${SECTION_DESIGN_PRINCIPLES}
 
 ${SECTION_THINKING_FRAMEWORK}`;
@@ -1135,7 +1249,7 @@ ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${
     },
     {
       label: 'templateBlock',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.HIGH,
       content: templateBlock,
     },
     {
@@ -1174,10 +1288,12 @@ Match the content type to both the ARROW phase and the Bloom&apos;s level (Const
 - Any concept used here should either be NEW (introduced in this section) or REFERENCED (from a prior section/chapter)
 - If the topic is complex, decompose it: the section focuses on the most essential aspect
 
-### Step 5: UNIQUENESS — Is this section distinct across the entire course?
+### Step 5: UNIQUENESS + TITLE QUALITY — Is this section distinct and compelling?
 - Title MUST be different from ALL existing section titles in the course
-- Title should reference the SPECIFIC topic, not a vague category
-- Use action-oriented or outcome-oriented titles: "Implementing JWT Authentication" not "Authentication"
+- Title MUST follow the TITLE QUALITY framework in the system prompt: use the CURIOSITY-OUTCOME pattern
+- NEVER use "Introduction to X", "Understanding X", "Overview of X", "Basics of X", or any title that could be a Wikipedia section heading
+- Good: "Why Can&apos;t a Single Neuron Learn XOR? — The Limits of Linear Classifiers"
+- Bad: "Introduction to Neural Network Limitations"
 
 ### Step 6: OBJECTIVE ALIGNMENT — Which chapter objectives does this section serve?
 - Select 1-2 chapter learning objectives that this section directly addresses
@@ -1190,7 +1306,7 @@ Return a JSON object with this EXACT structure:
   "thinking": "Your 3-5 sentence reasoning covering: (1) why this topic is next in the learning sequence, (2) why you chose this content type, (3) how it builds on previous sections, (4) what chapter objective it serves",
   "section": {
     "position": ${currentSectionNumber},
-    "title": "Specific, action-oriented section title (e.g., 'Implementing Token-Based Authentication with JWT' not 'Authentication')",
+    "title": "A curiosity-driven title following the TITLE QUALITY framework. Use the CURIOSITY-OUTCOME pattern with a hook and a payoff. NEVER use 'Introduction to X', 'Understanding X', 'Overview of X'. Example: 'Why Does Your Password Travel in Plain Text? — Building Secure Token Exchange with JWT'",
     "contentType": "video|reading|assignment|quiz|project|discussion",
     "estimatedDuration": "XX minutes",
     "topicFocus": "The specific topic from the chapter's learning arc that this section covers in depth",
@@ -1286,6 +1402,93 @@ export interface Stage3PromptOptions {
   bridgeContent?: string;
   /** Callback fired when HIGH-priority prompt context is dropped */
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void;
+}
+
+/**
+ * Returns content-type-specific heading instructions for Stage 3 prompts.
+ * Reading/video sections use the deep 6-heading lesson structure.
+ * Other content types use headings appropriate to their pedagogical purpose.
+ */
+function getContentTypeHeadingInstructions(contentType: string, topicFocus: string, wordTarget: string): {
+  step1Instructions: string;
+  outputDescriptionField: string;
+  qualityGateHeadings: string;
+} {
+  if (contentType === 'reading' || contentType === 'video') {
+    return {
+      step1Instructions: `### Step 1: LESSON CONTENT — Write a full HTML lesson for "${topicFocus}"
+Write a rich, structured HTML lesson (${wordTarget} words) with EXACTLY these 6 required <h2> sections in this exact order:
+1. **<h2>Why It Was Developed</h2>** — THE ORIGIN STORY: Do not just name the problem — make the reader FEEL the frustration. What were people trying to do before "${topicFocus}" existed? What specific failure forced this invention? Use a real historical example or concrete scenario where the lack of this concept caused visible failure.
+2. **<h2>Core Intuition</h2>** — THE MENTAL MODEL FACTORY: Build a mental model so strong the reader can PREDICT the math. Start with "Imagine you are [role] and you need to [task]...". Map 4+ elements of the analogy to the concept explicitly. Include a PREDICTION PROMPT: "Before the formal definition, what should happen when [X changes]?" End with: "With this mental picture, let us see if the formal definition matches..."
+3. **<h2>Equation Intuition</h2>** — NOTATION FOR WHAT YOU ALREADY KNOW: If math exists, present the equation as CONFIRMATION of the intuition already built. For EVERY term explain its intuitive meaning and analogy element. Explain WHY the equation has its specific shape (ratio/product/sum). Ask "What if this term is very large? Very small? Zero?" If no math, explicitly state why and provide a decision framework instead.
+4. **<h2>Step-by-Step Visualization</h2>** — THE MENTAL MOVIE: Guide through a mental simulation. "Picture [starting state]..." then walk through each change and its effect. Each step includes WHAT changes and WHY. End with: "If you can replay this mental movie, you understand [concept]."
+5. **<h2>Concrete Example</h2>** — THE PROOF IT WORKS: A fully worked scenario with SPECIFIC numbers. Walk through Input, Process, Output with actual values. Connect back to Core Intuition. Include a VARIATION: "What if we changed [parameter]? The result would be [X] because [reason]."
+6. **<h2>Common Confusion + Fix</h2>** — THE TRAP DETECTOR: Name the misconception with a memorable label: "THE [NAME] TRAP". Explain WHY it seems logical. Explain WHY it is wrong (referring to the Core Intuition analogy). Give THE FIX with a corrected mental model. Include a SELF-TEST question.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML lesson content. Must contain EXACTLY these six <h2> headings in order: 'Why It Was Developed', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example', 'Common Confusion + Fix'."`,
+      qualityGateHeadings: `Does the description contain the exact 6 required headings in order (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix), with substantive content under each and "${topicFocus}" mentioned at least 3 times?`,
+    };
+  }
+
+  if (contentType === 'assignment') {
+    return {
+      step1Instructions: `### Step 1: ASSIGNMENT CONTENT — Write a structured assignment for "${topicFocus}"
+Write a structured HTML assignment (${wordTarget} words) with EXACTLY these 6 required <h2> sections in this exact order:
+1. **<h2>Problem Context</h2>**: Set the real-world scene. What situation or challenge requires applying "${topicFocus}"? Make it feel authentic — use specific scenarios, not abstract descriptions.
+2. **<h2>Task Description</h2>**: State clearly and precisely what the student must DO. Use action verbs. Specify inputs, expected outputs, constraints, and success criteria.
+3. **<h2>Guided Steps</h2>**: Break the task into 4-6 sequential steps. Each step should have: what to do, why this step matters, and a hint for common sticking points. Progress from guided to increasingly independent.
+4. **<h2>Expected Outcome</h2>**: Describe what a successful submission looks like. Include specific metrics, format requirements, or sample output snippets so students can self-verify.
+5. **<h2>Common Mistakes</h2>**: List 3-4 specific mistakes students typically make on this type of task. For each: describe the mistake, explain why it happens, and provide the fix.
+6. **<h2>Extension Challenge</h2>**: Provide an optional harder variant for advanced students. Add a constraint, increase scope, or require optimization. This should stretch skills without requiring new concepts.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML assignment content. Must contain EXACTLY these six <h2> headings in order: 'Problem Context', 'Task Description', 'Guided Steps', 'Expected Outcome', 'Common Mistakes', 'Extension Challenge'."`,
+      qualityGateHeadings: `Does the description contain the exact 6 required headings (Problem Context, Task Description, Guided Steps, Expected Outcome, Common Mistakes, Extension Challenge) with actionable content under each?`,
+    };
+  }
+
+  if (contentType === 'quiz') {
+    return {
+      step1Instructions: `### Step 1: QUIZ CONTENT — Write a structured quiz guide for "${topicFocus}"
+Write a structured HTML quiz guide (${wordTarget} words) with EXACTLY these 5 required <h2> sections in this exact order:
+1. **<h2>Knowledge Areas Tested</h2>**: List the specific concepts, skills, and competencies this quiz assesses. Map each to the relevant chapter learning objectives. Be precise — "JWT token validation flow" not "security".
+2. **<h2>Question Types</h2>**: Describe the types of questions included (multiple choice, short answer, code analysis, scenario-based, etc.). For each type, explain what cognitive skill it tests and give one example question.
+3. **<h2>Difficulty Distribution</h2>**: Explain how questions are distributed across difficulty levels. Include approximate percentages: foundational recall (X%), application (Y%), analysis/evaluation (Z%). Map to Bloom&apos;s levels.
+4. **<h2>Study Guide</h2>**: Provide a focused study checklist. List the key concepts, formulas, patterns, or skills students should review before attempting the quiz. Include "If you can do X, you are ready" self-checks.
+5. **<h2>Self-Assessment Reflection</h2>**: Provide reflection prompts for after the quiz. "If you struggled with X, revisit Y." Include metacognitive questions: "What was your confidence level before vs after?" and "What would you study differently?"`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML quiz guide. Must contain EXACTLY these five <h2> headings in order: 'Knowledge Areas Tested', 'Question Types', 'Difficulty Distribution', 'Study Guide', 'Self-Assessment Reflection'."`,
+      qualityGateHeadings: `Does the description contain the exact 5 required headings (Knowledge Areas Tested, Question Types, Difficulty Distribution, Study Guide, Self-Assessment Reflection) with substantive content?`,
+    };
+  }
+
+  if (contentType === 'project') {
+    return {
+      step1Instructions: `### Step 1: PROJECT CONTENT — Write a structured project brief for "${topicFocus}"
+Write a structured HTML project brief (${wordTarget} words) with EXACTLY these 6 required <h2> sections in this exact order:
+1. **<h2>Project Brief</h2>**: Describe the project in vivid, motivating terms. What will the student build or create? Why does it matter? Frame it as a real-world deliverable, not a school assignment.
+2. **<h2>Requirements</h2>**: List functional and non-functional requirements. Use "MUST" for required features and "SHOULD" for recommended ones. Be specific about scope boundaries — what is in scope and what is explicitly out of scope.
+3. **<h2>Resources</h2>**: List tools, libraries, datasets, APIs, or reference materials the student will need. Include links where possible. Distinguish between required and optional resources.
+4. **<h2>Deliverables</h2>**: Specify exactly what the student submits. Include format, structure, and any presentation/documentation requirements. Make success criteria binary — either the deliverable meets the spec or it does not.
+5. **<h2>Evaluation Criteria</h2>**: Provide a rubric or scoring breakdown. Weight each criterion (functionality X%, code quality Y%, documentation Z%). Include "exceeds expectations" examples.
+6. **<h2>Stretch Goals</h2>**: Provide 2-3 optional enhancements for students who finish early or want extra challenge. Each should teach an additional concept or require deeper thinking.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML project brief. Must contain EXACTLY these six <h2> headings in order: 'Project Brief', 'Requirements', 'Resources', 'Deliverables', 'Evaluation Criteria', 'Stretch Goals'."`,
+      qualityGateHeadings: `Does the description contain the exact 6 required headings (Project Brief, Requirements, Resources, Deliverables, Evaluation Criteria, Stretch Goals) with actionable project specifications?`,
+    };
+  }
+
+  if (contentType === 'discussion') {
+    return {
+      step1Instructions: `### Step 1: DISCUSSION CONTENT — Write a structured discussion guide for "${topicFocus}"
+Write a structured HTML discussion guide (${wordTarget} words) with EXACTLY these 5 required <h2> sections in this exact order:
+1. **<h2>Discussion Context</h2>**: Set the intellectual stage. Present a thought-provoking scenario, case study, or controversy related to "${topicFocus}". The context should have genuine tension — reasonable people could disagree.
+2. **<h2>Guiding Questions</h2>**: Provide 3-5 open-ended questions that drive deep thinking. Questions should progress from descriptive ("What happened?") to analytical ("Why?") to evaluative ("Was this the right approach?"). Each question should be impossible to answer with a simple Google search.
+3. **<h2>Evidence Requirements</h2>**: Specify what counts as good evidence in responses. Students should cite course concepts, provide examples, reference data, or draw on analogies. Define the minimum: "Your response must reference at least X concepts from this chapter."
+4. **<h2>Peer Engagement Rules</h2>**: Define how students should interact with each other. Include: respond to at least X peers, use "steel-manning" (present the strongest version of their argument before disagreeing), and ask at least one follow-up question per response.
+5. **<h2>Synthesis Prompt</h2>**: A final reflection question that asks students to synthesize the discussion. "After reading your peers&apos; perspectives, has your view changed? What nuance did you gain?" This closes the discussion loop.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML discussion guide. Must contain EXACTLY these five <h2> headings in order: 'Discussion Context', 'Guiding Questions', 'Evidence Requirements', 'Peer Engagement Rules', 'Synthesis Prompt'."`,
+      qualityGateHeadings: `Does the description contain the exact 5 required headings (Discussion Context, Guiding Questions, Evidence Requirements, Peer Engagement Rules, Synthesis Prompt) with substantive engagement instructions?`,
+    };
+  }
+
+  // Fallback to reading/video structure for any unknown content type
+  return getContentTypeHeadingInstructions('reading', topicFocus, wordTarget);
 }
 
 export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
@@ -1526,25 +1729,21 @@ ${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Pri
     },
     {
       label: 'templateBlock',
-      priority: PromptPriority.OPTIONAL,
+      priority: PromptPriority.HIGH,
       content: templateBlock,
     },
     {
       label: 'thinkingAndOutput',
       priority: PromptPriority.CRITICAL,
-      content: `
+      content: (() => {
+  const wordTarget = getStage3WordTarget(ctx.difficulty);
+  const headingInstr = getContentTypeHeadingInstructions(section.contentType, section.topicFocus, wordTarget);
+  return `
 ## THINKING PROCESS (Reason through each step carefully)
 
-### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
-Write a rich, structured HTML lesson (${getStage3WordTarget(ctx.difficulty)} words) with EXACTLY these 6 required <h2> sections in this exact order:
-1. **<h2>Why It Was Developed</h2>**: Identify the original problem/limitation that motivated "${section.topicFocus}".
-2. **<h2>Core Intuition</h2>**: Teach a beginner-safe mental model and at least one concrete analogy.
-3. **<h2>Equation Intuition</h2>**: If math exists, explain each term and why the equation is shaped that way. If math is not needed, explicitly state why no equation is required.
-4. **<h2>Step-by-Step Visualization</h2>**: Walk through how a student should mentally visualize the process in sequence.
-5. **<h2>Concrete Example</h2>**: Give a small worked example or mini-scenario with concrete values/conditions.
-6. **<h2>Common Confusion + Fix</h2>**: Name a typical misconception and provide a specific corrective strategy.
+${headingInstr.step1Instructions}
 
-${templateBlock ? `Use the section-type guidance from the Chapter DNA template block above to shape tone, depth, and examples inside these six required headings.` : ''}
+${templateBlock ? `Use the section-type guidance from the Chapter DNA template block above to shape tone, depth, and examples inside the required headings.` : ''}
 
 ### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
 For each of the ${ctx.learningObjectivesPerSection} objectives:
@@ -1582,7 +1781,7 @@ Return a JSON object with this EXACT structure:
 {
   "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "${getStage3WordTarget(ctx.difficulty)} words of structured HTML lesson content. Must contain EXACTLY these six <h2> headings in order: 'Why It Was Developed', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example', 'Common Confusion + Fix'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote${templateBlock ? ', table, tr, th, td' : ''}. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles. Each h2 section must be substantive (minimum ~80 words).",
+    "description": "${headingInstr.outputDescriptionField} Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote${templateBlock ? ', table, tr, th, td' : ''}. Must mention '${section.topicFocus}' by name at least 3 times. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles. Each h2 section must be substantive (minimum ~80 words).",
     "learningObjectives": [
       // EXACTLY ${ctx.learningObjectivesPerSection} objectives — no more, no less
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
@@ -1599,7 +1798,7 @@ Return a JSON object with this EXACT structure:
 }
 
 QUALITY GATES — Your output will be scored on:
-1. **Lesson Structure**: Does the description contain the exact 6 required headings in order (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix), with substantive content under each and "${section.topicFocus}" mentioned at least 3 times?
+1. **Content Structure**: ${headingInstr.qualityGateHeadings}
 2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?
@@ -1607,7 +1806,8 @@ QUALITY GATES — Your output will be scored on:
 6. **Creator Readiness**: Are creatorGuidelines concrete, actionable, and production-ready?
 7. **Teaching Quality**: Does the lesson include analogies, concrete examples, and address the learner directly?
 
-Return ONLY valid JSON, no markdown formatting`,
+Return ONLY valid JSON, no markdown formatting`;
+})(),
     },
   ];
 

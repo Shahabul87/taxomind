@@ -510,8 +510,8 @@ export function scoreDetails(
   if (det.keyConceptsCovered.length < 3) depth -= 15;
   if (!det.resources || det.resources.length === 0) depth -= 5;
 
-  // Structure adherence penalty (consolidated scoring)
-  const structureAnalysis = analyzeSectionDescriptionStructure(det.description);
+  // Structure adherence penalty (consolidated scoring, content-type-aware)
+  const structureAnalysis = analyzeSectionDescriptionStructure(det.description, sec.contentType);
   const structureScore = scoreSectionDescriptionStructure(structureAnalysis);
   if (structureScore < 70) depth -= 20;
   else if (structureScore < 90) depth -= 10;

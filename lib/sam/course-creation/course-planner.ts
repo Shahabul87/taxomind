@@ -105,6 +105,13 @@ export function buildBlueprintBlock(
     `Estimated complexity: ${entry.estimatedComplexity}`,
   ];
 
+  if (entry.dependencyReason) {
+    lines.push(`Sequencing rationale: ${entry.dependencyReason}`);
+  }
+  if (entry.pedagogicalArc) {
+    lines.push(`Pedagogical arc role: ${entry.pedagogicalArc}`);
+  }
+
   if (deps) {
     lines.push('', '### Concept Dependencies:', deps);
   }
@@ -155,7 +162,7 @@ ${memorySection}${qualitySection}
 
 ## TASK
 Create a blueprint with:
-1. A plan for each chapter (title, focus, Bloom's level, key concepts, complexity, rationale, and optionally a recommended section count)
+1. A plan for each chapter (title, focus, Bloom's level, key concepts, complexity, rationale, sequencing justification, pedagogical arc role, and optionally a recommended section count)
 2. Concept dependencies (which concepts depend on which)
 3. Bloom's progression strategy (how cognitive levels should advance)
 4. Risk areas (topics that are complex, need careful scaffolding, or have prerequisite gaps)
@@ -174,6 +181,8 @@ Return a JSON object:
       "keyConcepts": ["concept1", "concept2"],
       "estimatedComplexity": "low|medium|high",
       "rationale": "Why this chapter belongs here and at this level",
+      "dependencyReason": "Why this chapter must come after its predecessors (e.g. 'Requires understanding of X from Ch2')",
+      "pedagogicalArc": "foundation|scaffolding|bridge|deep-dive|synthesis|capstone",
       "recommendedSections": 7
     }
   ],
@@ -285,6 +294,8 @@ function parseChapterPlan(
         : 'medium',
       rationale: typeof item.rationale === 'string' ? item.rationale : '',
       recommendedSections,
+      dependencyReason: typeof item.dependencyReason === 'string' ? item.dependencyReason : undefined,
+      pedagogicalArc: typeof item.pedagogicalArc === 'string' ? item.pedagogicalArc : undefined,
     });
   }
 

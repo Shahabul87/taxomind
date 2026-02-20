@@ -567,6 +567,10 @@ export interface ChapterPlanEntry {
   rationale: string;
   /** AI-recommended section count for this chapter (optional, bounded 5-10) */
   recommendedSections?: number;
+  /** Why this chapter must come after its predecessors (concept dependencies) */
+  dependencyReason?: string;
+  /** Role of this chapter in the overall pedagogical arc (e.g. "bridge", "capstone", "foundation") */
+  pedagogicalArc?: string;
 }
 
 // ============================================================================

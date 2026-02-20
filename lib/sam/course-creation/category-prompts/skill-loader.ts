@@ -31,7 +31,11 @@ const PRIORITY_ORDER: string[] = [
   'data-science-ml',
   'programming',
   'mathematics',
+  'physics',
   'engineering',
+  'environmental-science',
+  'psychology',
+  'law',
   'finance-accounting',
   'business-management',
   'design-creative',
@@ -235,6 +239,18 @@ export function clearCache(): void {
     duplicateCategoryIds: [],
     missingPriorityIds: [],
   };
+}
+
+/**
+ * Force-reload all skill files from disk (runtime reloading).
+ *
+ * Use this when new `.skill.md` files are added at runtime without
+ * restarting the server. Returns diagnostics from the reload.
+ */
+export function reloadSkills(): SkillLoadDiagnostics {
+  clearCache();
+  loadAll();
+  return diagnosticsCache;
 }
 
 /**
