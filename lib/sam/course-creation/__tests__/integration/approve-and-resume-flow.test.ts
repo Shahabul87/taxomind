@@ -7,6 +7,14 @@
  * 3. Approve path returns SSE and invokes resumeCourseCreation once
  */
 
+jest.mock('@prisma/client', () => ({
+  Prisma: {
+    DbNull: Symbol('DbNull'),
+    JsonNull: Symbol('JsonNull'),
+    AnyNull: Symbol('AnyNull'),
+  },
+}));
+
 jest.mock('@/lib/auth', () => ({
   currentUser: jest.fn(),
 }));

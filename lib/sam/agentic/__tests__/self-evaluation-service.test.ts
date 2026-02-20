@@ -145,7 +145,7 @@ describe('SelfEvaluationService', () => {
         responseId: 'resp_42',
         sessionId: 'sess_7',
         topic: 'TypeScript Generics',
-        responseType: 'answer',
+        responseType: 'ANSWER',
       });
 
       expect(mockScoreResponse).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('SelfEvaluationService', () => {
       const callArg = mockScoreResponse.mock.calls[0][0] as Record<string, unknown>;
       expect(callArg.responseId).toMatch(/^response_/);
       expect(callArg.sessionId).toMatch(/^session_/);
-      expect(callArg.responseType).toBe('EXPLANATION');
+      expect(callArg.responseType).toBe('explanation');
     });
 
     it('handles empty response text by delegating to the scorer', async () => {

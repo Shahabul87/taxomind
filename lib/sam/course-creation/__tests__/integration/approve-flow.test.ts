@@ -12,6 +12,14 @@
  */
 
 // Mock external dependencies before imports
+jest.mock('@prisma/client', () => ({
+  Prisma: {
+    DbNull: Symbol('DbNull'),
+    JsonNull: Symbol('JsonNull'),
+    AnyNull: Symbol('AnyNull'),
+  },
+}));
+
 jest.mock('@/lib/auth', () => ({
   currentUser: jest.fn(),
 }));
@@ -32,6 +40,10 @@ jest.mock('@/lib/logger', () => ({
     error: jest.fn(),
     debug: jest.fn(),
   },
+}));
+
+jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
+  withRateLimit: jest.fn().mockResolvedValue(null),
 }));
 
 import { NextRequest } from 'next/server';

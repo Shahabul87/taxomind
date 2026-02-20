@@ -213,11 +213,11 @@ describe('ConversationThreadingService', () => {
       mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [
-          { content: 'How do I solve this practice problem?', messageType: 'USER_MESSAGE' },
-          { content: 'Let me help with the exercise.', messageType: 'AI_RESPONSE' },
-          { content: 'Another practice problem please', messageType: 'USER_MESSAGE' },
-          { content: 'Here is another exercise.', messageType: 'AI_RESPONSE' },
-          { content: 'I want to solve more problems', messageType: 'USER_MESSAGE' },
+          { content: 'How do I solve this practice problem?', messageType: 'USER' },
+          { content: 'Let me help with the exercise.', messageType: 'ASSISTANT' },
+          { content: 'Another practice problem please', messageType: 'USER' },
+          { content: 'Here is another exercise.', messageType: 'ASSISTANT' },
+          { content: 'I want to solve more problems', messageType: 'USER' },
         ],
       });
 

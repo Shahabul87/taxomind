@@ -35,7 +35,11 @@ jest.mock('../agentic-memory', () => ({
 
 // Mock proactive interventions
 jest.mock('../proactive-intervention-integration', () => ({
-  initializeProactiveInterventions: jest.fn(),
+  initializeProactiveInterventions: jest.fn().mockReturnValue({
+    behaviorMonitor: {},
+    checkInScheduler: {},
+    planTracker: {},
+  }),
   getBehaviorMonitor: jest.fn().mockReturnValue({}),
   getCheckInScheduler: jest.fn().mockReturnValue({}),
   getMultiSessionPlanTracker: jest.fn().mockReturnValue({}),
