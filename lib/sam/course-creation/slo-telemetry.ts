@@ -8,6 +8,12 @@
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
+export interface StageLatencyPercentiles {
+  p50Ms: number;
+  p95Ms: number;
+  count: number;
+}
+
 export interface CourseCreationSLOSnapshot {
   version: 1;
   runId?: string;
@@ -28,6 +34,23 @@ export interface CourseCreationSLOSnapshot {
   criticRevisionAcceptanceRate: number;
   promptBudgetAlertCount: number;
   promptBudgetHighPriorityDropCount: number;
+  stageLatencies?: {
+    stage1?: StageLatencyPercentiles;
+    stage2?: StageLatencyPercentiles;
+    stage3?: StageLatencyPercentiles;
+  };
+}
+
+export interface SLOBreach {
+  metric: string;
+  threshold: number;
+  actual: number;
+  severity: 'warning' | 'critical';
+}
+
+export interface SLOBreachResult {
+  breached: boolean;
+  breaches: SLOBreach[];
 }
 
 export interface BuildSLOSnapshotInput {
@@ -57,10 +80,16 @@ export class CourseCreationSLOTracker {
   private criticRevisionAccepted = 0;
   private promptBudgetAlertCount = 0;
   private promptBudgetHighPriorityDropCount = 0;
+  private stageLatencies: { 1: number[]; 2: number[]; 3: number[] } = { 1: [], 2: [], 3: [] };
 
   constructor(runId?: string) {
     this.startedAtIso = new Date().toISOString();
     this.runId = runId;
+  }
+
+  /** Record a latency measurement for a specific pipeline stage */
+  recordStageLatency(stage: 1 | 2 | 3, latencyMs: number): void {
+    this.stageLatencies[stage].push(latencyMs);
   }
 
   observeEvent(event: { type: string; data: Record<string, unknown> }): void {
@@ -104,6 +133,14 @@ export class CourseCreationSLOTracker {
     const fallbackCount = input.fallbackSummary?.count ?? 0;
     const fallbackRate = input.fallbackSummary?.rate ?? 0;
 
+    const stageLatencies: CourseCreationSLOSnapshot['stageLatencies'] = {};
+    for (const stage of [1, 2, 3] as const) {
+      const latencies = this.stageLatencies[stage];
+      if (latencies.length > 0) {
+        stageLatencies[`stage${stage}`] = computePercentiles(latencies);
+      }
+    }
+
     return {
       version: 1,
       runId: this.runId,
@@ -124,7 +161,49 @@ export class CourseCreationSLOTracker {
       criticRevisionAcceptanceRate,
       promptBudgetAlertCount: this.promptBudgetAlertCount,
       promptBudgetHighPriorityDropCount: this.promptBudgetHighPriorityDropCount,
+      ...(Object.keys(stageLatencies).length > 0 && { stageLatencies }),
     };
+  }
+
+  /** Check whether any SLO thresholds have been breached in the current snapshot */
+  checkSLOBreaches(snapshot: CourseCreationSLOSnapshot): SLOBreachResult {
+    const breaches: SLOBreach[] = [];
+
+    // Fallback rate thresholds
+    if (snapshot.fallbackRate > 0.5) {
+      breaches.push({ metric: 'fallbackRate', threshold: 0.5, actual: snapshot.fallbackRate, severity: 'critical' });
+    } else if (snapshot.fallbackRate > 0.3) {
+      breaches.push({ metric: 'fallbackRate', threshold: 0.3, actual: snapshot.fallbackRate, severity: 'warning' });
+    }
+
+    // Retry rate thresholds
+    if (snapshot.retryRate > 0.6) {
+      breaches.push({ metric: 'retryRate', threshold: 0.6, actual: snapshot.retryRate, severity: 'critical' });
+    } else if (snapshot.retryRate > 0.4) {
+      breaches.push({ metric: 'retryRate', threshold: 0.4, actual: snapshot.retryRate, severity: 'warning' });
+    }
+
+    // Average quality thresholds
+    if (snapshot.averageQualityScore < 45) {
+      breaches.push({ metric: 'averageQuality', threshold: 45, actual: snapshot.averageQualityScore, severity: 'critical' });
+    } else if (snapshot.averageQualityScore < 60) {
+      breaches.push({ metric: 'averageQuality', threshold: 60, actual: snapshot.averageQualityScore, severity: 'warning' });
+    }
+
+    // Stage p95 latency thresholds (seconds)
+    if (snapshot.stageLatencies) {
+      for (const [key, percentiles] of Object.entries(snapshot.stageLatencies)) {
+        if (!percentiles) continue;
+        const p95Seconds = percentiles.p95Ms / 1000;
+        if (p95Seconds > 300) {
+          breaches.push({ metric: `${key}.p95Latency`, threshold: 300, actual: p95Seconds, severity: 'critical' });
+        } else if (p95Seconds > 120) {
+          breaches.push({ metric: `${key}.p95Latency`, threshold: 120, actual: p95Seconds, severity: 'warning' });
+        }
+      }
+    }
+
+    return { breached: breaches.length > 0, breaches };
   }
 }
 
@@ -237,4 +316,14 @@ function avg(values: number[]): number {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function computePercentiles(latencies: number[]): StageLatencyPercentiles {
+  const sorted = [...latencies].sort((a, b) => a - b);
+  const len = sorted.length;
+  return {
+    p50Ms: sorted[Math.floor(len * 0.5)],
+    p95Ms: sorted[Math.min(Math.ceil(len * 0.95) - 1, len - 1)],
+    count: len,
+  };
 }

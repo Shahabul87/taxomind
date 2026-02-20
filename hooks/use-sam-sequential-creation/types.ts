@@ -151,8 +151,27 @@ export function clearPartialCourseId(): void {
 /** Max auto-reconnections before giving up (~150 min at 15 min per segment) */
 export const MAX_RECONNECTIONS = 10;
 
-/** Delay before auto-reconnecting (ms) — lets server checkpoint save complete */
+/** Base delay before auto-reconnecting (ms) — lets server checkpoint save complete */
 export const RECONNECT_DELAY_MS = 2000;
+
+/** Base delay for exponential backoff (ms) */
+export const RECONNECT_BASE_DELAY_MS = 2000;
+
+/** Maximum delay cap for exponential backoff (ms) */
+export const RECONNECT_MAX_DELAY_MS = 30000;
+
+/**
+ * Calculate reconnect delay with exponential backoff and jitter.
+ * Prevents thundering herd on server recovery.
+ */
+export function getReconnectDelay(attempt: number): number {
+  const exponential = Math.min(
+    RECONNECT_MAX_DELAY_MS,
+    RECONNECT_BASE_DELAY_MS * Math.pow(2, attempt),
+  );
+  // Add 0-30% jitter to prevent synchronized reconnect storms
+  return exponential + Math.random() * exponential * 0.3;
+}
 
 // ============================================================================
 // Initial State

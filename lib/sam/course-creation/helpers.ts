@@ -38,7 +38,8 @@ import { analyzeSectionDescriptionStructure, scoreSectionDescriptionStructure } 
  */
 export function sanitizeForPrompt(input: string, maxLength = 500): string {
   return input
-    .replace(/ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|context)/gi, '')
+    .replace(/(?:ignore|disregard|forget|override|stop\s+being)\s+(all\s+)?(previous|above|prior|new)\s+(instructions?|prompts?|context|rules?|constraints?|guidelines?|directives?)/gi, '')
+    .replace(/new\s+instructions?\s*:/gi, '')
     .replace(/\b(system|assistant|user)\s*:/gi, '')
     .replace(/```[\s\S]*?```/g, '')
     .replace(/^#{1,6}\s/gm, '')
@@ -108,6 +109,7 @@ export function sanitizeHtmlOutput(html: string): string {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
   });
 }
 
@@ -580,10 +582,19 @@ export function validateChapterSectionCoverage(
 // FALLBACK GENERATORS
 // =============================================================================
 
+/** Escape HTML special characters for defense-in-depth in fallback templates */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function buildFallbackDescription(ctx: CourseContext): string {
   return (
-    `This chapter provides essential knowledge for ${ctx.targetAudience} ` +
-    `learning ${ctx.courseTitle} at the ${ctx.difficulty} level.`
+    `This chapter provides essential knowledge for ${escapeHtml(ctx.targetAudience)} ` +
+    `learning ${escapeHtml(ctx.courseTitle)} at the ${escapeHtml(ctx.difficulty)} level.`
   );
 }
 
@@ -600,7 +611,7 @@ export function buildFallbackChapter(num: number, ctx: CourseContext): Generated
 
   return {
     position: num,
-    title: `${topic} in ${ctx.courseTitle}`,
+    title: `${topic} in ${escapeHtml(ctx.courseTitle)}`,
     description: buildFallbackDescription(ctx),
     bloomsLevel: 'UNDERSTAND',
     learningObjectives: Array.from({ length: ctx.learningObjectivesPerChapter }, (_, i) =>
@@ -679,17 +690,19 @@ export function buildFallbackDetails(
   ctx: CourseContext,
   templateDef?: TemplateSectionDef
 ): SectionDetails {
-  const topic = section.topicFocus;
-  const audience = ctx.targetAudience;
-  const difficulty = ctx.difficulty;
+  const topic = escapeHtml(section.topicFocus);
+  const audience = escapeHtml(ctx.targetAudience);
+  const difficulty = escapeHtml(ctx.difficulty);
+  const sectionTitle = escapeHtml(section.title);
+  const chapterTitle = escapeHtml(chapter.title);
   const creatorGuidelines = [
-    `<h3>Creator Guidelines for "${section.title}"</h3>`,
+    `<h3>Creator Guidelines for "${sectionTitle}"</h3>`,
     `<h4>Instructional Goal</h4>`,
     `<p>Help learners understand <strong>${topic}</strong> and apply it confidently in real scenarios at the ${difficulty} level.</p>`,
     `<h4>Delivery Plan</h4>`,
     `<ul>`,
     `<li>Open with a concrete problem where ${topic} is required.</li>`,
-    `<li>Connect the explanation to Chapter ${chapter.position}: "${chapter.title}".</li>`,
+    `<li>Connect the explanation to Chapter ${chapter.position}: "${chapterTitle}".</li>`,
     `<li>Use one worked example, then one independent practice prompt.</li>`,
     `<li>Explicitly highlight one common mistake and how to avoid it.</li>`,
     `<li>Close with a clear call-to-action aligned to the section activity.</li>`,
@@ -697,7 +710,7 @@ export function buildFallbackDetails(
     `<h4>Production Notes</h4>`,
     `<ul>`,
     `<li>Keep language direct and specific for ${audience}.</li>`,
-    `<li>Match pacing to section duration: ${section.estimatedDuration}.</li>`,
+    `<li>Match pacing to section duration: ${escapeHtml(section.estimatedDuration ?? '')}.</li>`,
     `<li>Ensure terminology is consistent with earlier chapter sections.</li>`,
     `</ul>`,
   ].join('\n');
@@ -706,7 +719,7 @@ export function buildFallbackDetails(
 
   const buildProtocolDescriptionFallback = (): string => [
     `<h2>Why It Was Developed</h2>`,
-    `<p><strong>${topic}</strong> was developed to solve a recurring problem in "${chapter.title}": teams needed a reliable way to move from vague goals to repeatable outcomes. Earlier approaches were limited because they depended on intuition alone, which created inconsistent quality and hard-to-debug mistakes. As a ${audience} learner, you need a method that makes decisions explicit, testable, and easier to improve over time.</p>`,
+    `<p><strong>${topic}</strong> was developed to solve a recurring problem in "${chapterTitle}": teams needed a reliable way to move from vague goals to repeatable outcomes. Earlier approaches were limited because they depended on intuition alone, which created inconsistent quality and hard-to-debug mistakes. As a ${audience} learner, you need a method that makes decisions explicit, testable, and easier to improve over time.</p>`,
     `<p>In practice, the limitation is clear: when the process is not structured, results vary from person to person and failures are hard to explain. ${topic} addresses that limitation by giving you a concrete framework for reasoning, execution, and review.</p>`,
     `<h2>Core Intuition</h2>`,
     `<p>Use this mental model: <strong>${topic}</strong> is like a checklist-driven navigation system. Instead of guessing the route every time, you follow a map of decisions that keeps you on track while still allowing course-correction. You are not memorizing rules blindly; you are learning how each decision changes the path and the final result.</p>`,
@@ -1003,7 +1016,7 @@ export function buildFallbackDetails(
         description = [
           `<h2>${templateDef.displayName}</h2>`,
           `<p>${templateDef.purpose}</p>`,
-          `<p>This section covers <strong>${topic}</strong> within the context of "${chapter.title}". As ${audience} at the ${difficulty} level, you will build on what you have learned so far.</p>`,
+          `<p>This section covers <strong>${topic}</strong> within the context of "${chapterTitle}". As ${audience} at the ${difficulty} level, you will build on what you have learned so far.</p>`,
         ].join('\n');
     }
   } else {
@@ -1011,7 +1024,7 @@ export function buildFallbackDetails(
       `<h2>Why This Matters</h2>`,
       `<p>Understanding <strong>${topic}</strong> is essential for anyone working in this field. As ${audience}, you will encounter ${topic} in nearly every real-world project. This concept solves a fundamental problem that practitioners face daily, and mastering it will set you apart.</p>`,
       `<h2>The Big Picture</h2>`,
-      `<p>${topic} fits into the broader context of "${chapter.title}". Without a solid grasp of ${topic}, the concepts that follow become much harder to understand. Think of it as a building block that supports everything else in this chapter.</p>`,
+      `<p>${topic} fits into the broader context of "${chapterTitle}". Without a solid grasp of ${topic}, the concepts that follow become much harder to understand. Think of it as a building block that supports everything else in this chapter.</p>`,
       `<h2>What You Will Learn</h2>`,
       `<ul>`,
       `<li>The core principles behind <strong>${topic}</strong> and why they matter</li>`,

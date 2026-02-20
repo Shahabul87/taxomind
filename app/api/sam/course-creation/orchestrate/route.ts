@@ -382,6 +382,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Back-pressure: stop generation when client disconnects
+        request.signal.addEventListener('abort', () => {
+          streamClosed = true;
+          clearInterval(heartbeat);
+        });
+
         // Heartbeat: send SSE comment every 15s to keep connection alive
         // during long AI calls (roadmap generation can take 60-120s)
         const heartbeat = setInterval(() => {
@@ -460,8 +466,21 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('[ORCHESTRATE_ROUTE] Stream error:', msg);
-          sendSSE('error', { message: 'Course creation failed', courseId: lastKnownCourseId });
+          const isTransient = error instanceof Error &&
+            /timeout|ECONNRESET|EPIPE|network/i.test(error.message);
+          logger.error('[ORCHESTRATE_ROUTE] Stream error:', {
+            message: msg,
+            userId: user.id,
+            runId,
+            courseId: lastKnownCourseId,
+            isTransient,
+          });
+          sendSSE('error', {
+            message: 'Course creation failed',
+            courseId: lastKnownCourseId,
+            canRetry: isTransient,
+            errorClass: isTransient ? 'transient' : 'permanent',
+          });
         } finally {
           await releaseDedupeLocks();
           clearInterval(heartbeat);
@@ -486,7 +505,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     await releaseDedupeLocks();
     const msg = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[ORCHESTRATE_ROUTE] Error:', msg);
+    const isTransient = error instanceof Error &&
+      /timeout|ECONNRESET|EPIPE|network/i.test(error.message);
+    logger.error('[ORCHESTRATE_ROUTE] Error:', {
+      message: msg,
+      isTransient,
+    });
     return new Response(
       JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

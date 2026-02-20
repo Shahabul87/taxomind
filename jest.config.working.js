@@ -59,9 +59,18 @@ const customJestConfig = {
     // We need to mock both the import path AND the resolved symlink path
     '^@sam-ai/agentic$': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
     '^@sam-ai/agentic/(.*)$': '<rootDir>/__mocks__/@sam-ai/agentic/$1.js',
+    '^@sam-ai/quality$': '<rootDir>/__mocks__/@sam-ai/quality/index.js',
+    '^@sam-ai/quality/(.*)$': '<rootDir>/__mocks__/@sam-ai/quality/$1.js',
+    '^@sam-ai/pedagogy$': '<rootDir>/__mocks__/@sam-ai/pedagogy/index.js',
+    '^@sam-ai/pedagogy/(.*)$': '<rootDir>/__mocks__/@sam-ai/pedagogy/$1.js',
     // Also mock the direct package paths (for pnpm workspace symlinks)
     '<rootDir>/packages/agentic/src/index.ts': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
     '<rootDir>/packages/agentic/dist/index.js': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
+    // Mock resolved TS paths for symlinked packages (SWC resolves tsconfig paths before Jest)
+    '.*/packages/quality/src/index\\.ts$': '<rootDir>/__mocks__/@sam-ai/quality/index.js',
+    '.*/packages/quality/dist/index\\.js$': '<rootDir>/__mocks__/@sam-ai/quality/index.js',
+    '.*/packages/pedagogy/src/index\\.ts$': '<rootDir>/__mocks__/@sam-ai/pedagogy/index.js',
+    '.*/packages/pedagogy/dist/index\\.js$': '<rootDir>/__mocks__/@sam-ai/pedagogy/index.js',
 
     // Styles
     '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',

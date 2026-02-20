@@ -20,6 +20,9 @@ export interface StreamReadResult {
  * Read an SSE stream and process events through the shared handler.
  * Returns the final result and flags for whether complete/error events were received.
  */
+/** Maximum buffer size (512KB) to prevent unbounded memory growth on malformed streams */
+const MAX_BUFFER_SIZE = 512 * 1024;
+
 export async function readSSEStream(
   response: Response,
   ctx: SSEHandlerContext,
@@ -40,6 +43,11 @@ export async function readSSEStream(
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
+
+    // Prevent unbounded buffer growth from malformed streams
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      buffer = buffer.substring(buffer.length - Math.floor(MAX_BUFFER_SIZE / 2));
+    }
 
     // Process complete events from the buffer
     const lastDoubleNewline = buffer.lastIndexOf('\n\n');

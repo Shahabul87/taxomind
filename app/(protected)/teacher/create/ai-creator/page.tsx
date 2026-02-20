@@ -30,13 +30,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { VerticalStepper } from "./components/navigation/VerticalStepper";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { logger } from "@/lib/logger";
 import { AICreatorLayout } from "./_components/AICreatorLayout";
 
 // Import hooks
 import { useSamWizard } from "./hooks/use-sam-wizard";
-import { useSequentialCreation } from "@/hooks/use-sam-sequential-creation";
+import { useSequentialCreationActions } from "./hooks/use-sequential-creation-actions";
 
 // Step 1 loaded eagerly (always visible on first paint)
 import { CourseBasicsStep } from "./components/steps/course-basics-step";
@@ -139,9 +137,33 @@ export default function AICreatorPage() {
     }
   }, [searchParams, formData.courseTitle, formData.courseShortOverview, setFormData]);
 
+  // Sequential creation actions (modal, start/retry/resume/approve/abort/regenerate)
+  const {
+    isSequentialModalOpen,
+    showGenerateConfirm,
+    setShowGenerateConfirm,
+    sequentialProgress,
+    isSequentialCreating,
+    sequentialError,
+    resumableCourseId,
+    dbProgress,
+    regeneratingChapterId,
+    modalFormData,
+    handleOpenSequentialModal,
+    handleCloseSequentialModal,
+    handleStartSequentialCreation,
+    handleRetrySequentialCreation,
+    handleResumeCreation,
+    handleApproveContinue,
+    handleApproveHeal,
+    handleAbortPausedPipeline,
+    handleRegenerateChapter,
+    cancelSequentialCreation,
+    dismissCreation,
+  } = useSequentialCreationActions(formData, router);
+
   // Confirmation dialogs
   const [showResetConfirm, setShowResetConfirm] = React.useState(false);
-  const [showGenerateConfirm, setShowGenerateConfirm] = React.useState(false);
 
   // Local validation errors (field-specific)
   const [localValidationErrors, setLocalValidationErrors] = React.useState<Record<string, string>>({});
@@ -151,25 +173,6 @@ export default function AICreatorPage() {
     () => ({ ...validationErrors, ...localValidationErrors }),
     [validationErrors, localValidationErrors]
   );
-
-  // Sequential Creation (3-Stage Process)
-  const [isSequentialModalOpen, setIsSequentialModalOpen] = React.useState(false);
-  const [createdCourseId, setCreatedCourseId] = React.useState<string | null>(null);
-  const {
-    progress: sequentialProgress,
-    isCreating: isSequentialCreating,
-    error: sequentialError,
-    resumableCourseId,
-    dbProgress,
-    regeneratingChapterId,
-    startCreation: startSequentialCreation,
-    resumeCreation,
-    approveAndResumeCreation,
-    regenerateChapter,
-    cancel: cancelSequentialCreation,
-    reset: resetSequentialCreation,
-    dismissCreation,
-  } = useSequentialCreation();
 
   // Step validation
   const isStepValid = React.useCallback((): boolean => {
@@ -255,237 +258,6 @@ export default function AICreatorPage() {
     }
   }, [formData]);
 
-  // Open sequential creation modal
-  const handleOpenSequentialModal = React.useCallback(() => {
-    resetSequentialCreation();
-    setIsSequentialModalOpen(true);
-  }, [resetSequentialCreation]);
-
-  // Close sequential creation modal
-  const handleCloseSequentialModal = React.useCallback(() => {
-    if (!isSequentialCreating) {
-      setIsSequentialModalOpen(false);
-      resetSequentialCreation();
-    }
-  }, [isSequentialCreating, resetSequentialCreation]);
-
-  const buildSequentialConfig = React.useCallback(() => ({
-    courseTitle: formData.courseTitle || '',
-    courseDescription: formData.courseShortOverview || '',
-    targetAudience:
-      formData.targetAudience === 'Custom (describe below)'
-        ? (formData.customAudience.trim() || formData.targetAudience)
-        : (formData.targetAudience || ''),
-    difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
-    totalChapters: formData.chapterCount,
-    sectionsPerChapter: formData.sectionsPerChapter,
-    learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
-    learningObjectivesPerSection: formData.learningObjectivesPerSection,
-    courseGoals: formData.courseGoals,
-    bloomsFocus: formData.bloomsFocus,
-    preferredContentTypes: formData.preferredContentTypes,
-    category: formData.courseCategory,
-    subcategory: formData.courseSubcategory,
-    courseIntent: formData.courseIntent,
-    includeAssessments: formData.includeAssessments,
-    duration: formData.duration,
-    enableEscalationGate: formData.enableEscalationGate,
-    fallbackPolicy: {
-      haltRateThreshold: formData.fallbackHaltRateThreshold,
-      haltOnExcessiveFallbacks: formData.haltOnExcessiveFallbacks,
-    },
-  }), [formData]);
-
-  const isPipelinePausedError = React.useCallback((err?: string) => {
-    if (!err) return false;
-    return err.toLowerCase().includes('paused for human review');
-  }, []);
-
-  // Start sequential creation process
-  const handleStartSequentialCreation = React.useCallback(async () => {
-    try {
-      logger.info('[AI-CREATOR] Starting sequential course creation');
-
-      const result = await startSequentialCreation(buildSequentialConfig());
-
-      if (result.success && result.courseId) {
-        setCreatedCourseId(result.courseId);
-
-        logger.info('[AI-CREATOR] Sequential creation completed successfully', {
-          courseId: result.courseId,
-          chaptersCreated: result.chaptersCreated,
-          sectionsCreated: result.sectionsCreated,
-        });
-
-        toast.success('Course created successfully!', {
-          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
-        });
-
-        // Navigate to the created course
-        setTimeout(() => {
-          router.push(`/teacher/courses/${result.courseId}`);
-        }, 1500);
-
-        // Save to SAM memory
-        if (typeof window !== 'undefined') {
-          import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
-            samMemory.incrementSuccessfulGenerations();
-          });
-        }
-      } else {
-        if (isPipelinePausedError(result.error)) {
-          toast.info('Pipeline paused for review', {
-            description: 'Choose Continue, Heal & Resume, or Abort in the modal.',
-          });
-          return;
-        }
-
-        const isCancelled = result.error?.toLowerCase().includes('cancel');
-        if (isCancelled) {
-          logger.info('[AI-CREATOR] Course creation was cancelled by user');
-        } else {
-          logger.error('[AI-CREATOR] Sequential creation failed:', result.error);
-        }
-        toast.error(isCancelled ? 'Course creation cancelled' : 'Course creation failed', {
-          description: isCancelled ? 'You can restart generation anytime.' : (result.error || 'An unexpected error occurred'),
-        });
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      const isCancelled = errorMsg.toLowerCase().includes('cancel');
-      if (isCancelled) {
-        logger.info('[AI-CREATOR] Course creation was cancelled by user');
-      } else {
-        logger.error('[AI-CREATOR] Error in sequential creation:', error);
-      }
-      if (!isCancelled) {
-        toast.error('Failed to create course');
-      }
-    }
-  }, [startSequentialCreation, router, buildSequentialConfig, isPipelinePausedError]);
-
-  // Handle retry for sequential creation
-  const handleRetrySequentialCreation = React.useCallback(async () => {
-    await dismissCreation();
-    handleStartSequentialCreation();
-  }, [dismissCreation, handleStartSequentialCreation]);
-
-  // Handle resume from failed creation
-  const handleResumeCreation = React.useCallback(async () => {
-    if (!resumableCourseId) return;
-
-    try {
-      logger.info('[AI-CREATOR] Resuming course creation', { courseId: resumableCourseId });
-
-      const result = await resumeCreation(resumableCourseId, buildSequentialConfig());
-
-      if (result.success && result.courseId) {
-        toast.success('Course resumed and completed!', {
-          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
-        });
-        setTimeout(() => {
-          router.push(`/teacher/courses/${result.courseId}`);
-        }, 1500);
-      } else if (isPipelinePausedError(result.error)) {
-        toast.info('Pipeline paused for review', {
-          description: 'Choose Continue, Heal & Resume, or Abort in the modal.',
-        });
-      } else {
-        toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
-      }
-    } catch (error) {
-      logger.error('[AI-CREATOR] Error resuming creation:', error);
-      toast.error('Failed to resume course creation');
-    }
-  }, [resumableCourseId, resumeCreation, router, buildSequentialConfig, isPipelinePausedError]);
-
-  const handleApproveContinue = React.useCallback(async () => {
-    if (!resumableCourseId) return;
-
-    try {
-      const result = await approveAndResumeCreation(
-        resumableCourseId,
-        'approve_continue',
-        buildSequentialConfig(),
-      );
-
-      if (result.success && result.courseId) {
-        toast.success('Course resumed and completed!', {
-          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
-        });
-        setTimeout(() => {
-          router.push(`/teacher/courses/${result.courseId}`);
-        }, 1500);
-      } else {
-        toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
-      }
-    } catch (error) {
-      logger.error('[AI-CREATOR] Error approving and resuming:', error);
-      toast.error('Failed to approve and resume course creation');
-    }
-  }, [approveAndResumeCreation, resumableCourseId, buildSequentialConfig, router]);
-
-  const handleApproveHeal = React.useCallback(async () => {
-    if (!resumableCourseId) return;
-
-    try {
-      const result = await approveAndResumeCreation(
-        resumableCourseId,
-        'approve_heal',
-        buildSequentialConfig(),
-      );
-
-      if (result.success && result.courseId) {
-        toast.success('Course resumed and completed!', {
-          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
-        });
-        setTimeout(() => {
-          router.push(`/teacher/courses/${result.courseId}`);
-        }, 1500);
-      } else {
-        toast.error('Resume failed', { description: result.error || 'An unexpected error occurred' });
-      }
-    } catch (error) {
-      logger.error('[AI-CREATOR] Error approving healing and resuming:', error);
-      toast.error('Failed to approve healing and resume');
-    }
-  }, [approveAndResumeCreation, resumableCourseId, buildSequentialConfig, router]);
-
-  const handleAbortPausedPipeline = React.useCallback(async () => {
-    if (!resumableCourseId) return;
-
-    try {
-      const res = await fetch('/api/sam/course-creation/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          courseId: resumableCourseId,
-          decision: 'reject_abort',
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to abort paused pipeline');
-      }
-
-      toast.info('Pipeline aborted', {
-        description: 'Generated content up to this point has been kept.',
-      });
-      await dismissCreation();
-      setIsSequentialModalOpen(false);
-    } catch (error) {
-      logger.error('[AI-CREATOR] Error aborting paused pipeline:', error);
-      toast.error('Failed to abort paused pipeline');
-    }
-  }, [dismissCreation, resumableCourseId]);
-
-  // Handle chapter regeneration
-  const handleRegenerateChapter = React.useCallback((chapterId: string, position: number) => {
-    if (!createdCourseId) return;
-    regenerateChapter(createdCourseId, chapterId, position);
-  }, [createdCourseId, regenerateChapter]);
-
   // Fix 2.1 + 6.2: Debounced SAM Memory Integration (was firing on every keystroke)
   // Uses a 5-second debounce to batch rapid changes and avoid per-keystroke saves.
   // The auto-save in use-sam-wizard.ts handles localStorage persistence every 30s.
@@ -566,18 +338,7 @@ export default function AICreatorPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [attemptNext, handleBack]);
-
-  // Fix 2.4: Memoize modal formData to prevent SequentialCreationModal re-renders
-  const modalFormData = React.useMemo(() => ({
-    courseTitle: formData.courseTitle || '',
-    targetAudience: formData.targetAudience === 'Custom (describe below)'
-      ? (formData.customAudience || formData.targetAudience)
-      : formData.targetAudience,
-    difficulty: formData.difficulty,
-    chapterCount: formData.chapterCount,
-    sectionsPerChapter: formData.sectionsPerChapter,
-  }), [formData.courseTitle, formData.targetAudience, formData.customAudience, formData.difficulty, formData.chapterCount, formData.sectionsPerChapter]);
+  }, [attemptNext, handleBack, setShowGenerateConfirm]);
 
   const renderStepContent = () => {
     const stepProps = {

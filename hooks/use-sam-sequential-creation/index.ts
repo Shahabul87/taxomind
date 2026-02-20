@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * SAM Sequential Course Creation Hook (SSE-based)
  *
@@ -34,6 +36,7 @@ import {
   getPartialCourseId,
   setPartialCourseId,
   clearPartialCourseId,
+  getReconnectDelay,
 } from './types';
 import { readSSEStream } from './sse-stream-reader';
 
@@ -274,7 +277,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           });
 
           // Brief pause to let server-side checkpoint save complete
-          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+          await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
 
           // Recursively resume — React state persists across calls
           return resumeCreation(lastCourseIdRef.current, config);
@@ -338,7 +341,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           error: errorMessage,
         });
 
-        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
         return resumeCreation(lastCourseIdRef.current, config);
       }
 
@@ -463,7 +466,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
             reconnectCount: reconnectCountRef.current,
             courseId: lastCourseIdRef.current,
           });
-          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+          await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
           return resumeCreation(lastCourseIdRef.current, config);
         }
 
@@ -520,7 +523,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           error: errorMessage,
         });
 
-        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
         return resumeCreation(lastCourseIdRef.current, config);
       }
 
@@ -677,7 +680,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           });
 
           // Brief pause to let server-side checkpoint save complete
-          await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+          await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
 
           // Switch to resumeCreation for subsequent segments
           return resumeCreation(lastCourseIdRef.current, config);
@@ -747,7 +750,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           error: errorMessage,
         });
 
-        await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+        await new Promise(resolve => setTimeout(resolve, getReconnectDelay(reconnectCountRef.current)));
         return resumeCreation(lastCourseIdRef.current, config);
       }
 
