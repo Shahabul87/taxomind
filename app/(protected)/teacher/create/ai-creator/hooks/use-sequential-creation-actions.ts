@@ -62,10 +62,24 @@ export function useSequentialCreationActions(
   // -----------------------------------------------------------------------
   // Open / close modal
   // -----------------------------------------------------------------------
+
+  /**
+   * Open modal for a **fresh** creation — resets all prior state so the
+   * pipeline starts clean. Used by "Create with SAM" / coherence-proceed flows.
+   */
   const handleOpenSequentialModal = React.useCallback(() => {
     resetSequentialCreation();
     setIsSequentialModalOpen(true);
   }, [resetSequentialCreation]);
+
+  /**
+   * Open modal for **resume** — preserves existing state (resumableCourseId,
+   * dbProgress, etc.) so the resume handler can read them. Used by the
+   * resume banner and the modal's internal Resume button.
+   */
+  const handleOpenSequentialModalForResume = React.useCallback(() => {
+    setIsSequentialModalOpen(true);
+  }, []);
 
   const handleCloseSequentialModal = React.useCallback(() => {
     if (!isSequentialCreating) {
@@ -182,7 +196,7 @@ export function useSequentialCreationActions(
   // -----------------------------------------------------------------------
   const handleRetrySequentialCreation = React.useCallback(async () => {
     await dismissCreation();
-    handleStartSequentialCreation();
+    await handleStartSequentialCreation();
   }, [dismissCreation, handleStartSequentialCreation]);
 
   // -----------------------------------------------------------------------
@@ -348,6 +362,7 @@ export function useSequentialCreationActions(
 
     // Actions
     handleOpenSequentialModal,
+    handleOpenSequentialModalForResume,
     handleCloseSequentialModal,
     handleStartSequentialCreation,
     handleRetrySequentialCreation,

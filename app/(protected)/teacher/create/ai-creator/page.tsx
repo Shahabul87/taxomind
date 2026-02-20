@@ -122,23 +122,25 @@ export default function AICreatorPage() {
     goToStep,
   } = useSamWizard();
 
-  // Pre-fill course title and overview from URL params
+  // Pre-fill course title and overview from URL params (run once on mount).
+  // Uses a ref guard to prevent re-running after setFormData updates state,
+  // and uses the functional updater to read current formData without needing
+  // it in the dependency array (avoids race with localStorage draft restore).
+  const hasAppliedUrlParamsRef = React.useRef(false);
   React.useEffect(() => {
+    if (hasAppliedUrlParamsRef.current) return;
     const titleParam = searchParams.get("title");
     const overviewParam = searchParams.get("overview");
-    const updates: Partial<typeof formData> = {};
 
-    if (titleParam && !formData.courseTitle) {
-      updates.courseTitle = titleParam;
-    }
-    if (overviewParam && !formData.courseShortOverview) {
-      updates.courseShortOverview = overviewParam;
-    }
+    if (!titleParam && !overviewParam) return;
+    hasAppliedUrlParamsRef.current = true;
 
-    if (Object.keys(updates).length > 0) {
-      setFormData((prev) => ({ ...prev, ...updates }));
-    }
-  }, [searchParams, formData.courseTitle, formData.courseShortOverview, setFormData]);
+    setFormData((prev) => ({
+      ...prev,
+      ...(titleParam && !prev.courseTitle ? { courseTitle: titleParam } : {}),
+      ...(overviewParam && !prev.courseShortOverview ? { courseShortOverview: overviewParam } : {}),
+    }));
+  }, [searchParams, setFormData]);
 
   // Sequential creation actions (modal, start/retry/resume/approve/abort/regenerate)
   const {
@@ -153,6 +155,7 @@ export default function AICreatorPage() {
     regeneratingChapterId,
     modalFormData,
     handleOpenSequentialModal,
+    handleOpenSequentialModalForResume,
     handleCloseSequentialModal,
     handleStartSequentialCreation,
     handleRetrySequentialCreation,
@@ -274,41 +277,51 @@ export default function AICreatorPage() {
     }
   }, [formData]);
 
-  // Fix 2.1 + 6.2: Debounced SAM Memory Integration (was firing on every keystroke)
+  // Fix 2.1 + 6.2: Debounced SAM Memory Integration
   // Uses a 5-second debounce to batch rapid changes and avoid per-keystroke saves.
   // The auto-save in use-sam-wizard.ts handles localStorage persistence every 30s.
+  //
+  // The saveToSamMemory callback is stable (depends only on refs) and reads the
+  // latest formData from a ref. The effect triggers on every formData change but
+  // debounces actual saves to 5-second intervals.
   const samMemoryTimeoutRef = React.useRef<ReturnType<typeof setTimeout>>();
-  React.useEffect(() => {
-    if (!(formData.courseTitle || formData.courseShortOverview) || typeof window === "undefined") {
-      return;
-    }
+  const samMemoryFormDataRef = React.useRef(formData);
+  samMemoryFormDataRef.current = formData;
 
+  const saveToSamMemory = React.useCallback(() => {
+    if (typeof window === "undefined") return;
     clearTimeout(samMemoryTimeoutRef.current);
     samMemoryTimeoutRef.current = setTimeout(() => {
+      const fd = samMemoryFormDataRef.current;
+      if (!(fd.courseTitle || fd.courseShortOverview)) return;
+
       import("@/lib/sam/utils/sam-memory-system").then(({ samMemory }) => {
         samMemory.saveWizardData({
-          courseTitle: formData.courseTitle || "",
-          courseShortOverview: formData.courseShortOverview || "",
-          courseCategory: formData.courseCategory || "",
-          courseSubcategory: formData.courseSubcategory,
-          targetAudience: formData.targetAudience === 'Custom (describe below)'
-            ? (formData.customAudience || formData.targetAudience)
-            : (formData.targetAudience || ""),
-          customAudience: formData.customAudience || "",
-          difficulty: formData.difficulty || "",
-          courseIntent: formData.courseIntent,
-          courseGoals: formData.courseGoals || [],
-          bloomsFocus: formData.bloomsFocus || [],
-          preferredContentTypes: formData.preferredContentTypes || [],
-          chapterCount: formData.chapterCount,
-          sectionsPerChapter: formData.sectionsPerChapter,
-          includeAssessments: formData.includeAssessments,
+          courseTitle: fd.courseTitle || "",
+          courseShortOverview: fd.courseShortOverview || "",
+          courseCategory: fd.courseCategory || "",
+          courseSubcategory: fd.courseSubcategory,
+          targetAudience: fd.targetAudience === 'Custom (describe below)'
+            ? (fd.customAudience || fd.targetAudience)
+            : (fd.targetAudience || ""),
+          customAudience: fd.customAudience || "",
+          difficulty: fd.difficulty || "",
+          courseIntent: fd.courseIntent,
+          courseGoals: fd.courseGoals || [],
+          bloomsFocus: fd.bloomsFocus || [],
+          preferredContentTypes: fd.preferredContentTypes || [],
+          chapterCount: fd.chapterCount,
+          sectionsPerChapter: fd.sectionsPerChapter,
+          includeAssessments: fd.includeAssessments,
         });
       });
     }, 5000); // 5s debounce
+  }, []);
 
+  React.useEffect(() => {
+    saveToSamMemory();
     return () => clearTimeout(samMemoryTimeoutRef.current);
-  }, [formData]);
+  }, [formData, saveToSamMemory]);
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -356,7 +369,9 @@ export default function AICreatorPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [attemptNext, handleBack, setShowGenerateConfirm]);
 
-  // Coherence check before course creation
+  // Coherence check before course creation.
+  // Checks content coherence first, then proceeds to open the modal and start
+  // creation. Awaits the creation call so errors propagate correctly.
   const handlePreCreationCheck = React.useCallback(async () => {
     setIsCheckingCoherence(true);
     setCoherenceResult(null);
@@ -393,17 +408,18 @@ export default function AICreatorPage() {
           return;
         }
       }
-      // Score >= 70 or API error — proceed directly
+      // Score >= 70 or API error — proceed directly.
+      // Mark coherence checking as done before starting creation (separate phase).
+      setIsCheckingCoherence(false);
       setShowGenerateConfirm(false);
       handleOpenSequentialModal();
-      handleStartSequentialCreation();
+      await handleStartSequentialCreation();
     } catch {
       // On error, proceed anyway — don't block creation
+      setIsCheckingCoherence(false);
       setShowGenerateConfirm(false);
       handleOpenSequentialModal();
-      handleStartSequentialCreation();
-    } finally {
-      setIsCheckingCoherence(false);
+      await handleStartSequentialCreation();
     }
   }, [formData, setShowGenerateConfirm, handleOpenSequentialModal, handleStartSequentialCreation]);
 
@@ -464,7 +480,7 @@ export default function AICreatorPage() {
                   size="sm"
                   className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white"
                   onClick={() => {
-                    handleOpenSequentialModal();
+                    handleOpenSequentialModalForResume();
                     handleResumeCreation();
                   }}
                 >
@@ -857,7 +873,9 @@ export default function AICreatorPage() {
                   setShowCoherenceWarning(false);
                   setCoherenceResult(null);
                   handleOpenSequentialModal();
-                  handleStartSequentialCreation();
+                  // Intentionally not awaited in onClick — handleStartSequentialCreation
+                  // manages its own error handling via toast/state internally.
+                  void handleStartSequentialCreation();
                 }}
                 className="bg-amber-600 hover:bg-amber-700"
               >

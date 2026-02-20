@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@/lib/logger';
 
 interface UserPattern {
@@ -370,33 +370,46 @@ export const useProgressiveCourseCreation = (userId?: string) => {
     }
   }, [userPattern]);
 
-  // Initialize default pattern for new users
+  // Initialize default pattern for new users (run once on mount).
+  // Uses a ref guard instead of including `userPattern` in the dependency
+  // array, which would cause a double-set cycle (null → default → re-run).
+  const hasInitializedPatternRef = useRef(false);
   useEffect(() => {
-    if (!userPattern) {
-      const defaultPattern: UserPattern = {
-        sessionId,
-        userId,
-        patterns: {
-          preferredContentTypes: [],
-          typicalChapterCount: 0,
-          favoriteDifficulty: '',
-          commonCategories: [],
-          timeSpentPerStep: {},
-          completionRate: 0,
-          skipPatterns: [],
-          helpRequestFrequency: 0
-        },
-        adaptations: {
-          showAdvancedOptions: false,
-          skipBasicHelp: false,
-          autoFillSuggestions: true,
-          customizeInterface: false,
-          enableQuickMode: false
-        }
-      };
-      setUserPattern(defaultPattern);
-    }
-  }, [sessionId, userId, userPattern]);
+    if (hasInitializedPatternRef.current) return;
+    hasInitializedPatternRef.current = true;
+
+    // Defer to allow the localStorage/API initialization effect to run first.
+    // If that effect sets a pattern, this timeout will see userPattern is
+    // already set via the ref and skip the default.
+    const timer = setTimeout(() => {
+      setUserPattern((current) => {
+        if (current) return current; // Already initialized from storage/API
+        return {
+          sessionId,
+          userId,
+          patterns: {
+            preferredContentTypes: [],
+            typicalChapterCount: 0,
+            favoriteDifficulty: '',
+            commonCategories: [],
+            timeSpentPerStep: {},
+            completionRate: 0,
+            skipPatterns: [],
+            helpRequestFrequency: 0,
+          },
+          adaptations: {
+            showAdvancedOptions: false,
+            skipBasicHelp: false,
+            autoFillSuggestions: true,
+            customizeInterface: false,
+            enableQuickMode: false,
+          },
+        };
+      });
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [sessionId, userId]);
 
   return {
     disclosureState,

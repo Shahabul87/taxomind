@@ -191,7 +191,19 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     // Auto-reconnects increment the counter BEFORE calling resumeCreation recursively,
     // so the counter may be >0 from a prior attempt if the user clicks "Resume" manually.
     const currentPhase = progressRef.current.state.phase;
-    if (currentPhase === 'error' || currentPhase === 'idle' || currentPhase === 'paused') {
+    const isUserInitiated = currentPhase === 'error' || currentPhase === 'idle' || currentPhase === 'paused';
+
+    // Guard against concurrent calls (double-click on Resume button).
+    // Only block user-initiated calls — auto-reconnects (reconnectCount > 0) are
+    // allowed through because the prior abort controller is nulled in `finally`.
+    if (isUserInitiated && abortControllerRef.current) {
+      return {
+        success: false,
+        error: 'Course creation already in progress',
+      };
+    }
+
+    if (isUserInitiated) {
       reconnectCountRef.current = 0;
     }
 
@@ -258,6 +270,38 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Handle non-SSE JSON responses (e.g. ALREADY_COMPLETE on resume)
+      const resumeContentType = response.headers.get('Content-Type') ?? '';
+      if (!resumeContentType.includes('text/event-stream')) {
+        const jsonData = await response.json().catch(() => ({}));
+        if (jsonData.code === 'ALREADY_COMPLETE' && jsonData.courseId) {
+          logger.info('[SEQUENTIAL_SSE] Course already complete on resume', {
+            courseId: jsonData.courseId,
+          });
+          clearPartialCourseId();
+          setResumableCourseId(null);
+          setProgress(prev => ({
+            ...prev,
+            state: { ...prev.state, phase: 'complete' },
+            percentage: 100,
+            message: 'Course already created!',
+          }));
+          return {
+            success: true,
+            courseId: jsonData.courseId,
+            chaptersCreated: jsonData.chaptersCreated ?? 0,
+            sectionsCreated: jsonData.sectionsCreated ?? 0,
+            stats: {
+              totalChapters: jsonData.chaptersCreated ?? 0,
+              totalSections: jsonData.sectionsCreated ?? 0,
+              totalTime: Date.now() - startTimeRef.current,
+              averageQualityScore: 0,
+            },
+          };
+        }
+        throw new Error(jsonData.error || 'Unexpected non-SSE response from server');
       }
 
       if (!response.body) {
@@ -388,6 +432,14 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     decision: Exclude<EscalationDecision, 'reject_abort'>,
     config: SequentialCreationConfig,
   ): Promise<SequentialCreationResult> => {
+    // Guard against concurrent calls
+    if (abortControllerRef.current) {
+      return {
+        success: false,
+        error: 'Course creation already in progress',
+      };
+    }
+
     const { onProgress, onThinking, onStageComplete, onError, ...courseData } = config;
     const callbacks: SSECallbacks = { onProgress, onThinking, onStageComplete, onError };
 
@@ -452,7 +504,38 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
-      // reject_abort returns JSON response, but this method is only for resume decisions.
+      // Handle non-SSE JSON responses (e.g. ALREADY_COMPLETE on approve/resume)
+      const approveContentType = response.headers.get('Content-Type') ?? '';
+      if (!approveContentType.includes('text/event-stream')) {
+        const jsonData = await response.json().catch(() => ({}));
+        if (jsonData.code === 'ALREADY_COMPLETE' && jsonData.courseId) {
+          logger.info('[SEQUENTIAL_SSE] Course already complete on approve/resume', {
+            courseId: jsonData.courseId,
+          });
+          clearPartialCourseId();
+          setResumableCourseId(null);
+          setProgress(prev => ({
+            ...prev,
+            state: { ...prev.state, phase: 'complete' },
+            percentage: 100,
+            message: 'Course already created!',
+          }));
+          return {
+            success: true,
+            courseId: jsonData.courseId,
+            chaptersCreated: jsonData.chaptersCreated ?? 0,
+            sectionsCreated: jsonData.sectionsCreated ?? 0,
+            stats: {
+              totalChapters: jsonData.chaptersCreated ?? 0,
+              totalSections: jsonData.sectionsCreated ?? 0,
+              totalTime: Date.now() - startTimeRef.current,
+              averageQualityScore: 0,
+            },
+          };
+        }
+        throw new Error(jsonData.error || 'Unexpected non-SSE response from server');
+      }
+
       if (!response.body) {
         throw new Error('No response body');
       }
@@ -661,6 +744,42 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         }
 
         throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      // Handle non-SSE JSON responses (e.g. ALREADY_COMPLETE).
+      // The server may return a 200 JSON response instead of an SSE stream
+      // when the course was already created by a prior request with the same
+      // idempotency key. Without this guard, the JSON body would be fed into
+      // the SSE stream reader, which fails silently and reports a false error.
+      const contentType = response.headers.get('Content-Type') ?? '';
+      if (!contentType.includes('text/event-stream')) {
+        const jsonData = await response.json().catch(() => ({}));
+        if (jsonData.code === 'ALREADY_COMPLETE' && jsonData.courseId) {
+          logger.info('[SEQUENTIAL_SSE] Course already complete (idempotent)', {
+            courseId: jsonData.courseId,
+          });
+          clearPartialCourseId();
+          setResumableCourseId(null);
+          setProgress(prev => ({
+            ...prev,
+            state: { ...prev.state, phase: 'complete' },
+            percentage: 100,
+            message: 'Course already created!',
+          }));
+          return {
+            success: true,
+            courseId: jsonData.courseId,
+            chaptersCreated: jsonData.chaptersCreated ?? 0,
+            sectionsCreated: jsonData.sectionsCreated ?? 0,
+            stats: {
+              totalChapters: jsonData.chaptersCreated ?? 0,
+              totalSections: jsonData.sectionsCreated ?? 0,
+              totalTime: Date.now() - startTimeRef.current,
+              averageQualityScore: 0,
+            },
+          };
+        }
+        throw new Error(jsonData.error || 'Unexpected non-SSE response from server');
       }
 
       if (!response.body) {

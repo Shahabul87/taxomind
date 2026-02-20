@@ -98,15 +98,21 @@ export function useSamWizard() {
     'includeAssessments',
   ]), []);
 
+  // Memoize SAM sync metadata to prevent re-creating object reference on every
+  // render. Without this, useIntelligentSAMSync's useMemo(JSON.stringify(metadata))
+  // recalculates on each render due to the new object reference, firing the sync
+  // effect unnecessarily.
+  const samSyncMetadata = useMemo(() => ({
+    currentStep: step,
+    totalSteps: TOTAL_STEPS,
+    pageUrl: '/teacher/create/ai-creator',
+    wizardMode: true,
+  }), [step]);
+
   // Intelligent SAM sync - automatically detects ALL form changes without hardcoding
   useIntelligentSAMSync('ai-course-creator-wizard', formData, {
     formName: 'AI Course Creator Wizard',
-    metadata: {
-      currentStep: step,
-      totalSteps: TOTAL_STEPS,
-      pageUrl: '/teacher/create/ai-creator',
-      wizardMode: true,
-    },
+    metadata: samSyncMetadata,
     fieldMeta,
     formType: 'course-creator-wizard',
     relevantFields,
