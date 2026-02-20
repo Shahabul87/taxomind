@@ -9,27 +9,28 @@ export const runtime = 'nodejs';
 
 interface LearningObjectiveRequest {
   title: string;
-  overview: string;
-  category: string;
+  overview?: string;
+  category?: string;
   subcategory?: string;
   targetAudience?: string;
   difficulty?: string;
   intent?: string;
+  bloomsFocus?: string[];
+  existingObjectives?: string[];
   count?: number;
 }
 
 interface LearningObjective {
-  text: string;
-  reasoning: string;
+  objective: string;
   bloomsLevel: string;
-  confidence: number;
+  actionVerb: string;
 }
 
 /**
  * Extract JSON from AI response that may contain markdown fences or extra text.
  */
 function extractJSON(text: string): string {
-  let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+  const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
   const objectMatch = cleaned.match(/\{[\s\S]*\}/);
   if (objectMatch) return objectMatch[0];
   const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -49,11 +50,11 @@ export async function POST(request: NextRequest) {
 
     const body: LearningObjectiveRequest = await request.json();
 
-    if (!body.title || !body.overview || !body.category) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!body.title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const requestedCount = Math.min(Math.max(body.count ?? 5, 3), 10);
+    const requestedCount = Math.min(Math.max(body.count ?? 5, 2), 12);
 
     try {
       const objectives = await withRetryableTimeout(
@@ -94,37 +95,65 @@ async function generateLearningObjectivesAI(
   data: LearningObjectiveRequest,
   count: number
 ): Promise<LearningObjective[]> {
-  const { title, overview, category, subcategory, targetAudience, difficulty, intent } = data;
+  const { title, overview, category, subcategory, targetAudience, difficulty, intent, bloomsFocus, existingObjectives } = data;
 
-  const systemPrompt = `You are an expert instructional designer specializing in Bloom&apos;s taxonomy-aligned learning objectives. Generate precise, measurable learning objectives using ABCD format (Audience, Behavior, Condition, Degree). Return ONLY valid JSON with no markdown fences or extra text.`;
+  const hasBloomsFocus = bloomsFocus && bloomsFocus.length > 0;
 
-  const prompt = `Generate ${count} Bloom&apos;s taxonomy-aligned learning objectives for:
+  const bloomsConstraint = hasBloomsFocus
+    ? `BLOOM'S LEVEL CONSTRAINT (MANDATORY):
+You MUST distribute objectives across ONLY these levels: ${bloomsFocus.join(', ')}.
+- Every objective MUST belong to one of: ${bloomsFocus.join(', ')}
+- Do NOT use levels outside this list
+- Spread objectives as evenly as possible across the selected levels`
+    : `Include a mix of Bloom's levels appropriate for the difficulty:
+- For BEGINNER: focus on REMEMBER, UNDERSTAND, APPLY
+- For INTERMEDIATE: focus on UNDERSTAND, APPLY, ANALYZE
+- For ADVANCED: focus on ANALYZE, EVALUATE, CREATE`;
+
+  const existingBlock = existingObjectives && existingObjectives.length > 0
+    ? `\nEXISTING OBJECTIVES (do NOT duplicate these):\n${existingObjectives.map(o => `- ${o}`).join('\n')}`
+    : '';
+
+  const systemPrompt = `You are an expert instructional designer specializing in Bloom's taxonomy-aligned learning objectives. Generate precise, measurable learning objectives that follow the ABCD format (Audience, Behavior, Condition, Degree). Return ONLY valid JSON with no markdown fences or extra text.`;
+
+  const prompt = `Generate ${count} Bloom's taxonomy-aligned learning objectives for:
 
 COURSE TITLE: "${title}"
-OVERVIEW: "${overview}"
-CATEGORY: ${category}${subcategory ? ` > ${subcategory}` : ''}
+OVERVIEW: "${overview || 'Not provided'}"
+CATEGORY: ${category || 'Not specified'}${subcategory ? ` > ${subcategory}` : ''}
 TARGET AUDIENCE: ${targetAudience || 'General learners'}
 DIFFICULTY: ${difficulty || 'BEGINNER'}
 INTENT: ${intent || 'Not specified'}
 
+${bloomsConstraint}
+${existingBlock}
+
 RULES:
-- Each objective MUST start with a measurable action verb from the appropriate Bloom&apos;s level
-- Objectives should progress from lower to higher cognitive levels
-- Be specific to the course topic — no generic objectives
-- Include a mix of Bloom&apos;s levels appropriate for the difficulty
-- For BEGINNER: focus on REMEMBER, UNDERSTAND, APPLY
-- For INTERMEDIATE: focus on UNDERSTAND, APPLY, ANALYZE
-- For ADVANCED: focus on ANALYZE, EVALUATE, CREATE
+- Each objective MUST start with a measurable action verb from the appropriate Bloom's level
+- Each objective MUST be specifically about "${title}" — reference the subject matter directly
+- Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
+- Include a clear behavior/skill the student will demonstrate
+- 40-120 characters per objective for readability
+
+HIGH-QUALITY EXAMPLES:
+- "Implement responsive layouts using CSS Grid and Flexbox for multi-device web applications" (APPLY — specific skill + tool + context)
+- "Evaluate trade-offs between SQL and NoSQL databases for different application requirements" (EVALUATE — comparison + criteria + domain)
+- "Design RESTful API endpoints following industry-standard naming conventions and HTTP methods" (CREATE — specific deliverable + standards)
+
+LOW-QUALITY EXAMPLES (avoid these):
+- "Understand the basics of programming" (too vague, no specific skill)
+- "Learn about databases" (not measurable, doesn't start with action verb)
+- "Be able to code better" (not specific, not measurable)
 
 Return ONLY this JSON (no markdown, no extra text):
-{"objectives":[{"text":"objective text","reasoning":"why this objective matters","bloomsLevel":"UNDERSTAND","confidence":0.9}]}`;
+{"objectives":[{"objective":"Full learning objective text","bloomsLevel":"UNDERSTAND","actionVerb":"Explain"}]}`;
 
   const responseText = await runSAMChatWithPreference({
     userId,
-    capability: 'analysis',
+    capability: 'course',
     systemPrompt,
-    maxTokens: 1200,
-    temperature: 0.7,
+    maxTokens: 1500,
+    temperature: 0.4,
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -134,10 +163,9 @@ Return ONLY this JSON (no markdown, no extra text):
 
     if (Array.isArray(parsed.objectives) && parsed.objectives.length > 0) {
       return parsed.objectives.slice(0, count).map(obj => ({
-        text: obj.text,
-        reasoning: obj.reasoning ?? '',
+        objective: obj.objective,
         bloomsLevel: obj.bloomsLevel ?? 'UNDERSTAND',
-        confidence: typeof obj.confidence === 'number' ? obj.confidence : 0.8,
+        actionVerb: obj.actionVerb ?? obj.objective.split(' ')[0],
       }));
     }
   } catch (parseError) {
@@ -158,83 +186,66 @@ function generateLearningObjectivesFallback(
   data: LearningObjectiveRequest,
   count: number
 ): LearningObjective[] {
-  const { category, targetAudience, difficulty, intent } = data;
-  const actionVerbs = getActionVerbsForDifficulty(difficulty ?? 'BEGINNER');
-  const skillArea = getSkillAreaFromCategory(category);
+  const { title, category, difficulty, bloomsFocus } = data;
+  const topic = title || 'the subject matter';
+  const skillArea = category ? getSkillAreaFromCategory(category) : topic;
 
-  const objectives: LearningObjective[] = [
-    {
-      text: `${actionVerbs.primary} core concepts and principles of ${skillArea} as outlined in the course`,
-      reasoning: `Essential foundational knowledge for ${targetAudience || 'learners'} at ${difficulty ?? 'beginner'} level`,
-      bloomsLevel: difficulty === 'BEGINNER' ? 'UNDERSTAND' : 'ANALYZE',
-      confidence: 0.9,
-    },
-    {
-      text: `${actionVerbs.secondary} practical skills and techniques through hands-on exercises and projects`,
-      reasoning: `Practical application is crucial for skill development in ${category}`,
-      bloomsLevel: 'APPLY',
-      confidence: 0.85,
-    },
-    {
-      text: `${actionVerbs.tertiary} real-world problems using the knowledge and skills acquired`,
-      reasoning: `Problem-solving aligns with course intent: ${intent || 'practical application'}`,
-      bloomsLevel: difficulty === 'ADVANCED' ? 'EVALUATE' : 'ANALYZE',
-      confidence: 0.8,
-    },
-    {
-      text: `Demonstrate proficiency in ${skillArea} through completion of assessments and project work`,
-      reasoning: `Assessment-based learning validates skill acquisition for ${targetAudience || 'learners'}`,
-      bloomsLevel: 'APPLY',
-      confidence: 0.82,
-    },
-    {
-      text: `${difficulty === 'BEGINNER' ? 'Recognize' : 'Evaluate'} best practices and methodologies within ${skillArea}`,
-      reasoning: `Understanding industry standards is important for ${(difficulty ?? 'beginner').toLowerCase()} level learning`,
-      bloomsLevel: difficulty === 'BEGINNER' ? 'REMEMBER' : 'EVALUATE',
-      confidence: 0.78,
-    },
-    {
-      text: `Communicate effectively about ${skillArea} concepts and solutions to various audiences`,
-      reasoning: `Communication skills are essential for professional development in ${category}`,
-      bloomsLevel: 'UNDERSTAND',
-      confidence: 0.75,
-    },
-    {
-      text: `${actionVerbs.primary} the relationship between theoretical knowledge and practical application in ${skillArea}`,
-      reasoning: `Connecting theory to practice enhances learning retention for ${targetAudience || 'learners'}`,
-      bloomsLevel: 'ANALYZE',
-      confidence: 0.80,
-    },
-    {
-      text: `${difficulty === 'ADVANCED' ? 'Create' : 'Identify'} innovative solutions to challenges in ${skillArea}`,
-      reasoning: `Innovation and problem-solving are key outcomes for ${(difficulty ?? 'beginner').toLowerCase()} level courses`,
-      bloomsLevel: difficulty === 'ADVANCED' ? 'CREATE' : 'UNDERSTAND',
-      confidence: 0.77,
-    },
-    {
-      text: `Reflect on personal learning progress and identify areas for continued growth in ${skillArea}`,
-      reasoning: `Self-reflection promotes lifelong learning and aligns with course intent: ${intent || 'personal development'}`,
-      bloomsLevel: 'EVALUATE',
-      confidence: 0.73,
-    },
-    {
-      text: `Collaborate effectively with peers on ${skillArea} projects and discussions`,
-      reasoning: `Collaborative learning enhances understanding and mirrors real-world professional environments`,
-      bloomsLevel: 'APPLY',
-      confidence: 0.79,
-    },
-  ];
-
-  return objectives.slice(0, count);
-}
-
-function getActionVerbsForDifficulty(difficulty: string) {
-  const verbSets: Record<string, { primary: string; secondary: string; tertiary: string }> = {
-    BEGINNER: { primary: 'Understand', secondary: 'Apply', tertiary: 'Analyze' },
-    INTERMEDIATE: { primary: 'Analyze', secondary: 'Apply', tertiary: 'Evaluate' },
-    ADVANCED: { primary: 'Evaluate', secondary: 'Create', tertiary: 'Synthesize' },
+  const allTemplates: Record<string, { verb: string; template: string }[]> = {
+    REMEMBER: [
+      { verb: 'Identify', template: `Identify the key concepts and terminology used in ${topic}` },
+      { verb: 'Define', template: `Define the foundational principles underlying ${topic}` },
+    ],
+    UNDERSTAND: [
+      { verb: 'Explain', template: `Explain the fundamental concepts and principles of ${topic}` },
+      { verb: 'Summarize', template: `Summarize the core methodologies and frameworks in ${topic}` },
+    ],
+    APPLY: [
+      { verb: 'Apply', template: `Apply learned techniques to solve real-world problems related to ${topic}` },
+      { verb: 'Implement', template: `Implement industry-standard practices and methodologies for ${topic}` },
+    ],
+    ANALYZE: [
+      { verb: 'Analyze', template: `Analyze complex scenarios and identify appropriate solutions using ${topic} knowledge` },
+      { verb: 'Differentiate', template: `Differentiate between various approaches and strategies within ${skillArea}` },
+    ],
+    EVALUATE: [
+      { verb: 'Evaluate', template: `Evaluate different approaches and best practices in ${topic}` },
+      { verb: 'Assess', template: `Assess the effectiveness of solutions and strategies in ${skillArea}` },
+    ],
+    CREATE: [
+      { verb: 'Create', template: `Create original projects demonstrating mastery of ${topic} concepts` },
+      { verb: 'Design', template: `Design comprehensive solutions applying ${topic} principles` },
+    ],
   };
-  return verbSets[difficulty] ?? verbSets.BEGINNER;
+
+  // Use selected levels, or fall back based on difficulty
+  let levels: string[];
+  if (bloomsFocus && bloomsFocus.length > 0) {
+    levels = bloomsFocus.map(l => l.toUpperCase());
+  } else if (difficulty === 'ADVANCED') {
+    levels = ['ANALYZE', 'EVALUATE', 'CREATE'];
+  } else if (difficulty === 'INTERMEDIATE') {
+    levels = ['UNDERSTAND', 'APPLY', 'ANALYZE'];
+  } else {
+    levels = ['REMEMBER', 'UNDERSTAND', 'APPLY'];
+  }
+
+  const results: LearningObjective[] = [];
+  let levelIdx = 0;
+  while (results.length < count && levelIdx < levels.length * 2) {
+    const level = levels[levelIdx % levels.length];
+    const templates = allTemplates[level] ?? allTemplates['UNDERSTAND'];
+    const templateIdx = Math.floor(levelIdx / levels.length);
+    if (templateIdx < templates.length) {
+      results.push({
+        objective: templates[templateIdx].template,
+        bloomsLevel: level,
+        actionVerb: templates[templateIdx].verb,
+      });
+    }
+    levelIdx++;
+  }
+
+  return results;
 }
 
 function getSkillAreaFromCategory(category: string) {

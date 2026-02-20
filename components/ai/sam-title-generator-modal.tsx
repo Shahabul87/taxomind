@@ -56,6 +56,7 @@ interface SAMTitleGeneratorModalProps {
   courseSubcategory?: string;
   courseIntent?: string;
   targetAudience?: string;
+  difficulty?: string;
   onSelectTitle: (title: string) => void;
   disabled?: boolean;
   className?: string;
@@ -68,6 +69,7 @@ export function SAMTitleGeneratorModal({
   courseSubcategory,
   courseIntent,
   targetAudience,
+  difficulty,
   onSelectTitle,
   disabled = false,
   className,
@@ -132,7 +134,7 @@ export function SAMTitleGeneratorModal({
           overview: courseOverview,
           category: courseCategory,
           subcategory: courseSubcategory,
-          difficulty: 'BEGINNER',
+          difficulty: difficulty || 'BEGINNER',
           intent: courseIntent,
           targetAudience,
           count: 5,
@@ -187,10 +189,10 @@ export function SAMTitleGeneratorModal({
         reasoning: string;
       }) => ({
         title: score.title,
-        marketingScore: score.marketingScore || 70,
-        brandingScore: score.brandingScore || 70,
-        salesScore: score.salesScore || 70,
-        overallScore: score.overallScore || 70,
+        marketingScore: score.marketingScore ?? 0,
+        brandingScore: score.brandingScore ?? 0,
+        salesScore: score.salesScore ?? 0,
+        overallScore: score.overallScore ?? 0,
         reasoning: score.reasoning || 'AI-analyzed title based on marketing effectiveness and audience appeal.',
       }));
 
@@ -205,7 +207,7 @@ export function SAMTitleGeneratorModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, isGenerating]);
+  }, [currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating]);
 
   // Check if any titles scored below the refinement threshold
   const lowScoringTitles = useMemo(
@@ -238,7 +240,7 @@ export function SAMTitleGeneratorModal({
           overview: courseOverview,
           category: courseCategory,
           subcategory: courseSubcategory,
-          difficulty: 'BEGINNER',
+          difficulty: difficulty || 'BEGINNER',
           intent: courseIntent,
           targetAudience,
           count: weakTitles.length,
@@ -275,10 +277,10 @@ export function SAMTitleGeneratorModal({
           salesScore: number; overallScore: number; reasoning: string;
         }) => ({
           title: score.title,
-          marketingScore: score.marketingScore || 70,
-          brandingScore: score.brandingScore || 70,
-          salesScore: score.salesScore || 70,
-          overallScore: score.overallScore || 70,
+          marketingScore: score.marketingScore ?? 0,
+          brandingScore: score.brandingScore ?? 0,
+          salesScore: score.salesScore ?? 0,
+          overallScore: score.overallScore ?? 0,
           reasoning: score.reasoning || 'Refined by AI for improved quality.',
         }));
       }
@@ -298,7 +300,7 @@ export function SAMTitleGeneratorModal({
     } finally {
       setIsRefining(false);
     }
-  }, [lowScoringTitles, isRefining, currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience]);
+  }, [lowScoringTitles, isRefining, currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty]);
 
   const handleSelectTitle = (title: string) => {
     setSelectedTitle(title);

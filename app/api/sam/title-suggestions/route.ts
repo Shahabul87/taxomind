@@ -122,15 +122,34 @@ ${refinementBlock}
 CRITICAL RULES:
 - Every title MUST be specifically about "${currentTitle}" — do NOT generate generic titles
 - Each title must clearly reference the core subject matter
-- 5-15 words per title
-- Use action words and compelling adjectives
-- Include key benefits or outcomes related to the topic
-- Be specific to set clear expectations
+- 5-10 words per title (concise and punchy)
 
-EXAMPLES (if the topic were "How neural networks works?"):
-- "Neural Networks Demystified: From Perceptrons to Deep Learning"
-- "Mastering Neural Networks: Build Intelligent Systems from Scratch"
-- "Complete Neural Network Engineering: Theory, Math, and Real Applications"
+SCORING CRITERIA YOUR TITLES WILL BE JUDGED ON:
+
+1. MARKETING (searchability & keyword optimization):
+   - Include the primary keyword/topic name early in the title
+   - Use words students actually search for on course platforms
+   - Match search intent (e.g., "Complete Guide", "From Scratch", "Hands-On")
+
+2. BRANDING (unique value proposition & credibility):
+   - Communicate what makes THIS course different from 100 others on the same topic
+   - Use authority-signaling words ("Professional", "Production-Grade", "Industry-Ready")
+   - Avoid generic filler ("Ultimate", "Best") unless paired with specifics
+
+3. SALES (benefit statement & urgency):
+   - Promise a clear transformation or outcome ("Build X", "Master Y", "Go From A to B")
+   - Match the difficulty level to audience expectations
+   - Create curiosity or aspiration
+
+HIGH-SCORING TITLE PATTERNS (85+):
+- "React Performance Engineering: Optimize Production Apps at Scale" (specific + outcome + audience)
+- "SQL for Data Analysts: Query, Transform, and Visualize Real Datasets" (keyword + 3 concrete skills)
+- "Kubernetes in Production: Deploy, Scale, and Monitor Cloud-Native Apps" (keyword + 3 outcomes)
+
+LOW-SCORING TITLE PATTERNS (below 60):
+- "Learn React" (too vague, no value proposition)
+- "The Ultimate Complete Comprehensive Guide to Everything" (filler, no specifics)
+- "Advanced Topics in Modern Software" (no keyword, no outcome)
 
 Return ONLY this JSON (no markdown, no extra text):
 {"titles":["title1","title2","title3","title4","title5"],"suggestions":{"message":"strategy explanation","reasoning":"why these work"}}`;
@@ -139,8 +158,8 @@ Return ONLY this JSON (no markdown, no extra text):
     userId,
     capability: 'course',
     systemPrompt,
-    maxTokens: 800,
-    temperature: 0.7,
+    maxTokens: 1200,
+    temperature: 0.5,
     messages: [{ role: 'user', content: prompt }],
   });
 

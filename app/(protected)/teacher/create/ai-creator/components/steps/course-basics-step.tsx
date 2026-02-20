@@ -58,6 +58,7 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
               courseSubcategory={formData.courseSubcategory}
               courseIntent={formData.courseIntent}
               targetAudience={formData.targetAudience}
+              difficulty={formData.difficulty}
               onSelectTitle={(title) => setFormData(prev => ({ ...prev, courseTitle: title }))}
               disabled={!formData.courseTitle || formData.courseTitle.length < 5}
             />
@@ -98,6 +99,7 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
               courseSubcategory={formData.courseSubcategory}
               courseIntent={formData.courseIntent}
               targetAudience={formData.targetAudience}
+              difficulty={formData.difficulty}
               onSelectOverview={(overview) => setFormData(prev => ({ ...prev, courseShortOverview: overview }))}
               disabled={!formData.courseTitle || formData.courseTitle.length < 5}
             />

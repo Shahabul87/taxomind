@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { createSamContext } from '@/lib/sam/utils/form-data-to-sam-context';
 
 interface OverviewSuggestion {
   overview: string;
@@ -51,6 +50,7 @@ interface SAMOverviewGeneratorModalProps {
   courseSubcategory?: string;
   courseIntent?: string;
   targetAudience?: string;
+  difficulty?: string;
   onSelectOverview: (overview: string) => void;
   disabled?: boolean;
   className?: string;
@@ -63,6 +63,7 @@ export function SAMOverviewGeneratorModal({
   courseSubcategory,
   courseIntent,
   targetAudience,
+  difficulty,
   onSelectOverview,
   disabled = false,
   className,
@@ -118,46 +119,19 @@ export function SAMOverviewGeneratorModal({
     setOverviewSuggestions([]);
 
     try {
-      // Step 1: Generate overview content using SAM AI
-      const response = await fetch('/api/sam/ai-tutor/chat', {
+      // Step 1: Generate overview content using dedicated overview-suggestions API
+      const response = await fetch('/api/sam/overview-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `As an expert course creator, generate 3 comprehensive course overviews for: "${courseTitle}"
-
-COURSE CONTEXT:
-- Title: "${courseTitle}"
-- Category: ${courseCategory || 'Not specified'}
-- Subcategory: ${courseSubcategory || 'Not specified'}
-- Intent: ${courseIntent || 'Not specified'}
-- Target Audience: ${targetAudience || 'Not specified'}
-${currentOverview ? `- Current Overview Draft: "${currentOverview}"` : ''}
-
-REQUIREMENTS:
-1. Each overview MUST be specifically about "${courseTitle}" — directly reference the subject matter
-2. 100-200 words per overview focusing on learning outcomes, skills gained, and benefits
-3. Make each overview unique, highlighting different aspects (practical skills, career impact, knowledge depth)
-4. Incorporate the course category and target audience naturally
-5. Use engaging, professional language that sells the course value
-
-Return a JSON array with exactly 3 overviews:
-["Overview 1 text here", "Overview 2 text here", "Overview 3 text here"]
-
-Return ONLY valid JSON array, no markdown fences, no other text.`,
-          context: createSamContext({
-            formData: {
-              courseTitle,
-              courseShortOverview: currentOverview || '',
-              courseCategory: courseCategory || '',
-              courseSubcategory: courseSubcategory || '',
-              courseIntent: courseIntent || '',
-              targetAudience: targetAudience || '',
-            },
-            pageType: 'course_creation',
-            pageTitle: 'SAM Overview Generator Modal',
-            userRole: 'teacher',
-            additionalContext: { generatorMode: true },
-          }),
+          title: courseTitle,
+          category: courseCategory,
+          subcategory: courseSubcategory,
+          difficulty,
+          intent: courseIntent,
+          targetAudience,
+          currentOverview,
+          count: 3,
         }),
       });
 
@@ -166,32 +140,11 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
       }
 
       const result = await response.json();
+      const generatedOverviews: string[] = result.suggestions || [];
 
-      // Parse overviews from response — strip markdown fences first
-      let generatedOverviews: string[] = [];
-      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-
-      // Try to parse as JSON array first
-      try {
-        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          generatedOverviews = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        // Fallback: split by numbered patterns
-        const matches = rawResponse.match(/\d+\.\s*([^]*?)(?=\n\d+\.|$)/g);
-        if (matches) {
-          generatedOverviews = matches.map((m: string) => m.replace(/^\d+\.\s*/, '').trim());
-        }
-      }
-
-      // If still no overviews, create fallback content
       if (generatedOverviews.length === 0) {
-        generatedOverviews = [
-          `Master ${courseTitle} with this comprehensive course designed for ${targetAudience || 'learners'}. Learn essential skills, practical applications, and real-world techniques through hands-on projects and expert guidance. Perfect for advancing your knowledge and career prospects in ${courseCategory || 'this field'}.`,
-          `Unlock the secrets of ${courseTitle} in this engaging course. Build confidence through step-by-step learning, interactive exercises, and real-world examples. Whether you're a beginner or looking to enhance existing skills, this course provides the foundation you need to succeed.`,
-          `Transform your understanding of ${courseTitle} with this results-driven course. Gain industry-relevant skills, learn from expert instructors, and join a community of learners. Complete with practical projects that you can add to your portfolio.`,
-        ];
+        toast.error('No overview suggestions generated. Try a different title.');
+        return;
       }
 
       // Step 2: Score each overview using AI-powered content scoring
@@ -255,7 +208,7 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     } finally {
       setIsGenerating(false);
     }
-  }, [courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, isGenerating]);
+  }, [courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating]);
 
   // Check if any overviews scored below the refinement threshold
   const lowScoringOverviews = useMemo(
@@ -269,62 +222,32 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
 
     setIsRefining(true);
     try {
-      const weakItems = lowScoringOverviews.map(s => ({
+      const weakOverviews = lowScoringOverviews.map(s => ({
         overview: s.overview.substring(0, 200),
         score: s.relevanceScore,
         reasoning: s.reasoning,
       }));
 
-      const weakListText = weakItems
-        .map(w => `- Score ${w.score}/100: "${w.overview}..." — Feedback: ${w.reasoning}`)
-        .join('\n');
-
-      const response = await fetch('/api/sam/ai-tutor/chat', {
+      // Re-generate only the weak overviews via the dedicated endpoint with refinement context
+      const response = await fetch('/api/sam/overview-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `As an expert course creator, improve these low-scoring course overviews for: "${courseTitle}"
-
-WEAK OVERVIEWS TO IMPROVE:
-${weakListText}
-
-COURSE CONTEXT:
-- Title: "${courseTitle}"
-- Category: ${courseCategory || 'Not specified'}
-- Target Audience: ${targetAudience || 'Not specified'}
-- Intent: ${courseIntent || 'Not specified'}
-
-Generate ${weakItems.length} IMPROVED overviews that fix the identified weaknesses.
-100-200 words per overview. Focus on learning outcomes, benefits, and engagement.
-
-Return a JSON array: ["Improved overview 1", "Improved overview 2"]
-Return ONLY valid JSON array, no markdown fences, no other text.`,
-          context: createSamContext({
-            formData: {
-              courseTitle,
-              courseShortOverview: currentOverview || '',
-              courseCategory: courseCategory || '',
-              courseSubcategory: courseSubcategory || '',
-              courseIntent: courseIntent || '',
-              targetAudience: targetAudience || '',
-            },
-            pageType: 'course_creation',
-            pageTitle: 'SAM Overview Refinement',
-            userRole: 'teacher',
-            additionalContext: { generatorMode: true, refinement: true },
-          }),
+          title: courseTitle,
+          category: courseCategory,
+          subcategory: courseSubcategory,
+          difficulty,
+          intent: courseIntent,
+          targetAudience,
+          currentOverview,
+          count: weakOverviews.length,
+          refinementContext: { weakOverviews },
         }),
       });
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
-
-      let refinedOverviews: string[] = [];
-      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-      try {
-        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) refinedOverviews = JSON.parse(jsonMatch[0]);
-      } catch { /* fallback below */ }
+      const refinedOverviews: string[] = result.suggestions || [];
 
       if (refinedOverviews.length === 0) {
         toast.info('No refined overviews generated.');
@@ -374,7 +297,7 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     } finally {
       setIsRefining(false);
     }
-  }, [lowScoringOverviews, isRefining, courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience]);
+  }, [lowScoringOverviews, isRefining, courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty]);
 
   const handleSelectOverview = (overview: string) => {
     setSelectedOverview(overview);

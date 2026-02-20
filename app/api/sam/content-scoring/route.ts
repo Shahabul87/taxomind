@@ -1,8 +1,8 @@
 /**
  * SAM Content Scoring API
  *
- * Provides AI-powered scoring for course titles and overviews
- * using marketing, branding, and sales dimensions.
+ * Provides AI-powered scoring for course titles, overviews,
+ * and learning objectives using dimension-specific scoring.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -54,6 +54,23 @@ const OverviewScoringSchema = z.object({
   }).optional(),
 });
 
+const ObjectiveScoringSchema = z.object({
+  type: z.literal('objective'),
+  objectives: z.array(z.object({
+    objective: z.string(),
+    bloomsLevel: z.string().optional(),
+    actionVerb: z.string().optional(),
+  })),
+  context: z.object({
+    category: z.string().optional(),
+    subcategory: z.string().optional(),
+    targetAudience: z.string().optional(),
+    courseIntent: z.string().optional(),
+    difficulty: z.string().optional(),
+    courseTitle: z.string().optional(),
+  }).optional(),
+});
+
 const BatchScoringSchema = z.object({
   type: z.literal('batch'),
   items: z.array(z.union([
@@ -78,6 +95,7 @@ const BatchScoringSchema = z.object({
 const RequestSchema = z.discriminatedUnion('type', [
   TitleScoringSchema,
   OverviewScoringSchema,
+  ObjectiveScoringSchema,
   BatchScoringSchema,
 ]);
 
@@ -102,6 +120,16 @@ interface OverviewScore {
   reasoning: string;
   strengths: string[];
   improvements: string[];
+}
+
+interface ObjectiveScore {
+  objective: string;
+  smartScore: number;
+  bloomsAccuracyScore: number;
+  specificityScore: number;
+  measurabilityScore: number;
+  overallScore: number;
+  reasoning: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -147,6 +175,15 @@ export async function POST(request: NextRequest) {
           'content-scoring-overview'
         );
         return NextResponse.json({ scores: overviewScore });
+
+      case 'objective': {
+        const objectiveScores = await withRetryableTimeout(
+          () => scoreObjectives(user.id, data.objectives, data.context),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'content-scoring-objective'
+        );
+        return NextResponse.json({ objectiveScores });
+      }
 
       case 'batch':
         const titles = data.items
@@ -228,6 +265,12 @@ SCORING CRITERIA:
    - Matches target audience expectations
 
 4. Overall Score (0-100): Weighted average considering all factors
+
+CALIBRATION GUIDE — Be genuinely critical. Most AI-generated titles score 60-75.
+- 90-100: Best-in-class. Comparable to top Coursera/Udemy courses. Specific keyword, clear outcome, unique angle.
+- 75-89: Good. Clear topic and audience, but could be more specific or differentiated.
+- 60-74: Mediocre. Too generic, missing keywords, or vague outcomes.
+- Below 60: Poor. Vague, no searchable keywords, no value proposition.
 
 For each title, provide:
 - Specific scores with justification
@@ -312,6 +355,12 @@ SCORING CRITERIA:
    - Motivating language, problem-solution framing, unique value
 
 4. Overall Score (0-100): Weighted average considering all factors
+
+CALIBRATION GUIDE — Be genuinely critical. Most AI-generated overviews score 60-75.
+- 90-100: Best-in-class. Clear 4-part structure (hook, outcomes, transformation, audience), specific skills listed, compelling language.
+- 75-89: Good. Covers outcomes and audience, but could be more specific or engaging.
+- 60-74: Mediocre. Generic descriptions, missing outcomes, or doesn't address audience.
+- Below 60: Poor. Vague, no specific outcomes, reads like filler text.
 
 Return ONLY valid JSON array:
 [
@@ -432,6 +481,173 @@ function calculateFallbackTitleScore(
     reasoning: `Based on title structure, keyword usage, and clarity. ${strengths.length > 0 ? strengths[0] + '.' : ''}`,
     strengths: strengths.slice(0, 3),
     improvements: improvements.slice(0, 2),
+  };
+}
+
+/**
+ * Score multiple learning objectives using AI analysis
+ */
+async function scoreObjectives(
+  userId: string,
+  objectives: Array<{ objective: string; bloomsLevel?: string; actionVerb?: string }>,
+  context?: {
+    category?: string;
+    subcategory?: string;
+    targetAudience?: string;
+    courseIntent?: string;
+    difficulty?: string;
+    courseTitle?: string;
+  }
+): Promise<ObjectiveScore[]> {
+  const prompt = `Analyze these learning objectives for quality, specificity, and Bloom's taxonomy alignment.
+
+OBJECTIVES TO ANALYZE:
+${objectives.map((obj, i) => `${i + 1}. "${obj.objective}" (Claimed Bloom's: ${obj.bloomsLevel || 'N/A'}, Action verb: ${obj.actionVerb || 'N/A'})`).join('\n')}
+
+CONTEXT:
+- Course Title: ${context?.courseTitle || 'Not specified'}
+- Category: ${context?.category || 'Not specified'}
+- Target Audience: ${context?.targetAudience || 'Not specified'}
+- Difficulty: ${context?.difficulty || 'Not specified'}
+
+SCORING CRITERIA:
+1. SMART Score (0-100): Is the objective Specific, Measurable, Achievable, Relevant, Time-bound?
+   - Does it describe a concrete, observable behavior?
+   - Can completion be verified?
+
+2. Bloom's Accuracy Score (0-100): Does the action verb correctly match the claimed Bloom's level?
+   - REMEMBER: define, list, identify, name, recall
+   - UNDERSTAND: explain, summarize, interpret, classify, compare
+   - APPLY: apply, demonstrate, implement, use, solve
+   - ANALYZE: analyze, examine, investigate, differentiate
+   - EVALUATE: evaluate, assess, critique, judge, justify
+   - CREATE: create, design, develop, construct, produce
+
+3. Specificity Score (0-100): How specific is the objective to the course topic?
+   - Does it reference concrete skills, tools, or concepts?
+   - Or is it generic enough to apply to any course?
+
+4. Measurability Score (0-100): Can a student's achievement be objectively measured?
+   - Clear criteria for success?
+   - Observable deliverable or demonstration?
+
+5. Overall Score (0-100): Weighted average
+
+CALIBRATION — Be genuinely critical. Most AI-generated objectives score 60-75.
+- 90-100: Exemplary. Specific skill + concrete deliverable + correct Bloom's verb + course-specific.
+- 75-89: Good. Clear and measurable but could be more specific to the course topic.
+- 60-74: Mediocre. Too generic, wrong Bloom's level, or not measurable.
+- Below 60: Poor. Vague, not measurable, or completely generic.
+
+Return ONLY valid JSON array:
+[
+  {
+    "objective": "exact objective text",
+    "smartScore": number,
+    "bloomsAccuracyScore": number,
+    "specificityScore": number,
+    "measurabilityScore": number,
+    "overallScore": number,
+    "reasoning": "Brief explanation of scores"
+  }
+]`;
+
+  try {
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      systemPrompt: 'You are a learning objective scoring expert specializing in Bloom\'s taxonomy. Return ONLY valid JSON with no markdown fences or extra text.',
+      maxTokens: 2000,
+      temperature: 0.3,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]) as ObjectiveScore[];
+      // Ensure objective field matches original
+      return parsed.map((score, index) => ({
+        ...score,
+        objective: objectives[index]?.objective || score.objective,
+      }));
+    }
+
+    throw new Error('Could not parse AI response');
+  } catch (error) {
+    logger.error('[ContentScoring] Objective scoring error:', error);
+    return objectives.map(obj => calculateFallbackObjectiveScore(obj));
+  }
+}
+
+/**
+ * Calculate fallback objective scores using heuristics when AI fails
+ */
+function calculateFallbackObjectiveScore(
+  obj: { objective: string; bloomsLevel?: string; actionVerb?: string }
+): ObjectiveScore {
+  let smartScore = 50;
+  let bloomsAccuracyScore = 50;
+  let specificityScore = 50;
+  let measurabilityScore = 50;
+
+  const knownVerbs: Record<string, string[]> = {
+    REMEMBER: ['define', 'list', 'identify', 'name', 'recall', 'recognize', 'state'],
+    UNDERSTAND: ['explain', 'summarize', 'interpret', 'classify', 'compare', 'contrast', 'discuss', 'illustrate'],
+    APPLY: ['apply', 'demonstrate', 'implement', 'use', 'execute', 'solve', 'calculate'],
+    ANALYZE: ['analyze', 'examine', 'investigate', 'differentiate', 'organize'],
+    EVALUATE: ['evaluate', 'assess', 'critique', 'judge', 'justify', 'defend'],
+    CREATE: ['create', 'design', 'develop', 'construct', 'produce', 'formulate', 'generate', 'plan', 'build'],
+  };
+
+  const verb = (obj.actionVerb || obj.objective.split(' ')[0]).toLowerCase();
+  const claimedLevel = (obj.bloomsLevel || '').toUpperCase();
+
+  // Check if verb matches claimed level
+  if (claimedLevel && knownVerbs[claimedLevel]?.includes(verb)) {
+    bloomsAccuracyScore += 30;
+  } else {
+    // Check if verb belongs to any level
+    const matchedLevel = Object.entries(knownVerbs).find(([, verbs]) => verbs.includes(verb));
+    if (matchedLevel) bloomsAccuracyScore += 15;
+  }
+
+  // Length check (good objectives are 40-120 chars)
+  const len = obj.objective.length;
+  if (len >= 40 && len <= 120) {
+    smartScore += 15;
+    specificityScore += 10;
+  } else if (len < 40) {
+    smartScore -= 10;
+  }
+
+  // Specificity indicators
+  if (/\b(using|through|by|with|for|in)\b/i.test(obj.objective)) {
+    specificityScore += 15;
+    measurabilityScore += 10;
+  }
+
+  // Measurability indicators
+  if (/\b(build|create|implement|produce|demonstrate|solve|calculate|write|design)\b/i.test(obj.objective)) {
+    measurabilityScore += 20;
+  }
+
+  // Cap scores
+  smartScore = Math.min(100, Math.max(0, smartScore + deterministicOffset(obj.objective, 'smart')));
+  bloomsAccuracyScore = Math.min(100, Math.max(0, bloomsAccuracyScore + deterministicOffset(obj.objective, 'blooms')));
+  specificityScore = Math.min(100, Math.max(0, specificityScore + deterministicOffset(obj.objective, 'specificity')));
+  measurabilityScore = Math.min(100, Math.max(0, measurabilityScore + deterministicOffset(obj.objective, 'measurability')));
+
+  const overallScore = Math.round((smartScore + bloomsAccuracyScore + specificityScore + measurabilityScore) / 4);
+
+  return {
+    objective: obj.objective,
+    smartScore,
+    bloomsAccuracyScore,
+    specificityScore,
+    measurabilityScore,
+    overallScore,
+    reasoning: `Based on action verb alignment, specificity, and measurability analysis.`,
   };
 }
 

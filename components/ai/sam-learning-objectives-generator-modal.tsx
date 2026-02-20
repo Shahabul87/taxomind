@@ -45,6 +45,8 @@ interface ObjectiveSuggestion {
   objective: string;
   bloomsLevel: string;
   actionVerb: string;
+  overallScore?: number;
+  reasoning?: string;
 }
 
 interface SAMLearningObjectivesGeneratorModalProps {
@@ -135,85 +137,21 @@ export function SAMLearningObjectivesGeneratorModal({
     setSelectedObjectives(new Set());
 
     try {
-      const hasBloomsFocus = bloomsFocus.length > 0;
-      const bloomsFocusText = hasBloomsFocus
-        ? `- Bloom's Taxonomy Focus Levels (MANDATORY): ${bloomsFocus.join(', ')}`
-        : '- Bloom\'s Taxonomy Focus: Cover all levels (Remember through Create)';
-
-      // Build distribution instruction so objectives spread across selected levels
-      const bloomsDistribution = hasBloomsFocus
-        ? `\n\nBLOOM'S LEVEL DISTRIBUTION (MANDATORY):
-You MUST distribute the ${generateCount} objectives across ONLY these levels: ${bloomsFocus.join(', ')}.
-- Every objective MUST belong to one of these levels: ${bloomsFocus.join(', ')}
-- Do NOT generate objectives at levels outside this list
-- Spread objectives as evenly as possible across the selected levels
-- The "bloomsLevel" field in your response MUST be one of: ${bloomsFocus.map(l => `"${l}"`).join(', ')}`
-        : '';
-
-      const response = await fetch('/api/sam/ai-tutor/chat', {
+      // Use the dedicated learning-objectives API
+      const response = await fetch('/api/sam/learning-objectives', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `As an expert instructional designer, generate ${generateCount} specific, measurable learning objectives for the course: "${courseTitle}"
-
-COURSE CONTEXT:
-- Title: "${courseTitle}"
-- Overview: ${courseOverview || 'Not specified'}
-- Category: ${courseCategory || 'Not specified'}
-- Subcategory: ${courseSubcategory || 'Not specified'}
-- Course Intent: ${courseIntent || 'Not specified'}
-- Target Audience: ${targetAudience || 'Not specified'}
-- Difficulty: ${difficulty || 'Intermediate'}
-${bloomsFocusText}
-- Existing Objectives: ${existingObjectives.length > 0 ? existingObjectives.join('; ') : 'None yet'}
-
-CRITICAL RULES:
-1. Every objective MUST be specifically about "${courseTitle}" — directly reference the subject matter
-2. Each objective MUST start with a Bloom's Taxonomy action verb
-3. Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
-${hasBloomsFocus ? `4. ONLY use these Bloom's levels: ${bloomsFocus.join(', ')}. Do NOT use any other levels.` : '4. Cover different cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create)'}
-5. Avoid duplicating existing objectives
-6. Focus on what students will be able to DO after completing the course
-7. Align objectives with the course overview and target audience
-${bloomsDistribution}
-Return a JSON array with exactly ${generateCount} objectives in this format:
-[
-  {
-    "objective": "Full learning objective statement starting with action verb",
-    "bloomsLevel": "${hasBloomsFocus ? bloomsFocus.join('|') : 'REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE'}",
-    "actionVerb": "The action verb used (e.g., Define, Explain, Implement)"
-  }
-]
-
-Return ONLY valid JSON array, no markdown fences, no other text.`,
-          context: {
-            pageData: {
-              pageType: 'course_creation',
-              title: 'Learning Objectives Generator',
-              forms: [],
-              links: [],
-            },
-            learningContext: {
-              userRole: 'teacher',
-              currentCourse: {
-                title: courseTitle,
-                overview: courseOverview,
-                category: courseCategory,
-                subcategory: courseSubcategory,
-                intent: courseIntent,
-                targetAudience,
-                difficulty,
-                bloomsFocus,
-              },
-            },
-            tutorPersonality: {
-              tone: 'professional',
-              teachingMethod: 'structured',
-              responseStyle: 'concise',
-            },
-            emotion: 'neutral',
-          },
-          conversationHistory: [],
+          title: courseTitle,
+          overview: courseOverview,
+          category: courseCategory,
+          subcategory: courseSubcategory,
+          difficulty: difficulty || 'BEGINNER',
+          intent: courseIntent,
+          targetAudience,
+          bloomsFocus: bloomsFocus.length > 0 ? bloomsFocus : undefined,
+          existingObjectives: existingObjectives.length > 0 ? existingObjectives : undefined,
+          count: generateCount,
         }),
       });
 
@@ -223,40 +161,16 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
 
       const result = await response.json();
 
-      // Parse objectives from response
-      let parsedObjectives: ObjectiveSuggestion[] = [];
+      // Parse objectives from the already-structured response
+      let parsedObjectives: ObjectiveSuggestion[] = (result.objectives || []).map(
+        (item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
+          objective: item.objective,
+          bloomsLevel: item.bloomsLevel || 'UNDERSTAND',
+          actionVerb: item.actionVerb || item.objective.split(' ')[0],
+        })
+      );
 
-      try {
-        // Strip markdown fences before JSON extraction
-        const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          parsedObjectives = parsed.map((item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
-            objective: item.objective,
-            bloomsLevel: item.bloomsLevel || 'UNDERSTAND',
-            actionVerb: item.actionVerb || item.objective.split(' ')[0],
-          }));
-        }
-      } catch {
-        // Fallback: extract objectives from text
-        const lines = result.response.split('\n').filter((line: string) =>
-          line.trim().length > 20 &&
-          /^[A-Z]/.test(line.trim())
-        );
-
-        parsedObjectives = lines.slice(0, 6).map((line: string) => {
-          const cleanLine = line.replace(/^[\d\-\.\)]+\s*/, '').trim();
-          const firstWord = cleanLine.split(' ')[0];
-          return {
-            objective: cleanLine,
-            bloomsLevel: detectBloomsLevel(firstWord),
-            actionVerb: firstWord,
-          };
-        });
-      }
-
-      // If still no objectives, create fallback
+      // If no objectives returned, create fallback
       if (parsedObjectives.length === 0) {
         parsedObjectives = generateFallbackObjectives(courseTitle, difficulty || 'Intermediate', bloomsFocus);
       }
@@ -283,12 +197,52 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
         )
       );
 
-      if (filteredObjectives.length > 0) {
-        setSuggestions(filteredObjectives);
-        toast.success(`Generated ${filteredObjectives.length} learning objective suggestions!`);
-      } else {
+      if (filteredObjectives.length === 0) {
         toast.info('All generated objectives already exist. Try regenerating for new ideas.');
+        return;
       }
+
+      // Score the generated objectives using AI-powered content scoring
+      let scoredObjectives = filteredObjectives;
+      try {
+        const scoringResponse = await fetch('/api/sam/content-scoring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'objective',
+            objectives: filteredObjectives.map(obj => ({
+              objective: obj.objective,
+              bloomsLevel: obj.bloomsLevel,
+              actionVerb: obj.actionVerb,
+            })),
+            context: {
+              category: courseCategory,
+              subcategory: courseSubcategory,
+              targetAudience,
+              courseIntent,
+              difficulty,
+              courseTitle,
+            },
+          }),
+        });
+
+        if (scoringResponse.ok) {
+          const scoringResult = await scoringResponse.json();
+          const scores: Array<{ objective: string; overallScore: number; reasoning: string }> =
+            scoringResult.objectiveScores || [];
+
+          scoredObjectives = filteredObjectives.map((obj, idx) => ({
+            ...obj,
+            overallScore: scores[idx]?.overallScore ?? undefined,
+            reasoning: scores[idx]?.reasoning ?? undefined,
+          }));
+        }
+      } catch {
+        // Scoring failed silently — use objectives without scores
+      }
+
+      setSuggestions(scoredObjectives);
+      toast.success(`Generated ${scoredObjectives.length} learning objective suggestions!`);
     } catch (error: unknown) {
       logger.error('Error generating learning objectives:', error);
       toast.error('Failed to generate objectives. Please try again.');
@@ -297,16 +251,17 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     }
   }, [courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus, existingObjectives, generateCount, isGenerating]);
 
-  // Basic quality evaluation for objectives
+  // Quality evaluation for objectives — prefer AI score when available
   const evaluateObjectiveQuality = useCallback((obj: ObjectiveSuggestion): number => {
+    // Use AI score if available
+    if (obj.overallScore != null) return obj.overallScore;
+
+    // Fallback heuristic
     let score = 50;
-    // Check Bloom's verb presence (action verb matches known verbs)
     const knownVerbs = ['define','list','identify','name','recall','recognize','state','describe','explain','summarize','interpret','classify','compare','contrast','discuss','illustrate','apply','demonstrate','implement','use','execute','solve','calculate','analyze','examine','investigate','differentiate','evaluate','assess','critique','judge','justify','create','design','develop','construct','produce','formulate','generate','plan','build'];
     if (knownVerbs.includes(obj.actionVerb.toLowerCase())) score += 20;
-    // Minimum length check (a good objective is at least 40 chars)
     if (obj.objective.length >= 40) score += 15;
     if (obj.objective.length >= 80) score += 5;
-    // Specificity: contains domain-relevant terms (not just generic)
     const hasSpecificContent = /\b(using|through|by|with|for|in)\b/i.test(obj.objective);
     if (hasSpecificContent) score += 10;
     return Math.min(100, score);
@@ -326,57 +281,36 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
 
     setIsRefining(true);
     try {
-      const weakList = weakObjectives
-        .map(w => `- "${w.objective}" (Bloom's: ${w.bloomsLevel}, quality: ${w.quality}/100)`)
-        .join('\n');
+      // Use the dedicated learning-objectives API with existing weak objectives as context
+      const weakTexts = weakObjectives.map(w => w.objective);
 
-      const response = await fetch('/api/sam/ai-tutor/chat', {
+      const response = await fetch('/api/sam/learning-objectives', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `As an expert instructional designer, improve these weak learning objectives for: "${courseTitle}"
-
-WEAK OBJECTIVES TO IMPROVE:
-${weakList}
-
-IMPROVEMENT GUIDANCE:
-- Start each objective with a strong Bloom's Taxonomy action verb
-- Make each objective specific, measurable, and directly about "${courseTitle}"
-- Ensure minimum 40 characters of substantive content
-- Include specific skills, tools, or concepts from the course domain
-
-Generate ${weakObjectives.length} improved objectives.
-
-Return a JSON array:
-[{"objective":"...","bloomsLevel":"REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE","actionVerb":"..."}]
-
-Return ONLY valid JSON array, no markdown fences, no other text.`,
-          context: {
-            pageData: { pageType: 'course_creation', title: 'Objectives Refinement', forms: [], links: [] },
-            learningContext: { userRole: 'teacher', currentCourse: { title: courseTitle, difficulty } },
-            tutorPersonality: { tone: 'professional', teachingMethod: 'structured', responseStyle: 'concise' },
-            emotion: 'neutral',
-          },
-          conversationHistory: [],
+          title: courseTitle,
+          overview: courseOverview,
+          category: courseCategory,
+          subcategory: courseSubcategory,
+          difficulty: difficulty || 'BEGINNER',
+          intent: courseIntent,
+          targetAudience,
+          bloomsFocus: bloomsFocus.length > 0 ? bloomsFocus : undefined,
+          existingObjectives: weakTexts,
+          count: weakObjectives.length,
         }),
       });
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
 
-      let refinedObjectives: ObjectiveSuggestion[] = [];
-      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-      try {
-        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          refinedObjectives = parsed.map((item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
-            objective: item.objective,
-            bloomsLevel: item.bloomsLevel || 'UNDERSTAND',
-            actionVerb: item.actionVerb || item.objective.split(' ')[0],
-          }));
-        }
-      } catch { /* no parse */ }
+      const refinedObjectives: ObjectiveSuggestion[] = (result.objectives || []).map(
+        (item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
+          objective: item.objective,
+          bloomsLevel: item.bloomsLevel || 'UNDERSTAND',
+          actionVerb: item.actionVerb || item.objective.split(' ')[0],
+        })
+      );
 
       if (refinedObjectives.length === 0) {
         toast.info('No refined objectives generated.');
@@ -398,7 +332,7 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     } finally {
       setIsRefining(false);
     }
-  }, [weakObjectives, isRefining, courseTitle, difficulty]);
+  }, [weakObjectives, isRefining, courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus]);
 
   const toggleObjective = (index: number) => {
     setSelectedObjectives(prev => {
@@ -432,6 +366,13 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
       setSuggestions([]);
       setSelectedObjectives(new Set());
     }
+  };
+
+  const getScoreBadgeVariant = (score: number) => {
+    if (score >= 80) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800';
+    if (score >= 60) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+    if (score >= 40) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
   };
 
   return (
@@ -670,10 +611,23 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
                           <Badge variant="outline" className="text-xs bg-slate-50 dark:bg-slate-800">
                             {suggestion.actionVerb}
                           </Badge>
+                          {suggestion.overallScore != null && (
+                            <Badge
+                              variant="outline"
+                              className={cn("text-xs font-bold", getScoreBadgeVariant(suggestion.overallScore))}
+                            >
+                              {suggestion.overallScore}/100
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                           {suggestion.objective}
                         </p>
+                        {suggestion.reasoning && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
+                            {suggestion.reasoning}
+                          </p>
+                        )}
                       </div>
                       {selectedObjectives.has(index) && (
                         <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
