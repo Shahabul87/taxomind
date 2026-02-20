@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getUserCreatedCourses, getUserEnrolledCourses } from '@/actions/get-user-courses';
+import { getUserCreatedCourses, getUserEnrolledCourses, getUserLearningStats } from '@/actions/get-user-courses';
+import type { LearningStats } from '@/actions/get-user-courses';
 import { Suspense } from 'react';
 import { MyCoursesDashboardEnterprise } from './_components/my-courses-dashboard-enterprise';
 import { MyCoursesLoading } from './_components/my-courses-loading';
@@ -18,10 +19,11 @@ async function MyCoursesContent() {
   }
 
   try {
-    // Fetch both types of courses simultaneously with error handling
-    const [enrolledCoursesData, createdCoursesData] = await Promise.allSettled([
+    // Fetch courses and learning stats simultaneously
+    const [enrolledCoursesData, createdCoursesData, learningStatsData] = await Promise.allSettled([
       getUserEnrolledCourses(),
       getUserCreatedCourses(),
+      getUserLearningStats(),
     ]);
 
     // Extract data with safe fallbacks
@@ -35,6 +37,11 @@ async function MyCoursesContent() {
         ? createdCoursesData.value
         : { courses: [], error: 'Failed to load created courses' };
 
+    const learningStats: LearningStats =
+      learningStatsData.status === 'fulfilled'
+        ? learningStatsData.value
+        : { currentStreak: 0, longestStreak: 0, learningTimeDisplay: '0h', enrollmentsThisMonth: 0 };
+
     return (
       <MyCoursesDashboardEnterprise
         enrolledCourses={enrolledData.courses || []}
@@ -42,6 +49,7 @@ async function MyCoursesContent() {
         enrolledCoursesError={enrolledData.error}
         createdCoursesError={createdData.error}
         user={session.user}
+        learningStats={learningStats}
       />
     );
   } catch (error: any) {

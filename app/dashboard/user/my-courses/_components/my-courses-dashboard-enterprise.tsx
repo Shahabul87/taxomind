@@ -41,12 +41,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+interface LearningStats {
+  currentStreak: number;
+  longestStreak: number;
+  learningTimeDisplay: string;
+  enrollmentsThisMonth: number;
+}
+
 interface MyCoursesDashboardProps {
   enrolledCourses: any[];
   createdCourses: any[];
   enrolledCoursesError: string | null;
   createdCoursesError: string | null;
   user: any;
+  learningStats?: LearningStats;
 }
 
 export const MyCoursesDashboardEnterprise = ({
@@ -55,6 +63,7 @@ export const MyCoursesDashboardEnterprise = ({
   enrolledCoursesError,
   createdCoursesError,
   user,
+  learningStats,
 }: MyCoursesDashboardProps) => {
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<'enrolled' | 'created'>('enrolled');
@@ -211,8 +220,6 @@ export const MyCoursesDashboardEnterprise = ({
           )
         : 0;
 
-    const learningStreak = 7; // Mock data
-
     return {
       totalEnrolledCourses,
       completedCourses,
@@ -220,9 +227,9 @@ export const MyCoursesDashboardEnterprise = ({
       totalCreatedCourses,
       totalStudents,
       avgCompletionRate,
-      learningStreak,
+      learningStreak: learningStats?.currentStreak ?? 0,
     };
-  }, [safeEnrolledCourses, safeCreatedCourses]);
+  }, [safeEnrolledCourses, safeCreatedCourses, learningStats]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -339,8 +346,10 @@ export const MyCoursesDashboardEnterprise = ({
             title="Total Enrolled"
             value={stats.totalEnrolledCourses}
             icon={<BookOpen className="w-5 h-5 text-blue-500" />}
-            change="+3 this month"
-            positive={true}
+            change={learningStats?.enrollmentsThisMonth
+              ? `+${learningStats.enrollmentsThisMonth} this month`
+              : "This month"}
+            positive={(learningStats?.enrollmentsThisMonth ?? 0) > 0}
             color="blue"
           />
         </motion.div>
@@ -383,8 +392,10 @@ export const MyCoursesDashboardEnterprise = ({
             title="Learning Streak"
             value={`${stats.learningStreak}d`}
             icon={<Zap className="w-5 h-5 text-amber-500" />}
-            change="Personal best!"
-            positive={true}
+            change={learningStats?.longestStreak
+              ? `Best: ${learningStats.longestStreak}d`
+              : "Start a streak!"}
+            positive={stats.learningStreak > 0}
             color="amber"
           />
         </motion.div>
@@ -392,10 +403,10 @@ export const MyCoursesDashboardEnterprise = ({
         <motion.div variants={itemVariants}>
           <CourseStats
             title="This Month"
-            value="24h"
+            value={learningStats?.learningTimeDisplay ?? "0h"}
             icon={<Calendar className="w-5 h-5 text-indigo-500" />}
             change="Learning time"
-            positive={true}
+            positive={(learningStats?.learningTimeDisplay ?? "0h") !== "0h"}
             color="indigo"
           />
         </motion.div>

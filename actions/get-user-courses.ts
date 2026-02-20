@@ -26,57 +26,50 @@ export async function getUserCreatedCourses(userId?: string) {
             name: true
           }
         },
-        Purchase: {
-          select: {
-            id: true,
-            userId: true
-          },
-          take: 100 // Limit to prevent performance issues
-        },
         reviews: {
           select: {
             rating: true
           },
-          take: 50 // Limit reviews
+          take: 50
+        },
+        _count: {
+          select: {
+            chapters: true,
+            Enrollment: true
+          }
         }
       },
       orderBy: {
         createdAt: "desc"
       },
-      take: 50 // Limit total courses
+      take: 50
     });
 
     // Calculate stats with safe access
     const coursesWithStats = courses.map(course => {
       try {
         const totalRatings = course.reviews?.length || 0;
-        const averageRating = totalRatings > 0 
-          ? course.reviews.reduce((acc, review) => acc + (review.rating || 0), 0) / totalRatings 
+        const averageRating = totalRatings > 0
+          ? course.reviews.reduce((acc, review) => acc + (review.rating || 0), 0) / totalRatings
           : 0;
-        
-        // Mock chapter/section data since we removed deep nesting
-        const totalChapters = 8; // Consistent mock value
-        const totalSections = 35; // Consistent mock value
-        
-        // Calculate total enrolled students (based on purchases)
-        const totalEnrolled = course.Purchase?.length || 0;
-        
+
+        const totalChapters = course._count?.chapters ?? 0;
+        const totalEnrolled = course._count?.Enrollment ?? 0;
+
         return {
           ...course,
           totalRatings,
-          averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+          averageRating: Math.round(averageRating * 10) / 10,
           totalChapters,
-          totalSections,
           totalEnrolled
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn("Error processing course stats:", error);
         return {
           ...course,
           totalRatings: 0,
           averageRating: 0,
           totalChapters: 0,
-          totalSections: 0,
           totalEnrolled: 0
         };
       }
@@ -106,9 +99,11 @@ export async function getUserEnrolledCourses() {
       return { courses: [], error: "Unauthorized" };
     }
 
+    const userId = session.user.id;
+
     const enrollments = await db.enrollment.findMany({
       where: {
-        userId: session.user.id
+        userId
       },
       include: {
         Course: {
@@ -123,7 +118,7 @@ export async function getUserEnrolledCourses() {
               select: {
                 rating: true
               },
-              take: 20 // Limit reviews
+              take: 20
             },
             user: {
               select: {
@@ -137,47 +132,80 @@ export async function getUserEnrolledCourses() {
       orderBy: {
         createdAt: "desc"
       },
-      take: 100 // Limit enrollments
+      take: 100
     });
 
-    // Process and calculate stats for each enrolled course with safe access
+    // Batch fetch published chapters and user progress (2 queries, not N+1)
+    const courseIds = enrollments
+      .map(e => e.Course?.id)
+      .filter((id): id is string => Boolean(id));
+
+    const [publishedChapters, completedProgress] = await Promise.all([
+      db.chapter.findMany({
+        where: { courseId: { in: courseIds }, isPublished: true },
+        select: { id: true, courseId: true }
+      }),
+      db.user_progress.findMany({
+        where: { userId, chapterId: { not: null }, isCompleted: true },
+        select: { chapterId: true }
+      })
+    ]);
+
+    // Build lookup maps
+    const publishedChaptersByCourse = new Map<string, Set<string>>();
+    for (const ch of publishedChapters) {
+      if (!publishedChaptersByCourse.has(ch.courseId)) {
+        publishedChaptersByCourse.set(ch.courseId, new Set());
+      }
+      publishedChaptersByCourse.get(ch.courseId)!.add(ch.id);
+    }
+
+    const completedChapterIds = new Set(
+      completedProgress.map(p => p.chapterId).filter((id): id is string => Boolean(id))
+    );
+
+    // Process and calculate stats for each enrolled course
     const enrolledCourses = enrollments.map(enrollment => {
       try {
         const course = enrollment.Course;
-        
+
         if (!course) {
           throw new Error("Course not found");
         }
-        
-        // Calculate the average rating with safe access
+
         const totalRatings = course.reviews?.length || 0;
-        const averageRating = totalRatings > 0 
-          ? course.reviews.reduce((acc, review) => acc + (review.rating || 0), 0) / totalRatings 
+        const averageRating = totalRatings > 0
+          ? course.reviews.reduce((acc, review) => acc + (review.rating || 0), 0) / totalRatings
           : 0;
-        
-                 // Mock completion stats since we removed deep nesting
-         const totalChapters = 8; // Consistent mock value
-         const totalSections = 35; // Consistent mock value
-         
-         // Mock completion percentage based on course ID for consistency
-         const completionPercentage = Math.abs(course.id.charCodeAt(0) + course.id.charCodeAt(1)) % 100;
-         const completedSections = Math.floor((completionPercentage / 100) * totalSections);
-        
+
+        // Real chapter count and completion from batch queries
+        const courseChapterIds = publishedChaptersByCourse.get(course.id) ?? new Set<string>();
+        const totalChapters = courseChapterIds.size;
+
+        let completedChaptersCount = 0;
+        for (const chId of courseChapterIds) {
+          if (completedChapterIds.has(chId)) {
+            completedChaptersCount++;
+          }
+        }
+
+        const completionPercentage = totalChapters > 0
+          ? Math.round((completedChaptersCount / totalChapters) * 100)
+          : 0;
+
         return {
           ...course,
           enrollmentId: enrollment.id,
           enrolledAt: enrollment.createdAt,
           totalRatings,
-          averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+          averageRating: Math.round(averageRating * 10) / 10,
           totalChapters,
-          totalSections,
-          completedSections,
+          completedChapters: completedChaptersCount,
           completionPercentage,
           instructor: course.user || { name: "Unknown", image: null }
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.warn("Error processing enrollment:", error);
-        // Return a safe fallback object
         return {
           id: enrollment.Course?.id || "unknown",
           title: enrollment.Course?.title || "Unknown Course",
@@ -191,8 +219,7 @@ export async function getUserEnrolledCourses() {
           totalRatings: 0,
           averageRating: 0,
           totalChapters: 0,
-          totalSections: 0,
-          completedSections: 0,
+          completedChapters: 0,
           completionPercentage: 0,
           instructor: { name: "Unknown", image: null }
         };
@@ -213,6 +240,95 @@ export async function getUserEnrolledCourses() {
 }
 
 /**
+ * Fetches real learning stats (streak, time, enrollments this month)
+ */
+export interface LearningStats {
+  currentStreak: number;
+  longestStreak: number;
+  learningTimeDisplay: string;
+  enrollmentsThisMonth: number;
+}
+
+export async function getUserLearningStats(): Promise<LearningStats> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { currentStreak: 0, longestStreak: 0, learningTimeDisplay: "0h", enrollmentsThisMonth: 0 };
+    }
+
+    const userId = session.user.id;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Run all queries in parallel with graceful fallbacks
+    const [
+      learningStreak,
+      samStreak,
+      gamificationXP,
+      learningTimeAgg,
+      enrollmentsCount
+    ] = await Promise.all([
+      db.learningStreak.findUnique({
+        where: { userId },
+        select: { currentStreak: true, longestStreak: true }
+      }).catch(() => null),
+      db.sAMStreak.findUnique({
+        where: { userId },
+        select: { currentStreak: true, longestStreak: true }
+      }).catch(() => null),
+      db.gamificationUserXP.findUnique({
+        where: { userId },
+        select: { currentStreak: true, longestStreak: true }
+      }).catch(() => null),
+      db.learning_sessions.aggregate({
+        where: {
+          userId,
+          startTime: { gte: monthStart }
+        },
+        _sum: { duration: true }
+      }).catch(() => null),
+      db.enrollment.count({
+        where: {
+          userId,
+          createdAt: { gte: monthStart }
+        }
+      }).catch(() => 0)
+    ]);
+
+    // Pick best streak from available sources
+    const currentStreak = learningStreak?.currentStreak
+      ?? samStreak?.currentStreak
+      ?? gamificationXP?.currentStreak
+      ?? 0;
+
+    const longestStreak = learningStreak?.longestStreak
+      ?? samStreak?.longestStreak
+      ?? gamificationXP?.longestStreak
+      ?? 0;
+
+    // Format learning time (duration is in seconds)
+    const totalSeconds = learningTimeAgg?._sum?.duration ?? 0;
+    const totalHours = Math.floor(totalSeconds / 3600);
+    const totalMinutes = Math.floor((totalSeconds % 3600) / 60);
+    const learningTimeDisplay = totalHours > 0
+      ? `${totalHours}h ${totalMinutes}m`
+      : totalMinutes > 0
+        ? `${totalMinutes}m`
+        : "0h";
+
+    return {
+      currentStreak,
+      longestStreak,
+      learningTimeDisplay,
+      enrollmentsThisMonth: enrollmentsCount ?? 0
+    };
+  } catch (error: unknown) {
+    logger.error("[GET_LEARNING_STATS_ERROR]", error);
+    return { currentStreak: 0, longestStreak: 0, learningTimeDisplay: "0h", enrollmentsThisMonth: 0 };
+  }
+}
+
+/**
  * Legacy function name for backward compatibility
  */
-export const getUserCourses = getUserCreatedCourses; 
+export const getUserCourses = getUserCreatedCourses;

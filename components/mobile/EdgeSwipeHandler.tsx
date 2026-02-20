@@ -157,7 +157,7 @@ export function EdgeSwipeHandler({
   return (
     <motion.div
       ref={containerRef}
-      className={cn('relative h-full w-full overflow-hidden', className)}
+      className={cn('relative h-full w-full overflow-y-auto overflow-x-hidden', className)}
       drag={isDragFromEdge ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0}

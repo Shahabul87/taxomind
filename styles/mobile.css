@@ -10,7 +10,9 @@
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height for modern browsers */
   height: calc(var(--vh, 1vh) * 100); /* Fallback using custom property */
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   overscroll-behavior: contain;
