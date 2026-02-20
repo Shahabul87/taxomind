@@ -47,6 +47,7 @@ interface ObjectiveSuggestion {
   actionVerb: string;
   overallScore?: number;
   reasoning?: string;
+  source?: 'ai' | 'heuristic';
 }
 
 interface SAMLearningObjectivesGeneratorModalProps {
@@ -228,13 +229,14 @@ export function SAMLearningObjectivesGeneratorModal({
 
         if (scoringResponse.ok) {
           const scoringResult = await scoringResponse.json();
-          const scores: Array<{ objective: string; overallScore: number; reasoning: string }> =
+          const scores: Array<{ objective: string; overallScore: number; reasoning: string; source?: 'ai' | 'heuristic' }> =
             scoringResult.objectiveScores || [];
 
           scoredObjectives = filteredObjectives.map((obj, idx) => ({
             ...obj,
             overallScore: scores[idx]?.overallScore ?? undefined,
             reasoning: scores[idx]?.reasoning ?? undefined,
+            source: scores[idx]?.source,
           }));
         }
       } catch {
@@ -273,6 +275,12 @@ export function SAMLearningObjectivesGeneratorModal({
       .map((obj, idx) => ({ ...obj, idx, quality: evaluateObjectiveQuality(obj) }))
       .filter(o => o.quality < 70),
     [suggestions, evaluateObjectiveQuality],
+  );
+
+  // Detect if scores are heuristic (AI scoring was unavailable)
+  const hasHeuristicScores = useMemo(
+    () => suggestions.some(s => s.source === 'heuristic'),
+    [suggestions],
   );
 
   // Refine weak objectives (single pass)
@@ -581,6 +589,13 @@ export function SAMLearningObjectivesGeneratorModal({
                 </div>
               </div>
 
+              {hasHeuristicScores && (
+                <div className="flex items-center gap-2 p-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
+                  <Lightbulb className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Scores are estimated (AI scoring was unavailable). Regenerate for AI-powered scores.</span>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {suggestions.map((suggestion, index) => (
                   <div
@@ -612,12 +627,19 @@ export function SAMLearningObjectivesGeneratorModal({
                             {suggestion.actionVerb}
                           </Badge>
                           {suggestion.overallScore != null && (
-                            <Badge
-                              variant="outline"
-                              className={cn("text-xs font-bold", getScoreBadgeVariant(suggestion.overallScore))}
-                            >
-                              {suggestion.overallScore}/100
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              {suggestion.source === 'heuristic' && (
+                                <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                                  Est.
+                                </Badge>
+                              )}
+                              <Badge
+                                variant="outline"
+                                className={cn("text-xs font-bold", getScoreBadgeVariant(suggestion.overallScore))}
+                              >
+                                {suggestion.overallScore}/100
+                              </Badge>
+                            </div>
                           )}
                         </div>
                         <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">

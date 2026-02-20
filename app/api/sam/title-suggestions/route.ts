@@ -186,16 +186,26 @@ Return ONLY this JSON (no markdown, no extra text):
   }
 
   // Fallback: titles derived from the actual currentTitle
-  const topic = currentTitle ?? 'Professional Skills';
+  // Clean the topic: strip trailing punctuation, normalize whitespace, title-case
+  const rawTopic = currentTitle ?? 'Professional Skills';
+  const topic = rawTopic
+    .replace(/[?!.…]+$/g, '')         // strip trailing ?!.…
+    .replace(/\s+/g, ' ')             // collapse whitespace
+    .trim()
+    || 'Professional Skills';
+
+  const level = (difficulty || 'Beginner').charAt(0).toUpperCase()
+    + (difficulty || 'Beginner').slice(1).toLowerCase();
+
   const fallbackTitles = [
     `Complete Guide to ${topic}: From Fundamentals to Mastery`,
-    `Mastering ${topic}: A Comprehensive ${difficulty || 'Beginner'}-Friendly Approach`,
+    `Mastering ${topic}: A Comprehensive Hands-On Approach`,
     `${topic} Deep Dive: Practical Skills and Real-World Applications`,
-    `The Ultimate ${topic} Bootcamp: Learn by Doing`,
-    `Understanding ${topic}: Essential Concepts and Hands-On Practice`,
+    `${topic} Bootcamp: Build Projects and Learn by Doing`,
+    `Understanding ${topic}: Essential Concepts and Practice`,
     `${topic} Masterclass: Build Expertise Step by Step`,
-    `Professional ${topic}: Theory, Practice, and Beyond`,
-    `Learn ${topic}: The Complete ${difficulty || 'Beginner'} to Advanced Path`,
+    `${topic}: From Core Concepts to Confident Application`,
+    `Learn ${topic}: The Complete ${level} to Advanced Path`,
     `${topic} Essentials: Core Knowledge for Modern Professionals`,
     `Applied ${topic}: From Theory to Real-World Impact`,
   ];

@@ -109,6 +109,7 @@ interface TitleScore {
   reasoning: string;
   strengths: string[];
   improvements: string[];
+  source: 'ai' | 'heuristic';
 }
 
 interface OverviewScore {
@@ -120,6 +121,7 @@ interface OverviewScore {
   reasoning: string;
   strengths: string[];
   improvements: string[];
+  source: 'ai' | 'heuristic';
 }
 
 interface ObjectiveScore {
@@ -130,6 +132,7 @@ interface ObjectiveScore {
   measurabilityScore: number;
   overallScore: number;
   reasoning: string;
+  source: 'ai' | 'heuristic';
 }
 
 export async function POST(request: NextRequest) {
@@ -306,13 +309,12 @@ Return ONLY valid JSON array:
     const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as TitleScore[];
-      return parsed;
+      return parsed.map(score => ({ ...score, source: 'ai' as const }));
     }
 
     throw new Error('Could not parse AI response');
   } catch (error) {
-    logger.error('[ContentScoring] Title scoring error:', error);
-    // Return heuristic-based fallback scores
+    logger.error('[ContentScoring] Title scoring failed, using heuristic fallback:', error);
     return titles.map(title => calculateFallbackTitleScore(title, context));
   }
 }
@@ -395,13 +397,13 @@ Return ONLY valid JSON array:
       return parsed.map((score, index) => ({
         ...score,
         overview: items[index]?.overview || score.overview,
+        source: 'ai' as const,
       }));
     }
 
     throw new Error('Could not parse AI response');
   } catch (error) {
-    logger.error('[ContentScoring] Overview scoring error:', error);
-    // Return heuristic-based fallback scores
+    logger.error('[ContentScoring] Overview scoring failed, using heuristic fallback:', error);
     return items.map(item => calculateFallbackOverviewScore(item.overview, context));
   }
 }
@@ -478,9 +480,10 @@ function calculateFallbackTitleScore(
     brandingScore,
     salesScore,
     overallScore,
-    reasoning: `Based on title structure, keyword usage, and clarity. ${strengths.length > 0 ? strengths[0] + '.' : ''}`,
+    reasoning: `Estimated score based on title length, keyword usage, and structure. AI scoring was unavailable.`,
     strengths: strengths.slice(0, 3),
     improvements: improvements.slice(0, 2),
+    source: 'heuristic' as const,
   };
 }
 
@@ -570,12 +573,13 @@ Return ONLY valid JSON array:
       return parsed.map((score, index) => ({
         ...score,
         objective: objectives[index]?.objective || score.objective,
+        source: 'ai' as const,
       }));
     }
 
     throw new Error('Could not parse AI response');
   } catch (error) {
-    logger.error('[ContentScoring] Objective scoring error:', error);
+    logger.error('[ContentScoring] Objective scoring failed, using heuristic fallback:', error);
     return objectives.map(obj => calculateFallbackObjectiveScore(obj));
   }
 }
@@ -647,7 +651,8 @@ function calculateFallbackObjectiveScore(
     specificityScore,
     measurabilityScore,
     overallScore,
-    reasoning: `Based on action verb alignment, specificity, and measurability analysis.`,
+    reasoning: `Estimated score based on action verb alignment and structure. AI scoring was unavailable.`,
+    source: 'heuristic' as const,
   };
 }
 
@@ -724,8 +729,9 @@ function calculateFallbackOverviewScore(
     clarityScore,
     engagementScore,
     overallScore,
-    reasoning: `Based on content structure, outcome clarity, and engagement level. ${strengths.length > 0 ? strengths[0] + '.' : ''}`,
+    reasoning: `Estimated score based on content structure and outcome clarity. AI scoring was unavailable.`,
     strengths: strengths.slice(0, 3),
     improvements: improvements.slice(0, 2),
+    source: 'heuristic' as const,
   };
 }

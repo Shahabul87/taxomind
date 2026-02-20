@@ -41,6 +41,7 @@ interface OverviewSuggestion {
   overview: string;
   relevanceScore: number;
   reasoning: string;
+  source?: 'ai' | 'heuristic';
 }
 
 interface SAMOverviewGeneratorModalProps {
@@ -179,17 +180,20 @@ export function SAMOverviewGeneratorModal({
           engagementScore?: number;
           overallScore: number;
           reasoning: string;
+          source?: 'ai' | 'heuristic';
         }, index: number) => ({
           overview: generatedOverviews[index] || score.overview,
           relevanceScore: score.overallScore || score.relevanceScore || 80,
           reasoning: score.reasoning || 'AI-analyzed overview based on clarity, engagement, and relevance.',
+          source: score.source,
         }));
       } else {
         // Fallback: use overviews without AI scoring
         scoredOverviews = generatedOverviews.slice(0, 3).map((overview: string, index: number) => ({
           overview,
           relevanceScore: 85 - index * 5,
-          reasoning: 'Generated overview focusing on key learning outcomes and benefits.',
+          reasoning: 'Estimated score — AI scoring was unavailable.',
+          source: 'heuristic' as const,
         }));
       }
 
@@ -213,6 +217,12 @@ export function SAMOverviewGeneratorModal({
   // Check if any overviews scored below the refinement threshold
   const lowScoringOverviews = useMemo(
     () => overviewSuggestions.filter(s => s.relevanceScore < 70),
+    [overviewSuggestions],
+  );
+
+  // Detect if scores are heuristic (AI scoring was unavailable)
+  const hasHeuristicScores = useMemo(
+    () => overviewSuggestions.some(s => s.source === 'heuristic'),
     [overviewSuggestions],
   );
 
@@ -269,16 +279,18 @@ export function SAMOverviewGeneratorModal({
       if (scoringResponse.ok) {
         const scoringResult = await scoringResponse.json();
         const scores = scoringResult.overviewScores || scoringResult.scores || [];
-        refinedSuggestions = scores.map((score: { overview: string; overallScore: number; relevanceScore?: number; reasoning: string }, idx: number) => ({
+        refinedSuggestions = scores.map((score: { overview: string; overallScore: number; relevanceScore?: number; reasoning: string; source?: 'ai' | 'heuristic' }, idx: number) => ({
           overview: refinedOverviews[idx] || score.overview,
           relevanceScore: score.overallScore || score.relevanceScore || 80,
           reasoning: score.reasoning || 'Refined by AI for improved quality.',
+          source: score.source,
         }));
       } else {
         refinedSuggestions = refinedOverviews.map((overview: string) => ({
           overview,
           relevanceScore: 80,
-          reasoning: 'Refined overview — scoring unavailable.',
+          reasoning: 'Refined overview — AI scoring was unavailable.',
+          source: 'heuristic' as const,
         }));
       }
 
@@ -490,6 +502,13 @@ export function SAMOverviewGeneratorModal({
                 </div>
               </div>
 
+              {hasHeuristicScores && (
+                <div className="flex items-center gap-2 p-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
+                  <Lightbulb className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Scores are estimated (AI scoring was unavailable). Regenerate for AI-powered scores.</span>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {overviewSuggestions.map((suggestion, index) => (
                   <div
@@ -512,12 +531,19 @@ export function SAMOverviewGeneratorModal({
                           Option {index + 1}
                         </span>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn("flex-shrink-0 font-bold", getScoreBadgeVariant(suggestion.relevanceScore))}
-                      >
-                        {suggestion.relevanceScore}/100
-                      </Badge>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {suggestion.source === 'heuristic' && (
+                          <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                            Est.
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={cn("font-bold", getScoreBadgeVariant(suggestion.relevanceScore))}
+                        >
+                          {suggestion.relevanceScore}/100
+                        </Badge>
+                      </div>
                     </div>
 
                     {/* Overview Text */}

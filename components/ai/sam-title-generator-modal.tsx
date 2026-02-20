@@ -47,6 +47,7 @@ interface TitleSuggestion {
   salesScore: number;
   overallScore: number;
   reasoning: string;
+  source?: 'ai' | 'heuristic';
 }
 
 interface SAMTitleGeneratorModalProps {
@@ -187,6 +188,7 @@ export function SAMTitleGeneratorModal({
         salesScore: number;
         overallScore: number;
         reasoning: string;
+        source?: 'ai' | 'heuristic';
       }) => ({
         title: score.title,
         marketingScore: score.marketingScore ?? 0,
@@ -194,6 +196,7 @@ export function SAMTitleGeneratorModal({
         salesScore: score.salesScore ?? 0,
         overallScore: score.overallScore ?? 0,
         reasoning: score.reasoning || 'AI-analyzed title based on marketing effectiveness and audience appeal.',
+        source: score.source,
       }));
 
       // Sort by overall score descending
@@ -212,6 +215,12 @@ export function SAMTitleGeneratorModal({
   // Check if any titles scored below the refinement threshold
   const lowScoringTitles = useMemo(
     () => titleSuggestions.filter(s => s.overallScore < 70),
+    [titleSuggestions],
+  );
+
+  // Detect if scores are heuristic (AI scoring was unavailable)
+  const hasHeuristicScores = useMemo(
+    () => titleSuggestions.some(s => s.source === 'heuristic'),
     [titleSuggestions],
   );
 
@@ -275,6 +284,7 @@ export function SAMTitleGeneratorModal({
         refinedSuggestions = scores.map((score: {
           title: string; marketingScore: number; brandingScore: number;
           salesScore: number; overallScore: number; reasoning: string;
+          source?: 'ai' | 'heuristic';
         }) => ({
           title: score.title,
           marketingScore: score.marketingScore ?? 0,
@@ -282,6 +292,7 @@ export function SAMTitleGeneratorModal({
           salesScore: score.salesScore ?? 0,
           overallScore: score.overallScore ?? 0,
           reasoning: score.reasoning || 'Refined by AI for improved quality.',
+          source: score.source,
         }));
       }
 
@@ -482,6 +493,13 @@ export function SAMTitleGeneratorModal({
                 </div>
               </div>
 
+              {hasHeuristicScores && (
+                <div className="flex items-center gap-2 p-2.5 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
+                  <Lightbulb className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Scores are estimated (AI scoring was unavailable). Regenerate for AI-powered scores.</span>
+                </div>
+              )}
+
               <div className="space-y-2.5">
                 {titleSuggestions.map((suggestion, index) => (
                   <div
@@ -504,12 +522,19 @@ export function SAMTitleGeneratorModal({
                           {suggestion.title}
                         </p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={cn("flex-shrink-0 font-bold", getScoreBadgeVariant(suggestion.overallScore))}
-                      >
-                        {suggestion.overallScore}/100
-                      </Badge>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {suggestion.source === 'heuristic' && (
+                          <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                            Est.
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={cn("font-bold", getScoreBadgeVariant(suggestion.overallScore))}
+                        >
+                          {suggestion.overallScore}/100
+                        </Badge>
+                      </div>
                     </div>
 
                     {/* Score Breakdown */}
