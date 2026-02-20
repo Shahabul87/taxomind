@@ -17,6 +17,9 @@ import {
   GraduationCap,
   Bot,
   ChevronRight,
+  Loader2,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -164,6 +167,19 @@ export default function AICreatorPage() {
 
   // Confirmation dialogs
   const [showResetConfirm, setShowResetConfirm] = React.useState(false);
+
+  // Coherence gate state
+  const [isCheckingCoherence, setIsCheckingCoherence] = React.useState(false);
+  const [coherenceResult, setCoherenceResult] = React.useState<{
+    overallScore: number;
+    titleOverviewAlignment: number;
+    overviewObjectivesAlignment: number;
+    objectivesCoverage: number;
+    issues: string[];
+    recommendation: string;
+    source: 'ai' | 'heuristic';
+  } | null>(null);
+  const [showCoherenceWarning, setShowCoherenceWarning] = React.useState(false);
 
   // Local validation errors (field-specific)
   const [localValidationErrors, setLocalValidationErrors] = React.useState<Record<string, string>>({});
@@ -339,6 +355,57 @@ export default function AICreatorPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [attemptNext, handleBack, setShowGenerateConfirm]);
+
+  // Coherence check before course creation
+  const handlePreCreationCheck = React.useCallback(async () => {
+    setIsCheckingCoherence(true);
+    setCoherenceResult(null);
+    try {
+      const response = await fetch('/api/sam/content-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'coherence',
+          title: formData.courseTitle,
+          overview: formData.courseShortOverview,
+          objectives: formData.courseGoals,
+          context: {
+            category: formData.courseCategory,
+            subcategory: formData.courseSubcategory,
+            targetAudience: formData.targetAudience === 'Custom (describe below)'
+              ? formData.customAudience
+              : formData.targetAudience,
+            courseIntent: formData.courseIntent,
+            difficulty: formData.difficulty,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const score = result.coherenceScore;
+        setCoherenceResult(score);
+
+        if (score && score.overallScore < 70) {
+          // Show warning — let user decide
+          setShowCoherenceWarning(true);
+          setShowGenerateConfirm(false);
+          return;
+        }
+      }
+      // Score >= 70 or API error — proceed directly
+      setShowGenerateConfirm(false);
+      handleOpenSequentialModal();
+      handleStartSequentialCreation();
+    } catch {
+      // On error, proceed anyway — don't block creation
+      setShowGenerateConfirm(false);
+      handleOpenSequentialModal();
+      handleStartSequentialCreation();
+    } finally {
+      setIsCheckingCoherence(false);
+    }
+  }, [formData, setShowGenerateConfirm, handleOpenSequentialModal, handleStartSequentialCreation]);
 
   const renderStepContent = () => {
     const stepProps = {
@@ -660,7 +727,9 @@ export default function AICreatorPage() {
         </AlertDialog>
 
         {/* Generate Confirmation Dialog */}
-        <AlertDialog open={showGenerateConfirm} onOpenChange={setShowGenerateConfirm}>
+        <AlertDialog open={showGenerateConfirm} onOpenChange={(open) => {
+          if (!isCheckingCoherence) setShowGenerateConfirm(open);
+        }}>
           <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle>Generate course?</AlertDialogTitle>
@@ -686,15 +755,114 @@ export default function AICreatorPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isCheckingCoherence}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handlePreCreationCheck}
+                disabled={isCheckingCoherence}
+              >
+                {isCheckingCoherence ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Checking coherence...
+                  </>
+                ) : (
+                  'Start Generation'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Coherence Warning Dialog */}
+        <AlertDialog open={showCoherenceWarning} onOpenChange={setShowCoherenceWarning}>
+          <AlertDialogContent className="max-w-lg">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <ShieldAlert className="h-5 w-5 text-amber-600" />
+                Low Coherence Detected
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-4">
+                  <p>
+                    Your title, overview, and objectives may not be well-aligned.
+                    This could result in a disjointed course.
+                  </p>
+
+                  {coherenceResult && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
+                        <span className="text-slate-600 dark:text-slate-400">Overall coherence:</span>
+                        <span className={cn(
+                          "font-bold",
+                          coherenceResult.overallScore >= 70 ? "text-green-600" : coherenceResult.overallScore >= 50 ? "text-amber-600" : "text-red-600"
+                        )}>
+                          {coherenceResult.overallScore}/100
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400">Title ↔ Overview:</span>
+                        <span className={cn(
+                          "font-semibold",
+                          coherenceResult.titleOverviewAlignment >= 70 ? "text-green-600" : "text-amber-600"
+                        )}>
+                          {coherenceResult.titleOverviewAlignment}/100
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400">Overview ↔ Objectives:</span>
+                        <span className={cn(
+                          "font-semibold",
+                          coherenceResult.overviewObjectivesAlignment >= 70 ? "text-green-600" : "text-amber-600"
+                        )}>
+                          {coherenceResult.overviewObjectivesAlignment}/100
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400">Objectives coverage:</span>
+                        <span className={cn(
+                          "font-semibold",
+                          coherenceResult.objectivesCoverage >= 70 ? "text-green-600" : "text-amber-600"
+                        )}>
+                          {coherenceResult.objectivesCoverage}/100
+                        </span>
+                      </div>
+
+                      {coherenceResult.issues.length > 0 && (
+                        <div className="space-y-1.5 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
+                          <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 mb-1">Issues found:</p>
+                          {coherenceResult.issues.map((issue, i) => (
+                            <div key={i} className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300">
+                              <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                              <span>{issue}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {coherenceResult.recommendation && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                          {coherenceResult.recommendation}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel
+                onClick={() => {
+                  setShowCoherenceWarning(false);
+                  setCoherenceResult(null);
+                }}
+              >
+                Go Back &amp; Fix
+              </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => {
-                  setShowGenerateConfirm(false);
+                  setShowCoherenceWarning(false);
+                  setCoherenceResult(null);
                   handleOpenSequentialModal();
                   handleStartSequentialCreation();
                 }}
+                className="bg-amber-600 hover:bg-amber-700"
               >
-                Start Generation
+                <ShieldCheck className="h-4 w-4 mr-2" />
+                Proceed Anyway
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

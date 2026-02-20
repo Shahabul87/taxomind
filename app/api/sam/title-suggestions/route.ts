@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
@@ -39,8 +39,11 @@ interface TitleSuggestionResponse {
  * Extract JSON from AI response that may contain markdown fences or extra text.
  */
 function extractJSON(text: string): string {
+  // Strip <think>...</think> blocks (reasoning models like deepseek-reasoner)
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
   // Strip markdown code fences
-  let cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
 
   // Try to find a JSON object
   const objectMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -72,7 +75,7 @@ export async function POST(req: Request) {
 
     const suggestions = await withRetryableTimeout(
       () => generateTitleSuggestions(user.id, body),
-      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      90_000,
       'title-suggestions'
     );
 
@@ -91,9 +94,11 @@ export async function POST(req: Request) {
 }
 
 async function generateTitleSuggestions(userId: string, request: TitleSuggestionRequest): Promise<TitleSuggestionResponse> {
-  const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 5, refinementContext } = request;
+  const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 4, refinementContext } = request;
 
-  const systemPrompt = `You are an expert course title generator. You MUST generate titles that are directly related to the subject the user provides. Every title MUST be about the specific topic given. Return ONLY valid JSON with no markdown fences or extra text.`;
+  const systemPrompt = `You are an expert course title architect. Generate ${count} high-quality course titles scored on Marketing, Branding, and Sales dimensions.
+
+Return ONLY valid JSON. No markdown fences, no extra text.`;
 
   // Build refinement block if refining weak titles
   let refinementBlock = '';
@@ -109,56 +114,38 @@ Focus on fixing the specific weaknesses while keeping the titles on-topic.
 `;
   }
 
-  const prompt = `Generate ${count} compelling course titles for the following course:
+  // Build context block — omit empty fields instead of "Not specified"
+  const contextLines: string[] = [];
+  if (category) contextLines.push(`CATEGORY: ${category}`);
+  if (subcategory) contextLines.push(`SUBCATEGORY: ${subcategory}`);
+  if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
+  if (intent) contextLines.push(`INTENT: ${intent}`);
+  if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
+  if (overview) contextLines.push(`OVERVIEW SUMMARY: ${overview.slice(0, 300)}`);
 
-SUBJECT/TOPIC: "${currentTitle}"
-COURSE OVERVIEW: "${overview || 'Not provided'}"
-CATEGORY: ${category || 'Not specified'}
-SUBCATEGORY: ${subcategory || 'Not specified'}
-DIFFICULTY LEVEL: ${difficulty || 'Not specified'}
-COURSE INTENT: ${intent || 'Not specified'}
-TARGET AUDIENCE: ${targetAudience || 'Not specified'}
-${refinementBlock}
-CRITICAL RULES:
-- Every title MUST be specifically about "${currentTitle}" — do NOT generate generic titles
-- Each title must clearly reference the core subject matter
-- 5-10 words per title (concise and punchy)
+  const contextBlock = contextLines.length > 0
+    ? `\nCONTEXT:\n${contextLines.join('\n')}\n`
+    : '';
 
-SCORING CRITERIA YOUR TITLES WILL BE JUDGED ON:
+  const prompt = `SUBJECT: "${currentTitle}"
+${contextBlock}${refinementBlock}
+Generate exactly ${count} course titles for the subject above.
 
-1. MARKETING (searchability & keyword optimization):
-   - Include the primary keyword/topic name early in the title
-   - Use words students actually search for on course platforms
-   - Match search intent (e.g., "Complete Guide", "From Scratch", "Hands-On")
+RULES:
+- 5-10 words each, include the core topic keyword early
+- Each title uses a DIFFERENT angle (outcome-focused, audience-specific, skill-based, project-based)
+- Reference "${currentTitle}" specifically — no generic filler
+- Score each title on Marketing (0-100), Branding (0-100), Sales (0-100)
+- Only include titles scoring 70+ on every dimension
 
-2. BRANDING (unique value proposition & credibility):
-   - Communicate what makes THIS course different from 100 others on the same topic
-   - Use authority-signaling words ("Professional", "Production-Grade", "Industry-Ready")
-   - Avoid generic filler ("Ultimate", "Best") unless paired with specifics
-
-3. SALES (benefit statement & urgency):
-   - Promise a clear transformation or outcome ("Build X", "Master Y", "Go From A to B")
-   - Match the difficulty level to audience expectations
-   - Create curiosity or aspiration
-
-HIGH-SCORING TITLE PATTERNS (85+):
-- "React Performance Engineering: Optimize Production Apps at Scale" (specific + outcome + audience)
-- "SQL for Data Analysts: Query, Transform, and Visualize Real Datasets" (keyword + 3 concrete skills)
-- "Kubernetes in Production: Deploy, Scale, and Monitor Cloud-Native Apps" (keyword + 3 outcomes)
-
-LOW-SCORING TITLE PATTERNS (below 60):
-- "Learn React" (too vague, no value proposition)
-- "The Ultimate Complete Comprehensive Guide to Everything" (filler, no specifics)
-- "Advanced Topics in Modern Software" (no keyword, no outcome)
-
-Return ONLY this JSON (no markdown, no extra text):
-{"titles":["title1","title2","title3","title4","title5"],"suggestions":{"message":"strategy explanation","reasoning":"why these work"}}`;
+Return this JSON:
+{"titles":["title1","title2"],"suggestions":{"message":"brief strategy","reasoning":"why these titles work"}}`;
 
   const responseText = await runSAMChatWithPreference({
     userId,
     capability: 'course',
     systemPrompt,
-    maxTokens: 1200,
+    maxTokens: 4000,
     temperature: 0.5,
     messages: [{ role: 'user', content: prompt }],
   });

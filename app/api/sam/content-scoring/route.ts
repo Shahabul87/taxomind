@@ -10,10 +10,57 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
+
+/**
+ * Extract a JSON array from an AI response that may contain
+ * reasoning blocks, markdown fences, or other wrapper text.
+ *
+ * Handles: <think>...</think>, ```json...```, plain text around JSON, etc.
+ */
+function extractJSONArray(responseText: string): unknown[] | null {
+  // 1. Strip <think>...</think> blocks (DeepSeek Reasoner)
+  let cleaned = responseText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // 2. Strip markdown code fences
+  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+
+  // 3. Try to find a JSON array
+  const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    try {
+      const parsed = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Try to fix common JSON issues: trailing commas
+      const fixedTrailing = arrayMatch[0].replace(/,\s*([}\]])/g, '$1');
+      try {
+        const parsed = JSON.parse(fixedTrailing);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // Fall through
+      }
+    }
+  }
+
+  // 4. Try to find a single JSON object and wrap in array
+  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    try {
+      const parsed = JSON.parse(objectMatch[0]);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return [parsed];
+      }
+    } catch {
+      // Fall through
+    }
+  }
+
+  return null;
+}
 
 /**
  * Deterministic offset based on string hashing.
@@ -92,11 +139,26 @@ const BatchScoringSchema = z.object({
   }).optional(),
 });
 
+const CoherenceScoringSchema = z.object({
+  type: z.literal('coherence'),
+  title: z.string().min(3),
+  overview: z.string().min(20),
+  objectives: z.array(z.string()).min(1),
+  context: z.object({
+    category: z.string().optional(),
+    subcategory: z.string().optional(),
+    targetAudience: z.string().optional(),
+    courseIntent: z.string().optional(),
+    difficulty: z.string().optional(),
+  }).optional(),
+});
+
 const RequestSchema = z.discriminatedUnion('type', [
   TitleScoringSchema,
   OverviewScoringSchema,
   ObjectiveScoringSchema,
   BatchScoringSchema,
+  CoherenceScoringSchema,
 ]);
 
 // Response types
@@ -135,7 +197,25 @@ interface ObjectiveScore {
   source: 'ai' | 'heuristic';
 }
 
+interface CoherenceScore {
+  overallScore: number;
+  titleOverviewAlignment: number;
+  overviewObjectivesAlignment: number;
+  objectivesCoverage: number;
+  issues: string[];
+  recommendation: string;
+  source: 'ai' | 'heuristic';
+}
+
 export async function POST(request: NextRequest) {
+  // Parse body outside try so it's available for heuristic fallback on timeout
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
   try {
     const rateLimitResponse = await withRateLimit(request, 'ai');
     if (rateLimitResponse) return rateLimitResponse;
@@ -145,8 +225,6 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const body = await request.json();
     const parsed = RequestSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -158,11 +236,16 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
 
+    // Scoring timeout: reasoning models (deepseek-reasoner) need more time.
+    // Single item = 60s, batch = 90s. Falls back to heuristic on timeout.
+    const SCORING_TIMEOUT_SINGLE = 60_000;
+    const SCORING_TIMEOUT_BATCH = 90_000;
+
     switch (data.type) {
       case 'title':
         const titleScore = await withRetryableTimeout(
           () => scoreTitles(user.id, [data.title], data.context),
-          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          SCORING_TIMEOUT_SINGLE,
           'content-scoring-title'
         );
         return NextResponse.json({ scores: titleScore });
@@ -174,7 +257,7 @@ export async function POST(request: NextRequest) {
             [{ overview: data.overview, title: data.title }],
             data.context
           ),
-          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          SCORING_TIMEOUT_SINGLE,
           'content-scoring-overview'
         );
         return NextResponse.json({ scores: overviewScore });
@@ -182,10 +265,19 @@ export async function POST(request: NextRequest) {
       case 'objective': {
         const objectiveScores = await withRetryableTimeout(
           () => scoreObjectives(user.id, data.objectives, data.context),
-          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          SCORING_TIMEOUT_SINGLE,
           'content-scoring-objective'
         );
         return NextResponse.json({ objectiveScores });
+      }
+
+      case 'coherence': {
+        const coherenceScore = await withRetryableTimeout(
+          () => scoreCoherence(user.id, data.title, data.overview, data.objectives, data.context),
+          SCORING_TIMEOUT_SINGLE,
+          'content-scoring-coherence'
+        );
+        return NextResponse.json({ coherenceScore });
       }
 
       case 'batch':
@@ -201,7 +293,7 @@ export async function POST(request: NextRequest) {
             titles.length > 0 ? scoreTitles(user.id, titles, data.context) : [],
             overviews.length > 0 ? scoreOverviews(user.id, overviews, data.context) : [],
           ]),
-          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          SCORING_TIMEOUT_BATCH,
           'content-scoring-batch'
         );
 
@@ -215,8 +307,13 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     if (error instanceof OperationTimeoutError) {
-      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
-      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+      logger.warn('[ContentScoring] AI scoring timed out, returning heuristic fallback', {
+        operation: error.operationName,
+        timeoutMs: error.timeoutMs,
+      });
+
+      // Return heuristic scores instead of 504 so the UI always gets data
+      return buildHeuristicFallbackResponse(body);
     }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
@@ -225,6 +322,48 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to score content' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Build a heuristic fallback response when AI scoring times out.
+ * Ensures the UI always receives scores instead of a 504.
+ */
+function buildHeuristicFallbackResponse(body: unknown): NextResponse {
+  const parsed = RequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Operation timed out' }, { status: 504 });
+  }
+
+  const data = parsed.data;
+  switch (data.type) {
+    case 'title':
+      return NextResponse.json({
+        scores: [calculateFallbackTitleScore(data.title, data.context)],
+      });
+    case 'overview':
+      return NextResponse.json({
+        scores: [calculateFallbackOverviewScore(data.overview, data.context)],
+      });
+    case 'objective':
+      return NextResponse.json({
+        objectiveScores: data.objectives.map(obj => calculateFallbackObjectiveScore(obj)),
+      });
+    case 'coherence':
+      return NextResponse.json({
+        coherenceScore: calculateFallbackCoherenceScore(data.title, data.overview, data.objectives),
+      });
+    case 'batch': {
+      const titles = data.items
+        .filter((item): item is { itemType: 'title'; title: string } => item.itemType === 'title')
+        .map(item => calculateFallbackTitleScore(item.title, data.context));
+      const overviews = data.items
+        .filter((item): item is { itemType: 'overview'; overview: string } => item.itemType === 'overview')
+        .map(item => calculateFallbackOverviewScore(item.overview, data.context));
+      return NextResponse.json({ titleScores: titles, overviewScores: overviews });
+    }
+    default:
+      return NextResponse.json({ error: 'Operation timed out' }, { status: 504 });
   }
 }
 
@@ -299,16 +438,15 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course title scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 1500,
+      // Reasoning models (deepseek-reasoner) need high max_tokens because
+      // reasoning tokens count toward the limit before the actual JSON output.
+      maxTokens: 8000,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    // Robust JSON parsing: strip markdown fences, find JSON array
-    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as TitleScore[];
+    const parsed = extractJSONArray(responseText) as TitleScore[] | null;
+    if (parsed && parsed.length > 0) {
       return parsed.map(score => ({ ...score, source: 'ai' as const }));
     }
 
@@ -383,17 +521,13 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a course overview scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 1500,
+      maxTokens: 8000,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    // Robust JSON parsing: strip markdown fences, find JSON array
-    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as OverviewScore[];
-      // Ensure overview field matches original
+    const parsed = extractJSONArray(responseText) as OverviewScore[] | null;
+    if (parsed && parsed.length > 0) {
       return parsed.map((score, index) => ({
         ...score,
         overview: items[index]?.overview || score.overview,
@@ -560,16 +694,13 @@ Return ONLY valid JSON array:
       userId,
       capability: 'course',
       systemPrompt: 'You are a learning objective scoring expert specializing in Bloom\'s taxonomy. Return ONLY valid JSON with no markdown fences or extra text.',
-      maxTokens: 2000,
+      maxTokens: 8000,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]) as ObjectiveScore[];
-      // Ensure objective field matches original
+    const parsed = extractJSONArray(responseText) as ObjectiveScore[] | null;
+    if (parsed && parsed.length > 0) {
       return parsed.map((score, index) => ({
         ...score,
         objective: objectives[index]?.objective || score.objective,
@@ -732,6 +863,190 @@ function calculateFallbackOverviewScore(
     reasoning: `Estimated score based on content structure and outcome clarity. AI scoring was unavailable.`,
     strengths: strengths.slice(0, 3),
     improvements: improvements.slice(0, 2),
+    source: 'heuristic' as const,
+  };
+}
+
+/**
+ * Score coherence between title, overview, and objectives using AI analysis.
+ * Returns a single coherence assessment with sub-dimension scores.
+ */
+async function scoreCoherence(
+  userId: string,
+  title: string,
+  overview: string,
+  objectives: string[],
+  context?: {
+    category?: string;
+    subcategory?: string;
+    targetAudience?: string;
+    courseIntent?: string;
+    difficulty?: string;
+  }
+): Promise<CoherenceScore> {
+  const prompt = `Evaluate the COHERENCE between these three course components. Do they form a consistent, well-aligned course?
+
+TITLE: "${title}"
+
+OVERVIEW:
+"${overview}"
+
+LEARNING OBJECTIVES:
+${objectives.map((obj, i) => `${i + 1}. ${obj}`).join('\n')}
+
+CONTEXT:
+- Category: ${context?.category || 'Not specified'}
+- Difficulty: ${context?.difficulty || 'Not specified'}
+- Target Audience: ${context?.targetAudience || 'Not specified'}
+
+SCORING DIMENSIONS:
+
+1. Title-Overview Alignment (0-100): Does the overview accurately describe a course matching the title?
+   - Does the overview reference the same topic as the title?
+   - Are the promised skills/outcomes consistent with what the title implies?
+   - Would a student clicking on this title find the overview relevant?
+
+2. Overview-Objectives Alignment (0-100): Do the objectives deliver on what the overview promises?
+   - Does each "What You'll Learn" claim in the overview map to at least one objective?
+   - Do the objectives collectively cover the scope described in the overview?
+   - Are there objectives that seem unrelated to the overview?
+
+3. Objectives Coverage (0-100): Do the objectives collectively represent a complete course?
+   - Is there breadth across the topic (not all objectives about one narrow sub-topic)?
+   - Is there appropriate Bloom's level progression for the difficulty?
+   - Are there any obvious gaps in what a "${title}" course should teach?
+
+4. Overall Coherence (0-100): Weighted average — would this title + overview + objectives form a coherent course listing?
+
+CALIBRATION:
+- 85-100: Excellent alignment — all three components tell the same story
+- 70-84: Good — minor gaps or misalignments that don't confuse students
+- 50-69: Mediocre — noticeable disconnects between components
+- Below 50: Poor — components seem to describe different courses
+
+Return ONLY valid JSON:
+{
+  "overallScore": number,
+  "titleOverviewAlignment": number,
+  "overviewObjectivesAlignment": number,
+  "objectivesCoverage": number,
+  "issues": ["specific issue 1", "specific issue 2"],
+  "recommendation": "One sentence action item to improve coherence"
+}`;
+
+  try {
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      systemPrompt: 'You are a course quality auditor. Evaluate coherence between course components. Return ONLY valid JSON with no markdown fences or extra text.',
+      maxTokens: 4000,
+      temperature: 0.3,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const parsed = extractJSONArray(responseText);
+    if (parsed && parsed.length > 0 && typeof parsed[0] === 'object') {
+      const score = parsed[0] as Record<string, unknown>;
+      return {
+        overallScore: (score.overallScore as number) ?? 70,
+        titleOverviewAlignment: (score.titleOverviewAlignment as number) ?? 70,
+        overviewObjectivesAlignment: (score.overviewObjectivesAlignment as number) ?? 70,
+        objectivesCoverage: (score.objectivesCoverage as number) ?? 70,
+        issues: Array.isArray(score.issues) ? score.issues as string[] : [],
+        recommendation: (score.recommendation as string) ?? '',
+        source: 'ai' as const,
+      };
+    }
+
+    // Try parsing as a single object (not wrapped in array)
+    let cleaned = responseText.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+    const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      const score = JSON.parse(objectMatch[0]) as Record<string, unknown>;
+      return {
+        overallScore: (score.overallScore as number) ?? 70,
+        titleOverviewAlignment: (score.titleOverviewAlignment as number) ?? 70,
+        overviewObjectivesAlignment: (score.overviewObjectivesAlignment as number) ?? 70,
+        objectivesCoverage: (score.objectivesCoverage as number) ?? 70,
+        issues: Array.isArray(score.issues) ? score.issues as string[] : [],
+        recommendation: (score.recommendation as string) ?? '',
+        source: 'ai' as const,
+      };
+    }
+
+    throw new Error('Could not parse AI coherence response');
+  } catch (error) {
+    logger.error('[ContentScoring] Coherence scoring failed, using heuristic fallback:', error);
+    return calculateFallbackCoherenceScore(title, overview, objectives);
+  }
+}
+
+/**
+ * Calculate fallback coherence score using keyword-overlap heuristics.
+ */
+function calculateFallbackCoherenceScore(
+  title: string,
+  overview: string,
+  objectives: string[]
+): CoherenceScore {
+  const issues: string[] = [];
+
+  // Extract significant words from title (3+ chars, not stop words)
+  const stopWords = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'your', 'will', 'how', 'what', 'are', 'can', 'not']);
+  const titleWords = title.toLowerCase().split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+
+  // Title-Overview alignment: check keyword overlap
+  const overviewLower = overview.toLowerCase();
+  const titleWordsInOverview = titleWords.filter(w => overviewLower.includes(w));
+  const titleOverviewRatio = titleWords.length > 0 ? titleWordsInOverview.length / titleWords.length : 0;
+  let titleOverviewAlignment = Math.round(50 + titleOverviewRatio * 40);
+  if (titleOverviewRatio < 0.3) {
+    issues.push('Overview does not reference key terms from the title');
+  }
+
+  // Overview-Objectives alignment: check if objectives reference overview keywords
+  const overviewWords = overview.toLowerCase().split(/\s+/).filter(w => w.length >= 4 && !stopWords.has(w));
+  const uniqueOverviewWords = [...new Set(overviewWords)];
+  const objectivesText = objectives.join(' ').toLowerCase();
+  const overviewWordsInObjectives = uniqueOverviewWords.filter(w => objectivesText.includes(w));
+  const overviewObjRatio = uniqueOverviewWords.length > 0 ? overviewWordsInObjectives.length / uniqueOverviewWords.length : 0;
+  let overviewObjectivesAlignment = Math.round(50 + overviewObjRatio * 40);
+  if (overviewObjRatio < 0.2) {
+    issues.push('Objectives do not cover skills mentioned in the overview');
+  }
+
+  // Objectives coverage: check diversity
+  const objectiveFirstWords = objectives.map(o => o.split(' ')[0].toLowerCase());
+  const uniqueVerbs = new Set(objectiveFirstWords);
+  let objectivesCoverage = 50;
+  if (uniqueVerbs.size >= 3) objectivesCoverage += 20;
+  if (objectives.length >= 3) objectivesCoverage += 15;
+  if (objectives.length >= 5) objectivesCoverage += 10;
+  if (uniqueVerbs.size < 2) {
+    issues.push('Objectives lack diversity — use varied action verbs');
+  }
+
+  // Cap and compute overall
+  titleOverviewAlignment = Math.min(100, Math.max(0, titleOverviewAlignment + deterministicOffset(title, 'coherence-to')));
+  overviewObjectivesAlignment = Math.min(100, Math.max(0, overviewObjectivesAlignment + deterministicOffset(overview, 'coherence-oo')));
+  objectivesCoverage = Math.min(100, Math.max(0, objectivesCoverage + deterministicOffset(objectivesText, 'coherence-oc')));
+
+  const overallScore = Math.round(
+    titleOverviewAlignment * 0.35 +
+    overviewObjectivesAlignment * 0.35 +
+    objectivesCoverage * 0.30
+  );
+
+  return {
+    overallScore,
+    titleOverviewAlignment,
+    overviewObjectivesAlignment,
+    objectivesCoverage,
+    issues: issues.length > 0 ? issues : ['AI scoring was unavailable — review alignment manually'],
+    recommendation: issues.length > 0
+      ? 'Review the flagged issues and ensure all three components describe the same course.'
+      : 'Components appear reasonably aligned based on keyword analysis.',
     source: 'heuristic' as const,
   };
 }

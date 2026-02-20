@@ -33,6 +33,9 @@ import {
   FileText,
   ArrowRight,
   RefreshCw,
+  Target,
+  Eye,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -40,6 +43,9 @@ import { toast } from 'sonner';
 interface OverviewSuggestion {
   overview: string;
   relevanceScore: number;
+  clarityScore: number;
+  engagementScore: number;
+  overallScore: number;
   reasoning: string;
   source?: 'ai' | 'heuristic';
 }
@@ -178,12 +184,15 @@ export function SAMOverviewGeneratorModal({
           relevanceScore?: number;
           clarityScore?: number;
           engagementScore?: number;
-          overallScore: number;
+          overallScore?: number;
           reasoning: string;
           source?: 'ai' | 'heuristic';
         }, index: number) => ({
           overview: generatedOverviews[index] || score.overview,
-          relevanceScore: score.overallScore || score.relevanceScore || 80,
+          relevanceScore: score.relevanceScore ?? 75,
+          clarityScore: score.clarityScore ?? 75,
+          engagementScore: score.engagementScore ?? 75,
+          overallScore: score.overallScore ?? Math.round(((score.relevanceScore ?? 75) + (score.clarityScore ?? 75) + (score.engagementScore ?? 75)) / 3),
           reasoning: score.reasoning || 'AI-analyzed overview based on clarity, engagement, and relevance.',
           source: score.source,
         }));
@@ -191,14 +200,17 @@ export function SAMOverviewGeneratorModal({
         // Fallback: use overviews without AI scoring
         scoredOverviews = generatedOverviews.slice(0, 3).map((overview: string, index: number) => ({
           overview,
-          relevanceScore: 85 - index * 5,
+          relevanceScore: 80 - index * 5,
+          clarityScore: 78 - index * 4,
+          engagementScore: 76 - index * 3,
+          overallScore: 78 - index * 4,
           reasoning: 'Estimated score — AI scoring was unavailable.',
           source: 'heuristic' as const,
         }));
       }
 
-      // Sort by relevance score descending
-      scoredOverviews.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      // Sort by overall score descending
+      scoredOverviews.sort((a, b) => b.overallScore - a.overallScore);
 
       if (scoredOverviews.length > 0) {
         setOverviewSuggestions(scoredOverviews);
@@ -216,7 +228,7 @@ export function SAMOverviewGeneratorModal({
 
   // Check if any overviews scored below the refinement threshold
   const lowScoringOverviews = useMemo(
-    () => overviewSuggestions.filter(s => s.relevanceScore < 70),
+    () => overviewSuggestions.filter(s => s.overallScore < 70),
     [overviewSuggestions],
   );
 
@@ -234,7 +246,7 @@ export function SAMOverviewGeneratorModal({
     try {
       const weakOverviews = lowScoringOverviews.map(s => ({
         overview: s.overview.substring(0, 200),
-        score: s.relevanceScore,
+        score: s.overallScore,
         reasoning: s.reasoning,
       }));
 
@@ -279,9 +291,12 @@ export function SAMOverviewGeneratorModal({
       if (scoringResponse.ok) {
         const scoringResult = await scoringResponse.json();
         const scores = scoringResult.overviewScores || scoringResult.scores || [];
-        refinedSuggestions = scores.map((score: { overview: string; overallScore: number; relevanceScore?: number; reasoning: string; source?: 'ai' | 'heuristic' }, idx: number) => ({
+        refinedSuggestions = scores.map((score: { overview: string; overallScore?: number; relevanceScore?: number; clarityScore?: number; engagementScore?: number; reasoning: string; source?: 'ai' | 'heuristic' }, idx: number) => ({
           overview: refinedOverviews[idx] || score.overview,
-          relevanceScore: score.overallScore || score.relevanceScore || 80,
+          relevanceScore: score.relevanceScore ?? 75,
+          clarityScore: score.clarityScore ?? 75,
+          engagementScore: score.engagementScore ?? 75,
+          overallScore: score.overallScore ?? Math.round(((score.relevanceScore ?? 75) + (score.clarityScore ?? 75) + (score.engagementScore ?? 75)) / 3),
           reasoning: score.reasoning || 'Refined by AI for improved quality.',
           source: score.source,
         }));
@@ -289,6 +304,9 @@ export function SAMOverviewGeneratorModal({
         refinedSuggestions = refinedOverviews.map((overview: string) => ({
           overview,
           relevanceScore: 80,
+          clarityScore: 78,
+          engagementScore: 76,
+          overallScore: 78,
           reasoning: 'Refined overview — AI scoring was unavailable.',
           source: 'heuristic' as const,
         }));
@@ -296,9 +314,9 @@ export function SAMOverviewGeneratorModal({
 
       // Replace low-scoring overviews with refined ones
       setOverviewSuggestions(prev => {
-        const kept = prev.filter(s => s.relevanceScore >= 70);
+        const kept = prev.filter(s => s.overallScore >= 70);
         const merged = [...kept, ...refinedSuggestions];
-        merged.sort((a, b) => b.relevanceScore - a.relevanceScore);
+        merged.sort((a, b) => b.overallScore - a.overallScore);
         return merged;
       });
 
@@ -539,10 +557,35 @@ export function SAMOverviewGeneratorModal({
                         )}
                         <Badge
                           variant="outline"
-                          className={cn("font-bold", getScoreBadgeVariant(suggestion.relevanceScore))}
+                          className={cn("font-bold", getScoreBadgeVariant(suggestion.overallScore))}
                         >
-                          {suggestion.relevanceScore}/100
+                          {suggestion.overallScore}/100
                         </Badge>
+                      </div>
+                    </div>
+
+                    {/* Score Breakdown */}
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex items-center gap-1 text-xs">
+                        <Target className="h-3 w-3 text-slate-400" />
+                        <span className="text-slate-500">Relevance:</span>
+                        <span className={cn("font-semibold", getScoreColor(suggestion.relevanceScore))}>
+                          {suggestion.relevanceScore}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <Eye className="h-3 w-3 text-slate-400" />
+                        <span className="text-slate-500">Clarity:</span>
+                        <span className={cn("font-semibold", getScoreColor(suggestion.clarityScore))}>
+                          {suggestion.clarityScore}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        <Zap className="h-3 w-3 text-slate-400" />
+                        <span className="text-slate-500">Engagement:</span>
+                        <span className={cn("font-semibold", getScoreColor(suggestion.engagementScore))}>
+                          {suggestion.engagementScore}
+                        </span>
                       </div>
                     </div>
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     try {
       const objectives = await withRetryableTimeout(
         () => generateLearningObjectivesAI(user.id, body, requestedCount),
-        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        90_000,
         'learning-objectives'
       );
       return NextResponse.json({ objectives });
@@ -114,45 +114,77 @@ You MUST distribute objectives across ONLY these levels: ${bloomsFocus.join(', '
     ? `\nEXISTING OBJECTIVES (do NOT duplicate these):\n${existingObjectives.map(o => `- ${o}`).join('\n')}`
     : '';
 
-  const systemPrompt = `You are an expert instructional designer specializing in Bloom's taxonomy-aligned learning objectives. Generate precise, measurable learning objectives that follow the ABCD format (Audience, Behavior, Condition, Degree). Return ONLY valid JSON with no markdown fences or extra text.`;
+  const systemPrompt = `You are a senior instructional designer with expertise in Bloom's taxonomy and backward design. You systematically design learning objectives that are measurable, specific, and aligned to course content.
 
-  const prompt = `Generate ${count} Bloom's taxonomy-aligned learning objectives for:
+Your process:
+1. DECOMPOSE the course topic into 4-6 key skill areas
+2. MAP each skill area to the appropriate Bloom's level
+3. WRITE objectives using the ABCD format (Audience, Behavior, Condition, Degree)
+4. SELF-CHECK each objective: Is it measurable? Is the verb correct for the claimed Bloom's level? Is it specific to this course (not generic)?
+5. VERIFY coverage: Do the objectives collectively cover the breadth of the course?
+6. RETURN only objectives scoring at least 70 by your own assessment
 
-COURSE TITLE: "${title}"
-OVERVIEW: "${overview || 'Not provided'}"
-CATEGORY: ${category || 'Not specified'}${subcategory ? ` > ${subcategory}` : ''}
-TARGET AUDIENCE: ${targetAudience || 'General learners'}
-DIFFICULTY: ${difficulty || 'BEGINNER'}
-INTENT: ${intent || 'Not specified'}
+Return ONLY valid JSON. No markdown fences, no extra text.`;
 
+  // Build context block — omit empty fields instead of "Not specified"
+  const contextLines: string[] = [];
+  if (overview) contextLines.push(`COURSE OVERVIEW: "${overview.slice(0, 500)}"`);
+  if (category) contextLines.push(`CATEGORY: ${category}${subcategory ? ` > ${subcategory}` : ''}`);
+  if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
+  if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
+  if (intent) contextLines.push(`INTENT: ${intent}`);
+
+  const contextBlock = contextLines.length > 0
+    ? `\n${contextLines.join('\n')}\n`
+    : '';
+
+  const prompt = `COURSE TITLE: "${title}"
+${contextBlock}
 ${bloomsConstraint}
 ${existingBlock}
 
-RULES:
-- Each objective MUST start with a measurable action verb from the appropriate Bloom's level
-- Each objective MUST be specifically about "${title}" — reference the subject matter directly
-- Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
-- Include a clear behavior/skill the student will demonstrate
-- 40-120 characters per objective for readability
+STEP 1 — TOPIC DECOMPOSITION:
+Before writing objectives, identify 4-6 key skill areas that "${title}" covers. For each skill area, determine the appropriate Bloom's level based on the difficulty (${difficulty || 'BEGINNER'}).
 
-HIGH-QUALITY EXAMPLES:
-- "Implement responsive layouts using CSS Grid and Flexbox for multi-device web applications" (APPLY — specific skill + tool + context)
-- "Evaluate trade-offs between SQL and NoSQL databases for different application requirements" (EVALUATE — comparison + criteria + domain)
-- "Design RESTful API endpoints following industry-standard naming conventions and HTTP methods" (CREATE — specific deliverable + standards)
+STEP 2 — WRITE ${count} OBJECTIVES:
+For each objective:
+- START with a measurable action verb from the correct Bloom's level
+- INCLUDE the specific skill, tool, or concept from "${title}"
+- ADD context: "using X", "by doing Y", "for Z scenario"
+- AIM for 40-120 characters
 
-LOW-QUALITY EXAMPLES (avoid these):
-- "Understand the basics of programming" (too vague, no specific skill)
-- "Learn about databases" (not measurable, doesn't start with action verb)
-- "Be able to code better" (not specific, not measurable)
+VERB REFERENCE:
+- REMEMBER: define, list, identify, name, recall
+- UNDERSTAND: explain, summarize, interpret, classify, compare
+- APPLY: apply, demonstrate, implement, solve, calculate
+- ANALYZE: analyze, examine, differentiate, investigate
+- EVALUATE: evaluate, assess, critique, justify, recommend
+- CREATE: create, design, develop, construct, produce
 
-Return ONLY this JSON (no markdown, no extra text):
-{"objectives":[{"objective":"Full learning objective text","bloomsLevel":"UNDERSTAND","actionVerb":"Explain"}]}`;
+STEP 3 — COVERAGE CHECK:
+Verify that your ${count} objectives collectively:
+- Cover at least 3 different skill areas of "${title}"
+- Are distributed across the required Bloom's levels
+- Progress from foundational to advanced (if difficulty allows)
+- Each references a SPECIFIC aspect of "${title}" (not generic)
+
+STEP 4 — QUALITY GATE:
+For each objective, verify:
+- Action verb matches claimed Bloom's level?
+- Would a student know EXACTLY what they need to demonstrate?
+- Is it specific to THIS course or could it apply to any course?
+- Could an instructor design an assessment for this objective?
+
+Remove any objective that fails any check and replace it.
+
+Return ONLY this JSON:
+{"objectives":[{"objective":"Full text","bloomsLevel":"LEVEL","actionVerb":"verb"}]}`;
 
   const responseText = await runSAMChatWithPreference({
     userId,
     capability: 'course',
     systemPrompt,
-    maxTokens: 1500,
+    maxTokens: 4000,
     temperature: 0.4,
     messages: [{ role: 'user', content: prompt }],
   });

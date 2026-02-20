@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
@@ -80,7 +80,17 @@ export async function POST(req: NextRequest) {
 async function generateOverviewSuggestions(userId: string, request: OverviewSuggestionRequest): Promise<OverviewSuggestionResponse> {
   const { title, category, subcategory, difficulty, intent, targetAudience, currentOverview, count = 3, refinementContext } = request;
 
-  const systemPrompt = `You are an expert course copywriter who writes compelling course descriptions for platforms like Coursera, Udemy, and edX. You specialize in writing overviews that convert browsers into enrolled students. Return ONLY valid JSON with no markdown fences or extra text.`;
+  const systemPrompt = `You are a senior course copywriter who has written 500+ course descriptions for top platforms. You follow a rigorous internal process before returning any output.
+
+Your process:
+1. UNDERSTAND the course topic deeply — what problem does it solve? Who needs it?
+2. IDENTIFY ${count} distinct angles (practical skills vs career impact vs knowledge depth)
+3. DRAFT each overview following the mandatory 4-part structure
+4. SELF-CHECK each draft: Is it 150-250 words? Does it reference "${title}" specifically? Does it sell the transformation?
+5. REVISE any draft that reads generically — add specific skills, tools, or deliverables
+6. RETURN only overviews you would be proud to publish on Coursera
+
+Return ONLY valid JSON. No markdown fences, no extra text.`;
 
   // Build refinement block if refining weak overviews
   let refinementBlock = '';
@@ -96,42 +106,62 @@ Focus on fixing the specific weaknesses while keeping the overviews on-topic.
 `;
   }
 
-  const prompt = `Generate ${count} compelling course overviews for the following course:
+  // Build context block — omit empty fields instead of "Not specified"
+  const contextLines: string[] = [];
+  if (category) contextLines.push(`CATEGORY: ${category}`);
+  if (subcategory) contextLines.push(`SUBCATEGORY: ${subcategory}`);
+  if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
+  if (intent) contextLines.push(`INTENT: ${intent}`);
+  if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
+  if (currentOverview) contextLines.push(`USER'S DRAFT OVERVIEW: "${currentOverview.slice(0, 300)}"`);
 
-COURSE TITLE: "${title}"
-CATEGORY: ${category || 'Not specified'}
-SUBCATEGORY: ${subcategory || 'Not specified'}
-DIFFICULTY LEVEL: ${difficulty || 'Not specified'}
-COURSE INTENT: ${intent || 'Not specified'}
-TARGET AUDIENCE: ${targetAudience || 'Not specified'}
-CURRENT OVERVIEW: "${currentOverview || 'Not provided'}"
-${refinementBlock}
-EVERY OVERVIEW MUST FOLLOW THIS 4-PART STRUCTURE (150-250 words each):
+  const contextBlock = contextLines.length > 0
+    ? `\n${contextLines.join('\n')}\n`
+    : '';
 
-1. HOOK (1-2 sentences): Open with the problem, opportunity, or aspiration that motivates the target audience. Reference the specific topic.
-2. WHAT YOU'LL LEARN (2-3 sentences): List concrete skills, tools, and concepts students will master. Be specific — name frameworks, techniques, or deliverables.
-3. TRANSFORMATION (1-2 sentences): Describe the outcome — what students will be able to DO after completing the course. Use action verbs.
-4. WHO THIS IS FOR (1 sentence): Clearly state the target audience and prerequisites.
+  const prompt = `COURSE TITLE: "${title}"
+${contextBlock}${refinementBlock}
+STEP 1 — AUDIENCE EMPATHY:
+Before writing, answer these internally:
+- What specific problem does a "${title}" student face today?
+- What concrete skill gap are they trying to close?
+- What would they type into a search bar to find this course?
+- What transformation would make them feel the course was worth it?
 
-CRITICAL RULES:
-- Every overview MUST be specifically about "${title}" — reference the subject matter directly
-- 150-250 words per overview (NOT characters)
-- Each overview should emphasize a different angle (practical skills vs career impact vs knowledge depth)
-- Use professional, engaging language that sells the course value
-- Match the difficulty level: ${difficulty || 'BEGINNER'} — adjust vocabulary and assumed prior knowledge accordingly
+STEP 2 — WRITE ${count} OVERVIEWS:
+Each overview MUST follow this 4-part structure:
 
-HIGH-QUALITY EXAMPLE (if the topic were "React Performance Optimization"):
-"Is your React app sluggish under load? Slow renders, unnecessary re-renders, and bloated bundles cost you users and revenue. This course tackles React performance head-on.
+PART 1: HOOK (1-2 sentences)
+→ Open with the specific problem, opportunity, or aspiration. Reference "${title}" directly.
 
-You'll master profiling with React DevTools, implement code splitting with React.lazy and Suspense, optimize renders with useMemo and useCallback, and build virtualized lists that handle 100K+ rows smoothly. Each technique is demonstrated on a real production codebase.
+PART 2: WHAT YOU'LL LEARN (2-3 sentences)
+→ List 3-5 CONCRETE skills, tools, frameworks, or techniques. Name them specifically.
+→ Bad: "You'll learn important concepts" / Good: "You'll master React hooks, Context API, and performance profiling with Chrome DevTools"
 
-By the end, you'll confidently audit any React application for performance bottlenecks and ship measurably faster UIs. Perfect for intermediate React developers who want to level up from 'it works' to 'it flies.'"
+PART 3: TRANSFORMATION (1-2 sentences)
+→ What students will confidently DO after completing the course. Use action verbs.
 
-Return ONLY valid JSON in this format (no markdown, no extra text):
-{
-  "suggestions": ["Overview 1 text", "Overview 2 text", "Overview 3 text"],
-  "reasoning": "Brief explanation of the different angles each overview takes"
-}`;
+PART 4: WHO THIS IS FOR (1 sentence)
+→ Specific audience + prerequisites.
+
+CONSTRAINTS:
+- 150-250 words per overview (count carefully)
+- Each overview emphasizes a DIFFERENT angle
+- Every overview must mention "${title}" or its core keyword at least twice
+- Match vocabulary to ${difficulty || 'BEGINNER'} level
+
+STEP 3 — SELF-REVIEW:
+Before returning, verify each overview:
+- References the specific topic (not generic)?
+- Lists concrete skills/tools (not vague promises)?
+- Has all 4 parts present?
+- Is 150-250 words?
+- Would you enroll based on reading this?
+
+If any check fails, revise before returning.
+
+Return ONLY this JSON:
+{"suggestions":["Overview 1","Overview 2","Overview 3"],"reasoning":"How the ${count} overviews differ in angle"}`;
 
   try {
     const responseText = await withRetryableTimeout(
@@ -139,11 +169,11 @@ Return ONLY valid JSON in this format (no markdown, no extra text):
         userId,
         capability: 'course',
         systemPrompt,
-        maxTokens: 1500,
+        maxTokens: 4000,
         temperature: 0.5,
         messages: [{ role: 'user', content: prompt }],
       }),
-      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      90_000,
       'overviewSuggestions-generate'
     );
 

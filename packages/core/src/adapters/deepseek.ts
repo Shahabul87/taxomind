@@ -43,6 +43,7 @@ interface DeepSeekChoice {
   message: {
     role: 'assistant';
     content: string;
+    reasoning_content?: string;
   };
   finish_reason: 'stop' | 'length' | 'content_filter' | null;
 }
