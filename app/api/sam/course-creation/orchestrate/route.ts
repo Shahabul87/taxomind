@@ -74,15 +74,24 @@ const OrchestrateRequestSchema = z.object({
       goal: z.string(),
       bloomsLevel: z.string(),
       deliverable: z.string().optional(),
+      prerequisiteChapters: z.array(z.number()).optional(),
+      estimatedMinutes: z.number().optional(),
       sections: z.array(z.object({
         position: z.number(),
         title: z.string(),
         keyTopics: z.array(z.string()),
+        estimatedMinutes: z.number().optional(),
+        formativeAssessment: z.object({
+          type: z.string(),
+          prompt: z.string(),
+        }).optional(),
       })),
     })),
     northStarProject: z.string().optional(),
     confidence: z.number(),
     riskAreas: z.array(z.string()),
+    currentVersion: z.number().optional(),
+    versions: z.array(z.unknown()).optional(),
   }).optional(),
 });
 

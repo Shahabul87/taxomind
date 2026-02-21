@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
-  Map,
+  Map as MapIcon,
   ChevronDown,
   ChevronRight,
   Plus,
@@ -43,14 +43,23 @@ import {
   Layers,
   Pencil,
   Check,
+  History,
+  ArrowRight,
+  Shield,
+  ClipboardCheck,
 } from 'lucide-react';
 import type {
   StepComponentProps,
   TeacherBlueprint,
   BlueprintChapter,
+  BlueprintVersion,
 } from '../../types/sam-creator.types';
+import { validateAlignment } from '../../utils/blueprint-alignment';
+import type { AlignmentScore, ChapterAlignment } from '../../utils/blueprint-alignment';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+
+const MAX_VERSIONS = 10;
 
 // =============================================================================
 // BLOOMS LEVELS
@@ -149,13 +158,62 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
   const [expandedChapters, setExpandedChapters] = useState<Set<number>>(new Set([1]));
   const [newTopicInputs, setNewTopicInputs] = useState<Record<string, string>>({});
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const hasTriggeredRef = useRef(false);
 
   const blueprint = formData.teacherBlueprint;
 
+  // Compute alignment score (client-side, no API call)
+  const alignment: AlignmentScore = useMemo(() => {
+    if (!blueprint) return { overall: 100, perChapter: [], totalWarnings: 0 };
+    return validateAlignment(blueprint.chapters);
+  }, [blueprint]);
+
+  // Build per-chapter alignment lookup
+  const alignmentByChapter = useMemo(() => {
+    const map = new Map<number, ChapterAlignment>();
+    for (const ch of alignment.perChapter) {
+      map.set(ch.position, ch);
+    }
+    return map;
+  }, [alignment]);
+
   // -------------------------------------------------------------------------
   // Blueprint generation
   // -------------------------------------------------------------------------
+
+  /** Snapshot the current blueprint as a version before overwriting */
+  const snapshotVersion = useCallback((currentBlueprint: TeacherBlueprint, source: BlueprintVersion['source']) => {
+    const { versions: _existingVersions, currentVersion: _cv, ...blueprintData } = currentBlueprint;
+    const nextVersion = (currentBlueprint.currentVersion ?? 0) + 1;
+    const existingVersions = currentBlueprint.versions ?? [];
+    const newVersion: BlueprintVersion = {
+      version: nextVersion,
+      blueprint: blueprintData,
+      createdAt: new Date().toISOString(),
+      source,
+    };
+    // Keep only the last MAX_VERSIONS versions (FIFO)
+    const updatedVersions = [...existingVersions, newVersion].slice(-MAX_VERSIONS);
+    return { updatedVersions, nextVersion };
+  }, []);
+
+  /** Restore a previous blueprint version */
+  const restoreVersion = useCallback((version: BlueprintVersion) => {
+    setFormData(prev => {
+      if (!prev.teacherBlueprint) return prev;
+      const { updatedVersions, nextVersion } = snapshotVersion(prev.teacherBlueprint, 'rollback');
+      return {
+        ...prev,
+        teacherBlueprint: {
+          ...version.blueprint,
+          currentVersion: nextVersion,
+          versions: updatedVersions,
+        },
+      };
+    });
+    toast.success(`Restored version ${version.version}`);
+  }, [setFormData, snapshotVersion]);
 
   const generateBlueprint = useCallback(async () => {
     setIsGenerating(true);
@@ -192,19 +250,34 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
         throw new Error(data.error || 'No blueprint returned');
       }
 
-      const newBlueprint: TeacherBlueprint = {
-        chapters: data.blueprint.chapters,
-        northStarProject: data.blueprint.northStarProject,
-        generatedAt: new Date().toISOString(),
-        confidence: data.blueprint.confidence,
-        isEdited: false,
-        riskAreas: data.blueprint.riskAreas ?? [],
-      };
+      setFormData(prev => {
+        // Snapshot existing blueprint before overwriting
+        const existingBlueprint = prev.teacherBlueprint;
+        let versions: BlueprintVersion[] = [];
+        let nextVersion = 1;
+        if (existingBlueprint) {
+          const snapshot = snapshotVersion(existingBlueprint, 'ai');
+          versions = snapshot.updatedVersions;
+          nextVersion = snapshot.nextVersion;
+        }
 
-      setFormData(prev => ({ ...prev, teacherBlueprint: newBlueprint }));
+        const newBlueprint: TeacherBlueprint = {
+          chapters: data.blueprint.chapters,
+          northStarProject: data.blueprint.northStarProject,
+          generatedAt: new Date().toISOString(),
+          confidence: data.blueprint.confidence,
+          isEdited: false,
+          riskAreas: data.blueprint.riskAreas ?? [],
+          currentVersion: nextVersion,
+          versions: versions.length > 0 ? versions : undefined,
+        };
+
+        return { ...prev, teacherBlueprint: newBlueprint };
+      });
+
       setExpandedChapters(new Set([1]));
       toast.success('Blueprint generated', {
-        description: `${newBlueprint.chapters.length} chapters with ${newBlueprint.chapters.reduce((sum, ch) => sum + ch.sections.length, 0)} sections`,
+        description: `${data.blueprint.chapters.length} chapters with ${data.blueprint.chapters.reduce((sum: number, ch: { sections: unknown[] }) => sum + ch.sections.length, 0)} sections`,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to generate blueprint';
@@ -214,7 +287,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
     } finally {
       setIsGenerating(false);
     }
-  }, [formData, setFormData]);
+  }, [formData, setFormData, snapshotVersion]);
 
   // Auto-generate blueprint on first mount if none exists.
   // Uses a ref to access the latest generateBlueprint without adding it to deps,
@@ -363,7 +436,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50">
-            <Map className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <MapIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -427,7 +500,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
   if (!blueprint) {
     return (
       <div className="space-y-6 text-center py-12">
-        <Map className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600" />
+        <MapIcon className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600" />
         <p className="text-slate-500 dark:text-slate-400">No blueprint available</p>
         <Button onClick={generateBlueprint} className="gap-2">
           <RefreshCw className="h-4 w-4" />
@@ -445,7 +518,9 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
   const totalKeyTopics = blueprint.chapters.reduce(
     (sum, ch) => sum + ch.sections.reduce((sSum, sec) => sSum + sec.keyTopics.length, 0), 0,
   );
-  const estMinutes = Math.ceil(blueprint.chapters.length * (totalSections / blueprint.chapters.length) * 0.4);
+  const estGenerationMinutes = Math.ceil(blueprint.chapters.length * (totalSections / blueprint.chapters.length) * 0.4);
+  const totalLearningMinutes = blueprint.chapters.reduce((sum, ch) => sum + (ch.estimatedMinutes ?? 0), 0);
+  const totalLearningHours = totalLearningMinutes > 0 ? Math.round(totalLearningMinutes / 60 * 10) / 10 : 0;
 
   return (
     <div className="space-y-6">
@@ -453,7 +528,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/50">
-            <Map className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <MapIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -482,7 +557,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       </div>
 
       {/* Stats Bar */}
-      <div className="flex items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
         <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
           <BookOpen className="h-3.5 w-3.5" />
           <span className="font-medium">{blueprint.chapters.length}</span> chapters
@@ -499,7 +574,28 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
         <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
         <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
           <Clock className="h-3.5 w-3.5" />
-          Est. ~{estMinutes} min generation
+          Est. ~{estGenerationMinutes} min generation
+        </div>
+        {totalLearningMinutes > 0 && (
+          <>
+            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-medium">{totalLearningHours}h</span> learning time
+            </div>
+          </>
+        )}
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+        <div className={cn(
+          "flex items-center gap-1.5 text-xs",
+          alignment.overall >= 80 ? "text-emerald-600 dark:text-emerald-400" :
+          alignment.overall >= 60 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
+        )}>
+          <Shield className="h-3.5 w-3.5" />
+          <span className="font-medium">{alignment.overall}%</span> alignment
+          {alignment.totalWarnings > 0 && (
+            <span className="text-amber-500">({alignment.totalWarnings})</span>
+          )}
         </div>
       </div>
 
@@ -529,6 +625,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           <ChapterCard
             key={chapter.position}
             chapter={chapter}
+            chapterAlignment={alignmentByChapter.get(chapter.position)}
             isExpanded={expandedChapters.has(chapter.position)}
             onToggle={() => toggleChapter(chapter.position)}
             onUpdateChapter={updateChapter}
@@ -540,6 +637,58 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           />
         ))}
       </div>
+
+      {/* Version History */}
+      {blueprint.versions && blueprint.versions.length > 0 && (
+        <Collapsible open={showVersionHistory} onOpenChange={setShowVersionHistory}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span>Version history ({blueprint.versions.length} previous)</span>
+              {showVersionHistory ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-2 space-y-2">
+              {blueprint.versions.slice().reverse().map((v) => (
+                <div
+                  key={v.version}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      v{v.version}
+                    </Badge>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {v.source} &middot; {new Date(v.createdAt).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      {v.blueprint.chapters.length} ch
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => restoreVersion(v)}
+                    className="h-6 text-xs gap-1"
+                  >
+                    <History className="h-3 w-3" />
+                    Restore
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Risk Areas */}
       {blueprint.riskAreas.length > 0 && (
@@ -616,6 +765,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
 
 interface ChapterCardProps {
   chapter: BlueprintChapter;
+  chapterAlignment?: ChapterAlignment;
   isExpanded: boolean;
   onToggle: () => void;
   onUpdateChapter: (chapterPos: number, updates: Partial<BlueprintChapter>) => void;
@@ -628,6 +778,7 @@ interface ChapterCardProps {
 
 function ChapterCard({
   chapter,
+  chapterAlignment,
   isExpanded,
   onToggle,
   onUpdateChapter,
@@ -663,20 +814,55 @@ function ChapterCard({
                   {chapter.title}
                 </h4>
               </div>
-              {chapter.goal && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {chapter.goal}
-                </p>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {chapter.goal && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {chapter.goal}
+                  </p>
+                )}
+              </div>
             </div>
-            <Badge className={cn('text-[10px] border-0 flex-shrink-0', bloomsColor)}>
-              {chapter.bloomsLevel}
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {chapter.estimatedMinutes && chapter.estimatedMinutes > 0 && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                  {chapter.estimatedMinutes} min
+                </span>
+              )}
+              {chapter.prerequisiteChapters && chapter.prerequisiteChapters.length > 0 && (
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 gap-0.5 border-slate-300 dark:border-slate-600">
+                  <ArrowRight className="h-2.5 w-2.5" />
+                  Ch {chapter.prerequisiteChapters.join(', ')}
+                </Badge>
+              )}
+              <Badge className={cn('text-[10px] border-0', bloomsColor)}>
+                {chapter.bloomsLevel}
+              </Badge>
+            </div>
           </button>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
           <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-3">
+            {/* Alignment warnings */}
+            {chapterAlignment && chapterAlignment.warnings.length > 0 && (
+              <div className="space-y-1">
+                {chapterAlignment.warnings.map((warning, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "text-[11px] flex items-center gap-1.5 px-2 py-1 rounded",
+                      warning.severity === 'error' ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30" :
+                      warning.severity === 'warning' ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30" :
+                      "text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50"
+                    )}
+                  >
+                    <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                    {warning.message}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Editable chapter fields */}
             <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -745,6 +931,11 @@ function ChapterCard({
                       onSave={(title) => onUpdateSectionTitle(chapter.position, section.position, title)}
                       className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-1"
                     />
+                    {section.estimatedMinutes && section.estimatedMinutes > 0 && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 flex-shrink-0">
+                        {section.estimatedMinutes} min
+                      </span>
+                    )}
                   </div>
 
                   {/* Key Topics */}
@@ -794,6 +985,18 @@ function ChapterCard({
                       </Button>
                     </div>
                   </div>
+
+                  {/* Formative Assessment Badge */}
+                  {section.formativeAssessment && (
+                    <div className="pl-10">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50">
+                        <ClipboardCheck className="h-3 w-3" />
+                        <span className="font-medium">{section.formativeAssessment.type}</span>
+                        <span className="text-violet-500 dark:text-violet-400">|</span>
+                        <span className="truncate max-w-[250px]">{section.formativeAssessment.prompt}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

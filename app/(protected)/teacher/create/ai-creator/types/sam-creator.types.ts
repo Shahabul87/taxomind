@@ -2,10 +2,17 @@
 // Teacher Blueprint Types (Step 4: Course Blueprint)
 // ============================================================================
 
+export interface FormativeAssessment {
+  type: string;
+  prompt: string;
+}
+
 export interface BlueprintSection {
   position: number;
   title: string;
   keyTopics: string[];
+  estimatedMinutes?: number;
+  formativeAssessment?: FormativeAssessment;
 }
 
 export interface BlueprintChapter {
@@ -14,7 +21,16 @@ export interface BlueprintChapter {
   goal: string;
   bloomsLevel: string;
   deliverable?: string;
+  prerequisiteChapters?: number[];
+  estimatedMinutes?: number;
   sections: BlueprintSection[];
+}
+
+export interface BlueprintVersion {
+  version: number;
+  blueprint: Omit<TeacherBlueprint, 'versions' | 'currentVersion'>;
+  createdAt: string;
+  source: 'ai' | 'edit' | 'rollback';
 }
 
 export interface TeacherBlueprint {
@@ -24,6 +40,8 @@ export interface TeacherBlueprint {
   confidence: number;        // 0-100
   isEdited: boolean;         // true if teacher modified topics
   riskAreas: string[];
+  currentVersion?: number;
+  versions?: BlueprintVersion[];
 }
 
 // ============================================================================

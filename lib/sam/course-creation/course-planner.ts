@@ -552,6 +552,7 @@ export function convertTeacherBlueprint(
       goal: string;
       bloomsLevel: string;
       deliverable?: string;
+      prerequisiteChapters?: number[];
       sections: Array<{ position: number; title: string; keyTopics: string[] }>;
     }>;
     northStarProject?: string;
@@ -572,14 +573,20 @@ export function convertTeacherBlueprint(
       ? `${ch.goal} — Deliverable: ${ch.deliverable}`
       : ch.goal;
 
+    // Build dependency reason from prerequisite chapters
+    const dependencyReason = ch.prerequisiteChapters && ch.prerequisiteChapters.length > 0
+      ? `Requires completion of chapter(s) ${ch.prerequisiteChapters.join(', ')}`
+      : undefined;
+
     return {
       position: ch.position,
       suggestedTitle: ch.title,
       primaryFocus: ch.goal,
       bloomsLevel,
       keyConcepts,
-      estimatedComplexity: 'medium' as const,
+      estimatedComplexity: deriveComplexityFromBlooms(bloomsLevel),
       rationale,
+      dependencyReason,
       recommendedSections: ch.sections.length,
     };
   });
@@ -649,6 +656,26 @@ function getDefaultBloomsLevel(position: number, totalChapters: number): BloomsL
 
 function isValidComplexity(val: unknown): val is 'low' | 'medium' | 'high' {
   return val === 'low' || val === 'medium' || val === 'high';
+}
+
+/**
+ * Derive chapter complexity from its Bloom's cognitive level.
+ * Lower-order thinking → low complexity, higher-order → high.
+ */
+function deriveComplexityFromBlooms(bloomsLevel: BloomsLevel): 'low' | 'medium' | 'high' {
+  switch (bloomsLevel) {
+    case 'REMEMBER':
+    case 'UNDERSTAND':
+      return 'low';
+    case 'APPLY':
+    case 'ANALYZE':
+      return 'medium';
+    case 'EVALUATE':
+    case 'CREATE':
+      return 'high';
+    default:
+      return 'medium';
+  }
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {

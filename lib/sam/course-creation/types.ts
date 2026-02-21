@@ -579,7 +579,15 @@ export interface TeacherBlueprintChapter {
   goal: string;
   bloomsLevel: string;
   deliverable?: string;
-  sections: Array<{ position: number; title: string; keyTopics: string[] }>;
+  prerequisiteChapters?: number[];
+  estimatedMinutes?: number;
+  sections: Array<{
+    position: number;
+    title: string;
+    keyTopics: string[];
+    estimatedMinutes?: number;
+    formativeAssessment?: { type: string; prompt: string };
+  }>;
 }
 
 export interface ChapterPlanEntry {

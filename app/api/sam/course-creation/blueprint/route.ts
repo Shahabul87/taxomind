@@ -60,6 +60,19 @@ const BLOOMS_ARTIFACT_GUIDANCE: Record<string, string> = {
 };
 
 /**
+ * Maps Bloom's cognitive levels to goal verb prefixes used when
+ * repairing chapters with missing or misaligned goals.
+ */
+const BLOOMS_GOAL_VERBS: Record<string, string> = {
+  REMEMBER: 'Identify and recall',
+  UNDERSTAND: 'Explain and interpret',
+  APPLY: 'Implement and demonstrate',
+  ANALYZE: 'Analyze and compare',
+  EVALUATE: 'Evaluate and assess',
+  CREATE: 'Design and create',
+};
+
+/**
  * Pre-compute a Bloom's level for each chapter, ensuring progressive escalation.
  *
  * Algorithm:
@@ -138,6 +151,8 @@ interface BlueprintSection {
   position: number;
   title: string;
   keyTopics: string[];
+  estimatedMinutes?: number;
+  formativeAssessment?: { type: string; prompt: string };
 }
 
 interface BlueprintChapter {
@@ -146,6 +161,8 @@ interface BlueprintChapter {
   goal: string;
   bloomsLevel: string;
   deliverable?: string;
+  prerequisiteChapters?: number[];
+  estimatedMinutes?: number;
   sections: BlueprintSection[];
 }
 
@@ -320,6 +337,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, blueprint: fallback });
     }
 
+    // Chapter-level quality repair: fix generic titles, missing goals/deliverables
+    // before section-level fill (runs first because chapter context informs section heuristics)
+    blueprint = repairIncompleteChapters(blueprint, data);
+
     // Post-parse validation: fill incomplete sections with domain-aware heuristics
     // instead of retrying the entire AI call (eliminates double-wait)
     const incompleteSections = blueprint.chapters.filter(ch =>
@@ -336,6 +357,11 @@ export async function POST(request: NextRequest) {
       // Fill missing sections using domain-aware heuristics
       blueprint = fillIncompleteSections(blueprint, data, enhancer?.chapterSequencingAdvice);
     }
+
+    // Post-processing: enrich blueprint with computed metadata
+    blueprint = computeTimeEstimates(blueprint, data.difficulty);
+    blueprint = computePrerequisiteGraph(blueprint);
+    blueprint = injectFormativeAssessments(blueprint);
 
     logger.info('[BLUEPRINT_ROUTE] Blueprint generated', {
       chapters: blueprint.chapters.length,
@@ -520,12 +546,18 @@ function parseBlueprintResponse(
         });
       }
 
+      // Parse prerequisiteChapters from AI response (optional — heuristic fallback will fill gaps)
+      const prerequisiteChapters = Array.isArray(raw.prerequisiteChapters)
+        ? (raw.prerequisiteChapters as number[]).filter(p => typeof p === 'number' && p >= 1 && p <= data.chapterCount)
+        : undefined;
+
       chapters.push({
         position: i + 1,
         title: typeof raw.title === 'string' ? raw.title : `Chapter ${i + 1}`,
         goal: typeof raw.goal === 'string' ? raw.goal : '',
         bloomsLevel,
         deliverable: typeof raw.deliverable === 'string' ? raw.deliverable : undefined,
+        prerequisiteChapters: prerequisiteChapters && prerequisiteChapters.length > 0 ? prerequisiteChapters : undefined,
         sections,
       });
     }
@@ -546,6 +578,190 @@ function parseBlueprintResponse(
   } catch {
     return null;
   }
+}
+
+// =============================================================================
+// CHAPTER-LEVEL QUALITY REPAIR
+// =============================================================================
+
+/**
+ * Detect and repair chapter-level quality issues that the parser accepted but
+ * that indicate a partial AI failure (e.g., the AI ran out of tokens and
+ * produced a generic "Chapter 5" with no goal or deliverable).
+ *
+ * Runs BEFORE fillIncompleteSections() so that repaired chapter metadata
+ * (title, goal) can inform the section-level heuristics downstream.
+ *
+ * This is a pure heuristic function — no AI call.
+ */
+function repairIncompleteChapters(
+  blueprint: BlueprintResponse,
+  data: z.infer<typeof BlueprintRequestSchema>,
+): BlueprintResponse {
+  const courseKeyword = extractCourseKeyword(data.courseTitle);
+  let repairedCount = 0;
+
+  const chapters = blueprint.chapters.map((ch) => {
+    let repaired = false;
+    let title = ch.title;
+    let goal = ch.goal;
+    let deliverable = ch.deliverable;
+
+    // --- Title repair: generic "Chapter N" pattern ---
+    if (/^Chapter\s*\d+$/i.test(title)) {
+      title = generateChapterTitle(
+        ch.position,
+        blueprint.chapters.length,
+        courseKeyword,
+        ch.bloomsLevel,
+      );
+      repaired = true;
+    }
+
+    // --- Goal repair: empty or missing ---
+    if (!goal || goal.trim() === '') {
+      const verb = BLOOMS_GOAL_VERBS[ch.bloomsLevel] ?? 'Understand';
+      goal = `${verb} the core principles of ${courseKeyword} at the ${ch.bloomsLevel.toLowerCase()} level`;
+      repaired = true;
+    } else {
+      // --- Goal verb alignment: check if goal uses verbs from wrong Bloom's level ---
+      const correctedGoal = alignGoalVerbs(goal, ch.bloomsLevel);
+      if (correctedGoal !== goal) {
+        goal = correctedGoal;
+        repaired = true;
+      }
+    }
+
+    // --- Deliverable repair: empty or missing ---
+    if (!deliverable || deliverable.trim() === '') {
+      deliverable = generateDeliverable(ch.bloomsLevel, courseKeyword);
+      repaired = true;
+    }
+
+    if (repaired) repairedCount++;
+
+    return repaired
+      ? { ...ch, title, goal, deliverable }
+      : ch;
+  });
+
+  if (repairedCount === 0) return blueprint;
+
+  logger.info('[BLUEPRINT_ROUTE] Chapter-level repair applied', {
+    repairedCount,
+    totalChapters: blueprint.chapters.length,
+  });
+
+  const confidence = Math.max(30, blueprint.confidence - repairedCount * 10);
+  const riskAreas = [
+    ...blueprint.riskAreas,
+    `${repairedCount} chapter(s) had incomplete metadata and were repaired with heuristics — please review titles, goals, and deliverables.`,
+  ];
+
+  return { chapters, northStarProject: blueprint.northStarProject, confidence, riskAreas };
+}
+
+/**
+ * Extract the first significant phrase from the course title to use as a keyword
+ * in generated chapter titles and goals. Strips common filler words.
+ */
+function extractCourseKeyword(courseTitle: string): string {
+  const fillerWords = new Set([
+    'the', 'a', 'an', 'to', 'of', 'in', 'for', 'and', 'with',
+    'introduction', 'complete', 'guide', 'course', 'masterclass',
+    'fundamentals', 'essentials', 'comprehensive',
+  ]);
+
+  const words = courseTitle
+    .split(/\s+/)
+    .filter(w => !fillerWords.has(w.toLowerCase()) && w.length > 2);
+
+  // Take the first 3 meaningful words to form the keyword phrase
+  return words.slice(0, 3).join(' ') || courseTitle;
+}
+
+/**
+ * Generate a meaningful chapter title based on position within the course arc.
+ */
+function generateChapterTitle(
+  position: number,
+  totalChapters: number,
+  courseKeyword: string,
+  bloomsLevel: string,
+): string {
+  const bloomsThemes: Record<string, string> = {
+    REMEMBER: 'Foundations',
+    UNDERSTAND: 'Core Concepts',
+    APPLY: 'Practical Applications',
+    ANALYZE: 'Analysis and Patterns',
+    EVALUATE: 'Evaluation and Assessment',
+    CREATE: 'Design and Innovation',
+  };
+
+  if (position === 1) {
+    return `Foundations of ${courseKeyword}`;
+  }
+
+  const mid = Math.ceil(totalChapters / 2);
+
+  if (position === totalChapters) {
+    return `Mastery: ${courseKeyword} Capstone`;
+  }
+
+  if (position <= mid) {
+    const theme = bloomsThemes[bloomsLevel] ?? 'Core Concepts';
+    return `${theme}: ${courseKeyword} in Depth`;
+  }
+
+  // position > mid and not last
+  return `Applied ${courseKeyword}: Advanced Techniques`;
+}
+
+/**
+ * Check if the goal uses verbs from a different Bloom's level and rewrite
+ * the prefix with the correct verb if needed.
+ */
+function alignGoalVerbs(goal: string, bloomsLevel: string): string {
+  const verbMap: Record<string, string[]> = {
+    REMEMBER: ['identify', 'recall', 'list', 'name', 'define', 'recognize'],
+    UNDERSTAND: ['explain', 'interpret', 'summarize', 'describe', 'classify'],
+    APPLY: ['implement', 'demonstrate', 'use', 'execute', 'solve'],
+    ANALYZE: ['analyze', 'compare', 'differentiate', 'examine', 'deconstruct'],
+    EVALUATE: ['evaluate', 'assess', 'justify', 'critique', 'judge'],
+    CREATE: ['design', 'create', 'construct', 'develop', 'formulate'],
+  };
+
+  const correctVerbs = verbMap[bloomsLevel];
+  if (!correctVerbs) return goal;
+
+  // Check if goal already starts with a correct verb
+  const goalLower = goal.toLowerCase().trim();
+  if (correctVerbs.some(v => goalLower.startsWith(v))) return goal;
+
+  // Check if goal starts with a verb from a different level
+  const allOtherVerbs = Object.entries(verbMap)
+    .filter(([level]) => level !== bloomsLevel)
+    .flatMap(([, verbs]) => verbs);
+
+  const startsWithWrongVerb = allOtherVerbs.some(v => goalLower.startsWith(v));
+  if (!startsWithWrongVerb) return goal;
+
+  // Replace the leading verb phrase with the correct one
+  const correctPrefix = BLOOMS_GOAL_VERBS[bloomsLevel] ?? 'Understand';
+  // Strip the old verb (first word or two) and prepend the correct one
+  const withoutVerb = goal.replace(/^\w+(\s+and\s+\w+)?\s*/i, '');
+  return `${correctPrefix} ${withoutVerb}`;
+}
+
+/**
+ * Generate a deliverable from the Bloom's artifact guidance for the given level.
+ * Picks the first artifact type and contextualizes it with the course keyword.
+ */
+function generateDeliverable(bloomsLevel: string, courseKeyword: string): string {
+  const artifacts = BLOOMS_ARTIFACT_GUIDANCE[bloomsLevel] ?? BLOOMS_ARTIFACT_GUIDANCE.UNDERSTAND;
+  // Pick the first artifact type from the comma-separated list
+  const firstArtifact = artifacts.split(',')[0].trim();
+  return `Create ${firstArtifact} covering ${courseKeyword}`;
 }
 
 // =============================================================================
@@ -654,6 +870,154 @@ function generateHeuristicKeyTopics(
   topics.push(`${courseWord} in the context of ${chapterKeyword}`);
 
   return topics;
+}
+
+// =============================================================================
+// POST-PROCESSING: TIME ESTIMATES
+// =============================================================================
+
+const BLOOMS_TIME_MULTIPLIERS: Record<string, number> = {
+  REMEMBER: 1.0,
+  UNDERSTAND: 1.2,
+  APPLY: 1.5,
+  ANALYZE: 1.8,
+  EVALUATE: 2.0,
+  CREATE: 2.5,
+};
+
+const DIFFICULTY_SCALES: Record<string, number> = {
+  BEGINNER: 0.8,
+  INTERMEDIATE: 1.0,
+  ADVANCED: 1.3,
+};
+
+/**
+ * Compute per-section and per-chapter learning time estimates based on
+ * key topic count, Bloom's level, and course difficulty.
+ */
+function computeTimeEstimates(
+  blueprint: BlueprintResponse,
+  difficulty: string,
+): BlueprintResponse {
+  const difficultyScale = DIFFICULTY_SCALES[difficulty.toUpperCase()] ?? 1.0;
+
+  const chapters = blueprint.chapters.map(ch => {
+    const bloomsMultiplier = BLOOMS_TIME_MULTIPLIERS[ch.bloomsLevel] ?? 1.2;
+
+    const sections = ch.sections.map(sec => {
+      const baseMinutes = 12;
+      const topicMinutes = sec.keyTopics.length * 3 * bloomsMultiplier;
+      const estimatedMinutes = Math.round((baseMinutes + topicMinutes) * difficultyScale);
+      return { ...sec, estimatedMinutes };
+    });
+
+    const chapterMinutes = sections.reduce((sum, sec) => sum + (sec.estimatedMinutes ?? 0), 0);
+    return { ...ch, sections, estimatedMinutes: chapterMinutes };
+  });
+
+  return { ...blueprint, chapters };
+}
+
+// =============================================================================
+// POST-PROCESSING: PREREQUISITE DEPENDENCY GRAPH
+// =============================================================================
+
+/**
+ * Compute prerequisite relationships between chapters based on key topic overlap.
+ * For each chapter after the first, check if any key topics share significant
+ * words (>4 chars) with prior chapters' key topics.
+ */
+function computePrerequisiteGraph(blueprint: BlueprintResponse): BlueprintResponse {
+  const chapters = blueprint.chapters.map((ch, idx) => {
+    if (idx === 0) return ch;
+
+    const currentTopics = ch.sections.flatMap(s => s.keyTopics);
+    const currentWords = new Set(
+      currentTopics.flatMap(t => t.toLowerCase().split(/\s+/).filter(w => w.length > 4)),
+    );
+
+    const prerequisiteChapters: number[] = [];
+    for (let prevIdx = 0; prevIdx < idx; prevIdx++) {
+      const prevCh = blueprint.chapters[prevIdx];
+      const prevTopics = prevCh.sections.flatMap(s => s.keyTopics);
+      const prevWords = prevTopics.flatMap(t => t.toLowerCase().split(/\s+/).filter(w => w.length > 4));
+
+      const overlapCount = prevWords.filter(w => currentWords.has(w)).length;
+      if (overlapCount >= 2) {
+        prerequisiteChapters.push(prevCh.position);
+      }
+    }
+
+    return prerequisiteChapters.length > 0
+      ? { ...ch, prerequisiteChapters }
+      : ch;
+  });
+
+  return { ...blueprint, chapters };
+}
+
+// =============================================================================
+// POST-PROCESSING: FORMATIVE ASSESSMENTS
+// =============================================================================
+
+const BLOOMS_ASSESSMENT_TYPES: Record<string, [string, string]> = {
+  REMEMBER: ['quiz', 'self-assessment'],
+  UNDERSTAND: ['reflection', 'quiz'],
+  APPLY: ['practice', 'quiz'],
+  ANALYZE: ['reflection', 'practice'],
+  EVALUATE: ['peer-review', 'reflection'],
+  CREATE: ['practice', 'self-assessment'],
+};
+
+const ASSESSMENT_PROMPT_TEMPLATES: Record<string, (chapterTitle: string, sectionTitle: string) => string> = {
+  quiz: (ch, sec) => `Quick check: key concepts from "${sec}" in ${ch}`,
+  reflection: (ch, sec) => `Reflect on how "${sec}" connects to the broader themes of ${ch}`,
+  practice: (ch, sec) => `Apply what you learned in "${sec}" to a hands-on exercise`,
+  'self-assessment': (ch, sec) => `Rate your understanding of "${sec}" concepts`,
+  'peer-review': (ch, sec) => `Review a peer&apos;s work on "${sec}" using the evaluation criteria`,
+};
+
+/**
+ * Inject formative assessment checkpoints at ~40% and ~80% through each chapter.
+ * Assessment type is matched to the chapter's Bloom's level.
+ */
+function injectFormativeAssessments(blueprint: BlueprintResponse): BlueprintResponse {
+  const chapters = blueprint.chapters.map(ch => {
+    const sectionCount = ch.sections.length;
+    if (sectionCount < 2) return ch;
+
+    const assessmentTypes = BLOOMS_ASSESSMENT_TYPES[ch.bloomsLevel] ?? ['quiz', 'reflection'];
+    const checkpoint1 = Math.max(0, Math.round(sectionCount * 0.4) - 1);
+    const checkpoint2 = Math.max(0, Math.round(sectionCount * 0.8) - 1);
+
+    const sections = ch.sections.map((sec, idx) => {
+      if (idx === checkpoint1) {
+        const promptFn = ASSESSMENT_PROMPT_TEMPLATES[assessmentTypes[0]] ?? ASSESSMENT_PROMPT_TEMPLATES.quiz;
+        return {
+          ...sec,
+          formativeAssessment: {
+            type: assessmentTypes[0],
+            prompt: promptFn(ch.title, sec.title),
+          },
+        };
+      }
+      if (idx === checkpoint2 && checkpoint2 !== checkpoint1) {
+        const promptFn = ASSESSMENT_PROMPT_TEMPLATES[assessmentTypes[1]] ?? ASSESSMENT_PROMPT_TEMPLATES.reflection;
+        return {
+          ...sec,
+          formativeAssessment: {
+            type: assessmentTypes[1],
+            prompt: promptFn(ch.title, sec.title),
+          },
+        };
+      }
+      return sec;
+    });
+
+    return { ...ch, sections };
+  });
+
+  return { ...blueprint, chapters };
 }
 
 // =============================================================================
