@@ -222,6 +222,22 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
     setError(null);
     setProgressMessage('Starting blueprint generation...');
 
+    // Snapshot the current blueprint into versions BEFORE clearing it.
+    // This prevents the old blueprint from lingering in formData during
+    // generation (which would be auto-saved to localStorage if generation
+    // fails, causing stale data to reappear on reload).
+    setFormData(prev => {
+      if (!prev.teacherBlueprint) return prev;
+      const { updatedVersions, nextVersion } = snapshotVersion(prev.teacherBlueprint, 'ai');
+      return {
+        ...prev,
+        teacherBlueprint: undefined,
+        // Stash versions so we can attach them to the new blueprint on success
+        _pendingBlueprintVersions: updatedVersions,
+        _pendingBlueprintNextVersion: nextVersion,
+      } as typeof prev;
+    });
+
     try {
       // Use SSE (Server-Sent Events) to keep the connection alive during long AI calls.
       // Railway/Cloudflare proxy kills idle connections after ~100s, causing 524 errors.
@@ -305,15 +321,10 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       const data = completedData;
 
       setFormData(prev => {
-        // Snapshot existing blueprint before overwriting
-        const existingBlueprint = prev.teacherBlueprint;
-        let versions: BlueprintVersion[] = [];
-        let nextVersion = 1;
-        if (existingBlueprint) {
-          const snapshot = snapshotVersion(existingBlueprint, 'ai');
-          versions = snapshot.updatedVersions;
-          nextVersion = snapshot.nextVersion;
-        }
+        // Recover stashed versions from pre-generation snapshot
+        const stashedPrev = prev as Record<string, unknown>;
+        const versions = (stashedPrev._pendingBlueprintVersions as BlueprintVersion[] | undefined) ?? [];
+        const nextVersion = (stashedPrev._pendingBlueprintNextVersion as number | undefined) ?? 1;
 
         // Parse critic result from API response
         const critic = data.critic as Record<string, unknown> | undefined;
@@ -339,7 +350,9 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           versions: versions.length > 0 ? versions : undefined,
         };
 
-        return { ...prev, teacherBlueprint: newBlueprint };
+        // Clean up stashed fields
+        const { _pendingBlueprintVersions: _v, _pendingBlueprintNextVersion: _n, ...cleanPrev } = stashedPrev;
+        return { ...cleanPrev, teacherBlueprint: newBlueprint } as typeof prev;
       });
 
       setExpandedChapters(new Set([1]));
@@ -353,6 +366,14 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       logger.error('[BLUEPRINT_STEP] Generation error:', err);
       setError(msg);
       toast.error('Blueprint generation failed', { description: msg });
+
+      // Clean up stashed version fields (blueprint was already cleared pre-generation)
+      setFormData(prev => {
+        const stashedPrev = prev as Record<string, unknown>;
+        if (!stashedPrev._pendingBlueprintVersions) return prev;
+        const { _pendingBlueprintVersions: _v, _pendingBlueprintNextVersion: _n, ...cleanPrev } = stashedPrev;
+        return cleanPrev as typeof prev;
+      });
     } finally {
       setIsGenerating(false);
       setProgressMessage('');

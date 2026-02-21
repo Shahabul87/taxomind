@@ -59,6 +59,14 @@ export function useSamWizard() {
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const formDataRef = React.useRef(formData);
   const stepRef = React.useRef(step);
+
+  // Synchronize refs on every render (NOT in useEffect) so that auto-save
+  // always reads the latest value. Using useEffect creates a 1-tick lag
+  // where the ref still holds stale data — enough for auto-save to persist
+  // an old blueprint after reset/regeneration.
+  formDataRef.current = formData;
+  stepRef.current = step;
+
   // Enhanced hooks
   const { debouncedCall, cancelAllCalls } = useSamDebounce();
   const samCache = useSamCache({ ttl: 5 * 60 * 1000, maxSize: 100 });
@@ -119,23 +127,23 @@ export function useSamWizard() {
     relevantFields,
   });
 
-  // Auto-save functionality
-  useEffect(() => {
-    formDataRef.current = formData;
-  }, [formData]);
-
-  useEffect(() => {
-    stepRef.current = step;
-  }, [step]);
-
+  // Auto-save: strip internal stash fields (_pending*) before persisting.
+  // These are temporary fields used during blueprint generation and must
+  // never leak into localStorage.
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
       const currentFormData = formDataRef.current;
       const currentStep = stepRef.current;
 
       if (currentFormData.courseTitle || currentFormData.courseShortOverview) {
+        // Strip internal stash fields used during blueprint generation
+        const { ...toSave } = currentFormData;
+        const saveable = toSave as Record<string, unknown>;
+        delete saveable._pendingBlueprintVersions;
+        delete saveable._pendingBlueprintNextVersion;
+
         localStorage.setItem('course-creator-draft', JSON.stringify({
-          formData: currentFormData,
+          formData: saveable,
           step: currentStep,
           timestamp: new Date().toISOString()
         }));
@@ -154,16 +162,20 @@ export function useSamWizard() {
         const { formData: savedFormData, step: savedStep, timestamp } = JSON.parse(savedDraft);
         const saveTime = new Date(timestamp);
         const hoursSinceSave = (Date.now() - saveTime.getTime()) / (1000 * 60 * 60);
-        
+
         if (hoursSinceSave < 24) { // Only restore if less than 24 hours old
+          // Strip any stale internal fields that may have leaked into localStorage
+          const cleaned = { ...savedFormData };
+          delete cleaned._pendingBlueprintVersions;
+          delete cleaned._pendingBlueprintNextVersion;
           // Merge with defaults to ensure no missing fields from older drafts
-          setFormData(normalizeSectionsPerChapter({ ...initialFormData, ...savedFormData }));
+          setFormData(normalizeSectionsPerChapter({ ...initialFormData, ...cleaned }));
           setStep(savedStep);
           setLastAutoSave(saveTime);
           toast.success("Draft restored from auto-save");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error loading saved draft:', error);
     }
   }, []);
@@ -231,11 +243,15 @@ export function useSamWizard() {
         return;
       }
 
-      // Ctrl+S: Manual save
+      // Ctrl+S: Manual save (strip internal stash fields)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
+        const { ...toSave } = formDataRef.current;
+        const saveable = toSave as Record<string, unknown>;
+        delete saveable._pendingBlueprintVersions;
+        delete saveable._pendingBlueprintNextVersion;
         localStorage.setItem('course-creator-draft', JSON.stringify({
-          formData: formDataRef.current,
+          formData: saveable,
           step: stepRef.current,
           timestamp: new Date().toISOString()
         }));
