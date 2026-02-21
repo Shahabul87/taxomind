@@ -125,10 +125,13 @@ export function MobileGestureController({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full mobile-fullscreen overflow-x-hidden"
+      className="relative w-full"
       suppressHydrationWarning
       style={{
         minHeight: viewportHeight || '100vh',
+        overflowX: 'clip',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
       }}
     >
       {/* Pull to refresh indicator */}
