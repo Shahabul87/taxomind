@@ -153,15 +153,6 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
 
   const blueprint = formData.teacherBlueprint;
 
-  // Auto-generate blueprint on first mount if none exists
-  useEffect(() => {
-    if (hasTriggeredRef.current) return;
-    if (blueprint) return;
-    hasTriggeredRef.current = true;
-    generateBlueprint();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-time trigger
-  }, []); // One-time on mount
-
   // -------------------------------------------------------------------------
   // Blueprint generation
   // -------------------------------------------------------------------------
@@ -223,6 +214,19 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       setIsGenerating(false);
     }
   }, [formData, setFormData]);
+
+  // Auto-generate blueprint on first mount if none exists.
+  // Uses a ref to access the latest generateBlueprint without adding it to deps,
+  // avoiding re-triggers when formData changes.
+  const generateBlueprintRef = useRef(generateBlueprint);
+  generateBlueprintRef.current = generateBlueprint;
+
+  useEffect(() => {
+    if (hasTriggeredRef.current) return;
+    if (blueprint) return;
+    hasTriggeredRef.current = true;
+    generateBlueprintRef.current();
+  }, [blueprint]);
 
   // -------------------------------------------------------------------------
   // Chapter-level editing

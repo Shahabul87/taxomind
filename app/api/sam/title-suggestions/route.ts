@@ -113,8 +113,21 @@ export async function POST(req: Request) {
     }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
+
+    const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error("[TITLE-SUGGESTIONS] Error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+
+    // Return structured error so the frontend can show a meaningful message
+    const isProviderError = errorMsg.includes('Rate limit') || errorMsg.includes('credit balance') || errorMsg.includes('Model Not Exist');
+    return NextResponse.json(
+      {
+        error: isProviderError
+          ? 'AI service is temporarily unavailable. Please try again in a moment or switch your AI provider in Settings.'
+          : 'Failed to generate title suggestions. Please try again.',
+        code: isProviderError ? 'PROVIDER_ERROR' : 'GENERATION_ERROR',
+      },
+      { status: isProviderError ? 503 : 500 },
+    );
   }
 }
 

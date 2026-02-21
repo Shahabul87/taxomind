@@ -72,21 +72,36 @@ function computeBloomsDistribution(
     return Array(chapterCount).fill('UNDERSTAND');
   }
 
-  if (uniqueLevels.length === 1) {
-    return Array(chapterCount).fill(uniqueLevels[0]);
+  // Fill cognitive gaps: if non-adjacent levels are selected, insert missing
+  // intermediate levels to maintain proper Bloom's progression.
+  // E.g., [UNDERSTAND, ANALYZE] → [UNDERSTAND, APPLY, ANALYZE]
+  const filledLevels: string[] = [];
+  for (let i = 0; i < uniqueLevels.length; i++) {
+    const currentIdx = BLOOMS_ORDER.indexOf(uniqueLevels[i] as typeof BLOOMS_ORDER[number]);
+    if (i > 0) {
+      const prevIdx = BLOOMS_ORDER.indexOf(uniqueLevels[i - 1] as typeof BLOOMS_ORDER[number]);
+      for (let gapIdx = prevIdx + 1; gapIdx < currentIdx; gapIdx++) {
+        filledLevels.push(BLOOMS_ORDER[gapIdx]);
+      }
+    }
+    filledLevels.push(uniqueLevels[i]);
+  }
+
+  if (filledLevels.length === 1) {
+    return Array(chapterCount).fill(filledLevels[0]);
   }
 
   // Distribute chapters across levels proportionally
   // Earlier chapters get lower levels, later chapters get higher levels
   const distribution: string[] = [];
-  const bandSize = chapterCount / uniqueLevels.length;
+  const bandSize = chapterCount / filledLevels.length;
 
   for (let i = 0; i < chapterCount; i++) {
     const bandIndex = Math.min(
       Math.floor(i / bandSize),
-      uniqueLevels.length - 1,
+      filledLevels.length - 1,
     );
-    distribution.push(uniqueLevels[bandIndex]);
+    distribution.push(filledLevels[bandIndex]);
   }
 
   return distribution;
@@ -357,8 +372,6 @@ ${composed?.expertiseBlock ?? ''}`;
   // Natural, concise user prompt — mirrors how a human would ask
   const userPrompt = `I am creating a course on "${ctx.courseTitle}" with ${ctx.totalChapters} chapters and ${ctx.sectionsPerChapter} sections in each chapter.
 
-Create a full course blueprint with chapter titles, section titles, and 3-5 key topics for each section. For each chapter, tell me what the deeper insight or thesis is. What should I teach in each chapter and each section?
-
 COURSE DETAILS:
 - Title: "${ctx.courseTitle}"
 - Overview: ${ctx.courseDescription}
@@ -369,6 +382,24 @@ ${data.duration ? `- Duration: ${data.duration}` : ''}
 
 Learning Objectives:
 ${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+## STEP 1 — UNDERSTAND THE COURSE CONTEXT (Do this BEFORE generating the blueprint)
+
+Before creating the blueprint, deeply analyze:
+1. **Course Title**: Identify the core subject, scope, and domain from "${ctx.courseTitle}". Every chapter and section MUST directly serve this title.
+2. **Course Description**: Read the overview above. The blueprint must holistically cover the main topics and ideas described in it.
+3. **Learning Objectives**: Each objective listed above must be addressed by at least one chapter. Map objectives to chapters.
+4. **Bloom&apos;s Focus**: The selected cognitive levels define the depth — structure chapter progression from foundational to advanced within the ${ctx.difficulty} level.
+
+## STEP 2 — GENERATE THE BLUEPRINT
+
+Based on your analysis above, create a full course blueprint with chapter titles, section titles, and 3-5 key topics for each section. For each chapter, tell me what the deeper insight or thesis is.
+
+CRITICAL ALIGNMENT RULES:
+- Every chapter title, section title, and key topic MUST be directly relevant to "${ctx.courseTitle}" — do NOT generate topics that belong to a different course
+- Cover the most important and essential topics for this specific course at the ${ctx.difficulty} level — do NOT pad with filler or tangential content
+- The blueprint should read as a coherent learning journey that a student would expect from a course titled "${ctx.courseTitle}"
+- If a topic would surprise a student who enrolled based on the title and description, do NOT include it
 
 BLOOM'S LEVEL FOR EACH CHAPTER (use exactly these):
 ${bloomsAssignmentBlock}

@@ -4,21 +4,28 @@ import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-prov
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
-interface LearningObjectiveRequest {
-  title: string;
-  overview?: string;
-  category?: string;
-  subcategory?: string;
-  targetAudience?: string;
-  difficulty?: string;
-  intent?: string;
-  bloomsFocus?: string[];
-  existingObjectives?: string[];
-  count?: number;
-}
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+const LearningObjectiveRequestSchema = z.object({
+  title: z.string().min(3).max(500),
+  overview: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  subcategory: z.string().max(100).optional(),
+  targetAudience: z.string().max(200).optional(),
+  difficulty: z.string().max(50).optional(),
+  intent: z.string().max(500).optional(),
+  bloomsFocus: z.array(z.string().max(20)).max(6).optional(),
+  existingObjectives: z.array(z.string().max(500)).max(20).optional(),
+  count: z.number().int().min(2).max(12).optional(),
+});
+
+type LearningObjectiveRequest = z.infer<typeof LearningObjectiveRequestSchema>;
 
 interface LearningObjective {
   objective: string;
@@ -27,10 +34,16 @@ interface LearningObjective {
 }
 
 /**
- * Extract JSON from AI response that may contain markdown fences or extra text.
+ * Extract JSON from AI response that may contain markdown fences, extra text,
+ * or <think>...</think> blocks from reasoning models (e.g. deepseek-reasoner).
  */
 function extractJSON(text: string): string {
-  const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+  // Strip <think>...</think> blocks (reasoning models like deepseek-reasoner)
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Strip markdown code fences
+  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+
   const objectMatch = cleaned.match(/\{[\s\S]*\}/);
   if (objectMatch) return objectMatch[0];
   const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -48,13 +61,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body: LearningObjectiveRequest = await request.json();
-
-    if (!body.title) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    const rawBody = await request.json();
+    const parseResult = LearningObjectiveRequestSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
 
-    const requestedCount = Math.min(Math.max(body.count ?? 5, 2), 12);
+    const body = parseResult.data;
+    const requestedCount = body.count ?? 5;
 
     try {
       const objectives = await withRetryableTimeout(

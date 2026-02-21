@@ -27,6 +27,7 @@ import {
 import {
   type AIProviderType,
   type AICapability,
+  AI_PROVIDERS,
   isProviderAvailable,
   getConfiguredProviders,
 } from '@/lib/sam/providers/ai-registry';
@@ -519,7 +520,12 @@ async function getAdapter(options: {
 
   // Determine model with resolution order:
   // per-capability model → per-provider model → platform default → registry default
+  // IMPORTANT: per-capability models are only used if they belong to the target provider's
+  // model list. This prevents cross-provider model errors during fallback (e.g. sending
+  // "gpt-4o" to DeepSeek when falling back from OpenAI).
   let modelOverride: string | undefined;
+
+  const providerModels = AI_PROVIDERS[provider]?.models ?? [];
 
   if (userId && settings.allowUserModelSelection) {
     // 1. Check per-capability model from cached user preferences
@@ -534,7 +540,8 @@ async function getAdapter(options: {
           'skill-roadmap': cachedPrefs.skillRoadmapModel,
         };
         const capabilityModel = capabilityModelMap[capability];
-        if (capabilityModel) {
+        // Only use per-capability model if it belongs to the target provider
+        if (capabilityModel && providerModels.includes(capabilityModel)) {
           modelOverride = capabilityModel;
         }
       }

@@ -142,7 +142,10 @@ export function SAMTitleGeneratorModal({
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Something went wrong. Please try again.';
+        toast.error(message);
+        return;
       }
 
       const result = await response.json();
@@ -246,7 +249,11 @@ export function SAMTitleGeneratorModal({
         }),
       });
 
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        toast.error(errorBody?.error || 'Something went wrong. Please try again.');
+        return;
+      }
       const result = await response.json();
 
       // Use inline scored titles from the merged API response

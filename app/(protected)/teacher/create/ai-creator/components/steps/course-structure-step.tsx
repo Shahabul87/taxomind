@@ -105,6 +105,35 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
   const bloomsIsValid = Array.isArray(formData.bloomsFocus) && formData.bloomsFocus.length >= 2;
   const totalLessons = formData.chapterCount * formData.sectionsPerChapter;
 
+  // Bloom's taxonomy recommendation based on difficulty level
+  const BLOOMS_ORDER_VALUES = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+  const recommendedBloomsForDifficulty: Record<string, string[]> = {
+    BEGINNER: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
+    INTERMEDIATE: ['UNDERSTAND', 'APPLY', 'ANALYZE'],
+    ADVANCED: ['APPLY', 'ANALYZE', 'EVALUATE'],
+  };
+  const difficulty = (formData.difficulty || 'INTERMEDIATE').toUpperCase();
+  const recommendedLevels = recommendedBloomsForDifficulty[difficulty] ?? recommendedBloomsForDifficulty['INTERMEDIATE'];
+
+  // Detect cognitive gaps: check if selected levels skip adjacent Bloom's levels
+  const selectedIndices = (formData.bloomsFocus || [])
+    .map(l => BLOOMS_ORDER_VALUES.indexOf(l))
+    .filter(i => i >= 0)
+    .sort((a, b) => a - b);
+  const hasCognitiveGap = selectedIndices.length >= 2 && selectedIndices.some((idx, i) =>
+    i > 0 && idx - selectedIndices[i - 1] > 1
+  );
+  const gapLevels = hasCognitiveGap
+    ? selectedIndices.reduce<string[]>((gaps, idx, i) => {
+        if (i > 0) {
+          for (let g = selectedIndices[i - 1] + 1; g < idx; g++) {
+            gaps.push(BLOOMS_ORDER_VALUES[g]);
+          }
+        }
+        return gaps;
+      }, [])
+    : [];
+
   return (
     <div className="space-y-6">
       {/* Course Structure Sliders */}
@@ -366,6 +395,43 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
           <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
             Select at least 2 cognitive levels for a balanced learning experience
           </p>
+        )}
+
+        {/* Difficulty-based recommendation */}
+        {bloomsIsValid && (
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
+            <div className="flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  <span className="font-semibold">Recommended for {difficulty.charAt(0) + difficulty.slice(1).toLowerCase()}:</span>{' '}
+                  {recommendedLevels.map(l => l.charAt(0) + l.slice(1).toLowerCase()).join(' → ')}
+                </p>
+                <p className="text-[11px] text-blue-600/80 dark:text-blue-400/80">
+                  Bloom&apos;s taxonomy is hierarchical — each level builds on the previous one for proper cognitive progression.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cognitive gap warning */}
+        {hasCognitiveGap && (
+          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+            <div className="flex items-start gap-2">
+              <Lightbulb className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <span className="font-semibold">Cognitive gap detected:</span>{' '}
+                  {gapLevels.map(l => l.charAt(0) + l.slice(1).toLowerCase()).join(', ')}{' '}
+                  {gapLevels.length === 1 ? 'level is' : 'levels are'} missing between your selections.
+                </p>
+                <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80">
+                  The AI will automatically fill this gap in the blueprint to maintain proper learning progression.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </FormFieldWrapper>
 
