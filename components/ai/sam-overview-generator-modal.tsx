@@ -36,6 +36,8 @@ import {
   Target,
   Eye,
   Zap,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -80,6 +82,7 @@ export function SAMOverviewGeneratorModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [selectedOverview, setSelectedOverview] = useState<string | null>(null);
+  const [generateCount, setGenerateCount] = useState(3);
 
   // Intelligent comments based on overview length
   const overviewAnalysis = useMemo(() => {
@@ -137,7 +140,7 @@ export function SAMOverviewGeneratorModal({
           intent: courseIntent,
           targetAudience,
           currentOverview,
-          count: 3,
+          count: generateCount,
         }),
       });
 
@@ -200,7 +203,7 @@ export function SAMOverviewGeneratorModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating]);
+  }, [courseTitle, currentOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating, generateCount]);
 
   // Check if any overviews scored below the refinement threshold
   const lowScoringOverviews = useMemo(
@@ -413,9 +416,42 @@ export function SAMOverviewGeneratorModal({
             </div>
           </div>
 
-          {/* Generate Button */}
+          {/* Overview Count Stepper + Generate Button */}
           {overviewSuggestions.length === 0 && (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-4">
+              {/* Count control */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Generate
+                </span>
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.max(1, prev - 1))}
+                    disabled={generateCount <= 1}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease count"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                    {generateCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.min(5, prev + 1))}
+                    disabled={generateCount >= 5}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Increase count"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  overviews
+                </span>
+              </div>
+
               <Button
                 onClick={generateOverviewSuggestions}
                 disabled={isGenerating || !courseTitle || courseTitle.length < 5}
@@ -431,12 +467,12 @@ export function SAMOverviewGeneratorModal({
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating Overviews...
+                    Generating {generateCount} Overviews...
                   </>
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-2" />
-                    Generate AI Overviews
+                    Generate {generateCount} AI Overviews
                   </>
                 )}
               </Button>

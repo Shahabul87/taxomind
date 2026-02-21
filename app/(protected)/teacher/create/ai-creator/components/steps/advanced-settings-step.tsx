@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StepComponentProps } from '../../types/sam-creator.types';
-import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap, Layers, Pencil } from 'lucide-react';
+import { Brain, Users, BookOpen, Target, Eye, Star, Clock, Coins, Zap, Layers, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
@@ -30,14 +30,6 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
   const chapterTemplate = getTemplateForDifficulty(formData.difficulty.toLowerCase());
   const templateSections = chapterTemplate.sections;
   const userSectionsPerChapter = formData.sectionsPerChapter;
-
-  const isFormComplete =
-    formData.courseTitle.length >= 10 &&
-    formData.courseShortOverview.length >= 50 &&
-    formData.courseCategory &&
-    formData.targetAudience &&
-    formData.courseGoals.length >= 2 &&
-    formData.bloomsFocus.length >= 2;
 
   // =========================================================================
   // Cost Estimate
@@ -526,82 +518,6 @@ export function AdvancedSettingsStep({ formData, setFormData, goToStep }: StepCo
         ) : null}
       </Card>
 
-      {/* Generation Status */}
-      <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">
-        <div className="relative">
-          <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 mb-3 sm:mb-4">
-            <div className={cn(
-              "p-2 sm:p-2.5 md:p-3 rounded-xl shadow-sm",
-              isFormComplete
-                ? "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-200"
-                : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-200"
-            )}>
-              {isFormComplete ? (
-                <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
-              ) : (
-                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 break-words">
-                {isFormComplete ? 'Ready to Generate!' : 'Almost Ready...'}
-              </h4>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words mt-1">
-                {isFormComplete 
-                  ? 'Your course information is complete and ready for AI generation.'
-                  : 'Complete a few more fields to enable course generation.'}
-              </p>
-            </div>
-          </div>
-          
-          {!isFormComplete && (
-            <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <p className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300 mb-2.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
-                <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                <span>Complete these requirements:</span>
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {formData.courseTitle.length < 10 && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">Course title (at least 10 characters)</span>
-                  </div>
-                )}
-                {formData.courseShortOverview.length < 50 && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">Course overview (at least 50 characters)</span>
-                  </div>
-                )}
-                {!formData.courseCategory && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">Course category</span>
-                  </div>
-                )}
-                {!formData.targetAudience && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">Target audience</span>
-                  </div>
-                )}
-                {formData.courseGoals.length < 2 && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">At least 2 learning objectives</span>
-                  </div>
-                )}
-                {formData.bloomsFocus.length < 2 && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] xs:text-xs text-amber-600 dark:text-amber-400">
-                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
-                    <span className="break-words">At least 2 cognitive levels</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
     </div>
   );
 }

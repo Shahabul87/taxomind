@@ -36,6 +36,8 @@ import {
   Lightbulb,
   ArrowRight,
   RefreshCw,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -80,6 +82,7 @@ export function SAMTitleGeneratorModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+  const [generateCount, setGenerateCount] = useState(5);
 
   // Intelligent comments based on title length
   const titleAnalysis = useMemo(() => {
@@ -137,7 +140,7 @@ export function SAMTitleGeneratorModal({
           difficulty: difficulty || 'BEGINNER',
           intent: courseIntent,
           targetAudience,
-          count: 5,
+          count: generateCount,
         }),
       });
 
@@ -203,7 +206,7 @@ export function SAMTitleGeneratorModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating]);
+  }, [currentTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, isGenerating, generateCount]);
 
   // Check if any titles scored below the refinement threshold
   const lowScoringTitles = useMemo(
@@ -397,9 +400,42 @@ export function SAMTitleGeneratorModal({
             </div>
           </div>
 
-          {/* Generate Button */}
+          {/* Title Count Stepper + Generate Button */}
           {titleSuggestions.length === 0 && (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-4">
+              {/* Count control */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Generate
+                </span>
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.max(1, prev - 1))}
+                    disabled={generateCount <= 1}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease count"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                    {generateCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.min(10, prev + 1))}
+                    disabled={generateCount >= 10}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Increase count"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  titles
+                </span>
+              </div>
+
               <Button
                 onClick={generateTitleSuggestions}
                 disabled={isGenerating || !currentTitle || currentTitle.length < 5}
@@ -415,12 +451,12 @@ export function SAMTitleGeneratorModal({
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating Titles...
+                    Generating {generateCount} Titles...
                   </>
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Generate AI Titles
+                    Generate {generateCount} AI Titles
                   </>
                 )}
               </Button>

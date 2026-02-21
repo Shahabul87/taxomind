@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Sparkles, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Sparkles, Check, ChevronRight, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MobileStepNavProps {
@@ -163,7 +163,7 @@ export function MobileStepNav({
                 "relative overflow-hidden",
                 isGenerating && "animate-pulse"
               )}
-              aria-label="Generate course with AI"
+              aria-label="Create full course with AI"
             >
               {/* Shine effect */}
               <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -176,10 +176,34 @@ export function MobileStepNav({
               ) : (
                 <>
                   <Sparkles className="h-5 w-5 mr-2" />
-                  <span>Generate Course</span>
+                  <span>Create Full Course</span>
                   <ChevronRight className="h-5 w-5 ml-1" />
                 </>
               )}
+            </Button>
+          ) : currentStep === 4 ? (
+            <Button
+              onClick={onNext}
+              disabled={!canProceed}
+              className={cn(
+                "flex-1 h-13 text-sm font-bold",
+                "bg-gradient-to-r from-indigo-600 to-violet-600",
+                "hover:from-indigo-500 hover:to-violet-500",
+                "text-white",
+                "shadow-lg shadow-indigo-500/25",
+                "hover:shadow-xl hover:shadow-indigo-500/35",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "transition-all duration-300",
+                "rounded-xl",
+                "active:scale-[0.98]"
+              )}
+              aria-label="Create course blueprint"
+            >
+              <Map className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span className="truncate">
+                Create Blueprint
+              </span>
+              <ArrowRight className="h-5 w-5 ml-2 flex-shrink-0" />
             </Button>
           ) : (
             <Button
