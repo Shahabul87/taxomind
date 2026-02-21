@@ -1150,6 +1150,40 @@ export const aiClient = {
   },
 
   /**
+   * Pre-resolve the provider, model, and reasoning-model flag WITHOUT making an AI call.
+   * Use this when callers need to adapt timeout, prompt strategy, or token budget
+   * based on the model that will be used (e.g., reasoning models need longer timeouts
+   * and more concise prompts).
+   */
+  async getResolvedModelInfo(options: {
+    userId?: string;
+    provider?: AIProviderType;
+    capability?: AICapability;
+    extended?: boolean;
+  }): Promise<{ provider: AIProviderType; model: string; isReasoningModel: boolean }> {
+    const provider = await resolveProvider({
+      explicitProvider: options.provider,
+      userId: options.userId,
+      capability: options.capability,
+    });
+
+    const adapter = await getAdapter({
+      provider,
+      userId: options.userId,
+      extended: options.extended,
+      capability: options.capability,
+    });
+
+    const model = adapter.getModel();
+
+    return {
+      provider,
+      model,
+      isReasoningModel: model === 'deepseek-reasoner',
+    };
+  },
+
+  /**
    * Invalidate all caches (call when admin changes settings).
    */
   invalidateCaches(): void {

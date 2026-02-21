@@ -239,6 +239,36 @@ export async function getResolvedProviderName(userId: string): Promise<string> {
 }
 
 // ============================================================================
+// 5b. resolveAIModelInfo — pre-resolve provider + model + reasoning flag
+// ============================================================================
+
+/**
+ * Pre-resolve the provider, model, and reasoning-model flag for a given user
+ * WITHOUT making an actual AI call. Use this when callers need to adapt their
+ * strategy (timeout, prompt verbosity, token budget) based on the resolved model.
+ *
+ * Key use case: reasoning models (deepseek-reasoner) need higher timeouts,
+ * more concise prompts, and different token scaling than regular models.
+ */
+export async function resolveAIModelInfo(options: {
+  userId: string;
+  capability?: AICapability;
+}): Promise<{ provider: string; model: string; isReasoningModel: boolean }> {
+  try {
+    return await aiClient.getResolvedModelInfo({
+      userId: options.userId,
+      capability: options.capability,
+    });
+  } catch (error) {
+    logger.warn('[SAM AI Provider] Model pre-resolution failed, using defaults', {
+      userId: options.userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { provider: 'unknown', model: 'unknown', isReasoningModel: false };
+  }
+}
+
+// ============================================================================
 // 6. getSAMAdapterSystem — returns CoreAIAdapter | null (no userId)
 // ============================================================================
 

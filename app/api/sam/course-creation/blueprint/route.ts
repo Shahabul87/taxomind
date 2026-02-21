@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference, withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { runSAMChatWithMetadata, resolveAIModelInfo, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ import { sanitizeCourseContext } from '@/lib/sam/course-creation/helpers';
 import type { CourseContext } from '@/lib/sam/course-creation/types';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120; // Vercel/serverless max; local timeout handles scaling
+export const maxDuration = 300; // Vercel/serverless max; local timeout handles scaling
 
 // =============================================================================
 // VALIDATION
@@ -157,6 +157,19 @@ export async function POST(request: NextRequest) {
 
     const data = parseResult.data;
 
+    // =========================================================================
+    // PRE-RESOLVE MODEL — adapt strategy before making the AI call
+    // =========================================================================
+    const { model: resolvedModel, isReasoningModel } = await resolveAIModelInfo({
+      userId: user.id,
+      capability: 'course',
+    });
+
+    logger.info('[BLUEPRINT_ROUTE] Model pre-resolved', {
+      model: resolvedModel,
+      isReasoningModel,
+    });
+
     // Resolve domain expertise
     const matchedEnhancers = getCategoryEnhancers(data.category, data.subcategory);
     const enhancer = matchedEnhancers.length >= 2
@@ -182,145 +195,58 @@ export async function POST(request: NextRequest) {
     // Compose the full domain prompt (expertise + methodology + Bloom's + activities)
     const composed = enhancer ? composeCategoryPrompt(enhancer) : null;
 
-    // Build rich system prompt with ARROW framework identity and domain expertise
-    const systemPrompt = `You are SAM, an expert-level course architect. You design pedagogically-sound course blueprints using the ARROW framework (Application-first, Reverse-engineer, Reason, Originate, Wire).
-
-## YOUR BLUEPRINT DESIGN PRINCIPLES
-- NEVER start chapters with "Introduction to X" or "Overview of X" — open with real-world hooks
-- Follow Bloom's Taxonomy progression: early chapters at lower levels (REMEMBER/UNDERSTAND), later chapters at higher levels (ANALYZE/EVALUATE/CREATE)
-- Ensure logical concept flow: each chapter builds on the previous, with prerequisites taught before dependents
-- Section titles must be specific and descriptive — never "Section 1.1" or "Getting Started"
-- Every key topic must be a concrete concept, technique, or skill — never vague terms like "basics" or "fundamentals"
-- Flag areas where students typically struggle as risk areas needing careful scaffolding
-
-## BLOOM'S TAXONOMY REFERENCE
-- REMEMBER: Recall facts, define terms, list components
-- UNDERSTAND: Explain concepts, interpret meaning, classify patterns
-- APPLY: Use procedures, implement solutions, demonstrate techniques
-- ANALYZE: Break down systems, compare approaches, identify relationships
-- EVALUATE: Judge quality, assess trade-offs, defend design decisions
-- CREATE: Design systems, develop solutions, produce original work
-
-The teacher will review and edit this blueprint before content generation begins.
-${composed?.expertiseBlock ?? ''}`;
-
-    // Build domain-specific pedagogy and section guidance blocks
-    const bloomsGuidanceBlock = composed?.chapterGuidanceBlock
-      ? `\n## Domain-Specific Pedagogy\n${composed.chapterGuidanceBlock}`
-      : '';
-
-    const sectionGuidanceBlock = composed?.sectionGuidanceBlock
-      ? `\n## Section-Level Domain Guidance\n${composed.sectionGuidanceBlock}`
-      : '';
-
     // Pre-compute Bloom's distribution: explicit per-chapter level assignments
     const bloomsDistribution = computeBloomsDistribution(data.bloomsFocus, data.chapterCount);
     const bloomsAssignmentBlock = formatBloomsAssignments(bloomsDistribution);
 
-    const userPrompt = `Design a detailed blueprint for this course.
+    // =========================================================================
+    // MODEL-AWARE PROMPT STRATEGY
+    // =========================================================================
+    // Reasoning models (deepseek-reasoner) spend ~60-80% of time on internal
+    // reasoning tokens BEFORE producing output. Verbose prompts with redundant
+    // BAD/GOOD examples cause exponentially more reasoning time.
+    //
+    // Strategy:
+    //   - Reasoning models: Concise system prompt + JSON example only (the example
+    //     IS the format spec). No separate BAD/GOOD blocks. ~40% fewer prompt tokens.
+    //   - Regular models: Rich prompt with explicit format rules and BAD/GOOD examples.
+    // =========================================================================
 
-## REQUIRED OUTPUT FORMAT (Return ONLY valid JSON — no markdown fences)
+    const { systemPrompt, userPrompt } = isReasoningModel
+      ? buildReasoningModelPrompts(ctx, data, composed, bloomsAssignmentBlock)
+      : buildStandardModelPrompts(ctx, data, composed, bloomsAssignmentBlock);
 
-CRITICAL: Every chapter MUST contain EXACTLY ${ctx.sectionsPerChapter} sections. Every section MUST have a descriptive title AND 3-5 keyTopics. Do NOT omit sections or leave keyTopics empty.
-
-{
-  "chapters": [
-    {
-      "position": 1,
-      "title": "Why Neural Networks Fail — Building Intuition Before Math",
-      "goal": "Students build mental models for how neural networks learn by diagnosing real failure cases",
-      "bloomsLevel": "UNDERSTAND",
-      "sections": [
-        {
-          "position": 1,
-          "title": "The Overfit Restaurant — When Your Model Memorizes the Menu",
-          "keyTopics": ["training vs generalization", "overfitting visual patterns", "validation set purpose"]
-        },
-        {
-          "position": 2,
-          "title": "Gradient Descent as Hill Walking — Finding the Valley in the Dark",
-          "keyTopics": ["loss landscape visualization", "learning rate effects", "local minima intuition"]
-        }
-      ]
-    }
-  ],
-  "confidence": 85,
-  "riskAreas": ["Students may confuse overfitting with underfitting without explicit side-by-side comparison"]
-}
-
-## COURSE DETAILS
-
-Title: ${ctx.courseTitle}
-Overview: ${ctx.courseDescription}
-Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
-Target Audience: ${ctx.targetAudience}
-Difficulty: ${ctx.difficulty}
-${data.duration ? `Duration: ${data.duration}` : ''}
-Chapters: ${ctx.totalChapters}
-Sections per Chapter: ${ctx.sectionsPerChapter}
-
-Learning Objectives:
-${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
-
-## BLOOM'S LEVEL ASSIGNMENTS (MANDATORY — use EXACTLY these levels)
-
-Each chapter MUST use the assigned Bloom's level below. This ensures proper cognitive progression from foundational to higher-order thinking:
-
-${bloomsAssignmentBlock}
-
-Bloom's Focus Levels: ${data.bloomsFocus.join(', ')}
-${bloomsGuidanceBlock}
-${sectionGuidanceBlock}
-
-## SECTION REQUIREMENTS (MOST IMPORTANT)
-
-Each section MUST have:
-1. A creative, descriptive title using metaphor, analogy, or a concrete hook — NOT a dry label
-2. EXACTLY 3-5 keyTopics — each a specific concept, technique, or skill students will learn
-3. keyTopics must be concrete (e.g., "gradient descent convergence criteria") NOT generic (e.g., "basics")
-
-BAD section titles (NEVER generate these):
-- "Hyperparameter Tuning as a Grid Search" — too literal, reads like a textbook heading
-- "Introduction to Neural Networks" — forbidden "Introduction to X" pattern
-- "Advanced Topics in ML" — vague, no specific hook
-- "Working with Data" — generic, says nothing specific
-
-GOOD section titles (follow these patterns):
-- "The Overfit Restaurant — When Your Model Memorizes the Menu" — metaphor + specific concept
-- "Gradient Descent as Hill Walking — Finding the Valley in the Dark" — analogy + visual hook
-- "The Bias-Variance Tightrope — Why Perfect Training Scores Lie" — tension + insight
-- "Feature Engineering Detective Work — Finding Signals in Noisy Data" — action + specificity
-
-## CHAPTER REQUIREMENTS
-
-Each chapter MUST have:
-1. A descriptive title that hooks the reader (use the same creative patterns as section titles)
-2. A one-sentence goal describing what students achieve
-3. The EXACT Bloom's level assigned above (see BLOOM'S LEVEL ASSIGNMENTS)
-4. EXACTLY ${ctx.sectionsPerChapter} sections (see section requirements above)
-
-Ensure logical concept flow: earlier chapters introduce foundations, later chapters build complexity.
-Flag any areas where students typically struggle as risks.
-
-Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each containing ${ctx.sectionsPerChapter} sections with full keyTopics.`;
-
-    // AI call with timeout — generous buffer for AI response time
+    // =========================================================================
+    // MODEL-AWARE TIMEOUT & TOKEN SCALING
+    // =========================================================================
     const totalSections = data.chapterCount * data.sectionsPerChapter;
-    const BLUEPRINT_TIMEOUT_MS = Math.min(120_000, 50_000 + totalSections * 2500);
 
-    // Adaptive maxTokens capped at 8192 for cross-provider compatibility
-    // Base: JSON overhead + riskAreas + confidence
-    // Per chapter: ~200 tokens (title + goal + bloomsLevel + rationale)
-    // Per section: ~100 tokens (title + 3-5 keyTopics)
-    const blueprintMaxTokens = Math.min(8192, 1500 + data.chapterCount * 200 + totalSections * 100);
+    // Reasoning models: 2-4 min (reasoning tokens dominate). Regular: 30-90s.
+    const BLUEPRINT_TIMEOUT_MS = isReasoningModel
+      ? Math.min(300_000, 120_000 + totalSections * 5000) // 120s base + 5s/section, cap 5 min
+      : Math.min(120_000, 45_000 + totalSections * 2500);  // 45s base + 2.5s/section, cap 2 min
 
-    const aiPromise = runSAMChatWithPreference({
+    // Reasoning models: enterprise client already does 4x scaling, so we send a smaller
+    // base value (the client will multiply by 4 and cap at 8192). Regular: direct budget.
+    const blueprintMaxTokens = isReasoningModel
+      ? Math.min(4096, 1500 + data.chapterCount * 150 + totalSections * 80)  // Pre-4x: client will scale to ~6000-8192
+      : Math.min(8192, 2000 + data.chapterCount * 300 + totalSections * 150);
+
+    logger.info('[BLUEPRINT_ROUTE] Strategy', {
+      isReasoningModel,
+      model: resolvedModel,
+      timeout: BLUEPRINT_TIMEOUT_MS,
+      maxTokens: blueprintMaxTokens,
+      totalSections,
+    });
+
+    const aiPromise = runSAMChatWithMetadata({
       userId: user.id,
       capability: 'course',
       messages: [{ role: 'user', content: userPrompt }],
       systemPrompt,
       maxTokens: blueprintMaxTokens,
-      temperature: 0.6,
+      temperature: isReasoningModel ? 0.3 : 0.6, // Lower temp for reasoning models = fewer reasoning branches
     });
 
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -330,11 +256,14 @@ Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each cont
     let responseText: string;
     const aiStartTime = Date.now();
     try {
-      responseText = await Promise.race([aiPromise, timeoutPromise]);
+      const aiResult = await Promise.race([aiPromise, timeoutPromise]);
+      responseText = aiResult.content;
       logger.info('[BLUEPRINT_ROUTE] AI call succeeded', {
         elapsed: `${Date.now() - aiStartTime}ms`,
         responseLength: responseText.length,
         timeout: BLUEPRINT_TIMEOUT_MS,
+        provider: aiResult.provider,
+        model: aiResult.model,
       });
     } catch (aiError) {
       // Timeout or AI error — use heuristic fallback
@@ -346,6 +275,8 @@ Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each cont
         timeout: BLUEPRINT_TIMEOUT_MS,
         totalSections,
         maxTokens: blueprintMaxTokens,
+        isReasoningModel,
+        model: resolvedModel,
       });
       const fallback = buildHeuristicBlueprint(data);
       return NextResponse.json({ success: true, blueprint: fallback });
@@ -384,6 +315,7 @@ Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each cont
       confidence: blueprint.confidence,
       maxTokens: blueprintMaxTokens,
       responseLength: responseText.length,
+      isReasoningModel,
     });
 
     return NextResponse.json({ success: true, blueprint });
@@ -395,6 +327,205 @@ Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each cont
       { status: 500 },
     );
   }
+}
+
+// =============================================================================
+// MODEL-AWARE PROMPT BUILDERS
+// =============================================================================
+
+/**
+ * Build prompts optimized for reasoning models (deepseek-reasoner).
+ *
+ * Key differences from standard prompts:
+ * 1. Minimal system prompt — reasoning models do internal chain-of-thought
+ * 2. ONE concrete JSON example IS the spec (no separate BAD/GOOD blocks)
+ * 3. Direct, imperative instructions (no meta-commentary about "quality")
+ * 4. ~40% fewer prompt tokens → ~40% less reasoning time
+ */
+function buildReasoningModelPrompts(
+  ctx: CourseContext,
+  data: z.infer<typeof BlueprintRequestSchema>,
+  composed: ReturnType<typeof composeCategoryPrompt> | null,
+  bloomsAssignmentBlock: string,
+): { systemPrompt: string; userPrompt: string } {
+  const systemPrompt = `You are a course architect. Design detailed, well-sequenced course blueprints. Return ONLY valid JSON.
+${composed?.expertiseBlock ?? ''}`;
+
+  const bloomsGuidanceBlock = composed?.chapterGuidanceBlock ?? '';
+  const sectionGuidanceBlock = composed?.sectionGuidanceBlock ?? '';
+
+  const userPrompt = `Generate a course blueprint as JSON. ${ctx.totalChapters} chapters, ${ctx.sectionsPerChapter} sections each.
+
+COURSE: "${ctx.courseTitle}"
+Overview: ${ctx.courseDescription}
+Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+Audience: ${ctx.targetAudience} | Difficulty: ${ctx.difficulty}
+${data.duration ? `Duration: ${data.duration}` : ''}
+
+Objectives:
+${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+BLOOM'S ASSIGNMENTS (use EXACTLY):
+${bloomsAssignmentBlock}
+${bloomsGuidanceBlock ? `\n${bloomsGuidanceBlock}` : ''}${sectionGuidanceBlock ? `\n${sectionGuidanceBlock}` : ''}
+
+FORMAT — follow this example EXACTLY:
+{
+  "chapters": [
+    {
+      "position": 1,
+      "title": "Foundations of Generative Models: VAEs, Diffusion, and Latent Spaces",
+      "goal": "Show that generative models are probability factorization strategies over latent variables",
+      "bloomsLevel": "UNDERSTAND",
+      "sections": [
+        {"position": 1, "title": "Autoregressive Models (GPT-style): Sequential Factorization", "keyTopics": ["P(x_{1:T}) = prod_t P(x_t|x_{<t})", "Teacher forcing vs free-running (exposure bias)", "Causal masking mechanics"]},
+        {"position": 2, "title": "Variational Autoencoders (VAE): Evidence Lower Bound", "keyTopics": ["Latent z, encoder q(z|x), decoder p(x|z)", "ELBO derivation (intuition before algebra)", "Reparameterization trick (why it exists)"]}
+      ]
+    }
+  ],
+  "confidence": 85,
+  "riskAreas": ["ELBO derivation requires comfort with KL divergence"]
+}
+
+RULES:
+- Chapter titles: 2-3 core keywords. "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
+- Section titles: exact concept + parenthetical context. "[Concept] ([Abbreviation]): [Angle]"
+- Key topics: 3-5 per section, expert-level, with teaching depth notes in parentheses
+- Goals: conceptual thesis — "Show that [A] is really [B]"
+- Prerequisites BEFORE dependent concepts
+- EXACTLY ${ctx.sectionsPerChapter} sections per chapter, EXACTLY 3-5 keyTopics per section
+
+Generate ALL ${ctx.totalChapters} chapters now.`;
+
+  return { systemPrompt, userPrompt };
+}
+
+/**
+ * Build prompts for standard models (Claude, GPT, DeepSeek-Chat, Gemini).
+ *
+ * Rich prompt with explicit format rules, BAD/GOOD examples, and detailed
+ * quality constraints. Standard models benefit from verbose instructions
+ * without the reasoning-token overhead penalty.
+ */
+function buildStandardModelPrompts(
+  ctx: CourseContext,
+  data: z.infer<typeof BlueprintRequestSchema>,
+  composed: ReturnType<typeof composeCategoryPrompt> | null,
+  bloomsAssignmentBlock: string,
+): { systemPrompt: string; userPrompt: string } {
+  const systemPrompt = `You are SAM, a world-class course architect. You design rigorous, well-sequenced blueprints at MIT/Stanford quality.
+
+## FORMAT RULES
+CHAPTER TITLES: List 2-3 core technical keywords. Pattern: "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
+SECTION TITLES: Name the exact technical concept with parenthetical context. Pattern: "[Concept] ([Abbreviation]): [Specific Angle]"
+KEY TOPICS: Expert-level with teaching depth notes in parentheses. Include math notation where relevant.
+GOALS: Conceptual thesis — "Show that [concept A] is really [deeper insight B]"
+
+## BLOOM'S TAXONOMY
+REMEMBER → UNDERSTAND → APPLY → ANALYZE → EVALUATE → CREATE
+
+## QUALITY STANDARDS
+- Prerequisites taught BEFORE they are needed
+- Every key topic = something a domain expert would put on a syllabus
+- Flag struggle areas as risks with specific reasons
+${composed?.expertiseBlock ?? ''}`;
+
+  const bloomsGuidanceBlock = composed?.chapterGuidanceBlock
+    ? `\n## Domain-Specific Pedagogy\n${composed.chapterGuidanceBlock}`
+    : '';
+
+  const sectionGuidanceBlock = composed?.sectionGuidanceBlock
+    ? `\n## Section-Level Domain Guidance\n${composed.sectionGuidanceBlock}`
+    : '';
+
+  const userPrompt = `Design a detailed blueprint for this course.
+
+## REQUIRED OUTPUT FORMAT (Return ONLY valid JSON — no markdown fences)
+
+CRITICAL: Every chapter MUST contain EXACTLY ${ctx.sectionsPerChapter} sections. Every section MUST have a descriptive title AND 3-5 keyTopics. Do NOT omit sections or leave keyTopics empty.
+
+{
+  "chapters": [
+    {
+      "position": 1,
+      "title": "Modern Generative Families: Diffusion, VAEs, and Alignment Math",
+      "goal": "Show that different generative models are different probability factorization strategies",
+      "bloomsLevel": "UNDERSTAND",
+      "sections": [
+        {
+          "position": 1,
+          "title": "Autoregressive Models (GPT-style) as Factorization",
+          "keyTopics": ["P(x_{1:T}) = prod_t P(x_t|x_{<t})", "Teacher forcing training vs free-running generation", "Exposure bias intuition"]
+        },
+        {
+          "position": 2,
+          "title": "Variational Autoencoders (VAE): Latent Variable Math",
+          "keyTopics": ["Latent z, decoder p(x|z)", "ELBO intuition (lower bound)", "Reparameterization trick (why it exists)"]
+        }
+      ]
+    }
+  ],
+  "confidence": 85,
+  "riskAreas": ["The ELBO derivation requires comfort with KL divergence — students may need a separate primer on information theory basics"]
+}
+
+## COURSE DETAILS
+
+Title: ${ctx.courseTitle}
+Overview: ${ctx.courseDescription}
+Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+Target Audience: ${ctx.targetAudience}
+Difficulty: ${ctx.difficulty}
+${data.duration ? `Duration: ${data.duration}` : ''}
+Chapters: ${ctx.totalChapters}
+Sections per Chapter: ${ctx.sectionsPerChapter}
+
+Learning Objectives:
+${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+## BLOOM'S LEVEL ASSIGNMENTS (MANDATORY — use EXACTLY these levels)
+
+Each chapter MUST use the assigned Bloom's level below:
+
+${bloomsAssignmentBlock}
+
+Bloom's Focus Levels: ${data.bloomsFocus.join(', ')}
+${bloomsGuidanceBlock}
+${sectionGuidanceBlock}
+
+## SECTION TITLE FORMAT (CRITICAL)
+
+Each section title MUST name the exact technical concept and its specific angle:
+- Pattern: "[Technical Concept] ([Abbreviation/Context]): [Specific Angle or Framing]"
+- Include abbreviations, alternate names, or scope markers in parentheses
+
+BAD: "Introduction to Neural Networks", "Advanced Topics in ML", "Working with Data"
+GOOD: "Autoregressive Models (GPT-style) as Factorization", "Classifier-Free Guidance (High Level Math)", "Alignment Math: Preference Modeling + RLHF (Conceptual but Rigorous)"
+
+## KEY TOPICS FORMAT (CRITICAL)
+
+3-5 keyTopics per section. Each must be:
+- Expert-level concept from a university syllabus
+- Include teaching depth notes: "(why it exists)", "(intuition first)", "(lower bound)"
+- Include math notation where relevant
+
+BAD: "basics of neural networks", "understanding data"
+GOOD: "ELBO intuition (lower bound)", "Reparameterization trick (why it exists)", "Score matching intuition (predict noise / score)"
+
+## CHAPTER REQUIREMENTS
+
+Each chapter MUST have:
+1. Keyword-rich title: "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
+2. Conceptual thesis goal: "Show that X is really Y"
+3. The EXACT Bloom's level assigned above
+4. EXACTLY ${ctx.sectionsPerChapter} sections
+
+Ensure prerequisite concepts are taught BEFORE they are needed in later chapters.
+Flag areas where students typically struggle as risks — be specific about WHY.
+
+Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each containing ${ctx.sectionsPerChapter} sections with full keyTopics.`;
+
+  return { systemPrompt, userPrompt };
 }
 
 // =============================================================================
