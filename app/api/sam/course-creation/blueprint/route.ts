@@ -200,21 +200,17 @@ export async function POST(request: NextRequest) {
     const bloomsAssignmentBlock = formatBloomsAssignments(bloomsDistribution);
 
     // =========================================================================
-    // MODEL-AWARE PROMPT STRATEGY
+    // PROMPT STRATEGY — "Simple prompt, smart parser"
     // =========================================================================
-    // Reasoning models (deepseek-reasoner) spend ~60-80% of time on internal
-    // reasoning tokens BEFORE producing output. Verbose prompts with redundant
-    // BAD/GOOD examples cause exponentially more reasoning time.
-    //
-    // Strategy:
-    //   - Reasoning models: Concise system prompt + JSON example only (the example
-    //     IS the format spec). No separate BAD/GOOD blocks. ~40% fewer prompt tokens.
-    //   - Regular models: Rich prompt with explicit format rules and BAD/GOOD examples.
+    // The model already knows how to design expert-level courses. A natural,
+    // concise prompt produces better output than verbose format rules and
+    // BAD/GOOD examples. We let the model do what it does best and handle
+    // structure enforcement in the parser.
     // =========================================================================
 
-    const { systemPrompt, userPrompt } = isReasoningModel
-      ? buildReasoningModelPrompts(ctx, data, composed, bloomsAssignmentBlock)
-      : buildStandardModelPrompts(ctx, data, composed, bloomsAssignmentBlock);
+    const { systemPrompt, userPrompt } = buildBlueprintPrompts(
+      ctx, data, composed, bloomsAssignmentBlock, isReasoningModel,
+    );
 
     // =========================================================================
     // MODEL-AWARE TIMEOUT & TOKEN SCALING
@@ -330,200 +326,80 @@ export async function POST(request: NextRequest) {
 }
 
 // =============================================================================
-// MODEL-AWARE PROMPT BUILDERS
+// PROMPT BUILDER — "Simple prompt, smart parser"
 // =============================================================================
 
 /**
- * Build prompts optimized for reasoning models (deepseek-reasoner).
+ * Build prompts using a natural, concise approach.
  *
- * Key differences from standard prompts:
- * 1. Minimal system prompt — reasoning models do internal chain-of-thought
- * 2. ONE concrete JSON example IS the spec (no separate BAD/GOOD blocks)
- * 3. Direct, imperative instructions (no meta-commentary about "quality")
- * 4. ~40% fewer prompt tokens → ~40% less reasoning time
+ * Key insight: The model already knows how to design expert-level courses.
+ * A natural request like "Design a course on X with Y chapters" produces
+ * better output than verbose FORMAT RULES and BAD/GOOD examples.
+ *
+ * We keep the prompt simple and let the parser handle structure enforcement.
+ * For reasoning models, we use even less meta-instruction to reduce thinking time.
  */
-function buildReasoningModelPrompts(
+function buildBlueprintPrompts(
   ctx: CourseContext,
   data: z.infer<typeof BlueprintRequestSchema>,
   composed: ReturnType<typeof composeCategoryPrompt> | null,
   bloomsAssignmentBlock: string,
+  isReasoningModel: boolean,
 ): { systemPrompt: string; userPrompt: string } {
-  const systemPrompt = `You are a course architect. Design detailed, well-sequenced course blueprints. Return ONLY valid JSON.
+  // Minimal system prompt — just establish the role + inject domain expertise
+  const systemPrompt = `You are a world-class course architect who designs rigorous, well-sequenced courses at MIT/Stanford quality. Return ONLY valid JSON — no markdown fences, no extra text.
 ${composed?.expertiseBlock ?? ''}`;
 
+  // Domain pedagogy blocks (if available from loaded skill files)
   const bloomsGuidanceBlock = composed?.chapterGuidanceBlock ?? '';
   const sectionGuidanceBlock = composed?.sectionGuidanceBlock ?? '';
 
-  const userPrompt = `Generate a course blueprint as JSON. ${ctx.totalChapters} chapters, ${ctx.sectionsPerChapter} sections each.
+  // Natural, concise user prompt — mirrors how a human would ask
+  const userPrompt = `I am creating a course on "${ctx.courseTitle}" with ${ctx.totalChapters} chapters and ${ctx.sectionsPerChapter} sections in each chapter.
 
-COURSE: "${ctx.courseTitle}"
-Overview: ${ctx.courseDescription}
-Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
-Audience: ${ctx.targetAudience} | Difficulty: ${ctx.difficulty}
-${data.duration ? `Duration: ${data.duration}` : ''}
+Create a full course blueprint with chapter titles, section titles, and 3-5 key topics for each section. For each chapter, tell me what the deeper insight or thesis is. What should I teach in each chapter and each section?
 
-Objectives:
-${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
-
-BLOOM'S ASSIGNMENTS (use EXACTLY):
-${bloomsAssignmentBlock}
-${bloomsGuidanceBlock ? `\n${bloomsGuidanceBlock}` : ''}${sectionGuidanceBlock ? `\n${sectionGuidanceBlock}` : ''}
-
-FORMAT — follow this example EXACTLY:
-{
-  "chapters": [
-    {
-      "position": 1,
-      "title": "Foundations of Generative Models: VAEs, Diffusion, and Latent Spaces",
-      "goal": "Show that generative models are probability factorization strategies over latent variables",
-      "bloomsLevel": "UNDERSTAND",
-      "sections": [
-        {"position": 1, "title": "Autoregressive Models (GPT-style): Sequential Factorization", "keyTopics": ["P(x_{1:T}) = prod_t P(x_t|x_{<t})", "Teacher forcing vs free-running (exposure bias)", "Causal masking mechanics"]},
-        {"position": 2, "title": "Variational Autoencoders (VAE): Evidence Lower Bound", "keyTopics": ["Latent z, encoder q(z|x), decoder p(x|z)", "ELBO derivation (intuition before algebra)", "Reparameterization trick (why it exists)"]}
-      ]
-    }
-  ],
-  "confidence": 85,
-  "riskAreas": ["ELBO derivation requires comfort with KL divergence"]
-}
-
-RULES:
-- Chapter titles: 2-3 core keywords. "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
-- Section titles: exact concept + parenthetical context. "[Concept] ([Abbreviation]): [Angle]"
-- Key topics: 3-5 per section, expert-level, with teaching depth notes in parentheses
-- Goals: conceptual thesis — "Show that [A] is really [B]"
-- Prerequisites BEFORE dependent concepts
-- EXACTLY ${ctx.sectionsPerChapter} sections per chapter, EXACTLY 3-5 keyTopics per section
-
-Generate ALL ${ctx.totalChapters} chapters now.`;
-
-  return { systemPrompt, userPrompt };
-}
-
-/**
- * Build prompts for standard models (Claude, GPT, DeepSeek-Chat, Gemini).
- *
- * Rich prompt with explicit format rules, BAD/GOOD examples, and detailed
- * quality constraints. Standard models benefit from verbose instructions
- * without the reasoning-token overhead penalty.
- */
-function buildStandardModelPrompts(
-  ctx: CourseContext,
-  data: z.infer<typeof BlueprintRequestSchema>,
-  composed: ReturnType<typeof composeCategoryPrompt> | null,
-  bloomsAssignmentBlock: string,
-): { systemPrompt: string; userPrompt: string } {
-  const systemPrompt = `You are SAM, a world-class course architect. You design rigorous, well-sequenced blueprints at MIT/Stanford quality.
-
-## FORMAT RULES
-CHAPTER TITLES: List 2-3 core technical keywords. Pattern: "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
-SECTION TITLES: Name the exact technical concept with parenthetical context. Pattern: "[Concept] ([Abbreviation]): [Specific Angle]"
-KEY TOPICS: Expert-level with teaching depth notes in parentheses. Include math notation where relevant.
-GOALS: Conceptual thesis — "Show that [concept A] is really [deeper insight B]"
-
-## BLOOM'S TAXONOMY
-REMEMBER → UNDERSTAND → APPLY → ANALYZE → EVALUATE → CREATE
-
-## QUALITY STANDARDS
-- Prerequisites taught BEFORE they are needed
-- Every key topic = something a domain expert would put on a syllabus
-- Flag struggle areas as risks with specific reasons
-${composed?.expertiseBlock ?? ''}`;
-
-  const bloomsGuidanceBlock = composed?.chapterGuidanceBlock
-    ? `\n## Domain-Specific Pedagogy\n${composed.chapterGuidanceBlock}`
-    : '';
-
-  const sectionGuidanceBlock = composed?.sectionGuidanceBlock
-    ? `\n## Section-Level Domain Guidance\n${composed.sectionGuidanceBlock}`
-    : '';
-
-  const userPrompt = `Design a detailed blueprint for this course.
-
-## REQUIRED OUTPUT FORMAT (Return ONLY valid JSON — no markdown fences)
-
-CRITICAL: Every chapter MUST contain EXACTLY ${ctx.sectionsPerChapter} sections. Every section MUST have a descriptive title AND 3-5 keyTopics. Do NOT omit sections or leave keyTopics empty.
-
-{
-  "chapters": [
-    {
-      "position": 1,
-      "title": "Modern Generative Families: Diffusion, VAEs, and Alignment Math",
-      "goal": "Show that different generative models are different probability factorization strategies",
-      "bloomsLevel": "UNDERSTAND",
-      "sections": [
-        {
-          "position": 1,
-          "title": "Autoregressive Models (GPT-style) as Factorization",
-          "keyTopics": ["P(x_{1:T}) = prod_t P(x_t|x_{<t})", "Teacher forcing training vs free-running generation", "Exposure bias intuition"]
-        },
-        {
-          "position": 2,
-          "title": "Variational Autoencoders (VAE): Latent Variable Math",
-          "keyTopics": ["Latent z, decoder p(x|z)", "ELBO intuition (lower bound)", "Reparameterization trick (why it exists)"]
-        }
-      ]
-    }
-  ],
-  "confidence": 85,
-  "riskAreas": ["The ELBO derivation requires comfort with KL divergence — students may need a separate primer on information theory basics"]
-}
-
-## COURSE DETAILS
-
-Title: ${ctx.courseTitle}
-Overview: ${ctx.courseDescription}
-Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
-Target Audience: ${ctx.targetAudience}
-Difficulty: ${ctx.difficulty}
-${data.duration ? `Duration: ${data.duration}` : ''}
-Chapters: ${ctx.totalChapters}
-Sections per Chapter: ${ctx.sectionsPerChapter}
+COURSE DETAILS:
+- Title: "${ctx.courseTitle}"
+- Overview: ${ctx.courseDescription}
+- Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+- Audience: ${ctx.targetAudience}
+- Difficulty: ${ctx.difficulty}
+${data.duration ? `- Duration: ${data.duration}` : ''}
 
 Learning Objectives:
 ${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
-## BLOOM'S LEVEL ASSIGNMENTS (MANDATORY — use EXACTLY these levels)
-
-Each chapter MUST use the assigned Bloom's level below:
-
+BLOOM'S LEVEL FOR EACH CHAPTER (use exactly these):
 ${bloomsAssignmentBlock}
+${bloomsGuidanceBlock ? `\n${bloomsGuidanceBlock}` : ''}${sectionGuidanceBlock ? `\n${sectionGuidanceBlock}` : ''}
 
-Bloom's Focus Levels: ${data.bloomsFocus.join(', ')}
-${bloomsGuidanceBlock}
-${sectionGuidanceBlock}
+${isReasoningModel ? '' : `QUALITY EXPECTATIONS:
+- Chapter titles should list the 2-3 core technical keywords covered
+- Section titles should name the exact concept with parenthetical context where helpful
+- Key topics should be expert-level — things a domain expert would put on a university syllabus
+- Include teaching depth notes in key topics like "(why it exists)", "(intuition first)"
+- Include math notation in key topics where relevant
+- Ensure prerequisites are taught BEFORE they are needed in later chapters
+`}Return the result as this JSON structure:
+{
+  "chapters": [
+    {
+      "position": 1,
+      "title": "Chapter title with core keywords",
+      "goal": "The deeper insight or thesis this chapter reveals",
+      "bloomsLevel": "UNDERSTAND",
+      "sections": [
+        {"position": 1, "title": "Exact concept name with context", "keyTopics": ["Topic 1 (teaching note)", "Topic 2", "Topic 3"]},
+        {"position": 2, "title": "Next concept", "keyTopics": ["Topic 1", "Topic 2", "Topic 3"]}
+      ]
+    }
+  ],
+  "confidence": 85,
+  "riskAreas": ["Areas where students typically struggle and why"]
+}
 
-## SECTION TITLE FORMAT (CRITICAL)
-
-Each section title MUST name the exact technical concept and its specific angle:
-- Pattern: "[Technical Concept] ([Abbreviation/Context]): [Specific Angle or Framing]"
-- Include abbreviations, alternate names, or scope markers in parentheses
-
-BAD: "Introduction to Neural Networks", "Advanced Topics in ML", "Working with Data"
-GOOD: "Autoregressive Models (GPT-style) as Factorization", "Classifier-Free Guidance (High Level Math)", "Alignment Math: Preference Modeling + RLHF (Conceptual but Rigorous)"
-
-## KEY TOPICS FORMAT (CRITICAL)
-
-3-5 keyTopics per section. Each must be:
-- Expert-level concept from a university syllabus
-- Include teaching depth notes: "(why it exists)", "(intuition first)", "(lower bound)"
-- Include math notation where relevant
-
-BAD: "basics of neural networks", "understanding data"
-GOOD: "ELBO intuition (lower bound)", "Reparameterization trick (why it exists)", "Score matching intuition (predict noise / score)"
-
-## CHAPTER REQUIREMENTS
-
-Each chapter MUST have:
-1. Keyword-rich title: "[Theme]: [Keyword1], [Keyword2], and [Keyword3]"
-2. Conceptual thesis goal: "Show that X is really Y"
-3. The EXACT Bloom's level assigned above
-4. EXACTLY ${ctx.sectionsPerChapter} sections
-
-Ensure prerequisite concepts are taught BEFORE they are needed in later chapters.
-Flag areas where students typically struggle as risks — be specific about WHY.
-
-Generate the COMPLETE JSON now with ALL ${ctx.totalChapters} chapters, each containing ${ctx.sectionsPerChapter} sections with full keyTopics.`;
+Generate ALL ${ctx.totalChapters} chapters with ALL ${ctx.sectionsPerChapter} sections each. Every section must have 3-5 keyTopics.`;
 
   return { systemPrompt, userPrompt };
 }
