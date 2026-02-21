@@ -30,6 +30,7 @@ import {
   AI_PROVIDERS,
   isProviderAvailable,
   getConfiguredProviders,
+  isReasoningModel as checkIsReasoningModel,
 } from '@/lib/sam/providers/ai-registry';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
@@ -801,11 +802,10 @@ export const aiClient = {
         capability,
       });
 
-      // deepseek-reasoner uses reasoning tokens that consume the maxTokens budget.
-      // Automatically scale up so the model has room for both reasoning AND output.
+      // Reasoning models (deepseek-reasoner, o1, etc.) use reasoning tokens that
+      // consume the maxTokens budget. Scale up so the model has room for both.
       const resolvedModel = adapter.getModel();
-      const isReasoningModel = resolvedModel === 'deepseek-reasoner';
-      const effectiveMaxTokens = isReasoningModel && maxTokens
+      const effectiveMaxTokens = checkIsReasoningModel(resolvedModel) && maxTokens
         ? Math.min(8192, maxTokens * 4)
         : maxTokens;
 
@@ -985,11 +985,10 @@ export const aiClient = {
         getAdapter({ provider, userId, extended, capability }),
       );
 
-      // deepseek-reasoner uses reasoning tokens that consume the maxTokens budget.
-      // Automatically scale up so the model has room for both reasoning AND output.
+      // Reasoning models (deepseek-reasoner, o1, etc.) use reasoning tokens that
+      // consume the maxTokens budget. Scale up so the model has room for both.
       const resolvedModel = adapterInstance.getModel();
-      const isReasoningModel = resolvedModel === 'deepseek-reasoner';
-      const effectiveMaxTokens = isReasoningModel && maxTokens
+      const effectiveMaxTokens = checkIsReasoningModel(resolvedModel) && maxTokens
         ? Math.min(8192, maxTokens * 4)
         : maxTokens;
 
@@ -1186,7 +1185,7 @@ export const aiClient = {
     return {
       provider,
       model,
-      isReasoningModel: model === 'deepseek-reasoner',
+      isReasoningModel: checkIsReasoningModel(model),
     };
   },
 

@@ -156,6 +156,7 @@ function InlineEdit({ value, onSave, className, inputClassName, placeholder }: I
 export function CourseBlueprintStep({ formData, setFormData }: StepComponentProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState('');
   const [expandedChapters, setExpandedChapters] = useState<Set<number>>(new Set([1]));
   const [newTopicInputs, setNewTopicInputs] = useState<Record<string, string>>({});
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
@@ -219,8 +220,12 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
   const generateBlueprint = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
+    setProgressMessage('Starting blueprint generation...');
 
     try {
+      // Use SSE (Server-Sent Events) to keep the connection alive during long AI calls.
+      // Railway/Cloudflare proxy kills idle connections after ~100s, causing 524 errors.
+      // Heartbeats from the server prevent this.
       const response = await fetch('/api/sam/course-creation/blueprint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,14 +247,62 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(data.error || `HTTP ${response.status}`);
+        // Non-SSE error responses (auth, validation) still return JSON
+        const errData = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(errData.error || `HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      if (!data.success || !data.blueprint) {
-        throw new Error(data.error || 'No blueprint returned');
+      // Parse SSE stream
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let completedData: { blueprint?: Record<string, unknown>; critic?: Record<string, unknown> } | null = null;
+      let sseError: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE events in the buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? ''; // Keep incomplete last line
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            try {
+              const payload = JSON.parse(line.slice(6));
+              if (currentEvent === 'progress' && payload.message) {
+                setProgressMessage(payload.message);
+              } else if (currentEvent === 'complete') {
+                completedData = payload;
+              } else if (currentEvent === 'error') {
+                sseError = payload.error || 'Blueprint generation failed';
+              }
+            } catch {
+              // Ignore malformed SSE data lines
+            }
+            currentEvent = '';
+          }
+          // SSE comments (heartbeats) start with ':' — silently ignore
+        }
       }
+
+      if (sseError) {
+        throw new Error(sseError);
+      }
+
+      if (!completedData?.blueprint) {
+        throw new Error('No blueprint returned');
+      }
+
+      const data = completedData;
 
       setFormData(prev => {
         // Snapshot existing blueprint before overwriting
@@ -263,22 +316,24 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
         }
 
         // Parse critic result from API response
-        const criticResult: BlueprintCriticResult | undefined = data.critic ? {
-          verdict: data.critic.verdict,
-          score: data.critic.score,
-          confidence: data.critic.confidence,
-          reasoning: data.critic.reasoning,
-          dimensions: data.critic.dimensions,
-          improvements: data.critic.improvements ?? [],
+        const critic = data.critic as Record<string, unknown> | undefined;
+        const criticResult: BlueprintCriticResult | undefined = critic ? {
+          verdict: critic.verdict as string,
+          score: critic.score as number,
+          confidence: critic.confidence as number,
+          reasoning: critic.reasoning as string,
+          dimensions: critic.dimensions as Record<string, number>,
+          improvements: (critic.improvements as string[]) ?? [],
         } : undefined;
 
+        const bp = data.blueprint as Record<string, unknown>;
         const newBlueprint: TeacherBlueprint = {
-          chapters: data.blueprint.chapters,
-          northStarProject: data.blueprint.northStarProject,
+          chapters: bp.chapters as TeacherBlueprint['chapters'],
+          northStarProject: bp.northStarProject as string | undefined,
           generatedAt: new Date().toISOString(),
-          confidence: data.blueprint.confidence,
+          confidence: bp.confidence as number,
           isEdited: false,
-          riskAreas: data.blueprint.riskAreas ?? [],
+          riskAreas: (bp.riskAreas as string[]) ?? [],
           criticResult,
           currentVersion: nextVersion,
           versions: versions.length > 0 ? versions : undefined,
@@ -288,8 +343,10 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       });
 
       setExpandedChapters(new Set([1]));
+      const bp = completedData.blueprint as Record<string, unknown>;
+      const chapters = bp.chapters as Array<{ sections: unknown[] }>;
       toast.success('Blueprint generated', {
-        description: `${data.blueprint.chapters.length} chapters with ${data.blueprint.chapters.reduce((sum: number, ch: { sections: unknown[] }) => sum + ch.sections.length, 0)} sections`,
+        description: `${chapters.length} chapters with ${chapters.reduce((sum, ch) => sum + ch.sections.length, 0)} sections`,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to generate blueprint';
@@ -298,6 +355,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       toast.error('Blueprint generation failed', { description: msg });
     } finally {
       setIsGenerating(false);
+      setProgressMessage('');
     }
   }, [formData, setFormData, snapshotVersion]);
 
@@ -456,7 +514,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              AI is designing your course structure...
+              {progressMessage || 'AI is designing your course structure...'}
             </p>
           </div>
         </div>

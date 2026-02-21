@@ -106,6 +106,17 @@ export function buildBlueprintBlock(
     `Estimated complexity: ${entry.estimatedComplexity}`,
   ];
 
+  // Include teacher-approved section structure so Stage 1 framing
+  // is aware of the per-section titles and topics (not just aggregated concepts)
+  if (entry.sectionPlan && entry.sectionPlan.length > 0) {
+    lines.push('', '### Teacher-Approved Section Structure:');
+    for (const sec of entry.sectionPlan) {
+      const topics = sec.keyTopics.length > 0 ? sec.keyTopics.join(', ') : 'TBD';
+      lines.push(`  - Section ${sec.position}: "${sec.title}" — Topics: ${topics}`);
+    }
+    lines.push('Follow this section structure when designing the chapter learning arc.');
+  }
+
   if (entry.dependencyReason) {
     lines.push(`Sequencing rationale: ${entry.dependencyReason}`);
   }
@@ -588,6 +599,11 @@ export function convertTeacherBlueprint(
       rationale,
       dependencyReason,
       recommendedSections: ch.sections.length,
+      sectionPlan: ch.sections.map(sec => ({
+        position: sec.position,
+        title: sec.title,
+        keyTopics: sec.keyTopics,
+      })),
     };
   });
 

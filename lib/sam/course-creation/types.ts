@@ -604,6 +604,8 @@ export interface ChapterPlanEntry {
   dependencyReason?: string;
   /** Role of this chapter in the overall pedagogical arc (e.g. "bridge", "capstone", "foundation") */
   pedagogicalArc?: string;
+  /** Teacher-approved section structure (from blueprint). Preserves per-section titles and key topics. */
+  sectionPlan?: Array<{ position: number; title: string; keyTopics: string[] }>;
 }
 
 // ============================================================================

@@ -2,6 +2,7 @@
  * Safe AI JSON response parser.
  *
  * Handles common AI response quirks:
+ * - Reasoning model <think>...</think> blocks (deepseek-reasoner, o1, etc.)
  * - Markdown code fences (```json ... ```)
  * - Leading/trailing whitespace
  * - Optional Zod schema validation
@@ -11,6 +12,20 @@
 
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+
+/**
+ * Strip <think>...</think> blocks emitted by reasoning models (deepseek-reasoner, o1, etc.).
+ * Handles both complete blocks and truncated (unclosed) think tags from token-limited responses.
+ */
+function stripThinkBlocks(raw: string): string {
+  // Strip complete <think>...</think> blocks (non-greedy to handle multiple blocks)
+  let text = raw.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Strip unclosed <think> blocks (truncated response hit token limit before closing tag)
+  text = text.replace(/<think>[\s\S]*$/gi, '');
+
+  return text;
+}
 
 /**
  * Strip markdown code fences from AI response text.
@@ -54,7 +69,9 @@ export function parseAIJsonResponse<T>(
     return null;
   }
 
-  const stripped = stripMarkdownFences(raw);
+  // Strip reasoning model <think> blocks FIRST, before any other processing
+  const withoutThinking = stripThinkBlocks(raw);
+  const stripped = stripMarkdownFences(withoutThinking);
 
   // Try to extract JSON object or array if there's surrounding text
   let jsonCandidate = stripped;

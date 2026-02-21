@@ -438,7 +438,9 @@ export async function generateSingleChapter(
     data: { stage: 1, chapter: chNum, title: chapter.title, id: dbChapter.id, qualityScore: chQuality.overall },
   });
 
-  await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1' });
+  // Fire-and-forget: usage recording is for analytics/rate-limiting, not pipeline correctness.
+  // Awaiting each call adds ~50-100ms per stage × 54 calls = 3-5s total pipeline overhead.
+  recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1' }).catch(() => {});
   // Budget: only estimate tokens for streaming path (actual usage already recorded in non-streaming)
   if (enableStreamingThinking) {
     trackBudget(7000);
@@ -571,7 +573,7 @@ export async function generateSingleChapter(
         });
       }
 
-      await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' });
+      recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-1-critic-retry' }).catch(() => {});
       trackBudget(6000);
     }
     } // end if (criticReview)
@@ -857,7 +859,7 @@ export async function generateSingleChapter(
       data: { stage: 3, chapter: chNum, section: section.position, title: section.title, id: section.id, qualityScore: detQuality.overall },
     });
 
-    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' });
+    recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-3' }).catch(() => {});
     if (enableStreamingThinking) {
       trackBudget(7000);
     } else if (budgetTracker && !budgetTracker.canProceed()) {
@@ -1099,7 +1101,7 @@ export async function generateSingleChapter(
       data: { stage: 2, chapter: chNum, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
     });
 
-    await recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' });
+    recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' }).catch(() => {});
     if (enableStreamingThinking) {
       trackBudget(5000);
     } else if (budgetTracker && !budgetTracker.canProceed()) {

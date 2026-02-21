@@ -184,32 +184,55 @@ interface BlueprintResponse {
 // =============================================================================
 
 export async function POST(request: NextRequest) {
-  try {
-    // Rate limit
-    const rateLimitResponse = await withRateLimit(request, 'ai');
-    if (rateLimitResponse) return rateLimitResponse;
+  // --- Pre-stream validation (returns JSON errors for non-SSE clients) ---
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
 
-    // Auth
-    const user = await currentUser();
-    if (!user?.id) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
 
-    // Subscription gate
-    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
-    if (!gateResult.allowed && gateResult.response) return gateResult.response;
+  const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+  if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
-    // Validate body
-    const body = await request.json();
-    const parseResult = BlueprintRequestSchema.safeParse(body);
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { success: false, error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
-        { status: 400 },
-      );
-    }
+  const body = await request.json();
+  const parseResult = BlueprintRequestSchema.safeParse(body);
+  if (!parseResult.success) {
+    return NextResponse.json(
+      { success: false, error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
-    const data = parseResult.data;
+  const data = parseResult.data;
+
+  // --- SSE stream: keeps connection alive during long AI calls ---
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      let streamClosed = false;
+
+      function sendSSE(event: string, payload: Record<string, unknown>) {
+        if (streamClosed) return;
+        try {
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`));
+        } catch { streamClosed = true; }
+      }
+
+      // Heartbeat every 10s prevents Railway/Cloudflare proxy from killing the connection (524)
+      const heartbeat = setInterval(() => {
+        if (streamClosed) { clearInterval(heartbeat); return; }
+        try { controller.enqueue(encoder.encode(': heartbeat\n\n')); }
+        catch { streamClosed = true; clearInterval(heartbeat); }
+      }, 10_000);
+
+      request.signal.addEventListener('abort', () => {
+        streamClosed = true;
+        clearInterval(heartbeat);
+      });
+
+      try {
 
     // =========================================================================
     // PRE-RESOLVE MODEL — adapt strategy before making the AI call
@@ -269,6 +292,8 @@ export async function POST(request: NextRequest) {
     // =========================================================================
     // MODEL-AWARE TIMEOUT & TOKEN SCALING
     // =========================================================================
+    const routeStartTime = Date.now();
+    const ROUTE_BUDGET_MS = (maxDuration - 10) * 1000; // 10s safety margin for post-processing
     const totalSections = data.chapterCount * data.sectionsPerChapter;
 
     // Reasoning models: 2-4 min (reasoning tokens dominate). Regular: 30-90s.
@@ -289,6 +314,8 @@ export async function POST(request: NextRequest) {
       maxTokens: blueprintMaxTokens,
       totalSections,
     });
+
+    sendSSE('progress', { stage: 'generating', message: 'Generating course blueprint...', percentage: 10 });
 
     const aiPromise = runSAMChatWithMetadata({
       userId: user.id,
@@ -329,7 +356,11 @@ export async function POST(request: NextRequest) {
         model: resolvedModel,
       });
       const fallback = buildHeuristicBlueprint(data);
-      return NextResponse.json({ success: true, blueprint: fallback });
+      sendSSE('progress', { stage: 'complete', message: 'Blueprint ready (fallback)!', percentage: 100 });
+      sendSSE('complete', { success: true, blueprint: fallback });
+      clearInterval(heartbeat);
+      try { controller.close(); } catch { /* already closed */ }
+      return;
     }
 
     // Parse response — enforce pre-computed Bloom's distribution
@@ -340,8 +371,14 @@ export async function POST(request: NextRequest) {
         responsePreview: responseText.slice(0, 500),
       });
       const fallback = buildHeuristicBlueprint(data);
-      return NextResponse.json({ success: true, blueprint: fallback });
+      sendSSE('progress', { stage: 'complete', message: 'Blueprint ready (fallback)!', percentage: 100 });
+      sendSSE('complete', { success: true, blueprint: fallback });
+      clearInterval(heartbeat);
+      try { controller.close(); } catch { /* already closed */ }
+      return;
     }
+
+    sendSSE('progress', { stage: 'repairing', message: 'Refining blueprint quality...', percentage: 50 });
 
     // Chapter-level quality repair: fix generic titles, missing goals/deliverables
     // before section-level fill (runs first because chapter context informs section heuristics)
@@ -365,28 +402,76 @@ export async function POST(request: NextRequest) {
     }
 
     // =========================================================================
-    // PASS 2: BLUEPRINT CRITIC REVIEW
+    sendSSE('progress', { stage: 'reviewing', message: 'Reviewing blueprint quality...', percentage: 60 });
     // =========================================================================
-    // Every blueprint gets reviewed (no borderline gate) because a bad blueprint
-    // cascades to every downstream chapter/section.
+    // PASS 2: BLUEPRINT CRITIC REVIEW (time-gated + confidence-gated)
+    // =========================================================================
+    // Skip critic + retry if:
+    //   (a) pass 1 consumed >60% of the route time budget, OR
+    //   (b) rule-based pre-score is >= 80 (blueprint is already high quality)
+    // This saves 15s+ latency per request for high-quality blueprints.
+    const elapsedAfterPass1 = Date.now() - routeStartTime;
+    const remainingBudget = ROUTE_BUDGET_MS - elapsedAfterPass1;
+    const skipCriticDueToTimeout = remainingBudget < ROUTE_BUDGET_MS * 0.4;
+
+    // Rule-based pre-score: fast, no AI call, uses the same scoring logic as retry comparison
+    const ruleBasedPreScore = buildRuleBasedBlueprintScore(blueprint, ctx, data.courseGoals);
+    const preScoreValue = scoreBlueprintQuality(ruleBasedPreScore);
+    const CRITIC_CONFIDENCE_THRESHOLD = 80;
+    const skipCriticDueToHighQuality = preScoreValue >= CRITIC_CONFIDENCE_THRESHOLD;
+
     let criticResult: BlueprintCritique | null = null;
-    try {
-      criticResult = await reviewBlueprintWithCritic({
-        userId: user.id,
-        blueprint,
-        courseContext: ctx,
-        courseGoals: data.courseGoals,
+
+    if (skipCriticDueToTimeout) {
+      logger.info('[BLUEPRINT_ROUTE] Skipping critic — pass 1 consumed >60% of route budget', {
+        elapsedMs: elapsedAfterPass1,
+        routeBudgetMs: ROUTE_BUDGET_MS,
+        remainingMs: remainingBudget,
       });
-    } catch (criticError) {
-      logger.warn('[BLUEPRINT_ROUTE] Critic review failed entirely', {
-        error: criticError instanceof Error ? criticError.message : String(criticError),
+      // Use rule-based score as the critic result
+      criticResult = ruleBasedPreScore;
+    } else if (skipCriticDueToHighQuality) {
+      logger.info('[BLUEPRINT_ROUTE] Skipping AI critic — rule-based pre-score is high', {
+        preScore: preScoreValue,
+        threshold: CRITIC_CONFIDENCE_THRESHOLD,
+        verdict: ruleBasedPreScore.verdict,
       });
+      // Use rule-based score directly (saves 15s AI call)
+      criticResult = ruleBasedPreScore;
+    } else {
+      try {
+        criticResult = await reviewBlueprintWithCritic({
+          userId: user.id,
+          blueprint,
+          courseContext: ctx,
+          courseGoals: data.courseGoals,
+        });
+      } catch (criticError) {
+        logger.warn('[BLUEPRINT_ROUTE] Critic review failed entirely', {
+          error: criticError instanceof Error ? criticError.message : String(criticError),
+        });
+        // Fall back to rule-based score on critic failure
+        criticResult = ruleBasedPreScore;
+      }
     }
 
     // =========================================================================
-    // PASS 3: CONDITIONAL RETRY (only if verdict = 'revise')
+    // PASS 3: CONDITIONAL RETRY (only if verdict = 'revise' AND time remains)
     // =========================================================================
-    if (criticResult && criticResult.verdict === 'revise') {
+    const elapsedAfterCritic = Date.now() - routeStartTime;
+    const retryBudget = ROUTE_BUDGET_MS - elapsedAfterCritic;
+    const hasTimeForRetry = retryBudget > BLUEPRINT_TIMEOUT_MS * 0.5;
+
+    if (criticResult && criticResult.verdict === 'revise' && !hasTimeForRetry) {
+      logger.info('[BLUEPRINT_ROUTE] Skipping retry — insufficient time budget', {
+        elapsedMs: elapsedAfterCritic,
+        retryBudgetMs: retryBudget,
+        requiredMs: BLUEPRINT_TIMEOUT_MS * 0.5,
+      });
+    }
+
+    if (criticResult && criticResult.verdict === 'revise' && hasTimeForRetry) {
+      sendSSE('progress', { stage: 'retrying', message: 'Improving blueprint based on review...', percentage: 70 });
       logger.info('[BLUEPRINT_ROUTE] Critic requests revision, attempting retry', {
         verdict: criticResult.verdict,
         confidence: criticResult.confidence,
@@ -408,8 +493,10 @@ export async function POST(request: NextRequest) {
           temperature: isReasoningModel ? 0.5 : 0.6,
         });
 
+        // Cap retry timeout to remaining route budget (prevents exceeding maxDuration)
+        const retryTimeoutMs = Math.min(BLUEPRINT_TIMEOUT_MS, ROUTE_BUDGET_MS - (Date.now() - routeStartTime) - 5000);
         const retryTimeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Blueprint retry timed out')), BLUEPRINT_TIMEOUT_MS);
+          setTimeout(() => reject(new Error('Blueprint retry timed out')), Math.max(retryTimeoutMs, 10_000));
         });
 
         const retryResult = await Promise.race([retryPromise, retryTimeoutPromise]);
@@ -489,15 +576,27 @@ export async function POST(request: NextRequest) {
       isReasoningModel,
     });
 
-    return NextResponse.json({ success: true, blueprint, critic: criticResponse });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[BLUEPRINT_ROUTE] Error:', { error: msg });
-    return NextResponse.json(
-      { success: false, error: 'Failed to generate blueprint' },
-      { status: 500 },
-    );
-  }
+    sendSSE('progress', { stage: 'complete', message: 'Blueprint ready!', percentage: 100 });
+    sendSSE('complete', { success: true, blueprint, critic: criticResponse });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('[BLUEPRINT_ROUTE] Error:', { error: msg });
+        sendSSE('error', { success: false, error: msg });
+      } finally {
+        clearInterval(heartbeat);
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }
 
 // =============================================================================

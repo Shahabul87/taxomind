@@ -31,6 +31,34 @@ const RequestSchema = z.object({
   decision: z.enum(['approve_continue', 'approve_heal', 'reject_abort']),
 });
 
+/**
+ * Minimal Zod schema for validating teacher blueprint data recovered from DB.
+ * Ensures the structure is sound before passing it into the pipeline.
+ * Prevents silent garbage from malformed `Course.blueprintData` JSON.
+ */
+const BlueprintSectionSchema = z.object({
+  position: z.number(),
+  title: z.string().min(1),
+  keyTopics: z.array(z.string()).default([]),
+});
+
+const BlueprintChapterSchema = z.object({
+  position: z.number(),
+  title: z.string().min(1),
+  goal: z.string().optional(),
+  bloomsLevel: z.string().optional(),
+  deliverable: z.string().optional(),
+  sections: z.array(BlueprintSectionSchema).min(1),
+});
+
+const TeacherBlueprintSchema = z.object({
+  chapters: z.array(BlueprintChapterSchema).min(1),
+  northStarProject: z.string().optional(),
+  generatedAt: z.string().optional(),
+  confidence: z.number().optional(),
+  isEdited: z.boolean().optional(),
+});
+
 function asString(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 }
@@ -59,13 +87,27 @@ function buildResumeConfig(
 ): SequentialCreationConfig {
   const c = (checkpoint?.config as Record<string, unknown> | undefined) ?? {};
 
-  // Resolve teacher blueprint: prefer checkpoint config, fall back to DB-persisted blueprint
+  // Resolve teacher blueprint: prefer checkpoint config, fall back to DB-persisted blueprint.
+  // Validate with Zod to prevent malformed data from silently degrading course quality.
   let teacherBlueprint: SequentialCreationConfig['teacherBlueprint'] | undefined;
-  if (typeof c.teacherBlueprint === 'object' && c.teacherBlueprint) {
-    teacherBlueprint = c.teacherBlueprint as SequentialCreationConfig['teacherBlueprint'];
-  } else if (courseBlueprintFromDb) {
-    teacherBlueprint = courseBlueprintFromDb as SequentialCreationConfig['teacherBlueprint'];
-    logger.info('[APPROVE_RESUME_API] Blueprint recovered from Course.blueprintData (checkpoint was missing it)');
+
+  const candidateBlueprint = (typeof c.teacherBlueprint === 'object' && c.teacherBlueprint)
+    ? c.teacherBlueprint
+    : courseBlueprintFromDb;
+
+  if (candidateBlueprint) {
+    const validation = TeacherBlueprintSchema.safeParse(candidateBlueprint);
+    if (validation.success) {
+      teacherBlueprint = candidateBlueprint as SequentialCreationConfig['teacherBlueprint'];
+      if (!c.teacherBlueprint && courseBlueprintFromDb) {
+        logger.info('[APPROVE_RESUME_API] Blueprint recovered from Course.blueprintData (checkpoint was missing it)');
+      }
+    } else {
+      logger.warn('[APPROVE_RESUME_API] Blueprint data failed Zod validation — resuming without blueprint', {
+        source: c.teacherBlueprint ? 'checkpoint' : 'Course.blueprintData',
+        errors: validation.error.issues.slice(0, 5),
+      });
+    }
   }
 
   return {

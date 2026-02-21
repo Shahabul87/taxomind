@@ -110,6 +110,32 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
 };
 
 // ============================================================================
+// REASONING MODEL REGISTRY
+// ============================================================================
+
+/**
+ * Models that use internal reasoning tokens consuming the maxTokens budget.
+ * These models need: 4x token scaling, longer timeouts, and <think> block stripping.
+ *
+ * Add new reasoning models here instead of hardcoding checks in enterprise-client.ts.
+ */
+const REASONING_MODELS: ReadonlySet<string> = new Set([
+  'deepseek-reasoner',
+  'o1',
+  'o1-mini',
+  'o3',
+  'o3-mini',
+]);
+
+/**
+ * Check if a model ID is a reasoning model that uses internal reasoning tokens.
+ * Reasoning models need: 4x maxTokens scaling, longer timeouts, <think> block stripping.
+ */
+export function isReasoningModel(modelId: string): boolean {
+  return REASONING_MODELS.has(modelId);
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
