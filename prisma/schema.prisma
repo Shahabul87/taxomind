@@ -2406,6 +2406,9 @@ model Course {
   // Quality flags from AI course creation pipeline (agentic decisions)
   qualityFlags             Json?
 
+  // AI-generated course blueprint (teacher-reviewed) — persisted for course regeneration and resume
+  blueprintData            Json?
+
   @@index([categoryId])
   @@index([organizationId])
 }

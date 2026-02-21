@@ -264,9 +264,9 @@ export async function generateSingleChapter(
 
   // Quality gate: retry with feedback-driven improvement
   const s1StrategyBase = strategyMonitor.getStrategy(1, chNum);
-  // Blueprint-driven: no retries needed (accept first attempt if score >= 45)
+  // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
   const s1Strategy = isBlueprintDriven
-    ? { ...s1StrategyBase, maxRetries: 0, retryThreshold: 45, enableSelfCritique: false }
+    ? { ...s1StrategyBase, maxRetries: 0, retryThreshold: 0, enableSelfCritique: false }
     : s1StrategyBase;
   const s1StartTime = Date.now();
   const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
@@ -719,9 +719,9 @@ export async function generateSingleChapter(
       sequenceOverride: selectedSections,
     });
     const s3StrategyBase = strategyMonitor.getStrategy(3, chNum);
-    // Blueprint-driven: no retries, lower threshold
+    // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
     const s3Strategy = isBlueprintDriven
-      ? { ...s3StrategyBase, maxRetries: 0, retryThreshold: 45 }
+      ? { ...s3StrategyBase, maxRetries: 0, retryThreshold: 0 }
       : s3StrategyBase;
     const s3StartTime = Date.now();
 
@@ -920,9 +920,9 @@ export async function generateSingleChapter(
       sequenceOverride: selectedSections,
     });
     const s2StrategyBase = strategyMonitor.getStrategy(2, chNum);
-    // Blueprint-driven: no retries, lower threshold
+    // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
     const s2Strategy = isBlueprintDriven
-      ? { ...s2StrategyBase, maxRetries: 0, retryThreshold: 45 }
+      ? { ...s2StrategyBase, maxRetries: 0, retryThreshold: 0 }
       : s2StrategyBase;
     const s2StartTime = Date.now();
 

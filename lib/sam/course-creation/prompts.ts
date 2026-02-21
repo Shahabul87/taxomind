@@ -524,29 +524,30 @@ WHY: Every section must connect to the learning arc. Isolated concepts confuse s
 const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
 
 ### Writing Lesson Content (Rich HTML Descriptions)
-A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 700-1200 words of structured HTML, organized into exactly 6 sections with these h2 headings in this exact order:
+A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 1000-1600 words of structured HTML, organized into exactly 8 sections with these h2 headings in this exact order:
 
-1. **&lt;h2&gt;Why It Was Developed&lt;/h2&gt;** — THE ORIGIN STORY
-   Do not just name the problem. Make the reader FEEL the frustration:
+1. **&lt;h2&gt;The Big Picture&lt;/h2&gt;** — HOW THE CONCEPT WAS DEVELOPED AND WHAT PROBLEM IT SOLVES
+   Do not just name the problem. Tell the ORIGIN STORY — make the reader FEEL the frustration:
    - What were people trying to do before this concept existed?
    - What specific failure or limitation forced this invention?
    - Who was working on it, and what were they struggling with?
    - What was the "aha moment" that led to the breakthrough?
    - CONCRETIZE: Use a real historical example or a specific scenario where the lack of this concept caused visible failure.
+   - End by framing the concept as the SOLUTION to a real, felt problem.
 
-2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — THE MENTAL MODEL FACTORY
-   Your job is to build a mental model so strong that the reader can PREDICT the math before seeing it:
-   - Start with: "Imagine you are [specific role] and you need to [specific task]..."
-   - Build the analogy with EXPLICIT MAPPING: Real-world element maps to Concept element
+2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — WHAT THE KEYWORDS ACTUALLY MEAN
+   Your job is to demystify every key term and build a mental model so strong the reader can PREDICT the math before seeing it:
+   - Start by listing the 3-5 key terms/keywords of this topic and explain what each ACTUALLY means in plain language — not textbook definitions, but what they represent in reality.
+   - Build an analogy with EXPLICIT MAPPING: Real-world element maps to Concept element
    - Include a PREDICTION PROMPT: "Before we see the formal definition, what do you think should happen when [X changes]?"
    - Include a PHYSICAL INTUITION: Something the reader can feel/visualize in their body or daily experience
    - The analogy must be PRECISE enough that 4+ elements of the concept map to specific elements of the analogy
    - End with: "With this mental picture, let us see if the formal definition matches what you would expect..."
 
-3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — NOTATION FOR WHAT YOU ALREADY KNOW
+3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — THE INTUITION BEHIND THE EQUATION AND WHAT IT MEANS IN REALITY
    If the topic involves math/equations:
    - Present the equation as CONFIRMATION of the intuition already built, not as new information
-   - For EVERY term: "This term represents [intuitive meaning]. In our analogy, this is [analogy element]."
+   - For EVERY term: "This term represents [intuitive meaning]. In our analogy, this is [analogy element]. In reality, this means [real-world meaning]."
    - For the EQUATION SHAPE: "The equation is a [ratio/product/sum] because [intuitive reason]."
    - "What happens if we make [this term] very large? Very small? Zero? Negative?" — connect to physical intuition
    - Include a NUMERICAL PREDICTION: "We predicted [X]. The equation gives us [calculation] = [result]. This matches because..."
@@ -554,27 +555,46 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Explicitly state: "This concept is non-mathematical because [reason]."
    - Replace with a DECISION FRAMEWORK or PROCESS DIAGRAM that serves the same structuring purpose.
 
-4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — THE MENTAL MOVIE
-   Guide the reader through a mental simulation:
+4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — HELP THE STUDENT CREATE A MENTAL MAP
+   Guide the reader through a mental simulation so they build a map of the concept:
    - "Close your eyes and picture [starting state]..."
    - Step 1: "Now imagine [first change]. What happens to [element]?"
    - Step 2: "Next, [second change] occurs. Notice how [element] responds..."
    - Each step should include WHAT CHANGES and WHY
+   - Help students see the RELATIONSHIP between components — how changing one thing affects another
    - End with: "If you can replay this mental movie and predict the outcome, you understand [concept]."
 
-5. **&lt;h2&gt;Concrete Example&lt;/h2&gt;** — THE PROOF IT WORKS
-   A fully worked mini-scenario:
+5. **&lt;h2&gt;Concrete Example and Analogy&lt;/h2&gt;** — MAKE THE CONCEPT CRYSTAL CLEAR
+   A fully worked mini-scenario PLUS a memorable analogy:
    - State the setup with SPECIFIC numbers: "Suppose we have 1,000 data points, each with 50 features..."
    - Walk through each step: Input, Process, Output with actual values
    - Show the RESULT and connect back to intuition: "Notice how this matches our prediction from Core Intuition"
    - Include a VARIATION: "What if we changed [parameter] to [different value]? The result would be [X] because [intuitive reason]."
+   - Provide a second, different analogy from everyday life to reinforce understanding from a different angle.
 
-6. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — THE TRAP DETECTOR
+6. **&lt;h2&gt;Real-World Application&lt;/h2&gt;** — WHERE AND WHY THIS CONCEPT IS USED
+   Show the student WHERE this concept lives in the real world:
+   - List 3-5 specific real-world domains or industries where this concept is actively used
+   - For each: explain WHAT PROBLEM it solves and WHY this concept is the right tool for that problem
+   - Include at least one concrete example: "At [Company/Industry], engineers use [concept] to [specific task] because [reason]"
+   - Show the student what role or job title would use this concept daily
+   - Make the connection between the theory they just learned and the practical impact it has
+
+7. **&lt;h2&gt;Thinking Like an Expert&lt;/h2&gt;** — HOW TO APPROACH THIS IN REAL LIFE
+   Teach the student how an EXPERT thinks when they encounter this concept:
+   - "When you see [this equation/pattern/problem] in the wild, here is how to think about it..."
+   - Provide a mental checklist: "First, ask yourself [X]. Then check [Y]. If [Z], then..."
+   - If there are equations: "When you see this equation, read it as [plain English translation]. The key insight is [what to focus on]."
+   - Include a THOUGHT-PROVOKING idea or open question that pushes creative thinking: "What would happen if [unconventional scenario]? Could you use [concept] to [unexpected application]?"
+   - Share an expert heuristic or rule of thumb that comes from deep experience, not textbooks
+
+8. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — THE TRAP DETECTOR AND SELF-TEST
    Name the specific misconception with a memorable label:
    - "THE [NAME] TRAP: Many learners think [misconception] because [why it seems logical]."
    - "WHY IT IS WRONG: [Specific reason, referring back to the Core Intuition analogy]."
    - "THE FIX: Instead, think of it as [correct mental model]. Remember from our [analogy name]: [mapping that makes the correction obvious]."
    - Include a quick SELF-TEST: "If you find yourself thinking [X], ask yourself [Y] — if the answer is [Z], you have fallen into this trap."
+   - Include 2-3 rapid-fire true/false or "which is correct?" questions that test the most common misunderstandings
 
 **HTML Rules:**
 - Use ONLY these tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote
@@ -1505,11 +1525,11 @@ Return ONLY valid JSON, no markdown formatting`,
  */
 function getStage3WordTarget(difficulty: string): string {
   switch (difficulty.toLowerCase()) {
-    case 'beginner': return '400-600';
-    case 'intermediate': return '500-800';
+    case 'beginner': return '600-900';
+    case 'intermediate': return '800-1200';
     case 'advanced':
     case 'expert':
-    default: return '600-1000';
+    default: return '1000-1600';
   }
 }
 
@@ -1548,15 +1568,17 @@ function getContentTypeHeadingInstructions(contentType: string, topicFocus: stri
   if (contentType === 'reading' || contentType === 'video') {
     return {
       step1Instructions: `### Step 1: LESSON CONTENT — Write a full HTML lesson for "${topicFocus}"
-Write a rich, structured HTML lesson (${wordTarget} words) with EXACTLY these 6 required <h2> sections in this exact order:
-1. **<h2>Why It Was Developed</h2>** — THE ORIGIN STORY: Do not just name the problem — make the reader FEEL the frustration. What were people trying to do before "${topicFocus}" existed? What specific failure forced this invention? Use a real historical example or concrete scenario where the lack of this concept caused visible failure.
-2. **<h2>Core Intuition</h2>** — THE MENTAL MODEL FACTORY: Build a mental model so strong the reader can PREDICT the math. Start with "Imagine you are [role] and you need to [task]...". Map 4+ elements of the analogy to the concept explicitly. Include a PREDICTION PROMPT: "Before the formal definition, what should happen when [X changes]?" End with: "With this mental picture, let us see if the formal definition matches..."
-3. **<h2>Equation Intuition</h2>** — NOTATION FOR WHAT YOU ALREADY KNOW: If math exists, present the equation as CONFIRMATION of the intuition already built. For EVERY term explain its intuitive meaning and analogy element. Explain WHY the equation has its specific shape (ratio/product/sum). Ask "What if this term is very large? Very small? Zero?" If no math, explicitly state why and provide a decision framework instead.
-4. **<h2>Step-by-Step Visualization</h2>** — THE MENTAL MOVIE: Guide through a mental simulation. "Picture [starting state]..." then walk through each change and its effect. Each step includes WHAT changes and WHY. End with: "If you can replay this mental movie, you understand [concept]."
-5. **<h2>Concrete Example</h2>** — THE PROOF IT WORKS: A fully worked scenario with SPECIFIC numbers. Walk through Input, Process, Output with actual values. Connect back to Core Intuition. Include a VARIATION: "What if we changed [parameter]? The result would be [X] because [reason]."
-6. **<h2>Common Confusion + Fix</h2>** — THE TRAP DETECTOR: Name the misconception with a memorable label: "THE [NAME] TRAP". Explain WHY it seems logical. Explain WHY it is wrong (referring to the Core Intuition analogy). Give THE FIX with a corrected mental model. Include a SELF-TEST question.`,
-      outputDescriptionField: `"${wordTarget} words of structured HTML lesson content. Must contain EXACTLY these six <h2> headings in order: 'Why It Was Developed', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example', 'Common Confusion + Fix'."`,
-      qualityGateHeadings: `Does the description contain the exact 6 required headings in order (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix), with substantive content under each and "${topicFocus}" mentioned at least 3 times?`,
+Write a rich, structured HTML lesson (${wordTarget} words) with EXACTLY these 8 required <h2> sections in this exact order:
+1. **<h2>The Big Picture</h2>** — HOW THE CONCEPT WAS DEVELOPED AND WHAT PROBLEM IT SOLVES: Tell the origin story — make the reader FEEL the frustration. What were people trying to do before "${topicFocus}" existed? What specific failure forced this invention? Use a real historical example or concrete scenario. End by framing the concept as the SOLUTION to a real, felt problem.
+2. **<h2>Core Intuition</h2>** — WHAT THE KEYWORDS ACTUALLY MEAN: List the 3-5 key terms and explain what each ACTUALLY means in plain language. Build a mental model with an analogy — map 4+ elements explicitly. Include a PREDICTION PROMPT: "Before the formal definition, what should happen when [X changes]?" End with: "With this mental picture, let us see if the formal definition matches..."
+3. **<h2>Equation Intuition</h2>** — THE INTUITION BEHIND THE EQUATION: If math exists, present the equation as CONFIRMATION of the intuition already built. For EVERY term explain its intuitive meaning, analogy element, and real-world meaning. Explain WHY the equation has its specific shape. Ask "What if this term is very large? Very small? Zero?" If no math, explicitly state why and provide a decision framework instead.
+4. **<h2>Step-by-Step Visualization</h2>** — HELP THE STUDENT CREATE A MENTAL MAP: Guide through a mental simulation. "Picture [starting state]..." then walk through each change and its effect. Show RELATIONSHIPS between components — how changing one thing affects another. End with: "If you can replay this mental movie, you understand [concept]."
+5. **<h2>Concrete Example and Analogy</h2>** — MAKE THE CONCEPT CRYSTAL CLEAR: A fully worked scenario with SPECIFIC numbers. Walk through Input, Process, Output with actual values. Connect back to Core Intuition. Include a VARIATION: "What if we changed [parameter]?" Provide a second everyday-life analogy to reinforce understanding from a different angle.
+6. **<h2>Real-World Application</h2>** — WHERE AND WHY THIS CONCEPT IS USED: List 3-5 specific real-world domains where this concept is actively used. For each, explain WHAT PROBLEM it solves. Include a concrete example: "At [Company/Industry], engineers use [concept] to [task]." Show what role or job title uses this daily.
+7. **<h2>Thinking Like an Expert</h2>** — HOW TO APPROACH THIS IN REAL LIFE: Teach how an expert thinks when encountering this concept. Provide a mental checklist. If equations exist: "When you see this equation, read it as [plain English]." Include a thought-provoking open question for creative development. Share an expert heuristic or rule of thumb from deep experience.
+8. **<h2>Common Confusion + Fix</h2>** — THE TRAP DETECTOR AND SELF-TEST: Name the misconception: "THE [NAME] TRAP". Explain WHY it seems logical. Explain WHY it is wrong (referring to Core Intuition). Give THE FIX with a corrected mental model. Include a SELF-TEST question. Add 2-3 rapid-fire true/false questions testing the most common misunderstandings.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML lesson content. Must contain EXACTLY these eight <h2> headings in order: 'The Big Picture', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example and Analogy', 'Real-World Application', 'Thinking Like an Expert', 'Common Confusion + Fix'."`,
+      qualityGateHeadings: `Does the description contain the exact 8 required headings in order (The Big Picture, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example and Analogy, Real-World Application, Thinking Like an Expert, Common Confusion + Fix), with substantive content under each and "${topicFocus}" mentioned at least 3 times?`,
     };
   }
 
@@ -1718,7 +1740,7 @@ ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'This is early in the co
 Build descriptions and objectives that reference and extend this knowledge.
 
 ## STYLE AND DEPTH GUIDELINES
-- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 6 sections: Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix
+- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 8 sections: The Big Picture, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example and Analogy, Real-World Application, Thinking Like an Expert, Common Confusion + Fix
 - Objectives: Use ONLY ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.join(', ')})
 - Activity: Must match content type "${section.contentType}" and demonstrate measurable skill
 - Each objective should be achievable within ${section.estimatedDuration}

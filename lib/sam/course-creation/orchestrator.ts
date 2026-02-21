@@ -212,12 +212,12 @@ export async function orchestrateCourseCreation(
   let blueprintPlan: CourseBlueprintPlan | null = null;
   let lastAgenticDecision: AgenticDecision | null = null;
 
-  if (!isResume) {
-    // If teacher provided a reviewed blueprint (Step 4), convert it directly
-    // and skip the AI planning call entirely — saving tokens and time.
-    if (config.teacherBlueprint && config.teacherBlueprint.chapters.length > 0) {
-      blueprintPlan = convertTeacherBlueprint(config.teacherBlueprint);
+  // Teacher blueprint conversion — runs on both new and resume flows
+  // because the blueprint must be available for all chapter generation stages.
+  if (config.teacherBlueprint && config.teacherBlueprint.chapters.length > 0) {
+    blueprintPlan = convertTeacherBlueprint(config.teacherBlueprint);
 
+    if (!isResume) {
       onSSEEvent?.({
         type: 'planning_complete',
         data: {
@@ -228,61 +228,62 @@ export async function orchestrateCourseCreation(
           riskAreas: blueprintPlan.riskAreas.length,
         },
       });
+    }
 
-      logger.info('[ORCHESTRATOR] Using teacher-approved blueprint', {
+    logger.info('[ORCHESTRATOR] Using teacher-approved blueprint', {
+      chapters: blueprintPlan.chapterPlan.length,
+      confidence: blueprintPlan.planConfidence,
+      isResume,
+    });
+  } else if (!isResume) {
+    // No teacher blueprint — use AI planning (only for new courses)
+    try {
+      onSSEEvent?.({
+        type: 'planning_start',
+        data: { message: 'Planning course blueprint...', promptVersion: PROMPT_VERSION },
+      });
+
+      blueprintPlan = await planCourseBlueprint(
+        userId,
+        courseContext,
+        recalledMemory ?? undefined,
+        runId,
+      );
+
+      onSSEEvent?.({
+        type: 'planning_complete',
+        data: {
+          message: 'Course blueprint ready',
+          chapterCount: blueprintPlan.chapterPlan.length,
+          confidence: blueprintPlan.planConfidence,
+          riskAreas: blueprintPlan.riskAreas.length,
+        },
+      });
+
+      logger.info('[ORCHESTRATOR] Course blueprint planned', {
         chapters: blueprintPlan.chapterPlan.length,
         confidence: blueprintPlan.planConfidence,
       });
-    } else {
-      // No teacher blueprint — use AI planning (original path)
-      try {
-        onSSEEvent?.({
-          type: 'planning_start',
-          data: { message: 'Planning course blueprint...', promptVersion: PROMPT_VERSION },
-        });
 
-        blueprintPlan = await planCourseBlueprint(
-          userId,
-          courseContext,
-          recalledMemory ?? undefined,
-          runId,
-        );
-
+      if (
+        typeof blueprintPlan.recommendedChapterCount === 'number'
+        && blueprintPlan.recommendedChapterCount !== config.totalChapters
+      ) {
         onSSEEvent?.({
-          type: 'planning_complete',
+          type: 'chapter_count_adjusted',
           data: {
-            message: 'Course blueprint ready',
-            chapterCount: blueprintPlan.chapterPlan.length,
-            confidence: blueprintPlan.planConfidence,
-            riskAreas: blueprintPlan.riskAreas.length,
+            requested: config.totalChapters,
+            recommended: blueprintPlan.recommendedChapterCount,
+            resolved: config.totalChapters,
+            policy: 'user_authoritative',
+            message: `Blueprint suggested ${blueprintPlan.recommendedChapterCount} chapters; keeping requested ${config.totalChapters}.`,
           },
         });
-
-        logger.info('[ORCHESTRATOR] Course blueprint planned', {
-          chapters: blueprintPlan.chapterPlan.length,
-          confidence: blueprintPlan.planConfidence,
-        });
-
-        if (
-          typeof blueprintPlan.recommendedChapterCount === 'number'
-          && blueprintPlan.recommendedChapterCount !== config.totalChapters
-        ) {
-          onSSEEvent?.({
-            type: 'chapter_count_adjusted',
-            data: {
-              requested: config.totalChapters,
-              recommended: blueprintPlan.recommendedChapterCount,
-              resolved: config.totalChapters,
-              policy: 'user_authoritative',
-              message: `Blueprint suggested ${blueprintPlan.recommendedChapterCount} chapters; keeping requested ${config.totalChapters}.`,
-            },
-          });
-        }
-      } catch {
-        // Blueprint planning is non-blocking
-        blueprintPlan = null;
-        logger.debug('[ORCHESTRATOR] Blueprint planning skipped');
       }
+    } catch {
+      // Blueprint planning is non-blocking
+      blueprintPlan = null;
+      logger.debug('[ORCHESTRATOR] Blueprint planning skipped');
     }
   }
 

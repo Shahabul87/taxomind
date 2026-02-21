@@ -53,6 +53,7 @@ import type {
   TeacherBlueprint,
   BlueprintChapter,
   BlueprintVersion,
+  BlueprintCriticResult,
 } from '../../types/sam-creator.types';
 import { validateAlignment } from '../../utils/blueprint-alignment';
 import type { AlignmentScore, ChapterAlignment } from '../../utils/blueprint-alignment';
@@ -261,6 +262,16 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           nextVersion = snapshot.nextVersion;
         }
 
+        // Parse critic result from API response
+        const criticResult: BlueprintCriticResult | undefined = data.critic ? {
+          verdict: data.critic.verdict,
+          score: data.critic.score,
+          confidence: data.critic.confidence,
+          reasoning: data.critic.reasoning,
+          dimensions: data.critic.dimensions,
+          improvements: data.critic.improvements ?? [],
+        } : undefined;
+
         const newBlueprint: TeacherBlueprint = {
           chapters: data.blueprint.chapters,
           northStarProject: data.blueprint.northStarProject,
@@ -268,6 +279,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           confidence: data.blueprint.confidence,
           isEdited: false,
           riskAreas: data.blueprint.riskAreas ?? [],
+          criticResult,
           currentVersion: nextVersion,
           versions: versions.length > 0 ? versions : undefined,
         };
@@ -708,6 +720,87 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
             ))}
           </ul>
         </div>
+      )}
+
+      {/* Critic Quality Review */}
+      {blueprint.criticResult && (
+        <Collapsible>
+          <div className="p-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full flex items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className={cn(
+                      'text-[10px] border-0',
+                      blueprint.criticResult.verdict === 'approve'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                        : blueprint.criticResult.verdict === 'revise'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+                    )}
+                  >
+                    {blueprint.criticResult.verdict.toUpperCase()}
+                  </Badge>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Quality Review: <span className="font-medium">{blueprint.criticResult.score}/100</span>
+                  </span>
+                  <span className="text-slate-400 dark:text-slate-500">
+                    ({blueprint.criticResult.confidence}% confidence)
+                  </span>
+                </div>
+                <ChevronDown className="h-3 w-3 text-slate-400" />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {blueprint.criticResult.reasoning}
+                </p>
+                {/* Dimension scores */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {Object.entries(blueprint.criticResult.dimensions).map(([key, value]) => {
+                    const labels: Record<string, string> = {
+                      objectiveCoverage: 'Objective Coverage',
+                      topicSequencing: 'Topic Sequencing',
+                      bloomsProgression: 'Bloom&apos;s Progression',
+                      scopeCoherence: 'Scope Coherence',
+                      northStarAlignment: 'North Star Alignment',
+                      specificity: 'Specificity',
+                    };
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <div className="w-16 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex-shrink-0">
+                          <div
+                            className={cn(
+                              'h-full rounded-full',
+                              value >= 80 ? 'bg-emerald-500' : value >= 60 ? 'bg-amber-500' : 'bg-red-500',
+                            )}
+                            style={{ width: `${value}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                          {labels[key] ?? key} <span className="font-medium">{value}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Improvements */}
+                {blueprint.criticResult.improvements.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Suggested Improvements:</span>
+                    {blueprint.criticResult.improvements.map((imp, i) => (
+                      <p key={i} className="text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
+                        <span className="mt-1 w-1 h-1 rounded-full bg-slate-400 flex-shrink-0" />
+                        {imp}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       )}
 
       {/* Confidence */}

@@ -69,6 +69,13 @@ export async function initializeCourseRecord(
     resolvedSubcategoryId = sub.id;
   }
 
+  // Persist teacher-approved blueprint as a first-class field on the Course record.
+  // This ensures the blueprint survives independently of pipeline checkpoints and
+  // can be fetched for course regeneration, resume, or analytics.
+  const blueprintDataJson = config.teacherBlueprint
+    ? (config.teacherBlueprint as unknown as Record<string, unknown>)
+    : null;
+
   const course = await db.course.create({
     data: {
       title: config.courseTitle,
@@ -80,10 +87,15 @@ export async function initializeCourseRecord(
       isPublished: false,
       categoryId: resolvedCategoryId,
       subcategoryId: resolvedSubcategoryId,
+      ...(blueprintDataJson ? { blueprintData: blueprintDataJson } : {}),
     },
   });
 
-  logger.info('[COURSE_INIT] Course created', { courseId: course.id, title: course.title });
+  logger.info('[COURSE_INIT] Course created', {
+    courseId: course.id,
+    title: course.title,
+    hasBlueprintData: !!blueprintDataJson,
+  });
 
   const goalPlan = await initializeCourseCreationGoal(userId, config.courseTitle, course.id);
 

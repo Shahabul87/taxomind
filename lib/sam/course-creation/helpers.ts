@@ -188,7 +188,7 @@ export function jaccardSimilarity(a: string, b: string): number {
 /** Trace metadata for structured AI call logging */
 export interface AICallTrace {
   runId?: string;
-  stage: 1 | 2 | 3 | 'plan' | 'critic' | 'section-critic' | 'details-critic' | 'heal' | 'reflect' | 'decision' | 'bridge';
+  stage: 1 | 2 | 3 | 'plan' | 'critic' | 'blueprint-critic' | 'section-critic' | 'details-critic' | 'heal' | 'reflect' | 'decision' | 'bridge';
   chapter?: number;
   section?: number;
   attempt?: number;

@@ -53,8 +53,21 @@ function asDifficulty(
   return 'intermediate';
 }
 
-function buildResumeConfig(checkpoint: Record<string, unknown> | null): SequentialCreationConfig {
+function buildResumeConfig(
+  checkpoint: Record<string, unknown> | null,
+  courseBlueprintFromDb?: Record<string, unknown> | null,
+): SequentialCreationConfig {
   const c = (checkpoint?.config as Record<string, unknown> | undefined) ?? {};
+
+  // Resolve teacher blueprint: prefer checkpoint config, fall back to DB-persisted blueprint
+  let teacherBlueprint: SequentialCreationConfig['teacherBlueprint'] | undefined;
+  if (typeof c.teacherBlueprint === 'object' && c.teacherBlueprint) {
+    teacherBlueprint = c.teacherBlueprint as SequentialCreationConfig['teacherBlueprint'];
+  } else if (courseBlueprintFromDb) {
+    teacherBlueprint = courseBlueprintFromDb as SequentialCreationConfig['teacherBlueprint'];
+    logger.info('[APPROVE_RESUME_API] Blueprint recovered from Course.blueprintData (checkpoint was missing it)');
+  }
+
   return {
     courseTitle: asString(c.courseTitle, 'Resumed Course'),
     courseDescription: asString(c.courseDescription, 'Resumed course creation session'),
@@ -76,6 +89,7 @@ function buildResumeConfig(checkpoint: Record<string, unknown> | null): Sequenti
     fallbackPolicy: typeof c.fallbackPolicy === 'object' && c.fallbackPolicy
       ? (c.fallbackPolicy as SequentialCreationConfig['fallbackPolicy'])
       : undefined,
+    teacherBlueprint,
   };
 }
 
@@ -211,7 +225,21 @@ export async function POST(req: NextRequest) {
         });
 
         try {
-          const config = buildResumeConfig(updatedCheckpoint);
+          // Fetch blueprint from Course record as fallback if checkpoint config is missing it
+          let courseBlueprintFromDb: Record<string, unknown> | null = null;
+          try {
+            const courseRecord = await db.course.findUnique({
+              where: { id: courseId },
+              select: { blueprintData: true },
+            });
+            if (courseRecord?.blueprintData && typeof courseRecord.blueprintData === 'object') {
+              courseBlueprintFromDb = courseRecord.blueprintData as Record<string, unknown>;
+            }
+          } catch {
+            // Non-blocking — checkpoint config is the primary source
+          }
+
+          const config = buildResumeConfig(updatedCheckpoint, courseBlueprintFromDb);
           const result = await resumeCourseCreation({
             userId: user.id,
             runId,

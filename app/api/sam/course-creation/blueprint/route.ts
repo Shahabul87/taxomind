@@ -16,6 +16,12 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
 import { sanitizeCourseContext } from '@/lib/sam/course-creation/helpers';
+import {
+  reviewBlueprintWithCritic,
+  scoreBlueprintQuality,
+  buildBlueprintCriticFeedbackBlock,
+} from '@/lib/sam/course-creation/blueprint-critic';
+import type { BlueprintCritique } from '@/lib/sam/course-creation/blueprint-critic';
 import type { CourseContext } from '@/lib/sam/course-creation/types';
 
 export const runtime = 'nodejs';
@@ -270,10 +276,10 @@ export async function POST(request: NextRequest) {
       ? Math.min(300_000, 120_000 + totalSections * 5000) // 120s base + 5s/section, cap 5 min
       : Math.min(120_000, 45_000 + totalSections * 2500);  // 45s base + 2.5s/section, cap 2 min
 
-    // Reasoning models: enterprise client already does 4x scaling, so we send a smaller
-    // base value (the client will multiply by 4 and cap at 8192). Regular: direct budget.
+    // Reasoning models: enterprise client does 4x scaling, so we send a larger
+    // base value to compensate for <think> token overhead. Regular: direct budget.
     const blueprintMaxTokens = isReasoningModel
-      ? Math.min(4096, 1500 + data.chapterCount * 150 + totalSections * 80)  // Pre-4x: client will scale to ~6000-8192
+      ? Math.min(6144, 2000 + data.chapterCount * 250 + totalSections * 120)  // Pre-4x: compensate for reasoning token overhead
       : Math.min(8192, 2000 + data.chapterCount * 300 + totalSections * 150);
 
     logger.info('[BLUEPRINT_ROUTE] Strategy', {
@@ -290,7 +296,7 @@ export async function POST(request: NextRequest) {
       messages: [{ role: 'user', content: userPrompt }],
       systemPrompt,
       maxTokens: blueprintMaxTokens,
-      temperature: isReasoningModel ? 0.3 : 0.6, // Lower temp for reasoning models = fewer reasoning branches
+      temperature: isReasoningModel ? 0.5 : 0.6, // Reasoning models need creative room for course design
     });
 
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -358,20 +364,132 @@ export async function POST(request: NextRequest) {
       blueprint = fillIncompleteSections(blueprint, data, enhancer?.chapterSequencingAdvice);
     }
 
+    // =========================================================================
+    // PASS 2: BLUEPRINT CRITIC REVIEW
+    // =========================================================================
+    // Every blueprint gets reviewed (no borderline gate) because a bad blueprint
+    // cascades to every downstream chapter/section.
+    let criticResult: BlueprintCritique | null = null;
+    try {
+      criticResult = await reviewBlueprintWithCritic({
+        userId: user.id,
+        blueprint,
+        courseContext: ctx,
+        courseGoals: data.courseGoals,
+      });
+    } catch (criticError) {
+      logger.warn('[BLUEPRINT_ROUTE] Critic review failed entirely', {
+        error: criticError instanceof Error ? criticError.message : String(criticError),
+      });
+    }
+
+    // =========================================================================
+    // PASS 3: CONDITIONAL RETRY (only if verdict = 'revise')
+    // =========================================================================
+    if (criticResult && criticResult.verdict === 'revise') {
+      logger.info('[BLUEPRINT_ROUTE] Critic requests revision, attempting retry', {
+        verdict: criticResult.verdict,
+        confidence: criticResult.confidence,
+        improvements: criticResult.actionableImprovements.length,
+      });
+
+      try {
+        const feedbackBlock = buildBlueprintCriticFeedbackBlock(criticResult);
+        const { systemPrompt: retrySystem, userPrompt: retryUser } = buildBlueprintPrompts(
+          ctx, data, composed, bloomsAssignmentBlock, isReasoningModel, feedbackBlock,
+        );
+
+        const retryPromise = runSAMChatWithMetadata({
+          userId: user.id,
+          capability: 'course',
+          messages: [{ role: 'user', content: retryUser }],
+          systemPrompt: retrySystem,
+          maxTokens: blueprintMaxTokens,
+          temperature: isReasoningModel ? 0.5 : 0.6,
+        });
+
+        const retryTimeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Blueprint retry timed out')), BLUEPRINT_TIMEOUT_MS);
+        });
+
+        const retryResult = await Promise.race([retryPromise, retryTimeoutPromise]);
+        let retryBlueprint = parseBlueprintResponse(retryResult.content, data, bloomsDistribution);
+
+        if (retryBlueprint) {
+          retryBlueprint = repairIncompleteChapters(retryBlueprint, data);
+          retryBlueprint = fillIncompleteSections(retryBlueprint, data, enhancer?.chapterSequencingAdvice);
+
+          // Compare using rule-based scoring (no second AI critic call — saves 15s)
+          const originalCritique = buildRuleBasedBlueprintScore(blueprint, ctx, data.courseGoals);
+          const retryCritique = buildRuleBasedBlueprintScore(retryBlueprint, ctx, data.courseGoals);
+          const originalScore = scoreBlueprintQuality(originalCritique);
+          const retryScore = scoreBlueprintQuality(retryCritique);
+
+          logger.info('[BLUEPRINT_ROUTE] Retry comparison', {
+            originalScore,
+            retryScore,
+            kept: retryScore >= originalScore ? 'retry' : 'original',
+          });
+
+          // Keep whichever version scores higher (never regress)
+          if (retryScore >= originalScore) {
+            blueprint = retryBlueprint;
+            // Update critic result with the rule-based assessment of the retry
+            criticResult = {
+              ...criticResult,
+              verdict: retryCritique.verdict,
+              reasoning: `Retry improved blueprint (${originalScore} -> ${retryScore}). ${retryCritique.reasoning}`,
+              objectiveCoverage: retryCritique.objectiveCoverage,
+              topicSequencing: retryCritique.topicSequencing,
+              bloomsProgression: retryCritique.bloomsProgression,
+              scopeCoherence: retryCritique.scopeCoherence,
+              northStarAlignment: retryCritique.northStarAlignment,
+              specificity: retryCritique.specificity,
+              actionableImprovements: retryCritique.actionableImprovements,
+            };
+          }
+        }
+      } catch (retryError) {
+        // Retry failed — keep original blueprint (graceful degradation)
+        logger.warn('[BLUEPRINT_ROUTE] Retry failed, keeping original blueprint', {
+          error: retryError instanceof Error ? retryError.message : String(retryError),
+        });
+      }
+    }
+
     // Post-processing: enrich blueprint with computed metadata
     blueprint = computeTimeEstimates(blueprint, data.difficulty);
     blueprint = computePrerequisiteGraph(blueprint);
     blueprint = injectFormativeAssessments(blueprint);
 
+    // Build critic response for frontend
+    const criticResponse = criticResult ? {
+      verdict: criticResult.verdict,
+      score: scoreBlueprintQuality(criticResult),
+      confidence: criticResult.confidence,
+      reasoning: criticResult.reasoning,
+      dimensions: {
+        objectiveCoverage: criticResult.objectiveCoverage,
+        topicSequencing: criticResult.topicSequencing,
+        bloomsProgression: criticResult.bloomsProgression,
+        scopeCoherence: criticResult.scopeCoherence,
+        northStarAlignment: criticResult.northStarAlignment,
+        specificity: criticResult.specificity,
+      },
+      improvements: criticResult.actionableImprovements,
+    } : null;
+
     logger.info('[BLUEPRINT_ROUTE] Blueprint generated', {
       chapters: blueprint.chapters.length,
       confidence: blueprint.confidence,
+      criticVerdict: criticResult?.verdict ?? 'skipped',
+      criticScore: criticResponse?.score ?? null,
       maxTokens: blueprintMaxTokens,
       responseLength: responseText.length,
       isReasoningModel,
     });
 
-    return NextResponse.json({ success: true, blueprint });
+    return NextResponse.json({ success: true, blueprint, critic: criticResponse });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[BLUEPRINT_ROUTE] Error:', { error: msg });
@@ -387,14 +505,17 @@ export async function POST(request: NextRequest) {
 // =============================================================================
 
 /**
- * Build prompts using a natural, concise approach.
+ * Build prompts using Backwards Design (Understanding by Design).
  *
- * Key insight: The model already knows how to design expert-level courses.
- * A natural request like "Design a course on X with Y chapters" produces
- * better output than verbose FORMAT RULES and BAD/GOOD examples.
+ * Key insight: Start from the final product (North Star), then work backward
+ * to the learning journey. The model already knows how to design expert-level
+ * courses — a natural, concise prompt produces better output than verbose
+ * format rules and BAD/GOOD examples.
  *
  * We keep the prompt simple and let the parser handle structure enforcement.
  * For reasoning models, we use even less meta-instruction to reduce thinking time.
+ *
+ * When criticFeedback is provided (retry pass), it is appended to the prompt.
  */
 function buildBlueprintPrompts(
   ctx: CourseContext,
@@ -402,16 +523,17 @@ function buildBlueprintPrompts(
   composed: ReturnType<typeof composeCategoryPrompt> | null,
   bloomsAssignmentBlock: string,
   isReasoningModel: boolean,
+  criticFeedback?: string,
 ): { systemPrompt: string; userPrompt: string } {
-  // Minimal system prompt — just establish the role + inject domain expertise
-  const systemPrompt = `You are a world-class course architect who designs rigorous, well-sequenced courses at MIT/Stanford quality. Return ONLY valid JSON — no markdown fences, no extra text.
+  // Minimal system prompt — establish the role + Backwards Design + domain expertise
+  const systemPrompt = `You are a world-class course architect who designs rigorous, well-sequenced courses at MIT/Stanford quality. You use Backwards Design (Understanding by Design): start from the final product, then work backward to the learning journey. Return ONLY valid JSON — no markdown fences, no extra text.
 ${composed?.expertiseBlock ?? ''}`;
 
   // Domain pedagogy blocks (if available from loaded skill files)
   const bloomsGuidanceBlock = composed?.chapterGuidanceBlock ?? '';
   const sectionGuidanceBlock = composed?.sectionGuidanceBlock ?? '';
 
-  // Natural, concise user prompt — mirrors how a human would ask
+  // Backwards Design user prompt — North Star FIRST, then journey backward
   const userPrompt = `I am creating a course on "${ctx.courseTitle}" with ${ctx.totalChapters} chapters and ${ctx.sectionsPerChapter} sections in each chapter.
 
 COURSE DETAILS:
@@ -425,17 +547,23 @@ ${data.duration ? `- Duration: ${data.duration}` : ''}
 Learning Objectives:
 ${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
-## STEP 1 — UNDERSTAND THE COURSE CONTEXT (Do this BEFORE generating the blueprint)
+## STEP 1 — DEFINE THE NORTH STAR (Backwards Design: start from the end)
 
-Before creating the blueprint, deeply analyze:
-1. **Course Title**: Identify the core subject, scope, and domain from "${ctx.courseTitle}". Every chapter and section MUST directly serve this title.
-2. **Course Description**: Read the overview above. The blueprint must holistically cover the main topics and ideas described in it.
-3. **Learning Objectives**: Each objective listed above must be addressed by at least one chapter. Map objectives to chapters.
-4. **Bloom&apos;s Focus**: The selected cognitive levels define the depth — structure chapter progression from foundational to advanced within the ${ctx.difficulty} level.
+Every great course builds toward ONE realistic, portfolio-worthy product or project. Define this FIRST:
 
-## STEP 2 — GENERATE THE BLUEPRINT
+1. **North Star Project**: Define a single realistic product/project that the ENTIRE course builds toward. This is what the student can show an employer or put in a portfolio at the end. It should be ambitious but achievable given the course scope.
 
-Based on your analysis above, create a full course blueprint with chapter titles, section titles, and 3-5 key topics for each section. For each chapter, tell me what the deeper insight or thesis is.
+2. **Per-Chapter Deliverable**: Each chapter should produce a tangible artifact that contributes to the North Star Project. The deliverable type should match the chapter&apos;s Bloom&apos;s level:
+${Object.entries(BLOOMS_ARTIFACT_GUIDANCE).map(([level, artifacts]) => `   - ${level}: ${artifacts}`).join('\n')}
+
+## STEP 2 — DESIGN THE LEARNING JOURNEY BACKWARD
+
+Now work BACKWARD from the North Star:
+- **Last chapter(s)**: Integrate all components into the final project — CREATE/EVALUATE level
+- **Middle chapters**: Build the core components and skills needed for the project — APPLY/ANALYZE level
+- **First chapter(s)**: Establish the foundations and mental models — REMEMBER/UNDERSTAND level
+
+For each chapter, tell me what the deeper insight or thesis is. Create section titles and 3-5 key topics per section.
 
 CRITICAL ALIGNMENT RULES:
 - Every chapter title, section title, and key topic MUST be directly relevant to "${ctx.courseTitle}" — do NOT generate topics that belong to a different course
@@ -447,21 +575,20 @@ BLOOM'S LEVEL FOR EACH CHAPTER (use exactly these):
 ${bloomsAssignmentBlock}
 ${bloomsGuidanceBlock ? `\n${bloomsGuidanceBlock}` : ''}${sectionGuidanceBlock ? `\n${sectionGuidanceBlock}` : ''}
 
-${isReasoningModel ? '' : `QUALITY EXPECTATIONS:
+QUALITY EXPECTATIONS:
 - Chapter titles should list the 2-3 core technical keywords covered
 - Section titles should name the exact concept with parenthetical context where helpful
 - Key topics should be expert-level — things a domain expert would put on a university syllabus
 - Include teaching depth notes in key topics like "(why it exists)", "(intuition first)"
 - Include math notation in key topics where relevant
 - Ensure prerequisites are taught BEFORE they are needed in later chapters
-`}## STEP 3 — NORTH STAR PROJECT AND CHAPTER DELIVERABLES
 
-Every great course builds toward ONE realistic, portfolio-worthy product or project. Before generating the blueprint:
+## STEP 3 — ANALYZE CONTEXT AND ENSURE COVERAGE
 
-1. **North Star Project**: Define a single realistic product/project that the ENTIRE course builds toward. This is what the student can show an employer or put in a portfolio at the end. It should be ambitious but achievable given the course scope.
-
-2. **Per-Chapter Deliverable**: Each chapter should produce a tangible artifact that contributes to the North Star Project. The deliverable type should match the chapter&apos;s Bloom&apos;s level:
-${Object.entries(BLOOMS_ARTIFACT_GUIDANCE).map(([level, artifacts]) => `   - ${level}: ${artifacts}`).join('\n')}
+Before finalizing, verify:
+1. **Objective Mapping**: Each learning objective listed above must be addressed by at least one chapter.
+2. **Prerequisite Validation**: No chapter references concepts that haven&apos;t been introduced in prior chapters.
+3. **Scope Check**: Every chapter and section directly serves the course title "${ctx.courseTitle}".
 
 Return the result as this JSON structure:
 {
@@ -483,7 +610,7 @@ Return the result as this JSON structure:
   "riskAreas": ["Areas where students typically struggle and why"]
 }
 
-Generate ALL ${ctx.totalChapters} chapters with ALL ${ctx.sectionsPerChapter} sections each. Every section must have 3-5 keyTopics.`;
+Generate ALL ${ctx.totalChapters} chapters with ALL ${ctx.sectionsPerChapter} sections each. Every section must have 3-5 keyTopics.${criticFeedback ? `\n${criticFeedback}` : ''}`;
 
   return { systemPrompt, userPrompt };
 }
@@ -1061,5 +1188,123 @@ function buildHeuristicBlueprint(data: z.infer<typeof BlueprintRequestSchema>): 
     chapters,
     confidence: 30,
     riskAreas: ['Blueprint was generated using heuristics — AI generation was unavailable. Please review and add key topics manually.'],
+  };
+}
+
+// =============================================================================
+// RULE-BASED BLUEPRINT SCORER (for retry comparison)
+// =============================================================================
+
+/**
+ * Quick rule-based scoring of a blueprint for comparing original vs retry.
+ * Does NOT make an AI call — used only for the Pass 3 comparison.
+ *
+ * Returns a BlueprintCritique-compatible object with the 6 dimension scores.
+ */
+function buildRuleBasedBlueprintScore(
+  blueprint: BlueprintResponse,
+  courseContext: CourseContext,
+  courseGoals: string[],
+): BlueprintCritique {
+  let objectiveCoverage = 80;
+  let topicSequencing = 80;
+  let bloomsProgression = 80;
+  let scopeCoherence = 80;
+  let northStarAlignment = 80;
+  let specificity = 80;
+  const improvements: string[] = [];
+
+  // Objective coverage
+  const allText = blueprint.chapters
+    .map(ch => `${ch.title} ${ch.goal} ${ch.sections.map(s => `${s.title} ${s.keyTopics.join(' ')}`).join(' ')}`)
+    .join(' ').toLowerCase();
+
+  for (const goal of courseGoals) {
+    const words = goal.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+    const hits = words.filter(w => allText.includes(w)).length;
+    if (words.length > 0 && hits / words.length < 0.3) {
+      objectiveCoverage -= 15;
+    }
+  }
+
+  // Bloom's progression
+  for (let i = 1; i < blueprint.chapters.length; i++) {
+    const prevIdx = BLOOMS_ORDER.indexOf(blueprint.chapters[i - 1].bloomsLevel as typeof BLOOMS_ORDER[number]);
+    const currIdx = BLOOMS_ORDER.indexOf(blueprint.chapters[i].bloomsLevel as typeof BLOOMS_ORDER[number]);
+    if (prevIdx >= 0 && currIdx >= 0 && currIdx < prevIdx) {
+      bloomsProgression -= 15;
+    }
+  }
+
+  // Scope coherence
+  const courseTitleWords = courseContext.courseTitle.toLowerCase()
+    .split(/\s+/).filter(w => w.length > 3 && !['the', 'and', 'for', 'with'].includes(w));
+  for (const ch of blueprint.chapters) {
+    const chText = `${ch.title} ${ch.goal}`.toLowerCase();
+    if (courseTitleWords.length > 0 && courseTitleWords.filter(w => chText.includes(w)).length === 0) {
+      scopeCoherence -= 12;
+    }
+  }
+
+  // North Star alignment
+  if (!blueprint.northStarProject) {
+    northStarAlignment -= 30;
+  } else {
+    const noDeliverable = blueprint.chapters.filter(ch => !ch.deliverable || ch.deliverable.trim() === '');
+    northStarAlignment -= noDeliverable.length * 8;
+  }
+
+  // Specificity
+  const genericPattern = /^(introduction|overview|basics|getting started|conclusion|chapter \d+)/i;
+  const genericCount = blueprint.chapters.filter(ch => genericPattern.test(ch.title)).length;
+  if (genericCount > 1) specificity -= genericCount * 10;
+
+  const emptySections = blueprint.chapters.flatMap(ch =>
+    ch.sections.filter(s => s.keyTopics.length === 0 || /^Section \d+/i.test(s.title)),
+  );
+  if (emptySections.length > 2) specificity -= emptySections.length * 5;
+
+  // Topic sequencing — lightweight check
+  for (let i = 2; i < blueprint.chapters.length; i++) {
+    const chTopics = blueprint.chapters[i].sections.flatMap(s => s.keyTopics).map(t => t.toLowerCase());
+    const prevTopics = new Set(
+      blueprint.chapters.slice(0, i).flatMap(c => c.sections.flatMap(s => s.keyTopics.map(t => t.toLowerCase()))),
+    );
+    const novelCount = chTopics.filter(t => {
+      const words = t.split(/\s+/).filter(w => w.length > 4);
+      return words.length > 0 && words.every(w => !Array.from(prevTopics).some(pt => pt.includes(w)));
+    }).length;
+    if (chTopics.length > 0 && novelCount / chTopics.length > 0.8) {
+      topicSequencing -= 10;
+    }
+  }
+
+  // Clamp
+  const clamp = (v: number) => Math.max(0, Math.min(100, v));
+  objectiveCoverage = clamp(objectiveCoverage);
+  topicSequencing = clamp(topicSequencing);
+  bloomsProgression = clamp(bloomsProgression);
+  scopeCoherence = clamp(scopeCoherence);
+  northStarAlignment = clamp(northStarAlignment);
+  specificity = clamp(specificity);
+
+  const scores = [objectiveCoverage, topicSequencing, bloomsProgression, scopeCoherence, northStarAlignment, specificity];
+  const allAbove70 = scores.every(s => s >= 70);
+  const belowFiftyCount = scores.filter(s => s < 50).length;
+
+  type CriticVerdict = 'approve' | 'revise' | 'reject';
+  const verdict: CriticVerdict = belowFiftyCount >= 3 ? 'reject' : !allAbove70 ? 'revise' : 'approve';
+
+  return {
+    verdict,
+    confidence: 65,
+    reasoning: `Rule-based assessment: ${scores.filter(s => s >= 70).length}/6 dimensions pass`,
+    objectiveCoverage,
+    topicSequencing,
+    bloomsProgression,
+    scopeCoherence,
+    northStarAlignment,
+    specificity,
+    actionableImprovements: improvements,
   };
 }
