@@ -548,6 +548,7 @@ export async function orchestrateCourseCreation(
       bloomsProgression,
       blueprintPlan,
       teacherBlueprintChapters: config.teacherBlueprint?.chapters,
+      northStarProject: config.teacherBlueprint?.northStarProject,
       lastAgenticDecision,
       recalledMemory,
       strategyMonitor,

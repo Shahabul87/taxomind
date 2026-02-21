@@ -428,8 +428,10 @@ export interface SequentialCreationConfig {
       title: string;
       goal: string;
       bloomsLevel: string;
+      deliverable?: string;
       sections: Array<{ position: number; title: string; keyTopics: string[] }>;
     }>;
+    northStarProject?: string;
     confidence: number;
     riskAreas: string[];
   };
@@ -576,6 +578,7 @@ export interface TeacherBlueprintChapter {
   title: string;
   goal: string;
   bloomsLevel: string;
+  deliverable?: string;
   sections: Array<{ position: number; title: string; keyTopics: string[] }>;
 }
 
@@ -681,6 +684,8 @@ export interface ChapterStepContext {
   blueprintPlan: CourseBlueprintPlan | null;
   /** Raw teacher blueprint chapters for prompt simplification (section-level key topics) */
   teacherBlueprintChapters?: TeacherBlueprintChapter[];
+  /** North Star Project description from teacher blueprint (flows into prompts) */
+  northStarProject?: string;
   lastAgenticDecision: AgenticDecision | null;
   recalledMemory: import('./memory-recall').RecalledMemory | null;
   strategyMonitor: import('./adaptive-strategy').AdaptiveStrategyMonitor;

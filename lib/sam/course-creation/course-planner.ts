@@ -551,8 +551,10 @@ export function convertTeacherBlueprint(
       title: string;
       goal: string;
       bloomsLevel: string;
+      deliverable?: string;
       sections: Array<{ position: number; title: string; keyTopics: string[] }>;
     }>;
+    northStarProject?: string;
     confidence: number;
     riskAreas: string[];
   },
@@ -565,6 +567,11 @@ export function convertTeacherBlueprint(
       ? (ch.bloomsLevel as BloomsLevel)
       : 'UNDERSTAND';
 
+    // Enrich rationale with deliverable context when available
+    const rationale = ch.deliverable
+      ? `${ch.goal} — Deliverable: ${ch.deliverable}`
+      : ch.goal;
+
     return {
       position: ch.position,
       suggestedTitle: ch.title,
@@ -572,7 +579,7 @@ export function convertTeacherBlueprint(
       bloomsLevel,
       keyConcepts,
       estimatedComplexity: 'medium' as const,
-      rationale: ch.goal,
+      rationale,
       recommendedSections: ch.sections.length,
     };
   });

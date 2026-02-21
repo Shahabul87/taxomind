@@ -798,6 +798,7 @@ export function buildStage1Prompt(
   recalledMemory?: RecalledMemory,
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
   blueprintChapter?: TeacherBlueprintChapter,
+  northStarProject?: string,
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const bloomsLevel = getContentAwareBloomsLevel({
@@ -1015,12 +1016,12 @@ This chapter's Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
 ## TEACHER-APPROVED BLUEPRINT FOR THIS CHAPTER
 Chapter ${currentChapterNumber}: "${blueprintChapter.title}"
 Goal: ${blueprintChapter.goal}
-Bloom&apos;s Level: ${blueprintChapter.bloomsLevel}
+Bloom&apos;s Level: ${blueprintChapter.bloomsLevel}${blueprintChapter.deliverable ? `\nDeliverable: ${blueprintChapter.deliverable}` : ''}${northStarProject ? `\n\nNorth Star Project: ${northStarProject}\nThis chapter&apos;s deliverable should contribute to this overarching project.` : ''}
 
 Sections to create:
 ${blueprintChapter.sections.map(s => `- Section ${s.position}: "${s.title}" — Topics: ${s.keyTopics.join(', ')}`).join('\n')}
 
-Follow this blueprint precisely. Use the section titles and key topics as the structural guide for this chapter.
+Follow this blueprint precisely. Use the section titles and key topics as the structural guide for this chapter.${blueprintChapter.deliverable ? ` The chapter deliverable ("${blueprintChapter.deliverable}") should be woven into the learning arc — students build toward it across sections.` : ''}
 
 ## OUTPUT REQUIREMENTS
 
@@ -1185,6 +1186,8 @@ export function buildStage2Prompt(
   recalledMemory?: RecalledMemory,
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
   blueprintSection?: { title: string; keyTopics: string[] },
+  northStarProject?: string,
+  chapterDeliverable?: string,
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const previousSectionsSummary = previousSections.length > 0
@@ -1349,9 +1352,9 @@ ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${
       content: hasBlueprintGuide ? `
 ## TEACHER-APPROVED BLUEPRINT FOR THIS SECTION
 Section ${currentSectionNumber}: "${blueprintSection.title}"
-Key Topics: ${blueprintSection.keyTopics.join(', ')}
+Key Topics: ${blueprintSection.keyTopics.join(', ')}${chapterDeliverable ? `\nChapter Deliverable: ${chapterDeliverable}` : ''}${northStarProject ? `\nNorth Star Project: ${northStarProject}` : ''}
 
-Follow this blueprint precisely. The section title and key topics are teacher-approved.
+Follow this blueprint precisely. The section title and key topics are teacher-approved.${chapterDeliverable ? ` This section should contribute to the chapter deliverable: "${chapterDeliverable}".` : ''}
 
 ## OUTPUT REQUIREMENTS
 

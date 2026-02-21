@@ -65,8 +65,11 @@ export interface PipelineRunnerOptions {
     title: string;
     goal: string;
     bloomsLevel: string;
+    deliverable?: string;
     sections: Array<{ position: number; title: string; keyTopics: string[] }>;
   }>;
+  /** North Star Project description from teacher blueprint */
+  northStarProject?: string;
   lastAgenticDecision: AgenticDecision | null;
   recalledMemory: RecalledMemory | null;
   strategyMonitor: AdaptiveStrategyMonitor;
@@ -190,6 +193,7 @@ export async function runPipeline(
       categoryEnhancer,
       experimentVariant,
       teacherBlueprintChapters: options.teacherBlueprintChapters,
+      northStarProject: options.northStarProject,
       budgetTracker,
       fallbackTracker,
       ...(resumeState && chNum === resumeState.completedChapterCount + 1

@@ -119,6 +119,7 @@ export function useSequentialCreationActions(
     // Teacher-approved blueprint (replaces AI planning when present)
     teacherBlueprint: formData.teacherBlueprint ? {
       chapters: formData.teacherBlueprint.chapters,
+      northStarProject: formData.teacherBlueprint.northStarProject,
       confidence: formData.teacherBlueprint.confidence,
       riskAreas: formData.teacherBlueprint.riskAreas,
     } : undefined,

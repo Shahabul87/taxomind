@@ -194,6 +194,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
 
       const newBlueprint: TeacherBlueprint = {
         chapters: data.blueprint.chapters,
+        northStarProject: data.blueprint.northStarProject,
         generatedAt: new Date().toISOString(),
         confidence: data.blueprint.confidence,
         isEdited: false,
@@ -242,6 +243,16 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       return {
         ...prev,
         teacherBlueprint: { ...prev.teacherBlueprint, chapters, isEdited: true },
+      };
+    });
+  }, [setFormData]);
+
+  const updateNorthStarProject = useCallback((northStarProject: string) => {
+    setFormData(prev => {
+      if (!prev.teacherBlueprint) return prev;
+      return {
+        ...prev,
+        teacherBlueprint: { ...prev.teacherBlueprint, northStarProject, isEdited: true },
       };
     });
   }, [setFormData]);
@@ -492,6 +503,26 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
         </div>
       </div>
 
+      {/* North Star Project */}
+      <Card className="border-emerald-200/70 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+              North Star Project
+            </span>
+            <span className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70">
+              The ONE product/project students build throughout the course
+            </span>
+          </div>
+          <InlineEdit
+            value={blueprint.northStarProject || 'Add a North Star project...'}
+            onSave={updateNorthStarProject}
+            className="text-sm text-emerald-800 dark:text-emerald-200 w-full"
+            placeholder="e.g., Build a production-ready REST API with authentication and deployment"
+          />
+        </CardContent>
+      </Card>
+
       {/* Chapters */}
       <div className="space-y-3">
         {blueprint.chapters.map((chapter) => (
@@ -549,7 +580,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
       </div>
 
       <p className="text-xs text-slate-400 dark:text-slate-500">
-        Click any title, goal, or section name to edit. Use the Bloom&apos;s dropdown to change cognitive levels.
+        Click any title, goal, deliverable, or section name to edit. Use the Bloom&apos;s dropdown to change cognitive levels.
       </p>
 
       {/* Regenerate Confirmation */}
@@ -664,6 +695,15 @@ function ChapterCard({
                   onSave={(goal) => onUpdateChapter(chapter.position, { goal })}
                   className="text-xs text-slate-600 dark:text-slate-300 flex-1"
                   placeholder="Chapter goal"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 w-12 flex-shrink-0">Output</span>
+                <InlineEdit
+                  value={chapter.deliverable || 'Add a chapter deliverable...'}
+                  onSave={(deliverable) => onUpdateChapter(chapter.position, { deliverable })}
+                  className="text-xs text-slate-600 dark:text-slate-300 flex-1"
+                  placeholder="What students produce (e.g., concept map, working app, analysis report)"
                 />
               </div>
               <div className="flex items-center gap-2">

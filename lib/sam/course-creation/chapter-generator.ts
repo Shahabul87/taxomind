@@ -148,6 +148,7 @@ export async function generateSingleChapter(
     budgetTracker,
     fallbackTracker,
     teacherBlueprintChapters,
+    northStarProject,
     partialChapterDbId,
     partialChapterSectionIds,
     sectionsWithDetails,
@@ -288,6 +289,7 @@ export async function generateSingleChapter(
         recalledMemory ?? undefined,
         (alert) => emitPromptBudgetAlert(alert, 1),
         teacherBlueprintChapter,
+        northStarProject,
       );
 
       const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
@@ -509,6 +511,7 @@ export async function generateSingleChapter(
         recalledMemory ?? undefined,
         (alert) => emitPromptBudgetAlert(alert, 1),
         teacherBlueprintChapter,
+        northStarProject,
       );
       const augmentedRetryUser = `${retryUser}${criticFeedback}`;
 
@@ -945,6 +948,8 @@ export async function generateSingleChapter(
           recalledMemory ?? undefined,
           (alert) => emitPromptBudgetAlert(alert, 2, secNum),
           blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics } : undefined,
+          northStarProject,
+          teacherBlueprintChapter?.deliverable,
         );
         const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
 

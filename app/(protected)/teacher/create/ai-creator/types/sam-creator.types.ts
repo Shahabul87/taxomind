@@ -13,11 +13,13 @@ export interface BlueprintChapter {
   title: string;
   goal: string;
   bloomsLevel: string;
+  deliverable?: string;
   sections: BlueprintSection[];
 }
 
 export interface TeacherBlueprint {
   chapters: BlueprintChapter[];
+  northStarProject?: string;
   generatedAt: string;       // ISO timestamp
   confidence: number;        // 0-100
   isEdited: boolean;         // true if teacher modified topics

@@ -46,6 +46,20 @@ const BlueprintRequestSchema = z.object({
 const BLOOMS_ORDER = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'] as const;
 
 /**
+ * Maps Bloom's cognitive levels to the type of student deliverable/artifact
+ * that is pedagogically appropriate. Injected into the blueprint prompt so
+ * the AI generates deliverables aligned with the cognitive level.
+ */
+const BLOOMS_ARTIFACT_GUIDANCE: Record<string, string> = {
+  REMEMBER: 'concept maps, annotated notes, summary documents, glossaries',
+  UNDERSTAND: 'concept maps, diagrams, annotated notes, summary documents, explanation essays',
+  APPLY: 'runnable code, working implementations, lab notebooks, solved problem sets',
+  ANALYZE: 'comparison matrices, ADRs, tradeoff analysis documents, model cards',
+  EVALUATE: 'evaluation reports, code reviews, benchmark analysis, recommendation memos',
+  CREATE: 'original projects, system designs, published artifacts, portfolio pieces',
+};
+
+/**
  * Pre-compute a Bloom's level for each chapter, ensuring progressive escalation.
  *
  * Algorithm:
@@ -131,11 +145,13 @@ interface BlueprintChapter {
   title: string;
   goal: string;
   bloomsLevel: string;
+  deliverable?: string;
   sections: BlueprintSection[];
 }
 
 interface BlueprintResponse {
   chapters: BlueprintChapter[];
+  northStarProject?: string;
   confidence: number;
   riskAreas: string[];
 }
@@ -412,14 +428,25 @@ ${isReasoningModel ? '' : `QUALITY EXPECTATIONS:
 - Include teaching depth notes in key topics like "(why it exists)", "(intuition first)"
 - Include math notation in key topics where relevant
 - Ensure prerequisites are taught BEFORE they are needed in later chapters
-`}Return the result as this JSON structure:
+`}## STEP 3 — NORTH STAR PROJECT AND CHAPTER DELIVERABLES
+
+Every great course builds toward ONE realistic, portfolio-worthy product or project. Before generating the blueprint:
+
+1. **North Star Project**: Define a single realistic product/project that the ENTIRE course builds toward. This is what the student can show an employer or put in a portfolio at the end. It should be ambitious but achievable given the course scope.
+
+2. **Per-Chapter Deliverable**: Each chapter should produce a tangible artifact that contributes to the North Star Project. The deliverable type should match the chapter&apos;s Bloom&apos;s level:
+${Object.entries(BLOOMS_ARTIFACT_GUIDANCE).map(([level, artifacts]) => `   - ${level}: ${artifacts}`).join('\n')}
+
+Return the result as this JSON structure:
 {
+  "northStarProject": "A 1-2 sentence description of the ONE realistic product/project the entire course builds toward",
   "chapters": [
     {
       "position": 1,
       "title": "Chapter title with core keywords",
       "goal": "The deeper insight or thesis this chapter reveals",
       "bloomsLevel": "UNDERSTAND",
+      "deliverable": "What tangible artifact the student produces by the end of this chapter",
       "sections": [
         {"position": 1, "title": "Exact concept name with context", "keyTopics": ["Topic 1 (teaching note)", "Topic 2", "Topic 3"]},
         {"position": 2, "title": "Next concept", "keyTopics": ["Topic 1", "Topic 2", "Topic 3"]}
@@ -498,9 +525,14 @@ function parseBlueprintResponse(
         title: typeof raw.title === 'string' ? raw.title : `Chapter ${i + 1}`,
         goal: typeof raw.goal === 'string' ? raw.goal : '',
         bloomsLevel,
+        deliverable: typeof raw.deliverable === 'string' ? raw.deliverable : undefined,
         sections,
       });
     }
+
+    const northStarProject = typeof parsed.northStarProject === 'string'
+      ? parsed.northStarProject
+      : undefined;
 
     const confidence = typeof parsed.confidence === 'number'
       ? Math.max(0, Math.min(100, Math.round(parsed.confidence)))
@@ -510,7 +542,7 @@ function parseBlueprintResponse(
       ? (parsed.riskAreas as string[]).filter(r => typeof r === 'string').slice(0, 10)
       : [];
 
-    return { chapters, confidence, riskAreas };
+    return { chapters, northStarProject, confidence, riskAreas };
   } catch {
     return null;
   }
