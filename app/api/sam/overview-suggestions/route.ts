@@ -4,39 +4,66 @@ import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-prov
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { z } from 'zod';
+import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
 
 export const runtime = 'nodejs';
 
-interface WeakOverview {
-  overview: string;
-  score: number;
-  reasoning: string;
-}
+// =============================================================================
+// VALIDATION
+// =============================================================================
 
-interface OverviewSuggestionRequest {
-  title: string;
-  category?: string;
-  subcategory?: string;
-  difficulty?: string;
-  intent?: string;
-  targetAudience?: string;
-  currentOverview?: string;
-  count?: number;
-  refinementContext?: {
-    weakOverviews: WeakOverview[];
-  };
+const OverviewSuggestionRequestSchema = z.object({
+  title: z.string().min(3).max(500),
+  category: z.string().max(100).optional(),
+  subcategory: z.string().max(100).optional(),
+  difficulty: z.string().max(50).optional(),
+  intent: z.string().max(500).optional(),
+  targetAudience: z.string().max(200).optional(),
+  currentOverview: z.string().max(2000).optional(),
+  count: z.number().int().min(1).max(5).optional(),
+  refinementContext: z.object({
+    weakOverviews: z.array(z.object({
+      overview: z.string(),
+      score: z.number(),
+      reasoning: z.string(),
+    })),
+  }).optional(),
+});
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface OverviewWithScore {
+  overview: string;
+  relevanceScore: number;
+  clarityScore: number;
+  engagementScore: number;
+  overallScore: number;
+  reasoning: string;
 }
 
 interface OverviewSuggestionResponse {
   suggestions: string[];
+  scoredOverviews: OverviewWithScore[];
   reasoning: string;
 }
+
+// =============================================================================
+// HANDLER
+// =============================================================================
 
 /**
  * Extract JSON from AI response that may contain markdown fences or extra text.
  */
 function extractJSON(text: string): string {
-  const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+  // Strip <think>...</think> blocks (reasoning models like deepseek-reasoner)
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+  // Strip markdown code fences
+  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+
   const objectMatch = cleaned.match(/\{[\s\S]*\}/);
   if (objectMatch) return objectMatch[0];
   const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -55,13 +82,20 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body: OverviewSuggestionRequest = await req.json();
-
-    if (!body.title || body.title.length < 3) {
-      return new NextResponse("Course title is required and must be at least 3 characters", { status: 400 });
+    const body = await req.json();
+    const parseResult = OverviewSuggestionRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
 
-    const suggestions = await generateOverviewSuggestions(user.id, body);
+    const suggestions = await withRetryableTimeout(
+      () => generateOverviewSuggestions(user.id, parseResult.data),
+      90_000,
+      'overview-suggestions'
+    );
 
     return NextResponse.json(suggestions);
 
@@ -77,10 +111,29 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function generateOverviewSuggestions(userId: string, request: OverviewSuggestionRequest): Promise<OverviewSuggestionResponse> {
+async function generateOverviewSuggestions(
+  userId: string,
+  request: z.infer<typeof OverviewSuggestionRequestSchema>,
+): Promise<OverviewSuggestionResponse> {
   const { title, category, subcategory, difficulty, intent, targetAudience, currentOverview, count = 3, refinementContext } = request;
 
-  const systemPrompt = `You are a senior course copywriter who has written 500+ course descriptions for top platforms. Generate ${count} distinct, high-quality course overviews that each take a DIFFERENT angle (practical skills vs career impact vs knowledge depth). Every overview must be 150-250 words, reference "${title}" specifically, and sell a concrete transformation. Return ONLY valid JSON. No markdown fences, no extra text.`;
+  // Load domain skills for domain-aware overview generation
+  let domainExpertiseBlock = '';
+  if (category) {
+    const matchedEnhancers = getCategoryEnhancers(category, subcategory);
+    const enhancer = matchedEnhancers.length >= 2
+      ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
+      : matchedEnhancers[0];
+    if (enhancer) {
+      const composed = composeCategoryPrompt(enhancer);
+      domainExpertiseBlock = composed.expertiseBlock;
+    }
+  }
+
+  const systemPrompt = `You are SAM, a senior course copywriter who has written 500+ course descriptions for top platforms. You generate ${count} distinct, high-quality course overviews WITH quality scores in a single pass. Every overview must be 150-250 words, reference the course title specifically, and sell a concrete transformation.
+${domainExpertiseBlock}
+
+Return ONLY valid JSON. No markdown fences, no extra text.`;
 
   // Build refinement block if refining weak overviews
   let refinementBlock = '';
@@ -111,7 +164,7 @@ Focus on fixing the specific weaknesses while keeping the overviews on-topic.
 
   const prompt = `COURSE TITLE: "${title}"
 ${contextBlock}${refinementBlock}
-Generate ${count} overviews. Each MUST follow this 4-part structure:
+Generate ${count} overviews WITH scores. Each MUST follow this 4-part structure:
 
 1. HOOK (1-2 sentences): Open with the specific problem or aspiration. Reference "${title}" directly.
 2. WHAT YOU'LL LEARN (2-3 sentences): List 3-5 CONCRETE skills, tools, or techniques by name. Bad: "important concepts" / Good: "React hooks, Context API, and Chrome DevTools profiling"
@@ -124,31 +177,79 @@ CONSTRAINTS:
 - Mention "${title}" or its core keyword at least twice per overview
 - Match vocabulary to ${difficulty || 'BEGINNER'} level
 - Reference specific skills/tools — no vague promises
+- Score each overview on Relevance (0-100), Clarity (0-100), Engagement (0-100)
 
 Return ONLY this JSON:
-{"suggestions":["Overview 1","Overview 2","Overview 3"],"reasoning":"How the ${count} overviews differ in angle"}`;
+{
+  "scoredOverviews": [
+    {
+      "overview": "Full overview text here...",
+      "relevanceScore": 85,
+      "clarityScore": 82,
+      "engagementScore": 80,
+      "overallScore": 82,
+      "reasoning": "Why this overview is effective and how it differs from the others"
+    }
+  ],
+  "reasoning": "How the ${count} overviews differ in angle"
+}`;
 
   try {
-    const responseText = await withRetryableTimeout(
-      () => runSAMChatWithPreference({
-        userId,
-        capability: 'course',
-        systemPrompt,
-        maxTokens: 4000,
-        temperature: 0.5,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      90_000,
-      'overviewSuggestions-generate'
-    );
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      systemPrompt,
+      maxTokens: 2500,
+      temperature: 0.5,
+      messages: [{ role: 'user', content: prompt }],
+    });
 
     const jsonStr = extractJSON(responseText);
-    const parsed = JSON.parse(jsonStr) as OverviewSuggestionResponse;
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
-    if (Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0) {
+    // Handle new combined format with scoredOverviews
+    if (Array.isArray(parsed.scoredOverviews) && (parsed.scoredOverviews as Array<Record<string, unknown>>).length > 0) {
+      const scoredOverviews: OverviewWithScore[] = (parsed.scoredOverviews as Array<Record<string, unknown>>)
+        .slice(0, count)
+        .map(item => ({
+          overview: typeof item.overview === 'string' ? item.overview : '',
+          relevanceScore: typeof item.relevanceScore === 'number' ? item.relevanceScore : 75,
+          clarityScore: typeof item.clarityScore === 'number' ? item.clarityScore : 75,
+          engagementScore: typeof item.engagementScore === 'number' ? item.engagementScore : 75,
+          overallScore: typeof item.overallScore === 'number'
+            ? item.overallScore
+            : Math.round(((typeof item.relevanceScore === 'number' ? item.relevanceScore : 75)
+                + (typeof item.clarityScore === 'number' ? item.clarityScore : 75)
+                + (typeof item.engagementScore === 'number' ? item.engagementScore : 75)) / 3),
+          reasoning: typeof item.reasoning === 'string' ? item.reasoning : 'AI-analyzed overview based on clarity, engagement, and relevance.',
+        }))
+        .filter(o => o.overview.length > 0);
+
       return {
-        suggestions: parsed.suggestions.slice(0, count),
-        reasoning: parsed.reasoning ?? 'AI-generated overviews based on your course topic.',
+        suggestions: scoredOverviews.map(o => o.overview),
+        scoredOverviews,
+        reasoning: typeof parsed.reasoning === 'string'
+          ? parsed.reasoning
+          : 'AI-generated overviews based on your course topic.',
+      };
+    }
+
+    // Fallback: handle legacy format with just suggestions array
+    if (Array.isArray(parsed.suggestions) && (parsed.suggestions as string[]).length > 0) {
+      const suggestions = (parsed.suggestions as string[]).slice(0, count);
+      return {
+        suggestions,
+        scoredOverviews: suggestions.map(overview => ({
+          overview,
+          relevanceScore: 75,
+          clarityScore: 75,
+          engagementScore: 75,
+          overallScore: 75,
+          reasoning: 'AI-generated overview based on your course topic.',
+        })),
+        reasoning: typeof parsed.reasoning === 'string'
+          ? parsed.reasoning
+          : 'AI-generated overviews based on your course topic.',
       };
     }
 
@@ -165,8 +266,18 @@ Return ONLY this JSON:
       `Transform your understanding of ${topic} with this results-driven course. Learn essential theory, then immediately apply it through hands-on projects and real-world case studies. You'll develop the skills and confidence to tackle professional challenges in ${category || 'this field'}. Designed for ${targetAudience || 'professionals'} who value practical, applicable knowledge over abstract theory.`,
     ];
 
+    const selectedFallbacks = fallbackOverviews.slice(0, count);
+
     return {
-      suggestions: fallbackOverviews.slice(0, count),
+      suggestions: selectedFallbacks,
+      scoredOverviews: selectedFallbacks.map(overview => ({
+        overview,
+        relevanceScore: 65,
+        clarityScore: 60,
+        engagementScore: 60,
+        overallScore: 62,
+        reasoning: 'Fallback overview — AI generation was unavailable.',
+      })),
       reasoning: "These overviews follow the 4-part structure and provide clear learning outcomes."
     };
   }

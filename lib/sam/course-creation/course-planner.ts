@@ -20,6 +20,7 @@ import 'server-only';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { traceAICall, sanitizeCourseContext } from './helpers';
+import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from './category-prompts';
 import type {
   CourseContext,
   CourseBlueprintPlan,
@@ -35,8 +36,8 @@ import type { RecalledMemory } from './memory-recall';
 // Constants
 // ============================================================================
 
-/** Planning prompt timeout — planning should be fast (single AI call) */
-const PLANNING_TIMEOUT_MS = 30_000;
+/** Planning prompt timeout — generous for larger courses on slower providers */
+const PLANNING_TIMEOUT_MS = 45_000;
 
 // ============================================================================
 // Public API
@@ -145,7 +146,36 @@ async function doGenerateBlueprint(
     ? `\nQUALITY HISTORY: Average score from prior courses: ${recalledMemory.qualityPatterns.averageScore}/100. Weak areas: ${recalledMemory.qualityPatterns.weakDimensions.join(', ') || 'none'}.`
     : '';
 
-  const systemPrompt = `You are a course architecture planner. Your job is to create an optimal blueprint for a course BEFORE any content is generated. Think carefully about concept dependencies, cognitive progression, and risk areas.`;
+  // Load domain expertise for domain-aware planning
+  let domainExpertiseBlock = '';
+  let chapterGuidanceBlock = '';
+  if (ctx.courseCategory) {
+    const matchedEnhancers = getCategoryEnhancers(ctx.courseCategory, ctx.courseSubcategory);
+    const enhancer = matchedEnhancers.length >= 2
+      ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
+      : matchedEnhancers[0];
+    if (enhancer) {
+      const composed = composeCategoryPrompt(enhancer);
+      domainExpertiseBlock = composed.expertiseBlock;
+      chapterGuidanceBlock = composed.chapterGuidanceBlock
+        ? `\n## Domain-Specific Pedagogy\n${composed.chapterGuidanceBlock}`
+        : '';
+    }
+  }
+
+  const systemPrompt = `You are SAM, an expert course architecture planner. Your job is to create an optimal blueprint for a course BEFORE any content is generated. Think carefully about concept dependencies, cognitive progression, and risk areas.
+
+## BLUEPRINT DESIGN PRINCIPLES
+- NEVER suggest generic chapter titles like "Introduction to X" or "Overview of X"
+- Follow Bloom's Taxonomy progression across chapters
+- Ensure logical concept flow: prerequisites before dependents
+- Plan section-level structure with specific titles and key topics
+- Flag areas where students typically struggle as risk areas
+${domainExpertiseBlock}`;
+
+  // Adaptive maxTokens: same formula as blueprint route for consistency
+  const totalSections = ctx.totalChapters * ctx.sectionsPerChapter;
+  const plannerMaxTokens = Math.min(8192, 1500 + ctx.totalChapters * 200 + totalSections * 100);
 
   const userPrompt = `Plan the complete structure for this course:
 
@@ -156,13 +186,15 @@ async function doGenerateBlueprint(
 - Target Audience: ${ctx.targetAudience}
 - Difficulty: ${ctx.difficulty}
 - Total Chapters: ${ctx.totalChapters}
+- Sections per Chapter: ${ctx.sectionsPerChapter}
 - Learning Objectives:
 ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 ${memorySection}${qualitySection}
+${chapterGuidanceBlock}
 
 ## TASK
 Create a blueprint with:
-1. A plan for each chapter (title, focus, Bloom's level, key concepts, complexity, rationale, sequencing justification, pedagogical arc role, and optionally a recommended section count)
+1. A plan for each chapter (title, focus, Bloom's level, key concepts, complexity, rationale, sequencing justification, pedagogical arc role, section titles with key topics, and optionally a recommended section count)
 2. Concept dependencies (which concepts depend on which)
 3. Bloom's progression strategy (how cognitive levels should advance)
 4. Risk areas (topics that are complex, need careful scaffolding, or have prerequisite gaps)
@@ -181,9 +213,12 @@ Return a JSON object:
       "keyConcepts": ["concept1", "concept2"],
       "estimatedComplexity": "low|medium|high",
       "rationale": "Why this chapter belongs here and at this level",
-      "dependencyReason": "Why this chapter must come after its predecessors (e.g. 'Requires understanding of X from Ch2')",
+      "dependencyReason": "Why this chapter must come after its predecessors",
       "pedagogicalArc": "foundation|scaffolding|bridge|deep-dive|synthesis|capstone",
-      "recommendedSections": 7
+      "recommendedSections": ${ctx.sectionsPerChapter},
+      "sectionPlan": [
+        { "position": 1, "title": "Specific section title", "keyTopics": ["topic1", "topic2", "topic3"] }
+      ]
     }
   ],
   "conceptDependencies": [
@@ -206,7 +241,7 @@ Return ONLY valid JSON, no markdown formatting.`;
       capability: 'course',
       messages: [{ role: 'user', content: userPrompt }],
       systemPrompt,
-      maxTokens: 3000,
+      maxTokens: plannerMaxTokens,
       temperature: 0.6,
     }),
   );
@@ -496,6 +531,71 @@ Return ONLY valid JSON, no markdown formatting.`;
   }
 
   return revisedPlan;
+}
+
+// ============================================================================
+// Teacher Blueprint Conversion
+// ============================================================================
+
+/**
+ * Convert a teacher-approved blueprint (from the wizard Step 4) into a
+ * CourseBlueprintPlan that the orchestrator and prompt builders understand.
+ *
+ * This replaces the AI-generated planning call when the teacher has already
+ * reviewed and edited the blueprint.
+ */
+export function convertTeacherBlueprint(
+  teacherBlueprint: {
+    chapters: Array<{
+      position: number;
+      title: string;
+      goal: string;
+      bloomsLevel: string;
+      sections: Array<{ position: number; title: string; keyTopics: string[] }>;
+    }>;
+    confidence: number;
+    riskAreas: string[];
+  },
+): CourseBlueprintPlan {
+  const chapterPlan: ChapterPlanEntry[] = teacherBlueprint.chapters.map(ch => {
+    // Flatten all section keyTopics into keyConcepts
+    const keyConcepts = ch.sections.flatMap(sec => sec.keyTopics).slice(0, 10);
+
+    const bloomsLevel = BLOOMS_LEVELS.includes(ch.bloomsLevel as BloomsLevel)
+      ? (ch.bloomsLevel as BloomsLevel)
+      : 'UNDERSTAND';
+
+    return {
+      position: ch.position,
+      suggestedTitle: ch.title,
+      primaryFocus: ch.goal,
+      bloomsLevel,
+      keyConcepts,
+      estimatedComplexity: 'medium' as const,
+      rationale: ch.goal,
+      recommendedSections: ch.sections.length,
+    };
+  });
+
+  // Build bloomsStrategy from chapters
+  const bloomsMap = new Map<BloomsLevel, number[]>();
+  for (const entry of chapterPlan) {
+    const existing = bloomsMap.get(entry.bloomsLevel) ?? [];
+    existing.push(entry.position);
+    bloomsMap.set(entry.bloomsLevel, existing);
+  }
+  const bloomsStrategy = Array.from(bloomsMap.entries()).map(([level, chapters]) => ({
+    level,
+    chapters,
+  }));
+
+  return {
+    chapterPlan,
+    conceptDependencies: [],
+    bloomsStrategy,
+    riskAreas: teacherBlueprint.riskAreas,
+    planConfidence: teacherBlueprint.confidence,
+  };
 }
 
 // ============================================================================

@@ -5,7 +5,7 @@
  *
  * A specialized AI-powered overview generator that provides:
  * - Multiple overview suggestions using SAM AI
- * - Relevance scoring for each overview
+ * - Relevance, Clarity, and Engagement scoring for each overview (inline, single API call)
  * - Intelligent feedback based on overview quality
  * - Copy/Insert actions for easy form integration
  */
@@ -118,7 +118,7 @@ export function SAMOverviewGeneratorModal({
     }
   }, [currentOverview]);
 
-  // Generate overview suggestions
+  // Generate overview suggestions — single API call returns overviews WITH scores
   const generateOverviewSuggestions = useCallback(async () => {
     if (!courseTitle || courseTitle.length < 5 || isGenerating) return;
 
@@ -126,7 +126,6 @@ export function SAMOverviewGeneratorModal({
     setOverviewSuggestions([]);
 
     try {
-      // Step 1: Generate overview content using dedicated overview-suggestions API
       const response = await fetch('/api/sam/overview-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,58 +146,34 @@ export function SAMOverviewGeneratorModal({
       }
 
       const result = await response.json();
-      const generatedOverviews: string[] = result.suggestions || [];
 
-      if (generatedOverviews.length === 0) {
-        toast.error('No overview suggestions generated. Try a different title.');
-        return;
-      }
+      // Use inline scored overviews from the merged API response
+      const scoredOverviews: Array<{
+        overview: string;
+        relevanceScore: number;
+        clarityScore: number;
+        engagementScore: number;
+        overallScore: number;
+        reasoning: string;
+      }> = result.scoredOverviews || [];
 
-      // Step 2: Score each overview using AI-powered content scoring
-      const scoringResponse = await fetch('/api/sam/content-scoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'batch',
-          items: generatedOverviews.slice(0, 3).map((overview: string) => ({
-            itemType: 'overview',
-            overview,
-          })),
-          context: {
-            category: courseCategory,
-            subcategory: courseSubcategory,
-            targetAudience,
-            courseIntent,
-          },
-        }),
-      });
+      let suggestions: OverviewSuggestion[];
 
-      let scoredOverviews: OverviewSuggestion[] = [];
-
-      if (scoringResponse.ok) {
-        const scoringResult = await scoringResponse.json();
-        const scores = scoringResult.overviewScores || scoringResult.scores || [];
-
-        scoredOverviews = scores.map((score: {
-          overview: string;
-          relevanceScore?: number;
-          clarityScore?: number;
-          engagementScore?: number;
-          overallScore?: number;
-          reasoning: string;
-          source?: 'ai' | 'heuristic';
-        }, index: number) => ({
-          overview: generatedOverviews[index] || score.overview,
+      if (scoredOverviews.length > 0) {
+        // New format: scores are inline
+        suggestions = scoredOverviews.map(score => ({
+          overview: score.overview,
           relevanceScore: score.relevanceScore ?? 75,
           clarityScore: score.clarityScore ?? 75,
           engagementScore: score.engagementScore ?? 75,
           overallScore: score.overallScore ?? Math.round(((score.relevanceScore ?? 75) + (score.clarityScore ?? 75) + (score.engagementScore ?? 75)) / 3),
           reasoning: score.reasoning || 'AI-analyzed overview based on clarity, engagement, and relevance.',
-          source: score.source,
+          source: 'ai' as const,
         }));
       } else {
-        // Fallback: use overviews without AI scoring
-        scoredOverviews = generatedOverviews.slice(0, 3).map((overview: string, index: number) => ({
+        // Fallback: legacy format with just suggestions array
+        const generatedOverviews: string[] = result.suggestions || [];
+        suggestions = generatedOverviews.slice(0, 3).map((overview: string, index: number) => ({
           overview,
           relevanceScore: 80 - index * 5,
           clarityScore: 78 - index * 4,
@@ -209,15 +184,16 @@ export function SAMOverviewGeneratorModal({
         }));
       }
 
-      // Sort by overall score descending
-      scoredOverviews.sort((a, b) => b.overallScore - a.overallScore);
-
-      if (scoredOverviews.length > 0) {
-        setOverviewSuggestions(scoredOverviews);
-        toast.success(`Generated ${scoredOverviews.length} AI-scored overview suggestions!`);
-      } else {
-        toast.error('Failed to generate overview suggestions. Please try again.');
+      if (suggestions.length === 0) {
+        toast.error('No overview suggestions generated. Try a different title.');
+        return;
       }
+
+      // Sort by overall score descending
+      suggestions.sort((a, b) => b.overallScore - a.overallScore);
+
+      setOverviewSuggestions(suggestions);
+      toast.success(`Generated ${suggestions.length} AI-scored overview suggestions!`);
     } catch (error: unknown) {
       logger.error('Error generating overview suggestions:', error);
       toast.error('Failed to generate overview suggestions. Please try again.');
@@ -238,7 +214,7 @@ export function SAMOverviewGeneratorModal({
     [overviewSuggestions],
   );
 
-  // Refine low-scoring overviews (single pass)
+  // Refine low-scoring overviews — single API call returns overviews WITH scores
   const handleRefineOverviews = useCallback(async () => {
     if (lowScoringOverviews.length === 0 || isRefining) return;
 
@@ -250,7 +226,6 @@ export function SAMOverviewGeneratorModal({
         reasoning: s.reasoning,
       }));
 
-      // Re-generate only the weak overviews via the dedicated endpoint with refinement context
       const response = await fetch('/api/sam/overview-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -269,38 +244,32 @@ export function SAMOverviewGeneratorModal({
 
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
-      const refinedOverviews: string[] = result.suggestions || [];
 
-      if (refinedOverviews.length === 0) {
-        toast.info('No refined overviews generated.');
-        return;
-      }
+      // Use inline scored overviews from the merged API response
+      const scoredOverviews: Array<{
+        overview: string;
+        relevanceScore: number;
+        clarityScore: number;
+        engagementScore: number;
+        overallScore: number;
+        reasoning: string;
+      }> = result.scoredOverviews || [];
 
-      // Score the refined overviews
-      const scoringResponse = await fetch('/api/sam/content-scoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'batch',
-          items: refinedOverviews.map((overview: string) => ({ itemType: 'overview', overview })),
-          context: { category: courseCategory, subcategory: courseSubcategory, targetAudience, courseIntent },
-        }),
-      });
+      let refinedSuggestions: OverviewSuggestion[];
 
-      let refinedSuggestions: OverviewSuggestion[] = [];
-      if (scoringResponse.ok) {
-        const scoringResult = await scoringResponse.json();
-        const scores = scoringResult.overviewScores || scoringResult.scores || [];
-        refinedSuggestions = scores.map((score: { overview: string; overallScore?: number; relevanceScore?: number; clarityScore?: number; engagementScore?: number; reasoning: string; source?: 'ai' | 'heuristic' }, idx: number) => ({
-          overview: refinedOverviews[idx] || score.overview,
+      if (scoredOverviews.length > 0) {
+        refinedSuggestions = scoredOverviews.map(score => ({
+          overview: score.overview,
           relevanceScore: score.relevanceScore ?? 75,
           clarityScore: score.clarityScore ?? 75,
           engagementScore: score.engagementScore ?? 75,
-          overallScore: score.overallScore ?? Math.round(((score.relevanceScore ?? 75) + (score.clarityScore ?? 75) + (score.engagementScore ?? 75)) / 3),
+          overallScore: score.overallScore ?? 75,
           reasoning: score.reasoning || 'Refined by AI for improved quality.',
-          source: score.source,
+          source: 'ai' as const,
         }));
       } else {
+        // Fallback: use suggestions without scores
+        const refinedOverviews: string[] = result.suggestions || [];
         refinedSuggestions = refinedOverviews.map((overview: string) => ({
           overview,
           relevanceScore: 80,
@@ -310,6 +279,11 @@ export function SAMOverviewGeneratorModal({
           reasoning: 'Refined overview — AI scoring was unavailable.',
           source: 'heuristic' as const,
         }));
+      }
+
+      if (refinedSuggestions.length === 0) {
+        toast.info('No refined overviews generated.');
+        return;
       }
 
       // Replace low-scoring overviews with refined ones

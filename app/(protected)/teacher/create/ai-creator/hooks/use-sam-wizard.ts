@@ -12,7 +12,7 @@ import { getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-conte
 import { useSamActionHandler } from './use-sam-action-handler';
 import { getMinimumSectionsForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 const initialFormData: CourseCreationRequest = {
   courseTitle: '',
@@ -36,6 +36,7 @@ const initialFormData: CourseCreationRequest = {
   enableEscalationGate: false,
   fallbackHaltRateThreshold: 0.3,
   haltOnExcessiveFallbacks: true,
+  teacherBlueprint: undefined,
 };
 
 function normalizeSectionsPerChapter(data: CourseCreationRequest): CourseCreationRequest {

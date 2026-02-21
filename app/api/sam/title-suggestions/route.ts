@@ -4,36 +4,58 @@ import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-prov
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { z } from 'zod';
+import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
 
 export const runtime = 'nodejs';
 
-interface WeakTitle {
-  title: string;
-  score: number;
-  issues: string[];
-}
+// =============================================================================
+// VALIDATION
+// =============================================================================
 
-interface TitleSuggestionRequest {
-  currentTitle?: string;
-  overview?: string;
-  category?: string;
-  subcategory?: string;
-  difficulty?: string;
-  intent?: string;
-  targetAudience?: string;
-  count?: number;
-  refinementContext?: {
-    weakTitles: WeakTitle[];
-  };
+const TitleSuggestionRequestSchema = z.object({
+  currentTitle: z.string().min(3).max(500),
+  overview: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  subcategory: z.string().max(100).optional(),
+  difficulty: z.string().max(50).optional(),
+  intent: z.string().max(500).optional(),
+  targetAudience: z.string().max(200).optional(),
+  count: z.number().int().min(1).max(10).optional(),
+  refinementContext: z.object({
+    weakTitles: z.array(z.object({
+      title: z.string(),
+      score: z.number(),
+      issues: z.array(z.string()),
+    })),
+  }).optional(),
+});
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface TitleWithScore {
+  title: string;
+  marketingScore: number;
+  brandingScore: number;
+  salesScore: number;
+  overallScore: number;
+  reasoning: string;
 }
 
 interface TitleSuggestionResponse {
   titles: string[];
+  scoredTitles: TitleWithScore[];
   suggestions: {
     message: string;
     reasoning: string;
   };
 }
+
+// =============================================================================
+// HANDLER
+// =============================================================================
 
 /**
  * Extract JSON from AI response that may contain markdown fences or extra text.
@@ -58,7 +80,7 @@ function extractJSON(text: string): string {
 
 export async function POST(req: Request) {
   try {
-    const rateLimitResponse = await withRateLimit(req as any, 'ai');
+    const rateLimitResponse = await withRateLimit(req as never, 'ai');
     if (rateLimitResponse) return rateLimitResponse;
 
     const user = await currentUser();
@@ -67,14 +89,17 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body: TitleSuggestionRequest = await req.json();
-
-    if (!body.currentTitle || body.currentTitle.length < 3) {
-      return new NextResponse("Current title is required and must be at least 3 characters", { status: 400 });
+    const body = await req.json();
+    const parseResult = TitleSuggestionRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
 
     const suggestions = await withRetryableTimeout(
-      () => generateTitleSuggestions(user.id, body),
+      () => generateTitleSuggestions(user.id, parseResult.data),
       90_000,
       'title-suggestions'
     );
@@ -93,10 +118,33 @@ export async function POST(req: Request) {
   }
 }
 
-async function generateTitleSuggestions(userId: string, request: TitleSuggestionRequest): Promise<TitleSuggestionResponse> {
+async function generateTitleSuggestions(
+  userId: string,
+  request: z.infer<typeof TitleSuggestionRequestSchema>,
+): Promise<TitleSuggestionResponse> {
   const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 4, refinementContext } = request;
 
-  const systemPrompt = `You are an expert course title architect. Generate ${count} high-quality course titles scored on Marketing, Branding, and Sales dimensions.
+  // Load domain skills for domain-aware title generation
+  let domainExpertiseBlock = '';
+  if (category) {
+    const matchedEnhancers = getCategoryEnhancers(category, subcategory);
+    const enhancer = matchedEnhancers.length >= 2
+      ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
+      : matchedEnhancers[0];
+    if (enhancer) {
+      const composed = composeCategoryPrompt(enhancer);
+      domainExpertiseBlock = composed.expertiseBlock;
+    }
+  }
+
+  const systemPrompt = `You are SAM, an expert course title architect who creates titles that make busy professionals stop scrolling and click. You generate course titles WITH quality scores in a single pass.
+
+## TITLE QUALITY PRINCIPLES
+- Follow the CURIOSITY-OUTCOME pattern: (1) THE HOOK (question, paradox, claim) + (2) THE PAYOFF (specific capability gained)
+- Title patterns: Question+Answer, Paradox, Challenge, Story, Failure, Reversal, Specificity
+- NEVER generate: "Introduction to X", "Understanding X", "Working with X", "Overview of X", "Basics of X", "Exploring X", "Deep Dive into X"
+- Litmus test: Would a busy professional stop scrolling and click? If not, rewrite it.
+${domainExpertiseBlock}
 
 Return ONLY valid JSON. No markdown fences, no extra text.`;
 
@@ -129,23 +177,40 @@ Focus on fixing the specific weaknesses while keeping the titles on-topic.
 
   const prompt = `SUBJECT: "${currentTitle}"
 ${contextBlock}${refinementBlock}
-Generate exactly ${count} course titles for the subject above.
+Generate exactly ${count} course titles for the subject above, each with quality scores.
 
 RULES:
 - 5-10 words each, include the core topic keyword early
 - Each title uses a DIFFERENT angle (outcome-focused, audience-specific, skill-based, project-based)
 - Reference "${currentTitle}" specifically — no generic filler
 - Score each title on Marketing (0-100), Branding (0-100), Sales (0-100)
+- Calculate overallScore as the average of the three scores
 - Only include titles scoring 70+ on every dimension
+- Provide a brief reasoning for why each title works
 
 Return this JSON:
-{"titles":["title1","title2"],"suggestions":{"message":"brief strategy","reasoning":"why these titles work"}}`;
+{
+  "scoredTitles": [
+    {
+      "title": "The title text",
+      "marketingScore": 85,
+      "brandingScore": 80,
+      "salesScore": 78,
+      "overallScore": 81,
+      "reasoning": "Why this title is effective"
+    }
+  ],
+  "suggestions": {
+    "message": "brief strategy summary",
+    "reasoning": "why these titles work for the target audience"
+  }
+}`;
 
   const responseText = await runSAMChatWithPreference({
     userId,
     capability: 'course',
     systemPrompt,
-    maxTokens: 4000,
+    maxTokens: 1500,
     temperature: 0.5,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -153,15 +218,55 @@ Return this JSON:
   // Robust JSON parsing: strip markdown fences, find JSON object
   try {
     const jsonStr = extractJSON(responseText);
-    const parsed = JSON.parse(jsonStr) as TitleSuggestionResponse;
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
-    // Validate the response has titles
-    if (Array.isArray(parsed.titles) && parsed.titles.length > 0) {
+    // Handle new combined format with scoredTitles
+    if (Array.isArray(parsed.scoredTitles) && (parsed.scoredTitles as Array<Record<string, unknown>>).length > 0) {
+      const scoredTitles: TitleWithScore[] = (parsed.scoredTitles as Array<Record<string, unknown>>)
+        .slice(0, count)
+        .map(item => ({
+          title: typeof item.title === 'string' ? item.title : '',
+          marketingScore: typeof item.marketingScore === 'number' ? item.marketingScore : 75,
+          brandingScore: typeof item.brandingScore === 'number' ? item.brandingScore : 75,
+          salesScore: typeof item.salesScore === 'number' ? item.salesScore : 75,
+          overallScore: typeof item.overallScore === 'number'
+            ? item.overallScore
+            : Math.round(((typeof item.marketingScore === 'number' ? item.marketingScore : 75)
+                + (typeof item.brandingScore === 'number' ? item.brandingScore : 75)
+                + (typeof item.salesScore === 'number' ? item.salesScore : 75)) / 3),
+          reasoning: typeof item.reasoning === 'string' ? item.reasoning : 'AI-generated title optimized for the target audience.',
+        }))
+        .filter(t => t.title.length > 0);
+
+      const suggestions = parsed.suggestions as Record<string, unknown> | undefined;
+
       return {
-        titles: parsed.titles.slice(0, count),
-        suggestions: parsed.suggestions ?? {
-          message: "AI-generated titles based on your course topic.",
-          reasoning: "These titles are optimized for the specific subject matter.",
+        titles: scoredTitles.map(t => t.title),
+        scoredTitles,
+        suggestions: {
+          message: typeof suggestions?.message === 'string' ? suggestions.message : 'AI-generated titles based on your course topic.',
+          reasoning: typeof suggestions?.reasoning === 'string' ? suggestions.reasoning : 'These titles are optimized for the specific subject matter.',
+        },
+      };
+    }
+
+    // Fallback: handle legacy format with just titles array
+    if (Array.isArray(parsed.titles) && (parsed.titles as string[]).length > 0) {
+      const titles = (parsed.titles as string[]).slice(0, count);
+      const suggestions = parsed.suggestions as Record<string, unknown> | undefined;
+      return {
+        titles,
+        scoredTitles: titles.map(title => ({
+          title,
+          marketingScore: 75,
+          brandingScore: 75,
+          salesScore: 75,
+          overallScore: 75,
+          reasoning: 'AI-generated title based on your course topic.',
+        })),
+        suggestions: {
+          message: typeof suggestions?.message === 'string' ? suggestions.message : 'AI-generated titles based on your course topic.',
+          reasoning: typeof suggestions?.reasoning === 'string' ? suggestions.reasoning : 'These titles are optimized for the specific subject matter.',
         },
       };
     }
@@ -173,11 +278,10 @@ Return this JSON:
   }
 
   // Fallback: titles derived from the actual currentTitle
-  // Clean the topic: strip trailing punctuation, normalize whitespace, title-case
   const rawTopic = currentTitle ?? 'Professional Skills';
   const topic = rawTopic
-    .replace(/[?!.…]+$/g, '')         // strip trailing ?!.…
-    .replace(/\s+/g, ' ')             // collapse whitespace
+    .replace(/[?!.…]+$/g, '')
+    .replace(/\s+/g, ' ')
     .trim()
     || 'Professional Skills';
 
@@ -197,8 +301,18 @@ Return this JSON:
     `Applied ${topic}: From Theory to Real-World Impact`,
   ];
 
+  const selectedFallbacks = fallbackTitles.slice(0, count);
+
   return {
-    titles: fallbackTitles.slice(0, count),
+    titles: selectedFallbacks,
+    scoredTitles: selectedFallbacks.map(title => ({
+      title,
+      marketingScore: 65,
+      brandingScore: 60,
+      salesScore: 60,
+      overallScore: 62,
+      reasoning: 'Fallback title — AI generation was unavailable.',
+    })),
     suggestions: {
       message: `Generated title suggestions based on your topic: "${topic}".`,
       reasoning: "These titles incorporate your subject matter with proven course title patterns.",

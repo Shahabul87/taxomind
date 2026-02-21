@@ -28,6 +28,8 @@ const SKILLS_DIR = path.join(process.cwd(), 'lib', 'sam', 'skills', 'course-doma
 // ---------------------------------------------------------------------------
 const PRIORITY_ORDER: string[] = [
   'data-structures-algorithms',
+  'artificial-intelligence',
+  'data-analytics',
   'data-science-ml',
   'programming',
   'mathematics',

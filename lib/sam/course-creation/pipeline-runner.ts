@@ -59,6 +59,14 @@ export interface PipelineRunnerOptions {
   conceptTracker: ConceptTracker;
   bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
   blueprintPlan: CourseBlueprintPlan | null;
+  /** Raw teacher blueprint chapters for prompt simplification (section-level key topics) */
+  teacherBlueprintChapters?: Array<{
+    position: number;
+    title: string;
+    goal: string;
+    bloomsLevel: string;
+    sections: Array<{ position: number; title: string; keyTopics: string[] }>;
+  }>;
   lastAgenticDecision: AgenticDecision | null;
   recalledMemory: RecalledMemory | null;
   strategyMonitor: AdaptiveStrategyMonitor;
@@ -181,6 +189,7 @@ export async function runPipeline(
       categoryPrompt,
       categoryEnhancer,
       experimentVariant,
+      teacherBlueprintChapters: options.teacherBlueprintChapters,
       budgetTracker,
       fallbackTracker,
       ...(resumeState && chNum === resumeState.completedChapterCount + 1

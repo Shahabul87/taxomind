@@ -399,10 +399,12 @@ export class AdaptiveStrategyMonitor {
     if (this.history.length < 5) return;
 
     const recentAvg = this.getAverageScore(this.history.slice(-5));
-    if (recentAvg >= 80 && this.currentStrategy.enableSelfCritique) {
+    // Tighter fire range: only enable self-critique when quality is genuinely low (50-65)
+    // Disable sooner (>75 instead of >80) to reduce unnecessary AI calls
+    if (recentAvg >= 75 && this.currentStrategy.enableSelfCritique) {
       this.currentStrategy.enableSelfCritique = false;
       this.logAdaptation('enableSelfCritique', false);
-    } else if (recentAvg < 65 && !this.currentStrategy.enableSelfCritique) {
+    } else if (recentAvg < 60 && !this.currentStrategy.enableSelfCritique) {
       this.currentStrategy.enableSelfCritique = true;
       this.logAdaptation('enableSelfCritique', true);
     }

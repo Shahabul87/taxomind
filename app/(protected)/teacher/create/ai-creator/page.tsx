@@ -20,6 +20,7 @@ import {
   Loader2,
   ShieldCheck,
   ShieldAlert,
+  Map,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -51,6 +52,10 @@ const TargetAudienceStep = dynamic(
 );
 const CourseStructureStep = dynamic(
   () => import("./components/steps/course-structure-step").then(m => m.CourseStructureStep),
+  { loading: () => <StepSkeleton /> }
+);
+const CourseBlueprintStep = dynamic(
+  () => import("./components/steps/course-blueprint-step").then(m => m.CourseBlueprintStep),
   { loading: () => <StepSkeleton /> }
 );
 const AdvancedSettingsStep = dynamic(
@@ -91,6 +96,13 @@ const STEPS = [
   },
   {
     id: 4,
+    title: "Course Blueprint",
+    description: "Review AI structure",
+    icon: Map,
+    color: "indigo",
+  },
+  {
+    id: 5,
     title: "Review & Create",
     description: "Final review",
     icon: GraduationCap,
@@ -220,6 +232,11 @@ export default function AICreatorPage() {
         );
       case 4:
         return !!(
+          formData.teacherBlueprint &&
+          formData.teacherBlueprint.chapters.length > 0
+        );
+      case 5:
+        return !!(
           formData.courseTitle?.trim()?.length >= 10 &&
           formData.courseShortOverview?.trim()?.length >= 50 &&
           formData.courseCategory?.trim()?.length > 0 &&
@@ -229,7 +246,9 @@ export default function AICreatorPage() {
           Array.isArray(formData.courseGoals) &&
           formData.courseGoals.length >= 2 &&
           Array.isArray(formData.bloomsFocus) &&
-          formData.bloomsFocus.length >= 2
+          formData.bloomsFocus.length >= 2 &&
+          formData.teacherBlueprint &&
+          formData.teacherBlueprint.chapters.length > 0
         );
       default:
         return true;
@@ -441,6 +460,8 @@ export default function AICreatorPage() {
       case 3:
         return <CourseStructureStep {...stepProps} />;
       case 4:
+        return <CourseBlueprintStep {...stepProps} />;
+      case 5:
         return <AdvancedSettingsStep {...stepProps} />;
       default:
         return <CourseBasicsStep {...stepProps} />;
@@ -590,7 +611,8 @@ export default function AICreatorPage() {
                         step === 1 && "bg-gradient-to-br from-blue-500 to-indigo-600",
                         step === 2 && "bg-gradient-to-br from-purple-500 to-violet-600",
                         step === 3 && "bg-gradient-to-br from-emerald-500 to-teal-600",
-                        step === 4 && "bg-gradient-to-br from-amber-500 to-orange-600"
+                        step === 4 && "bg-gradient-to-br from-indigo-500 to-violet-600",
+                        step === 5 && "bg-gradient-to-br from-amber-500 to-orange-600"
                       )}
                     >
                       <StepIcon className="h-6 w-6 text-white" />

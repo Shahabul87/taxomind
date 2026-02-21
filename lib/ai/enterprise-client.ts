@@ -794,8 +794,16 @@ export const aiClient = {
         capability,
       });
 
+      // deepseek-reasoner uses reasoning tokens that consume the maxTokens budget.
+      // Automatically scale up so the model has room for both reasoning AND output.
+      const resolvedModel = adapter.getModel();
+      const isReasoningModel = resolvedModel === 'deepseek-reasoner';
+      const effectiveMaxTokens = isReasoningModel && maxTokens
+        ? Math.min(8192, maxTokens * 4)
+        : maxTokens;
+
       const response = await adapter.chat({
-        maxTokens,
+        maxTokens: effectiveMaxTokens,
         temperature,
         systemPrompt,
         messages,
@@ -958,8 +966,6 @@ export const aiClient = {
       messageCount: messages.length,
     });
 
-    const chatParams = { maxTokens, temperature, systemPrompt, messages };
-
     // ----------------------------------------------------------------
     // Helper: attempt to stream from a specific provider.
     // Returns { adapter, generator } or throws.
@@ -971,6 +977,17 @@ export const aiClient = {
       const adapterInstance = await breaker.execute(() =>
         getAdapter({ provider, userId, extended, capability }),
       );
+
+      // deepseek-reasoner uses reasoning tokens that consume the maxTokens budget.
+      // Automatically scale up so the model has room for both reasoning AND output.
+      const resolvedModel = adapterInstance.getModel();
+      const isReasoningModel = resolvedModel === 'deepseek-reasoner';
+      const effectiveMaxTokens = isReasoningModel && maxTokens
+        ? Math.min(8192, maxTokens * 4)
+        : maxTokens;
+
+      const chatParams = { maxTokens: effectiveMaxTokens, temperature, systemPrompt, messages };
+
       if (adapterInstance.chatStream) {
         return { adapter: adapterInstance, generator: adapterInstance.chatStream(chatParams) };
       }

@@ -729,6 +729,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           duration: courseData.duration,
           enableEscalationGate: courseData.enableEscalationGate,
           fallbackPolicy: courseData.fallbackPolicy,
+          teacherBlueprint: courseData.teacherBlueprint,
         }),
         signal: abortController.signal,
       });

@@ -4755,8 +4755,9 @@ var DeepSeekAdapter = class {
         if (!choice) {
           throw new AIError("No response choice returned from DeepSeek");
         }
+        const messageContent = choice.message.content || choice.message.reasoning_content || "";
         return {
-          content: choice.message.content,
+          content: messageContent,
           model: response.model,
           usage: {
             inputTokens: response.usage.prompt_tokens,

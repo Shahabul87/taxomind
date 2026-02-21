@@ -116,6 +116,12 @@ export function useSequentialCreationActions(
       haltRateThreshold: formData.fallbackHaltRateThreshold,
       haltOnExcessiveFallbacks: formData.haltOnExcessiveFallbacks,
     },
+    // Teacher-approved blueprint (replaces AI planning when present)
+    teacherBlueprint: formData.teacherBlueprint ? {
+      chapters: formData.teacherBlueprint.chapters,
+      confidence: formData.teacherBlueprint.confidence,
+      riskAreas: formData.teacherBlueprint.riskAreas,
+    } : undefined,
   }), [formData]);
 
   // -----------------------------------------------------------------------

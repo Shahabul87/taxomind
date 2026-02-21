@@ -147,12 +147,25 @@ export async function generateSingleChapter(
     runId,
     budgetTracker,
     fallbackTracker,
+    teacherBlueprintChapters,
     partialChapterDbId,
     partialChapterSectionIds,
     sectionsWithDetails,
   } = context;
   const { onSSEEvent, enableStreamingThinking, abortSignal } = callbacks;
   throwIfAborted(abortSignal);
+
+  // Extract teacher blueprint chapter entry for this chapter (prompt simplification)
+  const teacherBlueprintChapter = teacherBlueprintChapters?.find(
+    ch => ch.position === chNum
+  );
+
+  // Blueprint-driven mode: skip critics, self-critique, semantic duplicates, and
+  // SAM validation when teacher-approved blueprint provides populated keyTopics.
+  // "Trust blueprint fully" — the teacher has already reviewed and approved the structure.
+  const isBlueprintDriven = !!teacherBlueprintChapter && teacherBlueprintChapter.sections.some(
+    s => s.keyTopics.length > 0
+  );
 
   const totalChapters = courseContext.totalChapters;
   // Strict mode: always use user's requested section count
@@ -249,7 +262,11 @@ export async function generateSingleChapter(
   const previousPlain = generatedChapters.map((ch) => stripId(ch));
 
   // Quality gate: retry with feedback-driven improvement
-  const s1Strategy = strategyMonitor.getStrategy(1, chNum);
+  const s1StrategyBase = strategyMonitor.getStrategy(1, chNum);
+  // Blueprint-driven: no retries needed (accept first attempt if score >= 45)
+  const s1Strategy = isBlueprintDriven
+    ? { ...s1StrategyBase, maxRetries: 0, retryThreshold: 45, enableSelfCritique: false }
+    : s1StrategyBase;
   const s1StartTime = Date.now();
   const currentBlueprintEntry = blueprintPlan?.chapterPlan.find(e => e.position === chNum) ?? null;
 
@@ -270,6 +287,7 @@ export async function generateSingleChapter(
         s1TemplatePrompt,
         recalledMemory ?? undefined,
         (alert) => emitPromptBudgetAlert(alert, 1),
+        teacherBlueprintChapter,
       );
 
       const blueprintBlock = blueprintPlan ? buildBlueprintBlock(blueprintPlan, chNum) : '';
@@ -303,6 +321,13 @@ export async function generateSingleChapter(
       }
       const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
 
+      // Blueprint-driven: skip SAM validation — teacher already approved structure
+      // High-quality (>80): skip SAM validation — rarely fails, saves ~8s per item
+      if (isBlueprintDriven || result.qualityScore.overall > 80) {
+        (result as Record<string, unknown>)._responseText = responseText;
+        return { result, score: result.qualityScore.overall };
+      }
+
       const samResult = await validateChapterWithSAM(result.chapter, result.qualityScore, courseContext);
       const blended = blendScores(result.qualityScore, samResult);
 
@@ -316,7 +341,8 @@ export async function generateSingleChapter(
       const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
       return extractQualityFeedback(samResult, result.qualityScore, nextAttempt);
     },
-    selfCritique: s1Strategy.enableSelfCritique
+    // Blueprint-driven: skip self-critique (teacher-approved structure)
+    selfCritique: (s1Strategy.enableSelfCritique && !isBlueprintDriven)
       ? async (result, score, feedback) => {
           const samResult = (result as Record<string, unknown>)._samResult as import('./quality-integration').SAMValidationResult;
           const responseText = (result as Record<string, unknown>)._responseText as string;
@@ -421,7 +447,9 @@ export async function generateSingleChapter(
   // =====================================================================
   // MULTI-AGENT CRITIC: Review Stage 1 output with independent reviewer
   // Only fires for borderline quality (55-70) — same gate as Stage 2/3 critics
+  // Blueprint-driven: skip entirely — teacher already approved structure
   // =====================================================================
+  if (!isBlueprintDriven) {
   try {
     throwIfAborted(abortSignal);
     const criticReview = await reviewChapterWithCritic({
@@ -480,6 +508,7 @@ export async function generateSingleChapter(
         s1CriticTemplatePrompt,
         recalledMemory ?? undefined,
         (alert) => emitPromptBudgetAlert(alert, 1),
+        teacherBlueprintChapter,
       );
       const augmentedRetryUser = `${retryUser}${criticFeedback}`;
 
@@ -550,6 +579,7 @@ export async function generateSingleChapter(
       error: criticError instanceof Error ? criticError.message : String(criticError),
     });
   }
+  } // end if (!isBlueprintDriven) — skip critic for blueprint-driven chapters
 
   }
 
@@ -685,7 +715,11 @@ export async function generateSingleChapter(
       sectionDefOverride: s3TemplateDef,
       sequenceOverride: selectedSections,
     });
-    const s3Strategy = strategyMonitor.getStrategy(3, chNum);
+    const s3StrategyBase = strategyMonitor.getStrategy(3, chNum);
+    // Blueprint-driven: no retries, lower threshold
+    const s3Strategy = isBlueprintDriven
+      ? { ...s3StrategyBase, maxRetries: 0, retryThreshold: 45 }
+      : s3StrategyBase;
     const s3StartTime = Date.now();
 
     const s3Retry = await retryWithQualityGate<
@@ -696,6 +730,7 @@ export async function generateSingleChapter(
       buildFallback: () => ({ details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
         throwIfAborted(abortSignal);
+        const blueprintSec3 = teacherBlueprintChapter?.sections.find(s => s.position === section.position);
         const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
           courseContext, chapter: chapterPlain, section: sectionPlain,
           chapterSections: allChapterSectionsPlain, enrichedContext,
@@ -704,6 +739,7 @@ export async function generateSingleChapter(
           recalledMemory: recalledMemory ?? undefined,
           bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
           onPromptBudgetAlert: (alert) => emitPromptBudgetAlert(alert, 3, section.position),
+          blueprintKeyTopics: blueprintSec3?.keyTopics,
         });
         const augmentedS3User = feedback ? `${s3User}\n\n${buildQualityFeedbackBlock(feedback)}` : s3User;
 
@@ -724,6 +760,12 @@ export async function generateSingleChapter(
           }
         }
         const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
+
+        // Blueprint-driven: skip SAM validation — teacher already approved topics
+        // High-quality (>80): skip SAM validation — rarely fails, saves ~8s per item
+        if (isBlueprintDriven || result.qualityScore.overall > 80) {
+          return { result, score: result.qualityScore.overall };
+        }
 
         const samDetResult = await validateDetailsWithSAM(result.details, sectionPlain, chapterPlain.bloomsLevel, result.qualityScore, courseContext);
         const blendedDet = blendScores(result.qualityScore, samDetResult);
@@ -874,7 +916,11 @@ export async function generateSingleChapter(
       sectionDefOverride: templateSectionDef,
       sequenceOverride: selectedSections,
     });
-    const s2Strategy = strategyMonitor.getStrategy(2, chNum);
+    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum);
+    // Blueprint-driven: no retries, lower threshold
+    const s2Strategy = isBlueprintDriven
+      ? { ...s2StrategyBase, maxRetries: 0, retryThreshold: 45 }
+      : s2StrategyBase;
     const s2StartTime = Date.now();
 
     const s2Retry = await retryWithQualityGate<
@@ -885,6 +931,7 @@ export async function generateSingleChapter(
       buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
         throwIfAborted(abortSignal);
+        const blueprintSec2 = teacherBlueprintChapter?.sections.find(s => s.position === secNum);
         const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
           courseContext,
           chapterPlain,
@@ -897,6 +944,7 @@ export async function generateSingleChapter(
           s2TemplatePrompt,
           recalledMemory ?? undefined,
           (alert) => emitPromptBudgetAlert(alert, 2, secNum),
+          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics } : undefined,
         );
         const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
 
@@ -917,6 +965,13 @@ export async function generateSingleChapter(
           }
         }
         const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+
+        // Blueprint-driven: skip SAM validation and semantic duplicate detection
+        // High-quality (>80): skip SAM validation — rarely fails, saves ~8s per item
+        if (isBlueprintDriven || result.qualityScore.overall > 80) {
+          return { result, score: result.qualityScore.overall };
+        }
+
         const samSecResult = await validateSectionWithSAM(result.section, result.qualityScore, courseContext);
         let blendedSec = blendScores(result.qualityScore, samSecResult);
         const semanticDuplicate = await semanticDuplicateGate.assess({
@@ -977,7 +1032,8 @@ export async function generateSingleChapter(
     localQualityScores.push(secQuality);
     qualityScores.push(secQuality);
 
-    const finalSemanticDuplicate = await semanticDuplicateGate.assess({
+    // Blueprint-driven: skip semantic duplicate detection — teacher pre-approved topics
+    const finalSemanticDuplicate = isBlueprintDriven ? null : await semanticDuplicateGate.assess({
       title: section.title,
       topicFocus: section.topicFocus,
       concepts: section.conceptsIntroduced,

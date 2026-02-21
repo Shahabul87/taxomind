@@ -66,6 +66,22 @@ const OrchestrateRequestSchema = z.object({
   resumeCourseId: z.string().optional(),
   /** Client-generated idempotency key to prevent duplicate course creation */
   requestId: z.string().uuid().optional(),
+  /** Teacher-approved course blueprint (replaces AI planning when present) */
+  teacherBlueprint: z.object({
+    chapters: z.array(z.object({
+      position: z.number(),
+      title: z.string(),
+      goal: z.string(),
+      bloomsLevel: z.string(),
+      sections: z.array(z.object({
+        position: z.number(),
+        title: z.string(),
+        keyTopics: z.array(z.string()),
+      })),
+    })),
+    confidence: z.number(),
+    riskAreas: z.array(z.string()),
+  }).optional(),
 });
 
 function buildRequestFingerprint(config: z.infer<typeof OrchestrateRequestSchema>): string {

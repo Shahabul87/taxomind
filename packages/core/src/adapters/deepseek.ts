@@ -149,8 +149,13 @@ export class DeepSeekAdapter implements AIAdapter {
           throw new AIError('No response choice returned from DeepSeek');
         }
 
+        // deepseek-reasoner puts output in reasoning_content, with content often empty
+        const messageContent = choice.message.content
+          || choice.message.reasoning_content
+          || '';
+
         return {
-          content: choice.message.content,
+          content: messageContent,
           model: response.model,
           usage: {
             inputTokens: response.usage.prompt_tokens,

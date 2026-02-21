@@ -1,3 +1,33 @@
+// ============================================================================
+// Teacher Blueprint Types (Step 4: Course Blueprint)
+// ============================================================================
+
+export interface BlueprintSection {
+  position: number;
+  title: string;
+  keyTopics: string[];
+}
+
+export interface BlueprintChapter {
+  position: number;
+  title: string;
+  goal: string;
+  bloomsLevel: string;
+  sections: BlueprintSection[];
+}
+
+export interface TeacherBlueprint {
+  chapters: BlueprintChapter[];
+  generatedAt: string;       // ISO timestamp
+  confidence: number;        // 0-100
+  isEdited: boolean;         // true if teacher modified topics
+  riskAreas: string[];
+}
+
+// ============================================================================
+// Course Creation Request
+// ============================================================================
+
 export interface CourseCreationRequest {
   courseTitle: string;
   courseShortOverview: string;
@@ -20,6 +50,8 @@ export interface CourseCreationRequest {
   enableEscalationGate: boolean;
   fallbackHaltRateThreshold: number;
   haltOnExcessiveFallbacks: boolean;
+  // Teacher-approved course blueprint (Step 4)
+  teacherBlueprint?: TeacherBlueprint;
 }
 
 /**

@@ -421,6 +421,19 @@ export interface SequentialCreationConfig {
   includeAssessments?: boolean;
   duration?: string;
 
+  // Teacher-approved course blueprint (replaces AI planning when present)
+  teacherBlueprint?: {
+    chapters: Array<{
+      position: number;
+      title: string;
+      goal: string;
+      bloomsLevel: string;
+      sections: Array<{ position: number; title: string; keyTopics: string[] }>;
+    }>;
+    confidence: number;
+    riskAreas: string[];
+  };
+
   // Optional callbacks
   onProgress?: (progress: CreationProgress) => void;
   onThinking?: (thinking: string) => void;
@@ -557,6 +570,15 @@ export interface CourseBlueprintPlan {
   recommendedChapterCount?: number;
 }
 
+/** Teacher blueprint chapter entry for prompt-level injection (section-level key topics) */
+export interface TeacherBlueprintChapter {
+  position: number;
+  title: string;
+  goal: string;
+  bloomsLevel: string;
+  sections: Array<{ position: number; title: string; keyTopics: string[] }>;
+}
+
 export interface ChapterPlanEntry {
   position: number;
   suggestedTitle: string;
@@ -657,6 +679,8 @@ export interface ChapterStepContext {
   completedChapters: CompletedChapter[];
   generatedChapters: (GeneratedChapter & { id: string })[];
   blueprintPlan: CourseBlueprintPlan | null;
+  /** Raw teacher blueprint chapters for prompt simplification (section-level key topics) */
+  teacherBlueprintChapters?: TeacherBlueprintChapter[];
   lastAgenticDecision: AgenticDecision | null;
   recalledMemory: import('./memory-recall').RecalledMemory | null;
   strategyMonitor: import('./adaptive-strategy').AdaptiveStrategyMonitor;

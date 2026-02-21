@@ -112,13 +112,101 @@ describe('Category Prompt Enhancers', () => {
   });
 
   // ========================================================================
+  // Phase 2: Artificial Intelligence & Data Analytics enhancers
+  // ========================================================================
+
+  describe('Artificial Intelligence enhancer', () => {
+    it('matches "artificial-intelligence" category value', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      expect(enhancer.categoryId).toBe('artificial-intelligence');
+    });
+
+    it('matches "Artificial Intelligence" category label', () => {
+      const enhancer = getCategoryEnhancer('Artificial Intelligence');
+      expect(enhancer.categoryId).toBe('artificial-intelligence');
+    });
+
+    it('matches AI subcategories from COURSE_CATEGORIES', () => {
+      expect(getCategoryEnhancer('Transformers & LLMs').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('Prompt Engineering').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('AI Agents & Automation').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('Diffusion Models').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('Edge AI & TinyML').categoryId).toBe('artificial-intelligence');
+    });
+
+    it('matches common AI aliases', () => {
+      expect(getCategoryEnhancer('AI').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('NLP').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('LLM').categoryId).toBe('artificial-intelligence');
+      expect(getCategoryEnhancer('Foundation Models').categoryId).toBe('artificial-intelligence');
+    });
+
+    it('does NOT fall back to data-science-ml or general', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      expect(enhancer.categoryId).not.toBe('data-science-ml');
+      expect(enhancer.categoryId).not.toBe('general');
+    });
+
+    it('has all 6 Bloom\u2019s levels', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+      for (const level of levels) {
+        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+      }
+    });
+  });
+
+  describe('Data Analytics enhancer', () => {
+    it('matches "data-analytics" category value', () => {
+      const enhancer = getCategoryEnhancer('data-analytics');
+      expect(enhancer.categoryId).toBe('data-analytics');
+    });
+
+    it('matches "Data Analytics" category label', () => {
+      const enhancer = getCategoryEnhancer('Data Analytics');
+      expect(enhancer.categoryId).toBe('data-analytics');
+    });
+
+    it('matches data-analytics subcategories from COURSE_CATEGORIES', () => {
+      expect(getCategoryEnhancer('SQL').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('Data Visualization').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('Big Data').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('Data Analysis').categoryId).toBe('data-analytics');
+    });
+
+    it('matches analytics tool aliases', () => {
+      expect(getCategoryEnhancer('Tableau').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('Power BI').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('ETL').categoryId).toBe('data-analytics');
+      expect(getCategoryEnhancer('A/B Testing').categoryId).toBe('data-analytics');
+    });
+
+    it('does NOT fall back to data-science-ml or general', () => {
+      const enhancer = getCategoryEnhancer('data-analytics');
+      expect(enhancer.categoryId).not.toBe('data-science-ml');
+      expect(enhancer.categoryId).not.toBe('general');
+    });
+
+    it('has all 6 Bloom\u2019s levels', () => {
+      const enhancer = getCategoryEnhancer('data-analytics');
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+      for (const level of levels) {
+        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+      }
+    });
+  });
+
+  // ========================================================================
   // Compose tests — ensure all new enhancers produce non-empty prompt blocks
   // ========================================================================
 
   describe('composeCategoryPrompt', () => {
-    const newCategories = ['education', 'personal-development', 'music', 'lifestyle'] as const;
+    const allCategories = [
+      'education', 'personal-development', 'music', 'lifestyle',
+      'artificial-intelligence', 'data-analytics',
+    ] as const;
 
-    for (const category of newCategories) {
+    for (const category of allCategories) {
       it(`produces non-empty blocks for "${category}"`, () => {
         const enhancer = getCategoryEnhancer(category);
         const composed = composeCategoryPrompt(enhancer);
@@ -161,6 +249,11 @@ describe('Category Prompt Enhancers', () => {
       expect(enhancer.categoryId).toBe('business-management');
     });
 
+    it('data-science-ml matches Data Science', () => {
+      const enhancer = getCategoryEnhancer('Data Science');
+      expect(enhancer.categoryId).toBe('data-science-ml');
+    });
+
     it('unknown category falls back to general', () => {
       const enhancer = getCategoryEnhancer('completely-unknown-xyz');
       expect(enhancer.categoryId).toBe('general');
@@ -168,7 +261,7 @@ describe('Category Prompt Enhancers', () => {
   });
 
   // ========================================================================
-  // Priority: Music should match before artsHumanities (Music Theory overlap)
+  // Priority: Dedicated enhancers should win over broader ones
   // ========================================================================
 
   describe('priority ordering', () => {
@@ -184,6 +277,102 @@ describe('Category Prompt Enhancers', () => {
       const enhancer = getCategoryEnhancer('Music', 'Music Theory');
       expect(enhancer.categoryId).toBe('music');
     });
+
+    it('AI wins over data-science-ml for AI queries', () => {
+      const enhancer = getCategoryEnhancer('Artificial Intelligence');
+      expect(enhancer.categoryId).toBe('artificial-intelligence');
+    });
+
+    it('Deep Learning matches artificial-intelligence, not data-science-ml', () => {
+      const enhancer = getCategoryEnhancer('Deep Learning');
+      expect(enhancer.categoryId).toBe('artificial-intelligence');
+    });
+
+    it('NLP matches artificial-intelligence, not data-science-ml', () => {
+      const enhancer = getCategoryEnhancer('NLP');
+      expect(enhancer.categoryId).toBe('artificial-intelligence');
+    });
+
+    it('Data Analysis matches data-analytics, not data-science-ml', () => {
+      const enhancer = getCategoryEnhancer('Data Analysis');
+      expect(enhancer.categoryId).toBe('data-analytics');
+    });
+
+    it('Cooking matches lifestyle, not arts-humanities', () => {
+      const enhancer = getCategoryEnhancer('Cooking');
+      expect(enhancer.categoryId).toBe('lifestyle');
+    });
+  });
+
+  // ========================================================================
+  // General fallback completeness (all 6 Bloom's levels)
+  // ========================================================================
+
+  describe('general fallback completeness', () => {
+    it('general enhancer has all 6 Bloom\u2019s levels', () => {
+      const enhancer = getCategoryEnhancer('completely-unknown-xyz');
+      expect(enhancer.categoryId).toBe('general');
+
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+      for (const level of levels) {
+        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+      }
+    });
+
+    it('general enhancer composeCategoryPrompt includes all 6 Bloom\u2019s levels', () => {
+      const enhancer = getCategoryEnhancer('completely-unknown-xyz');
+      const composed = composeCategoryPrompt(enhancer);
+
+      const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+      for (const level of levels) {
+        expect(composed.chapterGuidanceBlock).toContain(`**${level}**`);
+      }
+    });
+  });
+
+  // ========================================================================
+  // All 15 COURSE_CATEGORIES resolve to non-general enhancers
+  // ========================================================================
+
+  describe('all COURSE_CATEGORIES resolve to non-general enhancers', () => {
+    // Categories with unambiguous value→enhancer mapping
+    const exactMappings: Array<{ input: string; label: string; expectedId: string }> = [
+      { input: 'artificial-intelligence', label: 'Artificial Intelligence', expectedId: 'artificial-intelligence' },
+      { input: 'business', label: 'Business', expectedId: 'business-management' },
+      { input: 'health', label: 'Health & Wellness', expectedId: 'health-science' },
+      { input: 'education', label: 'Education', expectedId: 'education' },
+      { input: 'mathematics', label: 'Mathematics', expectedId: 'mathematics' },
+      { input: 'language', label: 'Language & Communication', expectedId: 'language-communication' },
+      { input: 'arts', label: 'Arts & Humanities', expectedId: 'arts-humanities' },
+      { input: 'personal-development', label: 'Personal Development', expectedId: 'personal-development' },
+      { input: 'finance', label: 'Finance & Accounting', expectedId: 'finance-accounting' },
+      { input: 'data-analytics', label: 'Data & Analytics', expectedId: 'data-analytics' },
+      { input: 'music', label: 'Music', expectedId: 'music' },
+      { input: 'lifestyle', label: 'Lifestyle', expectedId: 'lifestyle' },
+    ];
+
+    for (const { input, label, expectedId } of exactMappings) {
+      it(`"${label}" (${input}) resolves to "${expectedId}"`, () => {
+        const enhancer = getCategoryEnhancer(input);
+        expect(enhancer.categoryId).toBe(expectedId);
+        expect(enhancer.categoryId).not.toBe('general');
+      });
+    }
+
+    // Categories where short values are ambiguous due to substring matching,
+    // but should still resolve to a non-general domain enhancer
+    const ambiguousShortValues = [
+      { input: 'technology', label: 'Technology' },
+      { input: 'design', label: 'Design' },
+      { input: 'science', label: 'Science & Engineering' },
+    ];
+
+    for (const { input, label } of ambiguousShortValues) {
+      it(`"${label}" (${input}) resolves to a non-general enhancer`, () => {
+        const enhancer = getCategoryEnhancer(input);
+        expect(enhancer.categoryId).not.toBe('general');
+      });
+    }
   });
 
   // ========================================================================
@@ -280,7 +469,7 @@ describe('Category Prompt Enhancers', () => {
 
   describe('multi-domain blending', () => {
     it('getCategoryEnhancers with category + different subcategory returns 2 enhancers', () => {
-      // "Machine Learning" should match data-science-ml, "Finance" should match finance-accounting
+      // "Machine Learning" should match artificial-intelligence, "Finance" should match finance-accounting
       const enhancers = getCategoryEnhancers('Machine Learning', 'Finance');
       expect(enhancers.length).toBe(2);
       expect(enhancers[0].categoryId).not.toBe(enhancers[1].categoryId);

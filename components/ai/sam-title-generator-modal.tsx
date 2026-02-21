@@ -5,7 +5,7 @@
  *
  * A specialized AI-powered title generator that provides:
  * - Multiple title suggestions using SAM AI
- * - Marketing, Branding, and Sales scoring for each title
+ * - Marketing, Branding, and Sales scoring for each title (inline, single API call)
  * - Intelligent feedback based on title length
  * - Copy/Insert actions for easy form integration
  */
@@ -118,7 +118,7 @@ export function SAMTitleGeneratorModal({
     }
   }, [currentTitle]);
 
-  // Generate title suggestions
+  // Generate title suggestions — single API call returns titles WITH scores
   const generateTitleSuggestions = useCallback(async () => {
     if (!currentTitle || currentTitle.length < 5 || isGenerating) return;
 
@@ -126,8 +126,7 @@ export function SAMTitleGeneratorModal({
     setTitleSuggestions([]);
 
     try {
-      // Step 1: Generate title suggestions using SAM AI
-      const suggestionsResponse = await fetch('/api/sam/title-suggestions', {
+      const response = await fetch('/api/sam/title-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,62 +141,53 @@ export function SAMTitleGeneratorModal({
         }),
       });
 
-      if (!suggestionsResponse.ok) {
-        throw new Error(`API error: ${suggestionsResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const suggestionsResult = await suggestionsResponse.json();
-      const generatedTitles = suggestionsResult.titles || [];
+      const result = await response.json();
 
-      if (generatedTitles.length === 0) {
-        toast.error('No title suggestions generated. Try a different title.');
-        return;
-      }
-
-      // Step 2: Score each title using AI-powered content scoring
-      const scoringResponse = await fetch('/api/sam/content-scoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'batch',
-          items: generatedTitles.map((title: string) => ({
-            itemType: 'title',
-            title,
-          })),
-          context: {
-            category: courseCategory,
-            subcategory: courseSubcategory,
-            targetAudience,
-            courseIntent,
-          },
-        }),
-      });
-
-      if (!scoringResponse.ok) {
-        throw new Error(`Scoring API error: ${scoringResponse.status}`);
-      }
-
-      const scoringResult = await scoringResponse.json();
-      const scoredTitles = scoringResult.titleScores || scoringResult.scores || [];
-
-      // Map scored titles to suggestion format
-      const suggestions: TitleSuggestion[] = scoredTitles.map((score: {
+      // Use inline scored titles from the merged API response
+      const scoredTitles: Array<{
         title: string;
         marketingScore: number;
         brandingScore: number;
         salesScore: number;
         overallScore: number;
         reasoning: string;
-        source?: 'ai' | 'heuristic';
-      }) => ({
-        title: score.title,
-        marketingScore: score.marketingScore ?? 0,
-        brandingScore: score.brandingScore ?? 0,
-        salesScore: score.salesScore ?? 0,
-        overallScore: score.overallScore ?? 0,
-        reasoning: score.reasoning || 'AI-analyzed title based on marketing effectiveness and audience appeal.',
-        source: score.source,
-      }));
+      }> = result.scoredTitles || [];
+
+      let suggestions: TitleSuggestion[];
+
+      if (scoredTitles.length > 0) {
+        // New format: scores are inline
+        suggestions = scoredTitles.map(score => ({
+          title: score.title,
+          marketingScore: score.marketingScore ?? 75,
+          brandingScore: score.brandingScore ?? 75,
+          salesScore: score.salesScore ?? 75,
+          overallScore: score.overallScore ?? 75,
+          reasoning: score.reasoning || 'AI-analyzed title based on marketing effectiveness and audience appeal.',
+          source: 'ai' as const,
+        }));
+      } else {
+        // Fallback: legacy format with just titles array
+        const generatedTitles: string[] = result.titles || [];
+        suggestions = generatedTitles.map(title => ({
+          title,
+          marketingScore: 70,
+          brandingScore: 70,
+          salesScore: 70,
+          overallScore: 70,
+          reasoning: 'AI-generated title based on your course topic.',
+          source: 'heuristic' as const,
+        }));
+      }
+
+      if (suggestions.length === 0) {
+        toast.error('No title suggestions generated. Try a different title.');
+        return;
+      }
 
       // Sort by overall score descending
       suggestions.sort((a, b) => b.overallScore - a.overallScore);
@@ -224,7 +214,7 @@ export function SAMTitleGeneratorModal({
     [titleSuggestions],
   );
 
-  // Refine low-scoring titles (single pass)
+  // Refine low-scoring titles — single API call returns titles WITH scores
   const handleRefineTitles = useCallback(async () => {
     if (lowScoringTitles.length === 0 || isRefining) return;
 
@@ -240,8 +230,7 @@ export function SAMTitleGeneratorModal({
         ].filter(Boolean),
       }));
 
-      // Re-generate only the weak titles via the existing endpoint with refinement context
-      const suggestionsResponse = await fetch('/api/sam/title-suggestions', {
+      const response = await fetch('/api/sam/title-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -257,43 +246,32 @@ export function SAMTitleGeneratorModal({
         }),
       });
 
-      if (!suggestionsResponse.ok) throw new Error(`API error: ${suggestionsResponse.status}`);
-      const suggestionsResult = await suggestionsResponse.json();
-      const refinedTitles: string[] = suggestionsResult.titles || [];
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const result = await response.json();
 
-      if (refinedTitles.length === 0) {
+      // Use inline scored titles from the merged API response
+      const scoredTitles: Array<{
+        title: string;
+        marketingScore: number;
+        brandingScore: number;
+        salesScore: number;
+        overallScore: number;
+        reasoning: string;
+      }> = result.scoredTitles || [];
+
+      const refinedSuggestions: TitleSuggestion[] = scoredTitles.map(score => ({
+        title: score.title,
+        marketingScore: score.marketingScore ?? 75,
+        brandingScore: score.brandingScore ?? 75,
+        salesScore: score.salesScore ?? 75,
+        overallScore: score.overallScore ?? 75,
+        reasoning: score.reasoning || 'Refined by AI for improved quality.',
+        source: 'ai' as const,
+      }));
+
+      if (refinedSuggestions.length === 0) {
         toast.info('No refined titles generated. The current titles may already be optimal.');
         return;
-      }
-
-      // Score refined titles
-      const scoringResponse = await fetch('/api/sam/content-scoring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'batch',
-          items: refinedTitles.map((title: string) => ({ itemType: 'title', title })),
-          context: { category: courseCategory, subcategory: courseSubcategory, targetAudience, courseIntent },
-        }),
-      });
-
-      let refinedSuggestions: TitleSuggestion[] = [];
-      if (scoringResponse.ok) {
-        const scoringResult = await scoringResponse.json();
-        const scores = scoringResult.titleScores || scoringResult.scores || [];
-        refinedSuggestions = scores.map((score: {
-          title: string; marketingScore: number; brandingScore: number;
-          salesScore: number; overallScore: number; reasoning: string;
-          source?: 'ai' | 'heuristic';
-        }) => ({
-          title: score.title,
-          marketingScore: score.marketingScore ?? 0,
-          brandingScore: score.brandingScore ?? 0,
-          salesScore: score.salesScore ?? 0,
-          overallScore: score.overallScore ?? 0,
-          reasoning: score.reasoning || 'Refined by AI for improved quality.',
-          source: score.source,
-        }));
       }
 
       // Replace low-scoring titles with refined ones (only if refined score is better)

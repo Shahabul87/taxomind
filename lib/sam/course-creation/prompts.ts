@@ -52,6 +52,7 @@ import {
   type ContentAwareBloomsInput,
   type StagePrompt,
   type ComposedTemplatePrompt,
+  type TeacherBlueprintChapter,
 } from './types';
 import {
   CHAPTER_THINKING_FRAMEWORK,
@@ -229,6 +230,26 @@ const STAGE3_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. Yo
 - ALWAYS include failure cases and edge cases in every major topic
 - When using math: plain English meaning → equation → numerical example → "what happens if we change X?"
 - When writing equations: use $...$ for inline math and $$...$$ for display equations — NEVER use <code> tags for math`;
+
+/**
+ * Blueprint-guided condensed expertise (~200 tokens).
+ * Used when a teacher-approved blueprint provides structural guidance,
+ * making the verbose ARROW framework, thinking frameworks, and design
+ * principles unnecessary. The AI receives precise section-level key topics
+ * from the blueprint instead.
+ *
+ * Token savings: ~1,500-2,500 tokens per call (from ~4,500 down to ~2,000).
+ */
+const BLUEPRINT_GUIDED_EXPERTISE = `You are SAM, an expert course content architect. Follow the teacher-approved blueprint precisely while bringing domain depth, engaging examples, and practical applications.
+
+## RULES
+- Follow the blueprint structure (titles, sections, key topics) exactly
+- Bring each key topic to life with concrete examples, analogies, and applications
+- NEVER start with definitions or "In this chapter we will learn..."
+- Connect new concepts to what students already know
+- Include failure cases and trade-offs in every major topic
+- When using math: plain English meaning → equation → numerical example → "what happens if we change X?"
+- When writing equations: use $...$ for inline math and $$...$$ for display equations`;
 
 /**
  * Condensed ARROW expertise for Stage 2 (section generation).
@@ -688,8 +709,8 @@ function compressPriorChapters(
     if (recency <= 1) {
       // FULL DETAIL — immediate prior chapter (current format, ~700 tokens)
       return buildFullChapterContext(ch);
-    } else if (recency <= 3) {
-      // MODERATE — 2-3 chapters back (~200 tokens)
+    } else if (recency <= 2) {
+      // MODERATE — 2 chapters back (~200 tokens)
       const sectionTitles = ch.sections
         .map(s => `${s.title} (${s.contentType})`)
         .join(', ');
@@ -699,8 +720,8 @@ function compressPriorChapters(
   Key concepts: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}
   Sections: ${sectionTitles}`;
     } else {
-      // COMPRESSED — older chapters (~50 tokens)
-      return `- Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] — ${(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 5).join(', ')}`;
+      // COMPRESSED — chapters 3+ back (~50 tokens, saves ~2000 tokens for chapters 4-5)
+      return `- Ch${ch.position}: "${ch.title}" [${ch.bloomsLevel}] — ${(ch.conceptsIntroduced ?? ch.keyTopics).slice(0, 3).join(', ')}`;
     }
   }).join('\n');
 }
@@ -776,6 +797,7 @@ export function buildStage1Prompt(
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
+  blueprintChapter?: TeacherBlueprintChapter,
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const bloomsLevel = getContentAwareBloomsLevel({
@@ -793,12 +815,13 @@ export function buildStage1Prompt(
   let previousChaptersSummary: string;
 
   if (completedChapters && completedChapters.length > 0) {
-    if (variant?.includes('optimized-v1')) {
-      // OPTIMIZED: Recency-tiered compression — full detail for immediate prior,
-      // moderate for 2-3 back, compressed for 4+
+    if (variant?.includes('optimized-v1') || completedChapters.length >= 3) {
+      // Recency-tiered compression — full detail for immediate prior,
+      // moderate for 2 back, compressed for 3+. Saves ~2000 tokens for chapters 4-5.
+      // Always use compression when 3+ chapters completed (regardless of variant)
       previousChaptersSummary = compressPriorChapters(completedChapters, currentChapterNumber);
     } else {
-      // CONTROL: Full section-level context for all completed chapters
+      // CONTROL: Full section-level context for first 2 completed chapters
       previousChaptersSummary = completedChapters.map(ch => buildFullChapterContext(ch)).join('\n');
     }
   } else if (previousChapters.length > 0) {
@@ -911,8 +934,14 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage1Block ?? '';
 
-  const designExpertise = getStage1DesignExpertise(variant, currentChapterNumber);
-  const systemPrompt = `${designExpertise}
+  // Blueprint-guided: use condensed system prompt (~200 tokens vs ~2,500)
+  const hasBlueprintGuide = !!blueprintChapter;
+  const designExpertise = hasBlueprintGuide
+    ? BLUEPRINT_GUIDED_EXPERTISE
+    : getStage1DesignExpertise(variant, currentChapterNumber);
+  const systemPrompt = hasBlueprintGuide
+    ? `${designExpertise}\n${domainExpertise}`
+    : `${designExpertise}
 ${domainExpertise}
 
 ${TITLE_QUALITY_FRAMEWORK}
@@ -967,7 +996,7 @@ ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
     {
       label: 'positionGuidance',
       priority: positionPriority,
-      content: positionGuidance,
+      content: hasBlueprintGuide ? '' : positionGuidance,
     },
     {
       label: 'bloomsAssignment',
@@ -982,7 +1011,57 @@ This chapter's Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
     {
       label: 'thinkingAndOutput',
       priority: PromptPriority.CRITICAL,
-      content: `
+      content: hasBlueprintGuide ? `
+## TEACHER-APPROVED BLUEPRINT FOR THIS CHAPTER
+Chapter ${currentChapterNumber}: "${blueprintChapter.title}"
+Goal: ${blueprintChapter.goal}
+Bloom&apos;s Level: ${blueprintChapter.bloomsLevel}
+
+Sections to create:
+${blueprintChapter.sections.map(s => `- Section ${s.position}: "${s.title}" — Topics: ${s.keyTopics.join(', ')}`).join('\n')}
+
+Follow this blueprint precisely. Use the section titles and key topics as the structural guide for this chapter.
+
+## OUTPUT REQUIREMENTS
+
+Return a JSON object with this EXACT structure:
+{
+  "thinking": "Your 3-5 sentence reasoning covering: (1) which course objective this chapter serves, (2) how the blueprint sections form a coherent learning arc, (3) how it builds on prior chapters",
+  "chapter": {
+    "position": ${currentChapterNumber},
+    "title": "Use the blueprint title as the base. You may refine it to be more engaging, but keep the core topic. NEVER use 'Introduction to X', 'Understanding X', 'Overview of X'.",
+    "description": "200-350 word description. Structure: (1) THE HOOK — real-world fact/question that makes this chapter irresistible (1-2 sentences), (2) THE PROBLEM — what challenge this chapter solves (2-3 sentences), (3) THE JOURNEY MAP — specific steps using active verbs (3-4 sentences), (4) THE CAPABILITY — what the reader can DO after this chapter (concrete, measurable), (5) THE BRIDGE — connects to prior/next chapters.",
+    "bloomsLevel": "${bloomsLevel}",
+    "learningObjectives": [
+      // EXACTLY ${ctx.learningObjectivesPerChapter} objectives
+      // Each MUST start with a ${bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
+      // Each follows ABCD: Verb + content + condition + standard
+    ],
+    "keyTopics": [
+      // Use the blueprint section topics as the basis
+      // EXACTLY ${ctx.sectionsPerChapter} topics, ordered as a learning progression
+    ],
+    "conceptsIntroduced": [
+      // 3-7 NEW specific concepts from the blueprint key topics
+      // Must NOT repeat concepts from previous chapters
+    ],
+    "prerequisites": "Specific skills and concepts from previous chapters.",
+    "estimatedTime": "X hours Y minutes",
+    "topicsToExpand": [
+      // Same as keyTopics — these become section focus areas in Stage 2
+    ]
+  }
+}
+
+QUALITY GATES — Your output will be scored on:
+1. **Blueprint Adherence**: Does the chapter follow the teacher-approved blueprint structure?
+2. **Bloom's Compliance**: Do ALL objectives use ${bloomsLevel}-level verbs?
+3. **Learning Arc**: Do keyTopics form a logical progression (foundational → integrative)?
+4. **Concept Novelty**: Are conceptsIntroduced truly NEW to this chapter?
+5. **Description Depth**: Does the description explain WHY, WHAT, HOW, and OUTCOME?
+
+Return ONLY valid JSON, no markdown formatting`
+      : `
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: ARROW ARC — What real-world application hooks this chapter?
@@ -1105,6 +1184,7 @@ export function buildStage2Prompt(
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
+  blueprintSection?: { title: string; keyTopics: string[] },
 ): StagePrompt {
   const ctx = sanitizeCourseContext(courseContext);
   const previousSectionsSummary = previousSections.length > 0
@@ -1184,8 +1264,14 @@ This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}).
   const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage2Block ?? '';
 
-  const designExpertise = getStage2DesignExpertise(variant);
-  const systemPrompt = `${designExpertise}
+  // Blueprint-guided: use condensed system prompt (~200 tokens vs ~2,000)
+  const hasBlueprintGuide = !!blueprintSection;
+  const designExpertise = hasBlueprintGuide
+    ? BLUEPRINT_GUIDED_EXPERTISE
+    : getStage2DesignExpertise(variant);
+  const systemPrompt = hasBlueprintGuide
+    ? `${designExpertise}\n${domainExpertise}`
+    : `${designExpertise}
 ${domainExpertise}
 
 ${TITLE_QUALITY_FRAMEWORK}
@@ -1255,12 +1341,52 @@ ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${
     {
       label: 'scaffoldingGuidance',
       priority: PromptPriority.LOW,
-      content: scaffoldingGuidance,
+      content: hasBlueprintGuide ? '' : scaffoldingGuidance,
     },
     {
       label: 'thinkingAndOutput',
       priority: PromptPriority.CRITICAL,
-      content: `
+      content: hasBlueprintGuide ? `
+## TEACHER-APPROVED BLUEPRINT FOR THIS SECTION
+Section ${currentSectionNumber}: "${blueprintSection.title}"
+Key Topics: ${blueprintSection.keyTopics.join(', ')}
+
+Follow this blueprint precisely. The section title and key topics are teacher-approved.
+
+## OUTPUT REQUIREMENTS
+
+Return a JSON object with this EXACT structure:
+{
+  "thinking": "Your 3-5 sentence reasoning covering: (1) how the key topics form a coherent learning unit, (2) why you chose this content type, (3) how it connects to previous sections",
+  "section": {
+    "position": ${currentSectionNumber},
+    "title": "Use the blueprint title as the base. You may refine it to be more engaging, but keep the core topic.",
+    "contentType": "video|reading|assignment|quiz|project|discussion",
+    "estimatedDuration": "XX minutes",
+    "topicFocus": "The primary key topic from the blueprint that this section covers in depth",
+    "conceptsIntroduced": [
+      // 1-3 NEW concepts from the blueprint key topics
+    ],
+    "conceptsReferenced": [
+      // Existing concepts from previous sections that this section builds on
+    ],
+    "parentChapterContext": {
+      "title": "${chapter.title}",
+      "bloomsLevel": "${chapter.bloomsLevel}",
+      "relevantObjectives": [
+        // 1-2 chapter learning objectives this section serves
+      ]
+    }
+  }
+}
+
+QUALITY GATES:
+1. **Blueprint Adherence**: Does the section follow the teacher-approved key topics?
+2. **Content Type Match**: Does the content type fit the topic and Bloom&apos;s level?
+3. **Uniqueness**: Is the title distinct from ALL ${allExistingSectionTitles.length} existing section titles?
+
+Return ONLY valid JSON, no markdown formatting`
+      : `
 ## THINKING PROCESS (Reason through each step carefully)
 
 ### Step 1: ARROW SECTION FLOW — Where in the ARROW arc does this section sit?
@@ -1402,6 +1528,8 @@ export interface Stage3PromptOptions {
   bridgeContent?: string;
   /** Callback fired when HIGH-priority prompt context is dropped */
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void;
+  /** Teacher blueprint key topics for this section (enables prompt simplification) */
+  blueprintKeyTopics?: string[];
 }
 
 /**
@@ -1505,8 +1633,10 @@ export function buildStage3Prompt(options: Stage3PromptOptions): StagePrompt {
     recalledMemory,
     bridgeContent,
     onPromptBudgetAlert,
+    blueprintKeyTopics,
   } = options;
 
+  const hasBlueprintGuide = blueprintKeyTopics && blueprintKeyTopics.length > 0;
   const ctx = sanitizeCourseContext(courseContext);
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
@@ -1664,7 +1794,10 @@ Design this as a collaborative sense-making experience:
   const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage3Block ?? '';
 
-  const systemPrompt = `${getStage3DesignExpertise(variant)}
+  // Blueprint-guided: condensed system prompt, keep DETAIL_DESIGN_PRINCIPLES (output format)
+  const systemPrompt = hasBlueprintGuide
+    ? `${BLUEPRINT_GUIDED_EXPERTISE}\n${domainExpertise}\n\n${DETAIL_DESIGN_PRINCIPLES}\n${activityGuidance}`
+    : `${getStage3DesignExpertise(variant)}
 ${domainExpertise}
 
 ${DETAIL_DESIGN_PRINCIPLES}
@@ -1720,7 +1853,8 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
 - **Topic Focus**: ${section.topicFocus}
 - **Duration**: ${section.estimatedDuration}
 ${section.conceptsIntroduced && section.conceptsIntroduced.length > 0 ? `- **New Concepts**: ${section.conceptsIntroduced.join(', ')}` : ''}
-${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}`,
+${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}
+${hasBlueprintGuide ? `- **Teacher-Approved Key Topics**: ${blueprintKeyTopics.join(', ')}\nUse these key topics as the primary content guide for this section.` : ''}`,
     },
     {
       label: 'domainDetailGuidance',

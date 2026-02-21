@@ -24,6 +24,10 @@ interface VerticalStepperProps {
     difficulty?: string;
     courseGoals?: string[];
     bloomsFocus?: string[];
+    teacherBlueprint?: {
+      chapters: Array<{ sections: Array<unknown> }>;
+      isEdited?: boolean;
+    };
   };
 }
 
@@ -54,6 +58,15 @@ export function VerticalStepper({
         }
         return null;
       case 4:
+        if (formData.teacherBlueprint && formData.teacherBlueprint.chapters.length > 0) {
+          const chCount = formData.teacherBlueprint.chapters.length;
+          const secCount = formData.teacherBlueprint.chapters.reduce(
+            (sum, ch) => sum + ch.sections.length, 0
+          );
+          return `${chCount} chapters, ${secCount} sections${formData.teacherBlueprint.isEdited ? ' (edited)' : ''}`;
+        }
+        return null;
+      case 5:
         return 'Ready for review';
       default:
         return null;
