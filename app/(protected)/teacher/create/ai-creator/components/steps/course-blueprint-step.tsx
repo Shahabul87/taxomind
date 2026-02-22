@@ -262,10 +262,56 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
         }),
       });
 
+      const contentType = response.headers.get('content-type') ?? '';
+      const isSSE = contentType.includes('text/event-stream');
+
       if (!response.ok) {
-        // Non-SSE error responses (auth, validation) still return JSON
-        const errData = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errData.error || `HTTP ${response.status}`);
+        // Non-SSE error responses (auth, validation) return JSON.
+        // Guard against accidentally calling .json() on an SSE stream.
+        if (!isSSE) {
+          const errData = await response.json().catch(() => ({ error: 'Request failed' }));
+          throw new Error(errData.error || `HTTP ${response.status}`);
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // If the server returned JSON instead of SSE (e.g. old deployment),
+      // fall back to the legacy JSON parsing path.
+      if (!isSSE) {
+        const data = await response.json();
+        if (!data.success || !data.blueprint) {
+          throw new Error(data.error || 'No blueprint returned');
+        }
+        setFormData(prev => {
+          const stashedPrev = prev as Record<string, unknown>;
+          const versions = (stashedPrev._pendingBlueprintVersions as BlueprintVersion[] | undefined) ?? [];
+          const nextVersion = (stashedPrev._pendingBlueprintNextVersion as number | undefined) ?? 1;
+          const newBlueprint: TeacherBlueprint = {
+            chapters: data.blueprint.chapters,
+            northStarProject: data.blueprint.northStarProject,
+            generatedAt: new Date().toISOString(),
+            confidence: data.blueprint.confidence,
+            isEdited: false,
+            riskAreas: data.blueprint.riskAreas ?? [],
+            criticResult: data.critic ? {
+              verdict: data.critic.verdict,
+              score: data.critic.score,
+              confidence: data.critic.confidence,
+              reasoning: data.critic.reasoning,
+              dimensions: data.critic.dimensions,
+              improvements: data.critic.improvements ?? [],
+            } : undefined,
+            currentVersion: nextVersion,
+            versions: versions.length > 0 ? versions : undefined,
+          };
+          const { _pendingBlueprintVersions: _v, _pendingBlueprintNextVersion: _n, ...cleanPrev } = stashedPrev;
+          return { ...cleanPrev, teacherBlueprint: newBlueprint } as typeof prev;
+        });
+        setExpandedChapters(new Set([1]));
+        toast.success('Blueprint generated', {
+          description: `${data.blueprint.chapters.length} chapters`,
+        });
+        return; // Skip SSE parsing below
       }
 
       // Parse SSE stream
