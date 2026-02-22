@@ -404,12 +404,11 @@ class SamMemoryClient {
       hasOverview: 'courseShortOverview' in data,
       hasCategory: 'courseCategory' in data,
     });
+    // REPLACE (not merge) so that stale fields from a previous course
+    // don't survive a reset. The caller always sends the full wizard state.
     this.updateCache((state) => ({
       ...state,
-      wizardData: {
-        ...(state.wizardData ?? {}),
-        ...data,
-      },
+      wizardData: data,
     }));
     this.queueOperation('saveWizardData', { wizardData: data });
   }

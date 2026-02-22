@@ -310,12 +310,11 @@ export async function POST(request: NextRequest) {
 
       case 'saveWizardData': {
         const wizardData = data.wizardData as Record<string, unknown>;
+        // REPLACE (not merge) so stale fields from a previous course
+        // don't survive a wizard reset. Caller sends full wizard state.
         await updateWizardState(contextId, (state) => ({
           ...state,
-          wizardData: {
-            ...(state.wizardData ?? {}),
-            ...wizardData,
-          },
+          wizardData,
         }));
         result = { saved: true };
         break;

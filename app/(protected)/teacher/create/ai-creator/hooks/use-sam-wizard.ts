@@ -227,7 +227,17 @@ export function useSamWizard() {
     setIsLoadingSuggestion(false);
     setIsGenerating(false);
     setLastAutoSave(null);
+
+    // Clear ALL persistence layers — not just localStorage.
+    // 1. localStorage draft (auto-save every 30s)
     localStorage.removeItem('course-creator-draft');
+    // 2. sessionStorage SAM wizard memory (client-side cache)
+    try { sessionStorage.removeItem('sam_wizard_memory'); } catch { /* ignore */ }
+    // 3. SAM Memory client cache + server-side DB (async, fire-and-forget)
+    import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
+      samMemory.clear();
+    }).catch(() => { /* ignore */ });
+
     cancelAllCalls();
   }, [cancelAllCalls]);
 
