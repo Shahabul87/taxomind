@@ -123,6 +123,10 @@ export function useSequentialCreationActions(
       confidence: formData.teacherBlueprint.confidence,
       riskAreas: formData.teacherBlueprint.riskAreas,
     } : undefined,
+    // Enable parallel generation when a teacher blueprint exists.
+    // Blueprint-driven mode disables all inter-chapter dependencies,
+    // making chapters independently generable via Promise.allSettled.
+    parallelMode: !!formData.teacherBlueprint,
   }), [formData]);
 
   // -----------------------------------------------------------------------
@@ -155,10 +159,8 @@ export function useSequentialCreationActions(
           description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
         });
 
-        // Navigate to the created course
-        setTimeout(() => {
-          router.push(`/teacher/courses/${result.courseId}`);
-        }, 1500);
+        // Step 3 shows an inline completion card with "View Course" button.
+        // No auto-navigation — let the user click the link themselves.
 
         // Save to SAM memory
         if (typeof window !== 'undefined') {
@@ -196,7 +198,7 @@ export function useSequentialCreationActions(
         toast.error('Failed to create course');
       }
     }
-  }, [startSequentialCreation, router, buildSequentialConfig, isPipelinePausedError]);
+  }, [startSequentialCreation, buildSequentialConfig, isPipelinePausedError]);
 
   // -----------------------------------------------------------------------
   // Retry
@@ -379,6 +381,7 @@ export function useSequentialCreationActions(
     handleAbortPausedPipeline,
     handleRegenerateChapter,
     cancelSequentialCreation,
+    resetSequentialCreation,
     dismissCreation,
   } as const;
 }

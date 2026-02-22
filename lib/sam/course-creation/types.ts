@@ -232,6 +232,8 @@ export interface CreationState {
   currentSection: number;
   totalSections: number;
   error?: string;
+  /** Course ID — populated once the backend creates the course record */
+  courseId?: string;
 }
 
 export interface CreationProgress {
@@ -260,6 +262,81 @@ export interface CreationProgress {
   serverCompletedItems?: number;
   /** Server-side total item count */
   serverTotalItems?: number;
+  /** Parallel generation batch progress (only present during parallel mode) */
+  parallelBatch?: {
+    currentBatch: number;
+    totalBatches: number;
+    batchSize: number;
+    activeChapters: number[];
+  };
+  /** Per-chapter detailed state for the chapter detail modal */
+  chapterDetails?: Record<number, ChapterDetailState>;
+  /** AI model info for display (from parallel_model_info event) */
+  modelInfo?: {
+    provider: string;
+    model: string;
+    isReasoningModel: boolean;
+    batchSize: number;
+  };
+}
+
+// ============================================================================
+// Chapter Detail State (Parallel Generation Transparency)
+// ============================================================================
+
+/** Per-chapter detailed state for the chapter detail modal */
+export interface ChapterDetailState {
+  position: number;
+  title: string;
+  status: 'pending' | 'generating' | 'complete' | 'failed' | 'fallback';
+
+  /** Current generation stage (1=Structure, 2=Sections, 3=Details) */
+  currentStage: number;
+  /** Human-readable name of the current stage */
+  stageName: string;
+  /** Completed stage numbers */
+  stagesCompleted: number[];
+
+  /** Total sections expected (from blueprint) */
+  totalSections: number;
+  /** Sections completed in stage 2+3 */
+  completedSections: number;
+
+  /** Overall aggregated quality score */
+  qualityScore?: number;
+  /** Bloom&apos;s taxonomy level (e.g. APPLY, ANALYZE) */
+  bloomsLevel?: string;
+  /** Key topics covered */
+  keyTopics?: string[];
+
+  /** Error message if failed */
+  error?: string;
+  /** Error classification */
+  errorType?: string;
+  /** Number of retry attempts */
+  retryCount: number;
+  /** Whether this is a fallback chapter */
+  isFallback: boolean;
+  /** Reason fallback was used */
+  fallbackReason?: string;
+
+  /** Database ID (available after completion) */
+  id?: string;
+
+  /** Timeline events for the Timeline tab */
+  events: ChapterTimelineEvent[];
+}
+
+/** A single event in the chapter generation timeline */
+export interface ChapterTimelineEvent {
+  /** Timestamp (Date.now()) */
+  timestamp: number;
+  /** Event type for icon/color coding */
+  type: 'stage_start' | 'stage_complete' | 'section_complete' | 'retry' | 'error' | 'fallback' | 'complete';
+  /** Human-readable description */
+  message: string;
+  /** Extra data (stage number, section name, error, etc.) */
+  data?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -299,7 +376,11 @@ export type SSEEventType =
   | 'chapter_count_adjusted'    // Blueprint recommended different chapter count
   | 'chapter_skipped'           // AI decided to skip a redundant chapter
   | 'healing_diagnosis'         // AI diagnosis before healing
-  | 'ai_reflection';            // AI-enhanced reflection results
+  | 'ai_reflection'             // AI-enhanced reflection results
+  // Parallel model info
+  | 'parallel_model_info'       // Pre-resolved model info for parallel pipeline
+  // Parallel chapter stage tracking
+  | 'parallel_chapter_stage_change';  // Chapter transitions between generation stages
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -454,6 +535,15 @@ export interface SequentialCreationConfig {
     haltRateThreshold?: number;
     haltOnExcessiveFallbacks?: boolean;
   };
+
+  /**
+   * Enable parallel chapter generation (blueprint-only).
+   * When true and a teacher blueprint exists, chapters generate in batches of 3
+   * via Promise.allSettled. This prevents rate limit exhaustion for 7-10+ chapter
+   * courses while providing ~3x speedup over sequential generation.
+   * Falls back to sequential mode if no blueprint is provided.
+   */
+  parallelMode?: boolean;
 }
 
 // ============================================================================

@@ -43,21 +43,21 @@ export function VerticalStepper({
     if (!formData) return null;
 
     switch (stepNumber) {
-      case 1:
-        return formData.courseTitle && formData.courseTitle.length > 0
-          ? `"${formData.courseTitle.slice(0, 25)}${formData.courseTitle.length > 25 ? '...' : ''}"`
-          : null;
-      case 2:
-        if (formData.targetAudience && formData.difficulty) {
-          return `${formData.difficulty} • ${formData.targetAudience.split(' ')[0]}...`;
+      case 1: {
+        // Course Fundamentals: show title preview + key stats
+        const parts: string[] = [];
+        if (formData.courseTitle && formData.courseTitle.length > 0) {
+          parts.push(`"${formData.courseTitle.slice(0, 20)}${formData.courseTitle.length > 20 ? '...' : ''}"`);
         }
-        return formData.targetAudience || formData.difficulty || null;
-      case 3:
+        if (formData.difficulty) {
+          parts.push(formData.difficulty);
+        }
         if (formData.courseGoals && formData.courseGoals.length > 0) {
-          return `${formData.courseGoals.length} objectives, ${formData.bloomsFocus?.length || 0} levels`;
+          parts.push(`${formData.courseGoals.length} obj.`);
         }
-        return null;
-      case 4:
+        return parts.length > 0 ? parts.join(' • ') : null;
+      }
+      case 2:
         if (formData.teacherBlueprint && formData.teacherBlueprint.chapters.length > 0) {
           const chCount = formData.teacherBlueprint.chapters.length;
           const secCount = formData.teacherBlueprint.chapters.reduce(
@@ -66,8 +66,8 @@ export function VerticalStepper({
           return `${chCount} chapters, ${secCount} sections${formData.teacherBlueprint.isEdited ? ' (edited)' : ''}`;
         }
         return null;
-      case 5:
-        return 'Ready for review';
+      case 3:
+        return 'Ready to generate';
       default:
         return null;
     }

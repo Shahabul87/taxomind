@@ -66,6 +66,8 @@ const OrchestrateRequestSchema = z.object({
   resumeCourseId: z.string().optional(),
   /** Client-generated idempotency key to prevent duplicate course creation */
   requestId: z.string().uuid().optional(),
+  /** Enable parallel chapter generation (requires teacher blueprint) */
+  parallelMode: z.boolean().optional(),
   /** Teacher-approved course blueprint (replaces AI planning when present) */
   teacherBlueprint: z.object({
     chapters: z.array(z.object({
@@ -395,6 +397,22 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         let streamClosed = false;
 
+        // Fix 6: Dedicated AbortController that fires when the SSE stream closes.
+        // Combined with request.signal so the orchestrator's throwIfAborted() checks
+        // detect both user cancellation AND client disconnect.
+        const streamAbort = new AbortController();
+
+        function markStreamClosed() {
+          streamClosed = true;
+          if (!streamAbort.signal.aborted) {
+            streamAbort.abort();
+          }
+        }
+
+        // Combine request.signal (user cancel) with streamAbort.signal (stream closure)
+        // AbortSignal.any() is available in Node 20+ (Taxomind requirement)
+        const combinedSignal = AbortSignal.any([request.signal, streamAbort.signal]);
+
         // Track courseId at stream scope so the catch block can include it
         // in error events. Updated by intercepting SSE events from the orchestrator.
         let lastKnownCourseId: string | undefined = config.resumeCourseId;
@@ -405,13 +423,13 @@ export async function POST(request: NextRequest) {
           try {
             controller.enqueue(encoder.encode(payload));
           } catch {
-            streamClosed = true;
+            markStreamClosed();
           }
         }
 
         // Back-pressure: stop generation when client disconnects
         request.signal.addEventListener('abort', () => {
-          streamClosed = true;
+          markStreamClosed();
           clearInterval(heartbeat);
         });
 
@@ -422,7 +440,7 @@ export async function POST(request: NextRequest) {
           try {
             controller.enqueue(encoder.encode(': heartbeat\n\n'));
           } catch {
-            streamClosed = true;
+            markStreamClosed();
             clearInterval(heartbeat);
           }
         }, 15_000);
@@ -438,7 +456,7 @@ export async function POST(request: NextRequest) {
             runId,
             requestId: config.requestId,
             requestFingerprint,
-            abortSignal: request.signal,
+            abortSignal: combinedSignal,
             config: {
               ...config,
               onProgress: (progress: { percentage: number; message: string; state: unknown }) => {

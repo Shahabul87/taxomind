@@ -122,6 +122,10 @@ export const TIMEOUT_DEFAULTS = {
   AI_ANALYSIS: 30_000,
   /** AI generation tasks (roadmaps, course outlines — produce large structured JSON) */
   AI_GENERATION: 180_000,
+  /** AI generation with reasoning model (deepseek-reasoner, o1, etc.) — 5min per attempt */
+  AI_GENERATION_REASONING: 300_000,
+  /** AI analysis with reasoning model — 90s per attempt */
+  AI_ANALYSIS_REASONING: 90_000,
   /** AI adapter initialization */
   AI_ADAPTER_INIT: 10_000,
   /** Database queries */

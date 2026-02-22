@@ -513,9 +513,6 @@ async function getAdapter(options: {
   capability?: AICapability;
 }): Promise<AIAdapter> {
   const { provider, userId, extended = false, capability } = options;
-  const timeoutConfig: CreateAdapterOptions = extended
-    ? { timeout: 100000, maxRetries: 1 }
-    : { timeout: 60000, maxRetries: 2 };
 
   const settings = await getPlatformSettings();
 
@@ -564,7 +561,22 @@ async function getAdapter(options: {
     modelOverride = getPlatformDefaultModel(provider, settings);
   }
 
-  const cacheKey = `${provider}-${extended ? 'ext' : 'std'}-${modelOverride ?? 'default'}`;
+  // Scale adapter timeout for reasoning models (deepseek-reasoner, o1, etc.).
+  // These models have long "thinking" phases before producing output, so the
+  // standard 60s/100s adapter timeout is insufficient. Scale to 180s/300s.
+  const isReasoning = checkIsReasoningModel(modelOverride ?? '');
+  let timeoutConfig: CreateAdapterOptions;
+  if (isReasoning) {
+    timeoutConfig = extended
+      ? { timeout: 300_000, maxRetries: 1 }
+      : { timeout: 180_000, maxRetries: 1 };
+  } else {
+    timeoutConfig = extended
+      ? { timeout: 100_000, maxRetries: 1 }
+      : { timeout: 60_000, maxRetries: 2 };
+  }
+
+  const cacheKey = `${provider}-${extended ? 'ext' : 'std'}-${isReasoning ? 'reasoning' : 'standard'}-${modelOverride ?? 'default'}`;
   const cached = getCachedAdapter(cacheKey);
   if (cached) return cached;
 

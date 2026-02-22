@@ -88,12 +88,17 @@ jest.mock('@/lib/sam/taxomind-context', () => ({
 
 // Mock the course creation modules that orchestrator delegates to
 const mockRunPipeline = jest.fn();
+const mockRunParallelPipeline = jest.fn();
 const mockRunPostProcessing = jest.fn();
 const mockFinalizeAndEmit = jest.fn();
 const mockInitializeCourseRecord = jest.fn();
 
 jest.mock('../../pipeline-runner', () => ({
   runPipeline: (...args: unknown[]) => mockRunPipeline(...args),
+}));
+
+jest.mock('../../parallel-pipeline-runner', () => ({
+  runParallelPipeline: (...args: unknown[]) => mockRunParallelPipeline(...args),
 }));
 
 jest.mock('../../post-processor', () => ({
@@ -222,6 +227,35 @@ function createConfig(overrides: Partial<SequentialCreationConfig> = {}): Sequen
     bloomsFocus: ['UNDERSTAND', 'APPLY'],
     preferredContentTypes: ['reading'],
     ...overrides,
+  };
+}
+
+function createTeacherBlueprint() {
+  return {
+    chapters: [
+      {
+        position: 1,
+        title: 'Chapter 1',
+        goal: 'Understand fundamentals',
+        bloomsLevel: 'UNDERSTAND',
+        sections: [
+          { position: 1, title: 'Section 1', keyTopics: ['topic-a'] },
+          { position: 2, title: 'Section 2', keyTopics: ['topic-b'] },
+        ],
+      },
+      {
+        position: 2,
+        title: 'Chapter 2',
+        goal: 'Apply concepts',
+        bloomsLevel: 'APPLY',
+        sections: [
+          { position: 1, title: 'Section 1', keyTopics: ['topic-c'] },
+          { position: 2, title: 'Section 2', keyTopics: ['topic-d'] },
+        ],
+      },
+    ],
+    confidence: 90,
+    riskAreas: [],
   };
 }
 
@@ -388,6 +422,99 @@ describe('Orchestration E2E - SSE Events', () => {
     expect(typeof finalizeCallArgs.onSSEEvent).toBe('function');
     finalizeCallArgs.onSSEEvent({ type: 'progress', data: { percentage: 10 } });
     expect(onSSEEvent).toHaveBeenCalledWith({ type: 'progress', data: { percentage: 10 } });
+  });
+});
+
+describe('Orchestration E2E - Pipeline Mode Routing', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockInitializeCourseRecord.mockResolvedValue({
+      courseId: 'course-mode-1',
+      goalId: 'goal-1',
+      planId: 'plan-1',
+      stepIds: ['step-1'],
+      chapterTitles: ['Chapter 1'],
+    });
+    mockRunPipeline.mockResolvedValue({ chaptersCreated: 1, sectionsCreated: 2, allSections: [] });
+    mockRunParallelPipeline.mockResolvedValue({ chaptersCreated: 1, sectionsCreated: 2, allSections: [] });
+    mockRunPostProcessing.mockResolvedValue(undefined);
+    mockFinalizeAndEmit.mockResolvedValue({
+      success: true,
+      courseId: 'course-mode-1',
+      chaptersCreated: 1,
+      sectionsCreated: 2,
+      stats: {
+        totalChapters: 1,
+        totalSections: 2,
+        totalTime: 1000,
+        averageQualityScore: 80,
+      },
+    });
+  });
+
+  it('uses parallel pipeline for new blueprint-driven runs when parallelMode is enabled', async () => {
+    await orchestrateCourseCreation({
+      userId: 'user-1',
+      config: createConfig({
+        parallelMode: true,
+        teacherBlueprint: createTeacherBlueprint(),
+      }),
+    });
+
+    expect(mockRunParallelPipeline).toHaveBeenCalledTimes(1);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
+  });
+
+  it('uses parallel pipeline on resume when checkpoint is at a clean chapter boundary', async () => {
+    await orchestrateCourseCreation({
+      userId: 'user-1',
+      config: createConfig({
+        parallelMode: true,
+        teacherBlueprint: createTeacherBlueprint(),
+      }),
+      resumeState: {
+        courseId: 'course-resume-clean',
+        goalId: 'goal-resume',
+        planId: 'plan-resume',
+        stepIds: ['step-1'],
+        completedChapters: [],
+        conceptTracker: { concepts: new Map(), vocabulary: [], skillsBuilt: [] },
+        bloomsProgression: [],
+        allSectionTitles: [],
+        qualityScores: [],
+        completedChapterCount: 0,
+      },
+    });
+
+    expect(mockRunParallelPipeline).toHaveBeenCalledTimes(1);
+    expect(mockRunPipeline).not.toHaveBeenCalled();
+  });
+
+  it('falls back to sequential pipeline on resume when a partial chapter exists', async () => {
+    await orchestrateCourseCreation({
+      userId: 'user-1',
+      config: createConfig({
+        parallelMode: true,
+        teacherBlueprint: createTeacherBlueprint(),
+      }),
+      resumeState: {
+        courseId: 'course-resume-partial',
+        goalId: 'goal-resume',
+        planId: 'plan-resume',
+        stepIds: ['step-1'],
+        completedChapters: [],
+        conceptTracker: { concepts: new Map(), vocabulary: [], skillsBuilt: [] },
+        bloomsProgression: [],
+        allSectionTitles: [],
+        qualityScores: [],
+        completedChapterCount: 0,
+        partialChapterDbId: 'chapter-partial-1',
+      },
+    });
+
+    expect(mockRunPipeline).toHaveBeenCalledTimes(1);
+    expect(mockRunParallelPipeline).not.toHaveBeenCalled();
   });
 });
 

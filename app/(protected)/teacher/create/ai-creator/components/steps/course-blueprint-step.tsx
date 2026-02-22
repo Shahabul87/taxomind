@@ -47,6 +47,9 @@ import {
   ArrowRight,
   Shield,
   ClipboardCheck,
+  Coins,
+  Zap,
+  Brain,
 } from 'lucide-react';
 import type {
   StepComponentProps,
@@ -59,6 +62,8 @@ import { validateAlignment } from '../../utils/blueprint-alignment';
 import type { AlignmentScore, ChapterAlignment } from '../../utils/blueprint-alignment';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
+import { formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
 
 const MAX_VERSIONS = 10;
 
@@ -164,6 +169,94 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
   const hasTriggeredRef = useRef(false);
 
   const blueprint = formData.teacherBlueprint;
+
+  // -------------------------------------------------------------------------
+  // Cost Estimation (moved from advanced-settings-step)
+  // -------------------------------------------------------------------------
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+  const [costLoading, setCostLoading] = useState(false);
+  const [costError, setCostError] = useState(false);
+  const costDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const estimateAbortRef = useRef<AbortController | null>(null);
+  const estimateRequestSeq = useRef(0);
+  const costParamsRef = useRef('');
+
+  const fetchCostEstimate = useCallback(async (params: {
+    totalChapters: number;
+    sectionsPerChapter: number;
+    difficulty: string;
+    bloomsFocusCount: number;
+    learningObjectivesPerChapter: number;
+    learningObjectivesPerSection: number;
+  }) => {
+    const requestId = ++estimateRequestSeq.current;
+    estimateAbortRef.current?.abort();
+    const controller = new AbortController();
+    estimateAbortRef.current = controller;
+
+    setCostLoading(true);
+    setCostError(false);
+    try {
+      const res = await fetch('/api/sam/course-creation/estimate-cost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json() as { success: boolean; estimate?: CostEstimate };
+      if (requestId !== estimateRequestSeq.current) return;
+      if (data.success && data.estimate) {
+        setCostEstimate(data.estimate);
+      } else {
+        setCostError(true);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (requestId !== estimateRequestSeq.current) return;
+      setCostError(true);
+    } finally {
+      if (requestId !== estimateRequestSeq.current) return;
+      setCostLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      estimateAbortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const params = {
+      totalChapters: formData.chapterCount,
+      sectionsPerChapter: formData.sectionsPerChapter,
+      difficulty: formData.difficulty.toLowerCase(),
+      bloomsFocusCount: formData.bloomsFocus.length,
+      learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
+      learningObjectivesPerSection: formData.learningObjectivesPerSection,
+    };
+    const key = JSON.stringify(params);
+    if (key === costParamsRef.current) return;
+
+    if (costDebounceRef.current) clearTimeout(costDebounceRef.current);
+    costDebounceRef.current = setTimeout(() => {
+      costParamsRef.current = key;
+      fetchCostEstimate(params);
+    }, 500);
+
+    return () => {
+      if (costDebounceRef.current) clearTimeout(costDebounceRef.current);
+    };
+  }, [
+    formData.chapterCount,
+    formData.difficulty,
+    formData.bloomsFocus.length,
+    formData.learningObjectivesPerChapter,
+    formData.learningObjectivesPerSection,
+    formData.sectionsPerChapter,
+    fetchCostEstimate,
+  ]);
 
   // Compute alignment score (client-side, no API call)
   const alignment: AlignmentScore = useMemo(() => {
@@ -735,6 +828,83 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
           )}
         </div>
       </div>
+
+      {/* Cost Estimation */}
+      <Collapsible>
+        <div className="rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-900/50 overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button type="button" className="w-full flex items-center justify-between gap-2 p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors text-xs">
+              <div className="flex items-center gap-2">
+                <Coins className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-medium text-slate-700 dark:text-slate-300">Generation Estimate</span>
+                {costEstimate && !costLoading && (
+                  <span className="text-slate-500 dark:text-slate-400">
+                    ~{formatEstimatedTime(costEstimate.estimatedTimeSeconds)} &middot; ${costEstimate.estimatedCostUSD.toFixed(2)} &middot; {costEstimate.totalAICalls} AI calls
+                  </span>
+                )}
+                {costLoading && (
+                  <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
+                )}
+              </div>
+              <ChevronDown className="h-3 w-3 text-slate-400" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-3 pb-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+              {costLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <Skeleton className="h-3 w-16 mb-2" />
+                      <Skeleton className="h-5 w-12" />
+                    </div>
+                  ))}
+                </div>
+              ) : costError ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+                  Cost estimate unavailable
+                </p>
+              ) : costEstimate ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                      <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
+                      <div className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        {formatEstimatedTime(costEstimate.estimatedTimeSeconds)}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Gen. Time</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                      <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 mx-auto mb-1" />
+                      <div className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        {costEstimate.totalAICalls}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">AI Calls</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                      <Coins className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
+                      <div className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        ${costEstimate.estimatedCostUSD.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Est. Cost</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                      <Brain className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                        {costEstimate.provider}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Provider</div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+                    Includes ~{costEstimate.breakdown.retryOverheadPercent}% retry overhead. Actual cost depends on AI response length and retries.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
 
       {/* North Star Project */}
       <Card className="border-emerald-200/70 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20">

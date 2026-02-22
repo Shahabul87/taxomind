@@ -13,10 +13,7 @@ import {
   BookOpen,
   RefreshCw,
   Brain,
-  Users,
-  GraduationCap,
   Bot,
-  ChevronRight,
   Loader2,
   ShieldCheck,
   ShieldAlert,
@@ -41,25 +38,17 @@ import { useSamWizard } from "./hooks/use-sam-wizard";
 import { useSequentialCreationActions } from "./hooks/use-sequential-creation-actions";
 
 // Step 1 loaded eagerly (always visible on first paint)
-import { CourseBasicsStep } from "./components/steps/course-basics-step";
+import { CourseFundamentalsStep } from "./components/steps/course-fundamentals-step";
 
-// Steps 2-4 lazy-loaded (only rendered when navigated to) — Fix 1.3
+// Steps 2-3 lazy-loaded (only rendered when navigated to)
 import { StepSkeleton } from "./components/ui/StepSkeleton";
 
-const TargetAudienceStep = dynamic(
-  () => import("./components/steps/target-audience-step").then(m => m.TargetAudienceStep),
-  { loading: () => <StepSkeleton /> }
-);
-const CourseStructureStep = dynamic(
-  () => import("./components/steps/course-structure-step").then(m => m.CourseStructureStep),
-  { loading: () => <StepSkeleton /> }
-);
 const CourseBlueprintStep = dynamic(
   () => import("./components/steps/course-blueprint-step").then(m => m.CourseBlueprintStep),
   { loading: () => <StepSkeleton /> }
 );
-const AdvancedSettingsStep = dynamic(
-  () => import("./components/steps/advanced-settings-step").then(m => m.AdvancedSettingsStep),
+const ParallelGenerationStep = dynamic(
+  () => import("./components/steps/parallel-generation-step").then(m => m.ParallelGenerationStep),
   { loading: () => <StepSkeleton /> }
 );
 
@@ -75,38 +64,24 @@ const SequentialCreationModal = dynamic(
 const STEPS = [
   {
     id: 1,
-    title: "Course Basics",
-    description: "Title, category & overview",
+    title: "Course Fundamentals",
+    description: "Configuration, content & objectives",
     icon: BookOpen,
     color: "blue",
   },
   {
     id: 2,
-    title: "Target Audience",
-    description: "Who will take this course",
-    icon: Users,
-    color: "purple",
+    title: "Course Blueprint",
+    description: "Generate & review structure",
+    icon: Map,
+    color: "indigo",
   },
   {
     id: 3,
-    title: "Learning Design",
-    description: "Objectives & framework",
+    title: "Generate Course",
+    description: "Parallel chapter generation",
     icon: Brain,
     color: "emerald",
-  },
-  {
-    id: 4,
-    title: "Review & Approve",
-    description: "Review your settings",
-    icon: GraduationCap,
-    color: "amber",
-  },
-  {
-    id: 5,
-    title: "Blueprint & Create",
-    description: "Generate & create",
-    icon: Map,
-    color: "indigo",
   },
 ];
 
@@ -177,6 +152,7 @@ export default function AICreatorPage() {
     handleAbortPausedPipeline,
     handleRegenerateChapter,
     cancelSequentialCreation,
+    resetSequentialCreation,
     dismissCreation,
   } = useSequentialCreationActions(formData, router);
 
@@ -205,32 +181,13 @@ export default function AICreatorPage() {
     [validationErrors, localValidationErrors]
   );
 
-  // Step validation
+  // Step validation (3-step wizard)
   const isStepValid = React.useCallback((): boolean => {
     const hasCustomAudience = formData.targetAudience === 'Custom (describe below)';
     const customAudienceValid = !hasCustomAudience || formData.customAudience.trim().length >= 30;
 
     switch (step) {
-      case 1:
-        return !!(
-          formData.courseTitle?.trim()?.length >= 10 &&
-          formData.courseShortOverview?.trim()?.length >= 50 &&
-          formData.courseCategory?.trim()?.length > 0
-        );
-      case 2:
-        return !!(
-          formData.targetAudience?.trim()?.length > 0 &&
-          formData.difficulty?.trim()?.length > 0 &&
-          customAudienceValid
-        );
-      case 3:
-        return !!(
-          Array.isArray(formData.courseGoals) &&
-          formData.courseGoals.length >= 2 &&
-          Array.isArray(formData.bloomsFocus) &&
-          formData.bloomsFocus.length >= 2
-        );
-      case 4:
+      case 1: // Course Fundamentals (merged: basics + audience + structure)
         return !!(
           formData.courseTitle?.trim()?.length >= 10 &&
           formData.courseShortOverview?.trim()?.length >= 50 &&
@@ -243,7 +200,12 @@ export default function AICreatorPage() {
           Array.isArray(formData.bloomsFocus) &&
           formData.bloomsFocus.length >= 2
         );
-      case 5:
+      case 2: // Course Blueprint
+        return !!(
+          formData.teacherBlueprint &&
+          formData.teacherBlueprint.chapters.length > 0
+        );
+      case 3: // Parallel Generation (always valid — generation is triggered by button)
         return !!(
           formData.teacherBlueprint &&
           formData.teacherBlueprint.chapters.length > 0
@@ -268,15 +230,11 @@ export default function AICreatorPage() {
         errors.courseShortOverview = "Overview must be at least 50 characters";
       if (!formData.courseCategory)
         errors.courseCategory = "Please select a category";
-    }
-    if (step === 2) {
       if (!formData.targetAudience) errors.targetAudience = "Please select a target audience";
       if (!formData.difficulty) errors.difficulty = "Please select a difficulty level";
       if (formData.targetAudience === 'Custom (describe below)' && formData.customAudience.trim().length < 30) {
         errors.customAudience = "Please provide at least 30 characters for custom audience";
       }
-    }
-    if (step === 3) {
       if (!formData.courseGoals || formData.courseGoals.length < 2)
         errors.courseGoals = "Add at least 2 learning objectives";
       if (!formData.bloomsFocus || formData.bloomsFocus.length < 2)
@@ -452,17 +410,36 @@ export default function AICreatorPage() {
 
     switch (step) {
       case 1:
-        return <CourseBasicsStep {...stepProps} />;
+        return <CourseFundamentalsStep {...stepProps} />;
       case 2:
-        return <TargetAudienceStep {...stepProps} />;
-      case 3:
-        return <CourseStructureStep {...stepProps} />;
-      case 4:
-        return <AdvancedSettingsStep {...stepProps} />;
-      case 5:
         return <CourseBlueprintStep {...stepProps} />;
+      case 3:
+        return (
+          <ParallelGenerationStep
+            {...stepProps}
+            sequentialProgress={sequentialProgress}
+            isSequentialCreating={isSequentialCreating}
+            sequentialError={sequentialError}
+            onStartGeneration={async () => {
+              // Step 3 shows inline progress — no modal needed.
+              // Reset any stale state from a previous creation so the
+              // "Generate Course" button and progress indicators start fresh.
+              resetSequentialCreation();
+              await handleStartSequentialCreation();
+            }}
+            onRetry={handleRetrySequentialCreation}
+            onCancel={cancelSequentialCreation}
+            regeneratingChapterId={regeneratingChapterId}
+            onRegenerate={handleRegenerateChapter}
+            onApproveContinue={handleApproveContinue}
+            onApproveHeal={handleApproveHeal}
+            onAbortPaused={handleAbortPausedPipeline}
+            resumableCourseId={resumableCourseId}
+            onResume={handleResumeCreation}
+          />
+        );
       default:
-        return <CourseBasicsStep {...stepProps} />;
+        return <CourseFundamentalsStep {...stepProps} />;
     }
   };
 
@@ -607,10 +584,8 @@ export default function AICreatorPage() {
                       className={cn(
                         "p-3 rounded-xl shadow-lg",
                         step === 1 && "bg-gradient-to-br from-blue-500 to-indigo-600",
-                        step === 2 && "bg-gradient-to-br from-purple-500 to-violet-600",
+                        step === 2 && "bg-gradient-to-br from-indigo-500 to-violet-600",
                         step === 3 && "bg-gradient-to-br from-emerald-500 to-teal-600",
-                        step === 4 && "bg-gradient-to-br from-amber-500 to-orange-600",
-                        step === 5 && "bg-gradient-to-br from-indigo-500 to-violet-600"
                       )}
                     >
                       <StepIcon className="h-6 w-6 text-white" />
@@ -654,31 +629,9 @@ export default function AICreatorPage() {
                     </Button>
 
                     {isLastStep ? (
-                      <Button
-                        onClick={() => setShowGenerateConfirm(true)}
-                        disabled={!canProceed || isSequentialCreating}
-                        className={cn(
-                          "h-11 px-6 rounded-xl font-semibold",
-                          "bg-gradient-to-r from-violet-600 to-purple-600",
-                          "hover:from-violet-700 hover:to-purple-700",
-                          "shadow-lg shadow-purple-500/25",
-                          "disabled:opacity-50"
-                        )}
-                      >
-                        {isSequentialCreating ? (
-                          <>
-                            <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Creating...
-                          </>
-                        ) : (
-                          <>
-                            <Brain className="h-4 w-4 mr-2" />
-                            Create Full Course using SAM AI
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                          </>
-                        )}
-                      </Button>
-                    ) : step === 4 ? (
+                      /* Step 3 (Generate Course) has inline generation — no nav button needed */
+                      <div />
+                    ) : step === 1 ? (
                       <Button
                         onClick={attemptNext}
                         disabled={!canProceed}

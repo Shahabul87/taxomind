@@ -526,46 +526,125 @@ export async function orchestrateCourseCreation(
     });
 
     // =========================================================================
-    // PIPELINE EXECUTION: Delegate to pipeline-runner
+    // PIPELINE EXECUTION: Delegate to pipeline-runner (sequential or parallel)
     // =========================================================================
 
-    const pipelineResult = await runPipeline({
-      userId,
+    // Use parallel mode when explicitly requested AND a teacher blueprint exists.
+    // Parallel mode requires blueprint because isBlueprintDriven disables all
+    // inter-chapter dependencies, making chapters independently generable.
+    //
+    // Resume behavior:
+    // - If resume is at a clean chapter boundary (no partial chapter), parallel is safe.
+    // - If a partial chapter exists, force sequential so mid-chapter recovery semantics
+    //   remain deterministic.
+    const hasBlueprintChapters = !!(config.teacherBlueprint?.chapters?.length);
+    const hasResumePartialChapter = !!(isResume && resumeState?.partialChapterDbId);
+    const useParallelMode = !!(
+      config.parallelMode &&
+      hasBlueprintChapters &&
+      !hasResumePartialChapter
+    );
+
+    logger.info('[ORCHESTRATOR] Pipeline mode decision', {
       courseId,
-      goalId,
-      planId,
-      config,
-      courseContext,
-      onSSEEvent: trackingOnSSEEvent,
-      abortSignal,
-      enableStreamingThinking,
-      runId,
-      useAgenticStateMachine: useStateMachine,
-      completedChapters,
-      generatedChapters,
-      qualityScores,
-      allSectionTitles,
-      conceptTracker,
-      bloomsProgression,
-      blueprintPlan,
-      teacherBlueprintChapters: config.teacherBlueprint?.chapters,
-      northStarProject: config.teacherBlueprint?.northStarProject,
-      lastAgenticDecision,
-      recalledMemory,
-      strategyMonitor,
-      chapterTemplate,
-      categoryPrompt: composedCategoryPrompt,
-      categoryEnhancer,
-      experimentVariant: experimentVariant ?? '',
-      chapterSectionCounts,
-      budgetTracker,
-      fallbackTracker,
-      stepIds,
-      startChapter,
-      totalChapters,
-      effectiveSectionsPerChapter,
-      resumeState,
+      useParallelMode,
+      configParallelMode: !!config.parallelMode,
+      hasBlueprintChapters,
+      blueprintChapterCount: config.teacherBlueprint?.chapters?.length ?? 0,
+      isResume,
+      hasResumePartialChapter,
     });
+
+    let pipelineResult;
+
+    if (useParallelMode) {
+      logger.info('[ORCHESTRATOR] Using PARALLEL pipeline (all chapters at once)', {
+        courseId, totalChapters, startChapter,
+      });
+      const { runParallelPipeline } = await import('./parallel-pipeline-runner');
+      pipelineResult = await runParallelPipeline({
+        userId,
+        courseId,
+        goalId,
+        planId,
+        config,
+        courseContext,
+        onSSEEvent: trackingOnSSEEvent,
+        abortSignal,
+        enableStreamingThinking,
+        runId,
+        useAgenticStateMachine: useStateMachine,
+        completedChapters,
+        generatedChapters,
+        qualityScores,
+        allSectionTitles,
+        conceptTracker,
+        bloomsProgression,
+        blueprintPlan,
+        teacherBlueprintChapters: config.teacherBlueprint?.chapters,
+        northStarProject: config.teacherBlueprint?.northStarProject,
+        lastAgenticDecision,
+        recalledMemory,
+        strategyMonitor,
+        chapterTemplate,
+        categoryPrompt: composedCategoryPrompt,
+        categoryEnhancer,
+        experimentVariant: experimentVariant ?? '',
+        chapterSectionCounts,
+        budgetTracker,
+        fallbackTracker,
+        stepIds,
+        startChapter,
+        totalChapters,
+        effectiveSectionsPerChapter,
+        resumeState,
+        batchSize: 3,
+      });
+    } else {
+      logger.info('[ORCHESTRATOR] Using SEQUENTIAL pipeline (state machine)', {
+        courseId, totalChapters, startChapter,
+        parallelModeRequested: !!config.parallelMode,
+        hasBlueprintChapters: !!(config.teacherBlueprint?.chapters?.length),
+        isResume,
+      });
+      pipelineResult = await runPipeline({
+        userId,
+        courseId,
+        goalId,
+        planId,
+        config,
+        courseContext,
+        onSSEEvent: trackingOnSSEEvent,
+        abortSignal,
+        enableStreamingThinking,
+        runId,
+        useAgenticStateMachine: useStateMachine,
+        completedChapters,
+        generatedChapters,
+        qualityScores,
+        allSectionTitles,
+        conceptTracker,
+        bloomsProgression,
+        blueprintPlan,
+        teacherBlueprintChapters: config.teacherBlueprint?.chapters,
+        northStarProject: config.teacherBlueprint?.northStarProject,
+        lastAgenticDecision,
+        recalledMemory,
+        strategyMonitor,
+        chapterTemplate,
+        categoryPrompt: composedCategoryPrompt,
+        categoryEnhancer,
+        experimentVariant: experimentVariant ?? '',
+        chapterSectionCounts,
+        budgetTracker,
+        fallbackTracker,
+        stepIds,
+        startChapter,
+        totalChapters,
+        effectiveSectionsPerChapter,
+        resumeState,
+      });
+    }
     chaptersCreated = pipelineResult.chaptersCreated;
     sectionsCreated = pipelineResult.sectionsCreated;
 

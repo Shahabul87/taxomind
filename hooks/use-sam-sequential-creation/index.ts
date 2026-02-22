@@ -313,6 +313,48 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
       // Auto-reconnect if stream ended without terminal event (timeout/disconnect)
       if (!gotComplete && !gotError && lastCourseIdRef.current) {
+        // Fix 7b: Before reconnecting, check if all chapters are already done.
+        // If completedItems count matches totalChapters, the pipeline is near-complete
+        // and reconnecting would be wasteful or cause duplicate requests.
+        const currentProgress = progressRef.current;
+        const completedCount = currentProgress.completedItems?.chapters?.length ?? 0;
+        const expectedTotal = currentProgress.state.totalChapters ?? 0;
+        if (expectedTotal > 0 && completedCount >= expectedTotal) {
+          logger.info('[SEQUENTIAL_SSE] All chapters complete — skipping reconnect, waiting for finalization', {
+            completedCount, expectedTotal, courseId: lastCourseIdRef.current,
+          });
+          // Set "finalizing" state instead of reconnecting
+          setProgress(prev => ({
+            ...prev,
+            percentage: 98,
+            message: 'All chapters generated. Finalizing course...',
+          }));
+          // Wait briefly for the server to finalize, then check DB for completion
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          const finalProgress = await fetchDbProgressForCourse(lastCourseIdRef.current);
+          if (finalProgress && finalProgress.percentage >= 100) {
+            setProgress(prev => ({
+              ...prev,
+              state: { ...prev.state, phase: 'complete', courseId: lastCourseIdRef.current ?? undefined },
+              percentage: 100,
+              message: 'Course creation complete!',
+            }));
+            return {
+              success: true,
+              courseId: lastCourseIdRef.current,
+              chaptersCreated: completedCount,
+              sectionsCreated: currentProgress.completedItems?.sections?.length ?? 0,
+              stats: {
+                totalChapters: completedCount,
+                totalSections: currentProgress.completedItems?.sections?.length ?? 0,
+                totalTime: Date.now() - startTimeRef.current,
+                averageQualityScore: 0,
+              },
+            };
+          }
+          // If DB doesn't confirm completion, fall through to normal reconnect
+        }
+
         if (reconnectCountRef.current < MAX_RECONNECTIONS) {
           reconnectCountRef.current++;
           logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after stream timeout', {
@@ -730,6 +772,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
           enableEscalationGate: courseData.enableEscalationGate,
           fallbackPolicy: courseData.fallbackPolicy,
           teacherBlueprint: courseData.teacherBlueprint,
+          parallelMode: courseData.parallelMode,
         }),
         signal: abortController.signal,
       });
@@ -792,6 +835,43 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
       // Auto-reconnect if stream ended without terminal event (timeout/disconnect)
       if (!gotComplete && !gotError && lastCourseIdRef.current) {
+        // Fix 7b: Check if all chapters are already done before reconnecting
+        const startProgress = progressRef.current;
+        const startCompletedCount = startProgress.completedItems?.chapters?.length ?? 0;
+        const startExpectedTotal = startProgress.state.totalChapters ?? 0;
+        if (startExpectedTotal > 0 && startCompletedCount >= startExpectedTotal) {
+          logger.info('[SEQUENTIAL_SSE] All chapters complete (start) — skipping reconnect', {
+            completedCount: startCompletedCount, expectedTotal: startExpectedTotal, courseId: lastCourseIdRef.current,
+          });
+          setProgress(prev => ({
+            ...prev,
+            percentage: 98,
+            message: 'All chapters generated. Finalizing course...',
+          }));
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          const startFinalProgress = await fetchDbProgressForCourse(lastCourseIdRef.current);
+          if (startFinalProgress && startFinalProgress.percentage >= 100) {
+            setProgress(prev => ({
+              ...prev,
+              state: { ...prev.state, phase: 'complete', courseId: lastCourseIdRef.current ?? undefined },
+              percentage: 100,
+              message: 'Course creation complete!',
+            }));
+            return {
+              success: true,
+              courseId: lastCourseIdRef.current,
+              chaptersCreated: startCompletedCount,
+              sectionsCreated: startProgress.completedItems?.sections?.length ?? 0,
+              stats: {
+                totalChapters: startCompletedCount,
+                totalSections: startProgress.completedItems?.sections?.length ?? 0,
+                totalTime: Date.now() - startTimeRef.current,
+                averageQualityScore: 0,
+              },
+            };
+          }
+        }
+
         if (reconnectCountRef.current < MAX_RECONNECTIONS) {
           reconnectCountRef.current++;
           logger.info('[SEQUENTIAL_SSE] Auto-reconnecting after initial stream timeout', {
@@ -906,7 +986,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     } finally {
       abortControllerRef.current = null;
     }
-  }, [resumeCreation]);
+  }, [resumeCreation, fetchDbProgressForCourse]);
 
   // ========================================
   // Regenerate Chapter (Post-creation)

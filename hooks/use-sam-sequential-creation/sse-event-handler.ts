@@ -10,7 +10,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { CreationProgress, CreationStage } from '@/lib/sam/course-creation/types';
+import type { CreationProgress, CreationStage, ChapterDetailState } from '@/lib/sam/course-creation/types';
 import type { ParsedSSEEvent, SSEHandlerContext, SSEEventResult } from './types';
 import { clearPartialCourseId, setPartialCourseId } from './types';
 import { calculateETA } from './eta-calculator';
@@ -125,6 +125,7 @@ export function handleSSEEvent(
           ...prev.state,
           stage: numericStage,
           phase,
+          ...(data.courseId ? { courseId: data.courseId as string } : {}),
         },
         message: message || `Starting stage ${rawStage}...`,
       }));
@@ -398,6 +399,381 @@ export function handleSSEEvent(
       return {};
     }
 
+    // ── Parallel Generation Events ──
+
+    case 'parallel_generation_start': {
+      const chapterPositions = (data.chapterPositions ?? []) as number[];
+      const batchSizeVal = (data.batchSize as number) ?? 3;
+      const totalBatchesVal = (data.totalBatches as number) ?? Math.ceil(chapterPositions.length / batchSizeVal);
+
+      // Initialize chapterDetails for all chapters
+      const chapterDetails: Record<number, ChapterDetailState> = {};
+      for (const pos of chapterPositions) {
+        chapterDetails[pos] = {
+          position: pos,
+          title: `Chapter ${pos}`,
+          status: 'pending',
+          currentStage: 0,
+          stageName: 'Waiting',
+          stagesCompleted: [],
+          totalSections: 0,
+          completedSections: 0,
+          retryCount: 0,
+          isFallback: false,
+          events: [],
+        };
+      }
+
+      setProgress(prev => ({
+        ...prev,
+        state: { ...prev.state, phase: 'generating_chapter' },
+        message: `Starting parallel generation of ${chapterPositions.length} chapters (${totalBatchesVal} batches of ${batchSizeVal})...`,
+        parallelBatch: {
+          currentBatch: 0,
+          totalBatches: totalBatchesVal,
+          batchSize: batchSizeVal,
+          activeChapters: [],
+        },
+        chapterDetails,
+      }));
+      return {};
+    }
+
+    case 'parallel_batch_start': {
+      const batchNumber = (data.batchNumber as number) ?? 1;
+      const batchTotalBatches = (data.totalBatches as number) ?? 1;
+      const batchChapters = (data.chapters ?? []) as number[];
+      setProgress(prev => ({
+        ...prev,
+        message: `Batch ${batchNumber}/${batchTotalBatches}: generating chapters ${batchChapters.join(', ')}...`,
+        parallelBatch: {
+          ...prev.parallelBatch,
+          currentBatch: batchNumber,
+          totalBatches: batchTotalBatches,
+          activeChapters: batchChapters,
+        },
+      }));
+      return {};
+    }
+
+    case 'parallel_batch_complete': {
+      const completedBatch = (data.batchNumber as number) ?? 1;
+      const batchTotal = (data.totalBatches as number) ?? 1;
+      const completedSoFar = (data.completedChapters as number) ?? 0;
+      const totalCh = (data.totalChapters as number) ?? totalItemsRef.current;
+      setProgress(prev => ({
+        ...prev,
+        message: completedBatch < batchTotal
+          ? `Batch ${completedBatch}/${batchTotal} complete (${completedSoFar}/${totalCh} chapters). Starting next batch...`
+          : `All ${batchTotal} batches complete (${completedSoFar}/${totalCh} chapters).`,
+        parallelBatch: {
+          ...prev.parallelBatch,
+          currentBatch: completedBatch,
+          activeChapters: [],
+        },
+      }));
+      return {};
+    }
+
+    case 'parallel_chapter_stage_change': {
+      const stagePos = data.chapter as number;
+      const stage = data.stage as number;
+      const stageName = data.stageName as string;
+      const totalSectionsFromEvent = data.totalSections as number | undefined;
+
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        const ch = details[stagePos];
+        if (!ch) return prev;
+
+        details[stagePos] = {
+          ...ch,
+          status: 'generating',
+          currentStage: stage,
+          stageName,
+          ...(totalSectionsFromEvent != null ? { totalSections: totalSectionsFromEvent } : {}),
+          events: [...ch.events, {
+            timestamp: Date.now(),
+            type: 'stage_start',
+            message: `Starting ${stageName} (Stage ${stage})`,
+            data: { stage, stageName },
+          }],
+        };
+        return { ...prev, chapterDetails: details };
+      });
+      return {};
+    }
+
+    case 'parallel_chapter_complete': {
+      const chapterPos = data.chapter as number;
+      const title = (data.title as string) ?? `Chapter ${chapterPos}`;
+      const qualityScore = data.qualityScore as number | undefined;
+      const courseId = data.courseId as string | undefined;
+      const chapterId = (data.id as string) ?? '';
+      if (courseId) lastCourseIdRef.current = courseId;
+
+      // Record timestamp for ETA (must happen before calculateETA)
+      itemTimestampsRef.current.push(Date.now());
+
+      setProgress(prev => {
+        const existingChapters = prev.completedItems?.chapters ?? [];
+        const existingSections = prev.completedItems?.sections ?? [];
+
+        // Robust dedup: filter out any existing entry with the same position,
+        // then add/replace with the latest data. This prevents the 180% bug
+        // where findIndex dedup could fail and produce duplicate entries.
+        const withoutCurrent = existingChapters.filter(ch => ch.position !== chapterPos);
+        const existing = existingChapters.find(ch => ch.position === chapterPos);
+        const updatedChapters = [
+          ...withoutCurrent,
+          {
+            position: chapterPos,
+            title: title || existing?.title || `Chapter ${chapterPos}`,
+            id: chapterId || existing?.id,
+            ...(qualityScore != null ? { qualityScore } : existing?.qualityScore != null ? { qualityScore: existing.qualityScore } : {}),
+          },
+        ].sort((a, b) => a.position - b.position);
+
+        const completedCount = updatedChapters.length;
+        // In parallel mode, totalItemsRef holds the sequential formula (chapters + 2*sections),
+        // which is wrong for per-chapter percentage. Use state.totalChapters instead.
+        const actualTotalChapters = prev.state.totalChapters || totalItemsRef.current || 1;
+        const percentage = Math.min(95, Math.round((completedCount / actualTotalChapters) * 95));
+
+        // Update chapterDetails with completion info
+        const details = { ...(prev.chapterDetails ?? {}) };
+        const existingDetail = details[chapterPos];
+        const sectionCount = data.sectionCount as number | undefined;
+        details[chapterPos] = {
+          ...(existingDetail ?? {
+            position: chapterPos,
+            events: [],
+            retryCount: 0,
+            isFallback: false,
+            stagesCompleted: [],
+            totalSections: 0,
+            completedSections: 0,
+          }),
+          title,
+          status: 'complete',
+          currentStage: 3,
+          stageName: 'Complete',
+          stagesCompleted: [1, 2, 3],
+          qualityScore,
+          id: chapterId || undefined,
+          bloomsLevel: data.bloomsLevel as string | undefined,
+          keyTopics: data.keyTopics as string[] | undefined,
+          completedSections: sectionCount ?? existingDetail?.totalSections ?? 0,
+          ...(sectionCount != null ? { totalSections: sectionCount } : {}),
+          events: [...(existingDetail?.events ?? []), {
+            timestamp: Date.now(),
+            type: 'complete' as const,
+            message: `Chapter completed${qualityScore != null ? ` with ${qualityScore}% quality` : ''}`,
+            data: { qualityScore, bloomsLevel: data.bloomsLevel },
+          }],
+        };
+
+        return {
+          ...prev,
+          percentage,
+          message: `Chapter ${chapterPos} complete: ${title}`,
+          state: {
+            ...prev.state,
+            currentChapter: chapterPos,
+            phase: 'generating_chapter',
+            ...(courseId ? { courseId } : {}),
+          },
+          completedItems: {
+            chapters: updatedChapters,
+            sections: existingSections,
+          },
+          chapterDetails: details,
+          timing: {
+            ...prev.timing,
+            eta: calculateETA({
+              timestamps: itemTimestampsRef.current,
+              startTime: startTimeRef.current,
+              totalItems: actualTotalChapters,
+            }),
+          },
+        };
+      });
+      return {};
+    }
+
+    case 'parallel_chapter_failed': {
+      const failedChapter = data.chapter as number;
+      const errorMsg = (data.error as string) ?? 'Unknown error';
+      const errorType = (data.errorType as string) ?? 'unknown';
+      const isRetryEvent = data.isRetry as boolean ?? false;
+
+      logger.warn('[SSE] Parallel chapter failed', { chapter: failedChapter, error: errorMsg });
+
+      // Update chapterDetails with failure info
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        const existing = details[failedChapter];
+        details[failedChapter] = {
+          ...(existing ?? {
+            position: failedChapter,
+            events: [],
+            isFallback: false,
+            stagesCompleted: [],
+            totalSections: 0,
+            completedSections: 0,
+          }),
+          title: existing?.title ?? `Chapter ${failedChapter}`,
+          status: 'failed',
+          currentStage: existing?.currentStage ?? 0,
+          stageName: 'Failed',
+          error: errorMsg,
+          errorType,
+          retryCount: (existing?.retryCount ?? 0) + (isRetryEvent ? 1 : 0),
+          events: [...(existing?.events ?? []), {
+            timestamp: Date.now(),
+            type: 'error' as const,
+            message: `Generation failed: ${errorMsg}`,
+            data: { error: errorMsg, errorType, isRetry: isRetryEvent },
+          }],
+        };
+        return { ...prev, chapterDetails: details };
+      });
+      // Don't set terminal error — other chapters may still complete
+      return {};
+    }
+
+    case 'parallel_chapter_fallback': {
+      const fbPos = data.chapter as number;
+      const fbTitle = (data.title as string) ?? `Chapter ${fbPos}`;
+      const fbId = data.id as string | undefined;
+      const fbReason = (data.reason as string) ?? 'Generation failed';
+      const fbSectionCount = data.sectionCount as number | undefined;
+
+      logger.info('[SSE] Parallel chapter using fallback', { chapter: fbPos });
+
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        const existing = details[fbPos];
+        details[fbPos] = {
+          ...(existing ?? {
+            position: fbPos,
+            events: [],
+            retryCount: 0,
+            stagesCompleted: [],
+            totalSections: 0,
+            completedSections: 0,
+            currentStage: 0,
+          }),
+          title: fbTitle,
+          status: 'fallback',
+          id: fbId,
+          isFallback: true,
+          fallbackReason: fbReason,
+          qualityScore: 30,
+          stageName: 'Fallback',
+          ...(fbSectionCount != null ? { totalSections: fbSectionCount, completedSections: fbSectionCount } : {}),
+          events: [...(existing?.events ?? []), {
+            timestamp: Date.now(),
+            type: 'fallback' as const,
+            message: `Using fallback content: ${fbReason}`,
+            data: { reason: fbReason },
+          }],
+        };
+
+        // Also add to completedItems.chapters (with dedup)
+        const existingChapters = prev.completedItems?.chapters ?? [];
+        const withoutCurrent = existingChapters.filter(ch => ch.position !== fbPos);
+        const updatedChapters = [
+          ...withoutCurrent,
+          { position: fbPos, title: fbTitle, id: fbId, qualityScore: 30 },
+        ].sort((a, b) => a.position - b.position);
+
+        return {
+          ...prev,
+          chapterDetails: details,
+          completedItems: {
+            ...prev.completedItems,
+            chapters: updatedChapters,
+            sections: prev.completedItems?.sections ?? [],
+          },
+        };
+      });
+      return {};
+    }
+
+    case 'parallel_retry_start': {
+      const retryChapters = (data.chapters ?? []) as number[];
+
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        for (const pos of retryChapters) {
+          const existing = details[pos];
+          if (existing) {
+            details[pos] = {
+              ...existing,
+              status: 'generating',
+              stageName: 'Retrying',
+              retryCount: existing.retryCount + 1,
+              error: undefined,
+              errorType: undefined,
+              events: [...existing.events, {
+                timestamp: Date.now(),
+                type: 'retry' as const,
+                message: `Retrying chapter (attempt ${existing.retryCount + 1})`,
+              }],
+            };
+          }
+        }
+        return {
+          ...prev,
+          chapterDetails: details,
+          message: `Retrying ${retryChapters.length} failed chapter(s)...`,
+        };
+      });
+      return {};
+    }
+
+    case 'parallel_generation_complete': {
+      // Fix 7a: Update progress to show near-completion so the UI doesn't appear
+      // stuck if the stream ends between this event and the terminal 'complete'.
+      const pgcChaptersCreated = (data.chaptersCreated as number) ?? 0;
+      const pgcFailed = (data.failedChapters as number) ?? 0;
+      const pgcCourseId = data.courseId as string | undefined;
+      if (pgcCourseId) lastCourseIdRef.current = pgcCourseId;
+
+      setProgress(prev => ({
+        ...prev,
+        percentage: 97,
+        message: pgcFailed > 0
+          ? `All chapters generated (${pgcFailed} used fallback). Finalizing course...`
+          : `All ${pgcChaptersCreated} chapters generated. Finalizing course...`,
+        state: {
+          ...prev.state,
+          phase: 'generating_chapter',
+          ...(pgcCourseId ? { courseId: pgcCourseId } : {}),
+        },
+        parallelBatch: prev.parallelBatch ? {
+          ...prev.parallelBatch,
+          activeChapters: [],
+        } : undefined,
+      }));
+      return {};
+    }
+
+    case 'parallel_model_info': {
+      const model = data.model as string;
+      const provider = data.provider as string;
+      const isReasoning = data.isReasoningModel as boolean;
+      const modelBatchSize = data.batchSize as number;
+      logger.info('[SSE] Parallel model info', { model, provider, isReasoningModel: isReasoning });
+
+      setProgress(prev => ({
+        ...prev,
+        modelInfo: { provider, model, isReasoningModel: isReasoning, batchSize: modelBatchSize },
+      }));
+      return {};
+    }
+
     case 'agentic_decision':
     case 'bridge_content':
     case 'chapter_skipped':
@@ -522,11 +898,6 @@ function handleItemComplete(
 
   if (isChapter) {
     setProgress(prev => {
-      // Check if this chapter already exists (from earlier event)
-      const existingIdx = prev.completedItems.chapters.findIndex(ch =>
-        (id && ch.id === id) || ch.position === chapter
-      );
-
       const base = {
         ...prev,
         timing,
@@ -534,38 +905,24 @@ function handleItemComplete(
         ...(accuratePercentage != null ? { percentage: accuratePercentage } : {}),
       };
 
-      if (existingIdx >= 0) {
-        const existing = prev.completedItems.chapters[existingIdx];
-        const updated = {
-          ...existing,
-          title: title || existing.title,
-          ...(id ? { id } : {}),
-          ...(qualityScore != null ? { qualityScore } : {}),
-        };
-        const chapters = [...prev.completedItems.chapters];
-        chapters[existingIdx] = updated;
-        return { ...base, completedItems: { ...prev.completedItems, chapters } };
-      }
-
-      // New chapter — add it
-      return {
-        ...base,
-        completedItems: {
-          ...prev.completedItems,
-          chapters: [
-            ...prev.completedItems.chapters,
-            { position: chapter, title, id, qualityScore },
-          ],
+      // Robust dedup: filter out any existing entry with the same position,
+      // then add/replace. Prevents duplicate chapter entries (180% bug).
+      const existing = prev.completedItems.chapters.find(ch => ch.position === chapter);
+      const withoutCurrent = prev.completedItems.chapters.filter(ch => ch.position !== chapter);
+      const chapters = [
+        ...withoutCurrent,
+        {
+          position: chapter,
+          title: title || existing?.title || `Chapter ${chapter}`,
+          id: id || existing?.id,
+          ...(qualityScore != null ? { qualityScore } : existing?.qualityScore != null ? { qualityScore: existing.qualityScore } : {}),
         },
-      };
+      ];
+
+      return { ...base, completedItems: { ...prev.completedItems, chapters } };
     });
   } else if (isSection) {
     setProgress(prev => {
-      // Check if this section already exists (from earlier event)
-      const existingIdx = prev.completedItems.sections.findIndex(s =>
-        (id && s.id === id) || (s.chapterPosition === chapter && s.position === section)
-      );
-
       const base = {
         ...prev,
         timing,
@@ -573,30 +930,42 @@ function handleItemComplete(
         ...(accuratePercentage != null ? { percentage: accuratePercentage } : {}),
       };
 
-      if (existingIdx >= 0) {
-        const existing = prev.completedItems.sections[existingIdx];
-        const updated = {
-          ...existing,
-          title: title || existing.title,
-          ...(id ? { id } : {}),
-          ...(qualityScore != null ? { qualityScore } : {}),
+      // Robust dedup: filter out any existing entry with the same chapter+section position,
+      // then add/replace. Prevents duplicate section entries.
+      const existing = prev.completedItems.sections.find(s =>
+        s.chapterPosition === chapter && s.position === section
+      );
+      const withoutCurrent = prev.completedItems.sections.filter(s =>
+        !(s.chapterPosition === chapter && s.position === section)
+      );
+      const sections = [
+        ...withoutCurrent,
+        {
+          chapterPosition: chapter,
+          position: section,
+          title: title || existing?.title || `Section ${section}`,
+          id: id || existing?.id,
+          ...(qualityScore != null ? { qualityScore } : existing?.qualityScore != null ? { qualityScore: existing.qualityScore } : {}),
+        },
+      ];
+
+      // Track section completion in chapterDetails (stage 2 = section structure complete)
+      const details = { ...(prev.chapterDetails ?? {}) };
+      const chDetail = details[chapter];
+      if (chDetail && stage === 2) {
+        details[chapter] = {
+          ...chDetail,
+          completedSections: (chDetail.completedSections ?? 0) + 1,
+          events: [...chDetail.events, {
+            timestamp: Date.now(),
+            type: 'section_complete' as const,
+            message: `Section "${title}" completed`,
+            data: { section, title },
+          }],
         };
-        const sections = [...prev.completedItems.sections];
-        sections[existingIdx] = updated;
-        return { ...base, completedItems: { ...prev.completedItems, sections } };
       }
 
-      // New section — add it
-      return {
-        ...base,
-        completedItems: {
-          ...prev.completedItems,
-          sections: [
-            ...prev.completedItems.sections,
-            { chapterPosition: chapter, position: section, title, id, qualityScore },
-          ],
-        },
-      };
+      return { ...base, completedItems: { ...prev.completedItems, sections }, chapterDetails: details };
     });
   }
   return {};
@@ -624,7 +993,7 @@ function handleComplete(
 
   setProgress(prev => ({
     ...prev,
-    state: { ...prev.state, phase: 'complete' },
+    state: { ...prev.state, phase: 'complete', courseId },
     percentage: 100,
     message: fallbackSummary && fallbackSummary.count > 0
       ? `Course creation complete (with ${fallbackSummary.count} fallback items).`

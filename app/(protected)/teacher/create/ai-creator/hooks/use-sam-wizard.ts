@@ -12,7 +12,7 @@ import { getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-conte
 import { useSamActionHandler } from './use-sam-action-handler';
 import { getMinimumSectionsForDifficulty } from '@/lib/sam/course-creation/chapter-templates';
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 
 const initialFormData: CourseCreationRequest = {
   courseTitle: '',
@@ -170,7 +170,18 @@ export function useSamWizard() {
           delete cleaned._pendingBlueprintNextVersion;
           // Merge with defaults to ensure no missing fields from older drafts
           setFormData(normalizeSectionsPerChapter({ ...initialFormData, ...cleaned }));
-          setStep(savedStep);
+
+          // Draft migration: remap old 5-step wizard drafts to new 3-step layout
+          // Old steps 1-3 (basics, audience, structure) → New step 1 (fundamentals)
+          // Old step 4 (review) → New step 2 (blueprint)
+          // Old step 5 (blueprint) → New step 3 (generation)
+          let migratedStep = savedStep;
+          if (savedStep > TOTAL_STEPS) {
+            if (savedStep <= 3) migratedStep = 1;
+            else if (savedStep === 4) migratedStep = 2;
+            else migratedStep = 3;
+          }
+          setStep(migratedStep);
           setLastAutoSave(saveTime);
           toast.success("Draft restored from auto-save");
         }
