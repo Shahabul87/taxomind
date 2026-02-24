@@ -14,8 +14,6 @@ import type {
   ContentAnalysisResult,
   OutcomesAnalysisResult,
   AnalysisIssue,
-  IssueSeverity,
-  IssueType,
 } from '../types';
 
 interface IssueGeneratorInput {
@@ -654,6 +652,139 @@ function generateOutcomesIssues(
 }
 
 /**
+ * Generate issues from Bloom's alignment verification (Phase 3A)
+ */
+function generateBloomsAlignmentIssues(
+  bloomsResult: BloomsAnalysisResult
+): AnalysisIssue[] {
+  const issues: AnalysisIssue[] = [];
+  if (!bloomsResult.bloomsAlignment) return issues;
+
+  for (const alignment of bloomsResult.bloomsAlignment) {
+    if (!alignment.isAligned && alignment.gap >= 2) {
+      issues.push({
+        id: generateIssueId(),
+        type: 'DEPTH',
+        severity: alignment.gap >= 3 ? 'HIGH' : 'MEDIUM',
+        status: 'OPEN',
+        location: {
+          chapterId: alignment.chapterId,
+          sectionId: alignment.sectionId,
+          sectionTitle: alignment.sectionTitle,
+        },
+        title: `Bloom&apos;s mismatch: assigned ${alignment.assignedLevel} but content is ${alignment.actualLevel}`,
+        description: `Section "${alignment.sectionTitle}" is marked as ${alignment.assignedLevel} but content analysis suggests ${alignment.actualLevel} (gap: ${alignment.gap} levels).`,
+        evidence: [
+          `Assigned level: ${alignment.assignedLevel}`,
+          `Detected level: ${alignment.actualLevel}`,
+          `Gap: ${alignment.gap} levels`,
+        ],
+        impact: {
+          area: 'Cognitive Alignment',
+          description: 'Misaligned objectives create confusion about expected depth.',
+        },
+        fix: {
+          action: 'modify',
+          what: `Align content with ${alignment.assignedLevel} level or update the objective level`,
+          why: 'Objectives should match the cognitive demands of the content.',
+          how: alignment.gap > 0
+            ? `Add higher-order activities (${alignment.assignedLevel}-level) or change the objective to ${alignment.actualLevel}.`
+            : `Simplify content to match ${alignment.assignedLevel} or update objective to ${alignment.actualLevel}.`,
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Generate prerequisite violation issues (Phase 3B)
+ */
+function generatePrerequisiteIssues(
+  flowResult: FlowAnalysisResult
+): AnalysisIssue[] {
+  const issues: AnalysisIssue[] = [];
+
+  for (const prereq of flowResult.prerequisiteMap) {
+    if (prereq.isMissing) {
+      issues.push({
+        id: generateIssueId(),
+        type: 'PREREQUISITE',
+        severity: 'HIGH',
+        status: 'OPEN',
+        location: {
+          chapterId: prereq.introducedIn.chapterId,
+          sectionId: prereq.introducedIn.sectionId,
+        },
+        title: `Concept "${prereq.concept}" used before being taught`,
+        description: `The concept "${prereq.concept}" appears to be referenced before it is properly introduced.`,
+        evidence: [
+          `First introduced in chapter: ${prereq.introducedIn.chapterId}`,
+          `Used in ${prereq.usedIn.length} location(s) before introduction`,
+        ],
+        impact: {
+          area: 'Learning Prerequisites',
+          description: 'Learners encounter concepts they haven&apos;t been taught yet.',
+        },
+        fix: {
+          action: 'reorder',
+          what: `Move introduction of "${prereq.concept}" before its first usage`,
+          why: 'Concepts must be taught before they are referenced.',
+          how: 'Either reorder sections/chapters or add a brief introduction where the concept is first used.',
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Generate content diversity issues (Phase 3C)
+ */
+function generateDiversityIssues(
+  consistencyResult: ConsistencyAnalysisResult
+): AnalysisIssue[] {
+  const issues: AnalysisIssue[] = [];
+  if (!consistencyResult.contentDiversityPerChapter) return issues;
+
+  for (const chapter of consistencyResult.contentDiversityPerChapter) {
+    if (chapter.score < 40) {
+      issues.push({
+        id: generateIssueId(),
+        type: 'CONSISTENCY',
+        severity: 'MEDIUM',
+        status: 'OPEN',
+        location: {
+          chapterId: chapter.chapterId,
+          chapterTitle: chapter.chapterTitle,
+        },
+        title: `Low content diversity (${chapter.score}%)`,
+        description: `Chapter "${chapter.chapterTitle}" only has ${chapter.typesFound.length} content type(s): ${chapter.typesFound.join(', ') || 'none'}. Consider adding more varied content.`,
+        evidence: [
+          `Content types found: ${chapter.typesFound.join(', ') || 'none'}`,
+          `Missing: ${['reading', 'video', 'quiz', 'project', 'discussion'].filter((t) => !chapter.typesFound.includes(t)).join(', ')}`,
+          `Diversity score: ${chapter.score}%`,
+        ],
+        impact: {
+          area: 'Learning Engagement',
+          description: 'Low content diversity reduces learner engagement and accessibility.',
+        },
+        fix: {
+          action: 'add',
+          what: 'Add diverse content types',
+          why: 'Multiple modalities improve retention and accommodate different learning styles.',
+          how: 'Add video demonstrations, quizzes, projects, or discussion prompts to this chapter.',
+        },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
  * Sort issues by severity and type
  */
 function sortIssues(issues: AnalysisIssue[]): AnalysisIssue[] {
@@ -687,8 +818,11 @@ export async function generateIssues(
   // Generate issues from each analysis step
   allIssues.push(...generateStructureIssues(input.course, input.structureResult));
   allIssues.push(...generateBloomsIssues(input.bloomsResult));
+  allIssues.push(...generateBloomsAlignmentIssues(input.bloomsResult));
   allIssues.push(...generateFlowIssues(input.flowResult));
+  allIssues.push(...generatePrerequisiteIssues(input.flowResult));
   allIssues.push(...generateConsistencyIssues(input.consistencyResult));
+  allIssues.push(...generateDiversityIssues(input.consistencyResult));
   allIssues.push(...generateContentIssues(input.contentResult));
   allIssues.push(...generateOutcomesIssues(input.outcomesResult));
 

@@ -91,6 +91,29 @@ export async function analyzeStructure(
       ? Math.round((totalSections / course.chapters.length) * 10) / 10
       : 0;
 
+  // Time estimation: calculate content-based reading time per chapter (200 wpm)
+  const WPM = 200;
+  const timeEstimates: Array<{
+    chapterId: string;
+    chapterTitle: string;
+    estimatedMinutes: number;
+    wordCount: number;
+  }> = [];
+
+  for (const chapter of course.chapters) {
+    let chapterWordCount = 0;
+    for (const section of chapter.sections) {
+      const text = [section.description ?? '', section.content ?? ''].join(' ');
+      chapterWordCount += text.split(/\s+/).filter((w) => w.length > 0).length;
+    }
+    timeEstimates.push({
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      estimatedMinutes: Math.max(1, Math.round(chapterWordCount / WPM)),
+      wordCount: chapterWordCount,
+    });
+  }
+
   return {
     totalChapters: course.chapters.length,
     totalSections,
@@ -114,5 +137,6 @@ export async function analyzeStructure(
         ? Math.round((sectionsWithAssessment / totalSections) * 100)
         : 0,
     },
+    timeEstimates,
   };
 }

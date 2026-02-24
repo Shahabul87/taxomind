@@ -318,6 +318,60 @@ function findContentGaps(
 }
 
 /**
+ * Count syllables in a word (approximation for Flesch-Kincaid)
+ */
+function countSyllables(word: string): number {
+  const w = word.toLowerCase().replace(/[^a-z]/g, '');
+  if (w.length <= 2) return 1;
+
+  let count = 0;
+  const vowels = 'aeiouy';
+  let prevIsVowel = false;
+
+  for (let i = 0; i < w.length; i++) {
+    const isVowel = vowels.includes(w[i]);
+    if (isVowel && !prevIsVowel) count++;
+    prevIsVowel = isVowel;
+  }
+
+  // Silent 'e' at end
+  if (w.endsWith('e') && count > 1) count--;
+  // Words like "le" at end
+  if (w.endsWith('le') && w.length > 2 && !vowels.includes(w[w.length - 3])) count++;
+
+  return Math.max(1, count);
+}
+
+/**
+ * Calculate Flesch-Kincaid Grade Level for a text.
+ * Returns a grade level (e.g., 8.5 = 8th-9th grade reading level).
+ */
+function calculateFleschKincaid(text: string): number {
+  if (!text || text.trim().length < 20) return 0;
+
+  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+  const words = text.split(/\s+/).filter((w) => w.length > 0);
+
+  if (sentences.length === 0 || words.length === 0) return 0;
+
+  const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
+  const avgWordsPerSentence = words.length / sentences.length;
+  const avgSyllablesPerWord = totalSyllables / words.length;
+
+  // Flesch-Kincaid Grade Level formula
+  const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
+  return Math.max(0, Math.round(grade * 10) / 10);
+}
+
+/** Expected FK grade ranges by difficulty level */
+const FK_RANGES: Record<string, { min: number; max: number }> = {
+  beginner: { min: 6, max: 10 },
+  intermediate: { min: 10, max: 14 },
+  advanced: { min: 14, max: 20 },
+  expert: { min: 14, max: 22 },
+};
+
+/**
  * Calculate overall quality score
  */
 function calculateQualityScore(
@@ -359,6 +413,57 @@ function calculateQualityScore(
   if (objectivesRatio >= 0.8) score += 10;
 
   return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/** Readability result per section (exported for issue generator) */
+export interface ReadabilityResult {
+  sectionId: string;
+  sectionTitle: string;
+  chapterId: string;
+  chapterTitle: string;
+  fkGrade: number;
+  expectedRange: { min: number; max: number };
+  isWithinRange: boolean;
+  deviation: number;
+}
+
+/**
+ * Analyze readability per section using Flesch-Kincaid Grade Level.
+ * Compares FK grade against expected range for the course difficulty.
+ */
+export function analyzeReadability(course: CourseInput): ReadabilityResult[] {
+  const results: ReadabilityResult[] = [];
+  const difficulty = (course.difficulty ?? 'intermediate').toLowerCase();
+  const expectedRange = FK_RANGES[difficulty] ?? FK_RANGES.intermediate;
+
+  for (const chapter of course.chapters) {
+    for (const section of chapter.sections) {
+      const text = [section.description ?? '', section.content ?? ''].join(' ');
+      if (text.trim().length < 50) continue;
+
+      const fkGrade = calculateFleschKincaid(text);
+      if (fkGrade === 0) continue;
+
+      const deviation = fkGrade < expectedRange.min
+        ? expectedRange.min - fkGrade
+        : fkGrade > expectedRange.max
+          ? fkGrade - expectedRange.max
+          : 0;
+
+      results.push({
+        sectionId: section.id,
+        sectionTitle: section.title,
+        chapterId: chapter.id,
+        chapterTitle: chapter.title,
+        fkGrade,
+        expectedRange,
+        isWithinRange: deviation <= 2, // Allow ±2 tolerance
+        deviation,
+      });
+    }
+  }
+
+  return results;
 }
 
 /**

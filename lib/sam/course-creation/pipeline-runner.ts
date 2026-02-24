@@ -86,6 +86,8 @@ export interface PipelineRunnerOptions {
   totalChapters: number;
   effectiveSectionsPerChapter: number;
   resumeState?: ResumeState;
+  /** Whether the resolved AI model is a reasoning model (affects responseFormat) */
+  isReasoningModel?: boolean;
 }
 
 export interface PipelineRunnerResult {
@@ -108,7 +110,7 @@ export async function runPipeline(
     blueprintPlan: initialBlueprintPlan, recalledMemory, strategyMonitor,
     chapterTemplate, categoryPrompt, categoryEnhancer, experimentVariant,
     chapterSectionCounts, budgetTracker, fallbackTracker, stepIds,
-    startChapter, totalChapters, resumeState,
+    startChapter, totalChapters, resumeState, isReasoningModel,
   } = options;
 
   let chaptersCreated = completedChapters.length;
@@ -192,6 +194,7 @@ export async function runPipeline(
       categoryPrompt,
       categoryEnhancer,
       experimentVariant,
+      isReasoningModel,
       teacherBlueprintChapters: options.teacherBlueprintChapters,
       northStarProject: options.northStarProject,
       budgetTracker,

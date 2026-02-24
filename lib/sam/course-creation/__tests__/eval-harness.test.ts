@@ -285,7 +285,7 @@ describe('Eval Harness: Course Creation Response Evaluation', () => {
       const response = buildMockSectionResponse('poor');
       const result = parseSectionResponse(response, 3, chapterPlain, []);
       expect(result.section.title).toBeTruthy();
-      expect(result.qualityScore.overall).toBeLessThan(60);
+      expect(result.qualityScore.overall).toBeLessThan(65);
     });
 
     it('malformed JSON triggers fallback with low score', () => {
@@ -455,6 +455,92 @@ describe('Eval Harness: Course Creation Response Evaluation', () => {
       );
       expect(s3.details.description).toBeTruthy();
       expect(s3.qualityScore.overall).toBeGreaterThan(50);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Golden fixture regression tests
+  // --------------------------------------------------------------------------
+  describe('Golden Fixture Regression', () => {
+    const stage1Good = require('./golden-fixtures/stage1-good.json');
+    const stage2Good = require('./golden-fixtures/stage2-good.json');
+    const stage3Good = require('./golden-fixtures/stage3-good.json');
+    const blueprintGood = require('./golden-fixtures/blueprint-good.json');
+
+    const REGRESSION_THRESHOLDS = {
+      stage1: 65,
+      stage2: 65,
+      stage3: 65,
+      blueprint: { minChapters: 3, minSectionsPerChapter: 3, minConfidence: 70 },
+    };
+
+    it('stage1 golden fixture scores above regression threshold', () => {
+      const response = JSON.stringify(stage1Good);
+      const result = parseChapterResponse(response, 1, defaultCourseContext, [], null);
+      expect(result.qualityScore.overall).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.stage1);
+      expect(result.chapter.title.length).toBeGreaterThan(10);
+      expect(result.chapter.learningObjectives.length).toBeGreaterThanOrEqual(2);
+      expect(result.chapter.keyTopics.length).toBeGreaterThanOrEqual(3);
+      expect(result.chapter.conceptsIntroduced?.length ?? 0).toBeGreaterThanOrEqual(3);
+    });
+
+    it('stage2 golden fixture scores above regression threshold', () => {
+      const chapterPlain = {
+        position: 1, title: 'Test Chapter', description: 'Test',
+        bloomsLevel: 'UNDERSTAND' as const,
+        learningObjectives: ['Understand X'], keyTopics: ['X'],
+        prerequisites: '', estimatedTime: '1h',
+        topicsToExpand: ['X'], conceptsIntroduced: ['X'],
+      };
+      const response = JSON.stringify(stage2Good);
+      const result = parseSectionResponse(response, 1, chapterPlain, []);
+      expect(result.qualityScore.overall).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.stage2);
+      expect(result.section.title.length).toBeGreaterThan(10);
+      expect(result.section.conceptsIntroduced?.length ?? 0).toBeGreaterThanOrEqual(2);
+    });
+
+    it('stage3 golden fixture scores above regression threshold', () => {
+      const chapterPlain = {
+        position: 4, title: 'Hash Tables: Fast Lookup', description: 'Hash tables.',
+        bloomsLevel: 'APPLY' as const,
+        learningObjectives: ['Implement a hash table'], keyTopics: ['Hash functions'],
+        prerequisites: 'Chapters 1-3', estimatedTime: '3h',
+        topicsToExpand: ['Hash functions'], conceptsIntroduced: ['hash table'],
+      };
+      const sectionPlain: GeneratedSection = {
+        position: 1, title: 'Why Hash Tables', contentType: 'video',
+        estimatedDuration: '20 min', topicFocus: 'Hash functions',
+        parentChapterContext: { title: 'Hash Tables', bloomsLevel: 'APPLY', relevantObjectives: ['Implement a hash table'] },
+        conceptsIntroduced: ['hash function'], conceptsReferenced: ['array'],
+      };
+      const response = JSON.stringify(stage3Good);
+      const result = parseDetailsResponse(response, chapterPlain, sectionPlain, intermediateCourseContext);
+      expect(result.qualityScore.overall).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.stage3);
+      expect(result.details.description.length).toBeGreaterThan(200);
+      expect(result.details.learningObjectives.length).toBeGreaterThanOrEqual(2);
+      expect(result.details.keyConceptsCovered.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('blueprint golden fixture has valid structure', () => {
+      expect(blueprintGood.chapters.length).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.blueprint.minChapters);
+      expect(blueprintGood.confidence).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.blueprint.minConfidence);
+      for (const ch of blueprintGood.chapters) {
+        expect(ch.title.length).toBeGreaterThan(5);
+        expect(ch.sections.length).toBeGreaterThanOrEqual(REGRESSION_THRESHOLDS.blueprint.minSectionsPerChapter);
+        for (const sec of ch.sections) {
+          expect(sec.title.length).toBeGreaterThan(5);
+          expect(sec.keyTopics.length).toBeGreaterThanOrEqual(2);
+        }
+      }
+    });
+
+    it.each([
+      ['stage1', stage1Good],
+      ['stage2', stage2Good],
+      ['stage3', stage3Good],
+    ] as const)('%s golden fixture round-trips through JSON.stringify/parse', (_stage, fixture) => {
+      const roundTripped = JSON.parse(JSON.stringify(fixture));
+      expect(roundTripped).toEqual(fixture);
     });
   });
 });

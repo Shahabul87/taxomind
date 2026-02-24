@@ -59,6 +59,9 @@ export { analyzeContent } from './analyzers/content-analyzer';
 export { analyzeOutcomes } from './analyzers/outcomes-analyzer';
 export { generateIssues } from './analyzers/issue-generator';
 export { generateFixes } from './analyzers/fix-generator';
+export { detectFallbacks } from './analyzers/fallback-detector';
+export { analyzeFactualClaims } from './analyzers/factual-analyzer';
+export { simulateLearner } from './analyzers/learner-simulator';
 
 // Types
 export type {

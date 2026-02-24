@@ -49,18 +49,25 @@ function stripMarkdownFences(raw: string): string {
   return text.trim();
 }
 
+export interface ParseAIJsonOptions {
+  /** When true, skip <think> block stripping and markdown fence removal (JSON is guaranteed by provider). */
+  structuredOutput?: boolean;
+}
+
 /**
  * Parse an AI response string as JSON, with optional Zod validation.
  *
  * @param raw - The raw AI response string
  * @param schema - Optional Zod schema to validate parsed JSON
  * @param context - Optional context string for logging
+ * @param options - Optional parsing options (e.g., structuredOutput to skip stripping)
  * @returns Parsed and validated object, or null on failure
  */
 export function parseAIJsonResponse<T>(
   raw: string,
   schema?: z.ZodSchema<T>,
-  context?: string
+  context?: string,
+  options?: ParseAIJsonOptions,
 ): T | null {
   const logPrefix = context ? `[parseAIJson:${context}]` : '[parseAIJson]';
 
@@ -69,25 +76,32 @@ export function parseAIJsonResponse<T>(
     return null;
   }
 
-  // Strip reasoning model <think> blocks FIRST, before any other processing
-  const withoutThinking = stripThinkBlocks(raw);
-  const stripped = stripMarkdownFences(withoutThinking);
+  // When structured output is guaranteed, skip stripping — the provider returns clean JSON
+  let jsonCandidate: string;
 
-  // Try to extract JSON object or array if there's surrounding text
-  let jsonCandidate = stripped;
+  if (options?.structuredOutput) {
+    jsonCandidate = raw.trim();
+  } else {
+    // Strip reasoning model <think> blocks FIRST, before any other processing
+    const withoutThinking = stripThinkBlocks(raw);
+    const stripped = stripMarkdownFences(withoutThinking);
 
-  // If the stripped text doesn't start with { or [, try to find JSON within
-  if (!stripped.startsWith('{') && !stripped.startsWith('[')) {
-    const objectMatch = stripped.match(/(\{[\s\S]*\})/);
-    const arrayMatch = stripped.match(/(\[[\s\S]*\])/);
+    // Try to extract JSON object or array if there's surrounding text
+    jsonCandidate = stripped;
 
-    if (objectMatch) {
-      jsonCandidate = objectMatch[1];
-    } else if (arrayMatch) {
-      jsonCandidate = arrayMatch[1];
-    } else {
-      logger.warn(`${logPrefix} No JSON object or array found in response`);
-      return null;
+    // If the stripped text doesn't start with { or [, try to find JSON within
+    if (!stripped.startsWith('{') && !stripped.startsWith('[')) {
+      const objectMatch = stripped.match(/(\{[\s\S]*\})/);
+      const arrayMatch = stripped.match(/(\[[\s\S]*\])/);
+
+      if (objectMatch) {
+        jsonCandidate = objectMatch[1];
+      } else if (arrayMatch) {
+        jsonCandidate = arrayMatch[1];
+      } else {
+        logger.warn(`${logPrefix} No JSON object or array found in response`);
+        return null;
+      }
     }
   }
 

@@ -17,6 +17,8 @@ import { logger } from '@/lib/logger';
 import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { createKnowledgeGraphEngine, createBloomsAnalysisEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
+import { EnhancedCourseAnalyzerV2, generateContentHash } from '@/lib/sam/depth-analysis-v2/enhanced-analyzer';
+import type { CourseInput } from '@/lib/sam/depth-analysis-v2/types';
 
 // ============================================================================
 // Types
@@ -114,6 +116,181 @@ export function runPostCreationEnrichmentBackground(input: EnrichmentInput): voi
       error: error instanceof Error ? error.message : String(error),
     });
   });
+}
+
+// ============================================================================
+// Background Depth Analysis (Auto-Trigger Bridge)
+// ============================================================================
+
+interface DepthAnalysisTriggerInput {
+  courseId: string;
+  userId: string;
+}
+
+/**
+ * Auto-trigger rule-based depth analysis after course creation completes.
+ * Fire-and-forget with 10s delay to let DB writes settle.
+ * Uses aiEnabled: false — zero AI cost.
+ */
+export function triggerBackgroundDepthAnalysis(input: DepthAnalysisTriggerInput): void {
+  const { courseId, userId } = input;
+
+  setTimeout(async () => {
+    try {
+      logger.info('[POST_ENRICHMENT] Starting background depth analysis', { courseId });
+
+      // Fetch course with chapters/sections
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          courseGoals: true,
+          whatYouWillLearn: true,
+          prerequisites: true,
+          difficulty: true,
+          chapters: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              position: true,
+              isPublished: true,
+              sections: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  position: true,
+                  isPublished: true,
+                  videoUrl: true,
+                  learningObjectives: true,
+                  exams: {
+                    select: {
+                      id: true,
+                      title: true,
+                      questions: {
+                        select: { id: true, question: true, type: true },
+                        take: 50,
+                      },
+                    },
+                    take: 10,
+                  },
+                },
+                orderBy: { position: 'asc' as const },
+              },
+            },
+            orderBy: { position: 'asc' as const },
+          },
+        },
+      });
+
+      if (!course) {
+        logger.warn('[POST_ENRICHMENT] Course not found for depth analysis', { courseId });
+        return;
+      }
+
+      // Transform to CourseInput format
+      const courseInput: CourseInput = {
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        courseGoals: course.courseGoals,
+        whatYouWillLearn: course.whatYouWillLearn,
+        prerequisites: course.prerequisites,
+        difficulty: course.difficulty,
+        chapters: course.chapters.map((ch) => ({
+          id: ch.id,
+          title: ch.title,
+          description: ch.description,
+          position: ch.position,
+          isPublished: ch.isPublished,
+          sections: ch.sections.map((sec) => ({
+            id: sec.id,
+            title: sec.title,
+            description: sec.description,
+            content: null, // Section content is stored in related models
+            position: sec.position,
+            isPublished: sec.isPublished,
+            videoUrl: sec.videoUrl,
+            objectives: sec.learningObjectives
+              ? sec.learningObjectives.split('\n').filter(Boolean)
+              : [],
+            exams: sec.exams.map((ex) => ({
+              id: ex.id,
+              title: ex.title,
+              questions: ex.questions.map((q) => ({
+                id: q.id,
+                question: q.question,
+                type: q.type,
+              })),
+            })),
+          })),
+        })),
+      };
+
+      // Run rule-based analysis only (zero AI cost)
+      const analyzer = new EnhancedCourseAnalyzerV2({
+        courseId,
+        course: courseInput,
+        aiEnabled: false,
+      });
+
+      const result = await analyzer.analyze();
+      const contentHash = generateContentHash(courseInput);
+
+      // Persist results to CourseDepthAnalysisV2 table
+      await db.courseDepthAnalysisV2.create({
+        data: {
+          courseId,
+          version: 1,
+          status: 'COMPLETED',
+          analysisMethod: 'rule-based',
+          contentHash,
+          overallScore: result.overallScore,
+          depthScore: result.depthScore,
+          consistencyScore: result.consistencyScore,
+          flowScore: result.flowScore,
+          qualityScore: result.qualityScore,
+          bloomsDistribution: result.bloomsDistribution as Record<string, number>,
+          bloomsBalance: result.bloomsBalance,
+          structureAnalysis: result.structureAnalysis as Record<string, unknown>,
+          bloomsAnalysis: result.bloomsAnalysis as Record<string, unknown>,
+          flowAnalysis: result.flowAnalysis as Record<string, unknown>,
+          consistencyAnalysis: result.consistencyAnalysis as Record<string, unknown>,
+          contentAnalysis: result.contentAnalysis as Record<string, unknown>,
+          outcomesAnalysis: result.outcomesAnalysis as Record<string, unknown>,
+          chapterAnalysis: result.chapterAnalysis as unknown[],
+          issues: {
+            create: result.issues.slice(0, 100).map((issue) => ({
+              type: issue.type,
+              severity: issue.severity,
+              status: 'OPEN',
+              title: issue.title,
+              description: issue.description,
+              location: issue.location as Record<string, unknown>,
+              evidence: issue.evidence,
+              impact: issue.impact as Record<string, unknown>,
+              fix: issue.fix as Record<string, unknown>,
+            })),
+          },
+        },
+      });
+
+      logger.info('[POST_ENRICHMENT] Background depth analysis complete', {
+        courseId,
+        overallScore: result.overallScore,
+        issueCount: result.issues.length,
+      });
+    } catch (error) {
+      // Never throw — fire-and-forget
+      logger.error('[POST_ENRICHMENT] Background depth analysis failed', {
+        courseId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, 10_000); // 10s delay to let DB writes settle
 }
 
 // ============================================================================

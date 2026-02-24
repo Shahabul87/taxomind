@@ -405,10 +405,55 @@ export async function checkConsistency(
     (goalAlignmentAvg * 0.3 + sectionConsistencyAvg * 0.4 + crossChapterAvg * 0.3)
   );
 
+  // Content diversity analysis: detect types present per chapter
+  const contentDiversityPerChapter: ConsistencyAnalysisResult['contentDiversityPerChapter'] = [];
+  const CONTENT_TYPE_COUNT = 5; // reading, video, quiz, project, discussion
+
+  for (const chapter of course.chapters) {
+    const typesFound: string[] = [];
+
+    // Check for reading content (any section with description/content)
+    if (chapter.sections.some((s) => (s.description && s.description.length > 50) || (s.content && s.content.length > 50))) {
+      typesFound.push('reading');
+    }
+    // Check for video content
+    if (chapter.sections.some((s) => s.videoUrl)) {
+      typesFound.push('video');
+    }
+    // Check for quiz/assessment
+    if (chapter.sections.some((s) => s.exams && s.exams.length > 0)) {
+      typesFound.push('quiz');
+    }
+    // Check for project-like content (sections with "project", "build", "create" in title/objectives)
+    const projectKeywords = /\b(project|build|create|develop|implement|design|construct)\b/i;
+    if (chapter.sections.some((s) => projectKeywords.test(s.title) || s.objectives?.some((o) => projectKeywords.test(o)))) {
+      typesFound.push('project');
+    }
+    // Check for discussion-like content
+    const discussionKeywords = /\b(discuss|debate|reflect|peer|forum|collaborate)\b/i;
+    if (chapter.sections.some((s) => discussionKeywords.test(s.title) || s.objectives?.some((o) => discussionKeywords.test(o)))) {
+      typesFound.push('discussion');
+    }
+
+    const score = Math.round((typesFound.length / CONTENT_TYPE_COUNT) * 100);
+    contentDiversityPerChapter.push({
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      typesFound,
+      score,
+    });
+  }
+
+  const contentDiversityScore = contentDiversityPerChapter.length > 0
+    ? Math.round(contentDiversityPerChapter.reduce((sum, c) => sum + c.score, 0) / contentDiversityPerChapter.length)
+    : 0;
+
   return {
     overallConsistencyScore,
     chapterGoalAlignment,
     sectionConsistency,
     crossChapterConsistency,
+    contentDiversityScore,
+    contentDiversityPerChapter,
   };
 }

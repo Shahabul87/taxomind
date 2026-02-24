@@ -293,15 +293,15 @@ describe('AdaptiveStrategyMonitor', () => {
   // --------------------------------------------------------------------------
 
   describe('self-critique adaptation', () => {
-    it('enables self-critique when average of last 5 items is below 65', () => {
+    it('enables self-critique when average of last 5 items is below 60', () => {
       const monitor = new AdaptiveStrategyMonitor();
 
-      recordMany(monitor, 5, { score: 60 });
+      recordMany(monitor, 5, { score: 55 });
 
       expect(monitor.getStrategy(1, 1).enableSelfCritique).toBe(true);
     });
 
-    it('disables self-critique when average of last 5 items is at or above 80', () => {
+    it('disables self-critique when average of last 5 items is at or above 75', () => {
       const monitor = new AdaptiveStrategyMonitor();
 
       // First enable it
@@ -321,7 +321,7 @@ describe('AdaptiveStrategyMonitor', () => {
       expect(monitor.getStrategy(1, 1).enableSelfCritique).toBe(false);
     });
 
-    it('does not change self-critique when average is between 65 and 80', () => {
+    it('does not change self-critique when average is between 60 and 75', () => {
       const monitor = new AdaptiveStrategyMonitor();
 
       recordMany(monitor, 6, { score: 70 });

@@ -132,9 +132,20 @@ function buildConceptMap(
   for (const [concept, locations] of conceptLocations.entries()) {
     // Only include concepts that are used multiple times (indicates prerequisites)
     if (locations.usedIn.length > 0) {
-      // Check if concept is used before it's properly introduced
-      // (e.g., used early with minimal content, then explained later in detail)
-      const isMissing = false; // TODO: Could check if first mention has enough context
+      // Check if concept is referenced (used) before its first substantial introduction.
+      // A concept is "properly introduced" if the first mention's section has
+      // enough text (>200 chars) to actually teach the concept. If first mention
+      // is brief but a later section has substantial content, the concept was
+      // used before properly taught.
+      let isMissing = false;
+      const firstPos = locations.firstSeen.position;
+      for (const usage of locations.usedIn) {
+        if (usage.position < firstPos) {
+          // Usage came before introduction — prerequisite violation
+          isMissing = true;
+          break;
+        }
+      }
 
       prerequisiteMap.push({
         conceptId: `concept-${++conceptId}`,

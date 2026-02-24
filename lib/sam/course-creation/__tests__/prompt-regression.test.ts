@@ -477,7 +477,7 @@ describe('buildStage3Prompt', () => {
   });
 
   it('user prompt contains HTML structure guidance', () => {
-    expect(prompt.userPrompt).toContain('Why It Was Developed');
+    expect(prompt.userPrompt).toContain('The Big Picture');
     expect(prompt.userPrompt).toContain('Core Intuition');
     expect(prompt.userPrompt).toContain('Common Confusion + Fix');
   });

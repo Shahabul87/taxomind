@@ -214,12 +214,14 @@ describe('course-planner', () => {
       expect(result.chapterPlan[0].recommendedSections).toBe(7);
 
       // AI call was made with correct parameters
+      // maxTokens is adaptive: Math.min(8192, 1500 + totalChapters*200 + totalSections*100)
+      // For 5 chapters, 4 sections/ch: 1500 + 1000 + 2000 = 4500
       expect(mockRunSAM).toHaveBeenCalledTimes(1);
       expect(mockRunSAM).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-1',
           capability: 'course',
-          maxTokens: 3000,
+          maxTokens: 4500,
           temperature: 0.6,
         }),
       );
@@ -272,18 +274,18 @@ describe('course-planner', () => {
       // Simulate a promise that never resolves (will be caught by withTimeout)
       mockRunSAM.mockImplementation(
         () => new Promise((resolve) => {
-          // Intentionally never resolves; the internal withTimeout will reject after 30s
-          setTimeout(() => resolve('too late'), 60_000);
+          // Intentionally never resolves; the internal withTimeout will reject after 45s
+          setTimeout(() => resolve('too late'), 120_000);
         }),
       );
 
-      // Use fake timers to simulate the timeout without waiting 30s
+      // Use fake timers to simulate the timeout without waiting 45s
       jest.useFakeTimers();
 
       const promise = planCourseBlueprint('user-1', courseContext);
 
-      // Advance past the PLANNING_TIMEOUT_MS (30_000)
-      jest.advanceTimersByTime(31_000);
+      // Advance past the PLANNING_TIMEOUT_MS (45_000) — use async version to flush microtasks
+      await jest.advanceTimersByTimeAsync(46_000);
 
       const result = await promise;
 

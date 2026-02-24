@@ -119,6 +119,16 @@ jest.mock('../../memory-recall', () => ({
 
 jest.mock('../../course-planner', () => ({
   planCourseBlueprint: jest.fn().mockResolvedValue(null),
+  convertTeacherBlueprint: jest.fn().mockReturnValue({
+    chapterPlan: [
+      { position: 1, suggestedTitle: 'Chapter 1', primaryFocus: 'Understand fundamentals', bloomsLevel: 'UNDERSTAND', keyConcepts: ['topic-a', 'topic-b'], estimatedComplexity: 'low', rationale: 'Understand fundamentals', recommendedSections: 2, sectionPlan: [{ position: 1, title: 'Section 1', keyTopics: ['topic-a'] }, { position: 2, title: 'Section 2', keyTopics: ['topic-b'] }] },
+      { position: 2, suggestedTitle: 'Chapter 2', primaryFocus: 'Apply concepts', bloomsLevel: 'APPLY', keyConcepts: ['topic-c', 'topic-d'], estimatedComplexity: 'medium', rationale: 'Apply concepts', recommendedSections: 2, sectionPlan: [{ position: 1, title: 'Section 1', keyTopics: ['topic-c'] }, { position: 2, title: 'Section 2', keyTopics: ['topic-d'] }] },
+    ],
+    conceptDependencies: [],
+    bloomsStrategy: [],
+    riskAreas: [],
+    planConfidence: 90,
+  }),
 }));
 
 jest.mock('../../experiments', () => ({
@@ -175,6 +185,7 @@ jest.mock('@/lib/sam/ai-provider', () => ({
   getSAMAdapter: jest.fn(),
   getAdapterStatus: jest.fn().mockReturnValue({}),
   handleAIAccessError: jest.fn(),
+  resolveAIModelInfo: jest.fn().mockResolvedValue({ provider: 'deepseek', model: 'deepseek-chat', isReasoningModel: false }),
 }));
 
 jest.mock('../../chapter-generator', () => ({
@@ -211,14 +222,14 @@ import type { SequentialCreationConfig } from '../../types';
 function createConfig(overrides: Partial<SequentialCreationConfig> = {}): SequentialCreationConfig {
   return {
     courseTitle: 'Test Course: TypeScript Fundamentals',
-    courseShortOverview: 'Learn TypeScript from scratch',
-    courseCategory: 'Programming',
-    courseSubcategory: 'TypeScript',
+    courseDescription: 'Learn TypeScript from scratch',
+    category: 'Programming',
+    subcategory: 'TypeScript',
     courseIntent: 'Learn the fundamentals of TypeScript',
     targetAudience: 'Beginner developers',
-    difficulty: 'BEGINNER',
+    difficulty: 'beginner',
     duration: '4-6 weeks',
-    chapterCount: 3,
+    totalChapters: 3,
     sectionsPerChapter: 2,
     learningObjectivesPerChapter: 3,
     learningObjectivesPerSection: 2,
@@ -484,6 +495,8 @@ describe('Orchestration E2E - Pipeline Mode Routing', () => {
         allSectionTitles: [],
         qualityScores: [],
         completedChapterCount: 0,
+        chapterSectionCounts: [],
+        sectionsWithDetails: new Set<string>(),
       },
     });
 
@@ -509,6 +522,8 @@ describe('Orchestration E2E - Pipeline Mode Routing', () => {
         allSectionTitles: [],
         qualityScores: [],
         completedChapterCount: 0,
+        chapterSectionCounts: [],
+        sectionsWithDetails: new Set<string>(),
         partialChapterDbId: 'chapter-partial-1',
       },
     });

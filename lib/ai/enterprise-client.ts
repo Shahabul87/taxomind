@@ -71,6 +71,8 @@ export interface AIChatOptions {
   provider?: AIProviderType;
   /** Capability context for per-task provider resolution (default: 'chat') */
   capability?: AICapability;
+  /** Request JSON-guaranteed output. Supported by OpenAI/DeepSeek. Anthropic falls back to prompt-based. */
+  responseFormat?: 'json' | 'text';
 }
 
 export interface AIChatResponse {
@@ -763,6 +765,7 @@ export const aiClient = {
       extended: explicitExtended,
       provider: explicitProvider,
       capability,
+      responseFormat,
     } = options;
 
     // Auto-detect extended timeout for course generation capability (100s vs 60s).
@@ -800,6 +803,7 @@ export const aiClient = {
       extended,
       maxTokens,
       messageCount: messages.length,
+      responseFormat: responseFormat ?? 'default',
     });
 
     // Helper function to execute chat and record usage
@@ -826,6 +830,7 @@ export const aiClient = {
         temperature,
         systemPrompt,
         messages,
+        responseFormat,
       });
 
       // Record usage with retry
@@ -952,6 +957,7 @@ export const aiClient = {
       extended: explicitExtended,
       provider: explicitProvider,
       capability,
+      responseFormat,
     } = options;
 
     // Auto-detect extended timeout for course generation (same as chat method)
@@ -983,6 +989,7 @@ export const aiClient = {
       extended,
       maxTokens,
       messageCount: messages.length,
+      responseFormat: responseFormat ?? 'default',
     });
 
     // ----------------------------------------------------------------
@@ -1004,7 +1011,7 @@ export const aiClient = {
         ? Math.min(8192, maxTokens * 4)
         : maxTokens;
 
-      const chatParams = { maxTokens: effectiveMaxTokens, temperature, systemPrompt, messages };
+      const chatParams = { maxTokens: effectiveMaxTokens, temperature, systemPrompt, messages, responseFormat };
 
       if (adapterInstance.chatStream) {
         return { adapter: adapterInstance, generator: adapterInstance.chatStream(chatParams) };

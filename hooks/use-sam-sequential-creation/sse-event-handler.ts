@@ -205,14 +205,16 @@ export function handleSSEEvent(
     }
 
     case 'chapter_count_adjusted': {
-      // Blueprint AI adjusted chapter count — update frontend state
+      // Blueprint AI recommended a different chapter count — store for UI display
       const resolved = data.resolved as number;
+      const recommended = data.recommended as number | undefined;
       setProgress(prev => ({
         ...prev,
         state: {
           ...prev.state,
           totalChapters: resolved,
         },
+        aiRecommendedChapters: recommended,
       }));
       return {};
     }

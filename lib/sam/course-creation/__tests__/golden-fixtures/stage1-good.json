@@ -1,0 +1,19 @@
+{
+  "thinking": "Analyzing the learning trajectory for Chapter 1 of a web development course. This foundational chapter needs to establish core HTML concepts while maintaining engagement through practical examples.",
+  "chapter": {
+    "title": "Building Your First Web Page: HTML Structure and Semantics",
+    "description": "This chapter introduces the foundational structure of web pages using HTML5. Students will learn how browsers interpret HTML documents, explore semantic elements that convey meaning beyond visual appearance, and build their first complete web page with proper document structure.",
+    "bloomsLevel": "UNDERSTAND",
+    "learningObjectives": [
+      "Explain how browsers parse HTML documents into the Document Object Model (DOM)",
+      "Describe the purpose of semantic HTML5 elements including header, nav, main, and footer",
+      "Compare the structure of well-formed vs poorly-formed HTML documents",
+      "Summarize the relationship between HTML elements, attributes, and content"
+    ],
+    "keyTopics": ["HTML document structure", "Semantic elements", "DOM basics", "Element attributes", "Document validation", "Browser rendering"],
+    "prerequisites": "No prior experience required — this is the starting chapter",
+    "estimatedTime": "2 hours 30 minutes",
+    "topicsToExpand": ["HTML document structure", "Semantic elements", "DOM basics", "Element attributes", "Document validation", "Browser rendering"],
+    "conceptsIntroduced": ["DOM", "semantic HTML", "element", "attribute", "tag", "document structure"]
+  }
+}

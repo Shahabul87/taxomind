@@ -31,9 +31,11 @@ import {
   AIChapterResponseSchema,
   AISectionResponseSchema,
   AIDetailsResponseSchema,
+  DEFAULT_STAGE_VALIDATION,
   type AIChapterResponse,
   type AISectionResponse,
   type AIDetailsResponse,
+  type ValidationMode,
 } from './response-schemas';
 import type {
   CourseContext,
@@ -44,6 +46,7 @@ import type {
   ChapterPlanEntry,
 } from './types';
 import { parseAIJsonResponse } from '@/lib/ai/parse-ai-json';
+import { lexicalSimilarity } from './semantic-duplicate-gate';
 
 // =============================================================================
 // Fallback Tracking (monitors fallback rate across the pipeline)
@@ -114,6 +117,62 @@ export class FallbackTracker {
 }
 
 // =============================================================================
+// Schema Validation Metrics (tracks outcomes per pipeline run)
+// =============================================================================
+
+type ValidationOutcome = 'pass' | 'warn' | 'fail';
+
+interface ValidationRecord {
+  stage: string;
+  outcome: ValidationOutcome;
+  issueCount: number;
+  timestamp: string;
+}
+
+/**
+ * Tracks schema validation outcomes across a single pipeline run.
+ * Reset per orchestration invocation for clean SLO snapshots.
+ */
+export class SchemaValidationMetrics {
+  private records: ValidationRecord[] = [];
+
+  record(stage: string, outcome: ValidationOutcome, issues: string[] = []): void {
+    this.records.push({
+      stage,
+      outcome,
+      issueCount: issues.length,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  getSnapshot(): {
+    total: number;
+    byOutcome: Record<ValidationOutcome, number>;
+    byStage: Record<string, Record<ValidationOutcome, number>>;
+  } {
+    const byOutcome: Record<ValidationOutcome, number> = { pass: 0, warn: 0, fail: 0 };
+    const byStage: Record<string, Record<ValidationOutcome, number>> = {};
+
+    for (const r of this.records) {
+      byOutcome[r.outcome] += 1;
+      if (!byStage[r.stage]) {
+        byStage[r.stage] = { pass: 0, warn: 0, fail: 0 };
+      }
+      byStage[r.stage][r.outcome] += 1;
+    }
+
+    return { total: this.records.length, byOutcome, byStage };
+  }
+
+  reset(): void {
+    this.records = [];
+  }
+}
+
+/** Pipeline-scoped metrics instance (created per orchestration run) */
+export const schemaValidationMetrics = new SchemaValidationMetrics();
+
+// =============================================================================
 // Schema Validation Error (strict mode rejects malformed AI output)
 // =============================================================================
 
@@ -128,23 +187,37 @@ export class SchemaValidationError extends Error {
 }
 
 // =============================================================================
-// Schema Validation Helper (strict by default — throws on failure)
+// Schema Validation Helper (mode-aware: strict | warn | silent)
 // =============================================================================
 
 function validateWithSchema<T>(
   parsed: unknown,
   schema: z.ZodType<T>,
   stage: string,
-  strict = true,
+  mode: ValidationMode = 'strict',
 ): { valid: boolean; issues: string[] } {
   const result = schema.safeParse(parsed);
-  if (result.success) return { valid: true, issues: [] };
+  if (result.success) {
+    schemaValidationMetrics.record(stage, 'pass');
+    return { valid: true, issues: [] };
+  }
   const issues = result.error.issues.map(
-    (i) => `${i.path.join('.')}: ${i.message}`
+    (i) => `${i.path.join('.')}: ${i.message}`,
   );
-  logger.warn(`[ResponseParser] Schema validation issues in ${stage}`, { issues });
-  if (strict) {
+  if (mode === 'strict') {
+    schemaValidationMetrics.record(stage, 'fail', issues);
+    logger.warn(`[ResponseParser] Schema validation failed in ${stage}`, { issues, mode });
     throw new SchemaValidationError(stage, issues);
+  }
+  if (mode === 'warn') {
+    schemaValidationMetrics.record(stage, 'warn', issues);
+    logger.warn(
+      `[ResponseParser] Schema validation issues in ${stage} (warn mode — keeping AI content)`,
+      { issues },
+    );
+  } else {
+    // silent
+    schemaValidationMetrics.record(stage, 'warn', issues);
   }
   return { valid: false, issues };
 }
@@ -223,12 +296,14 @@ export function parseChapterResponse(
   previousChapters: (GeneratedChapter & { id: string })[],
   blueprintEntry?: ChapterPlanEntry | null,
   fallbackTracker?: FallbackTracker,
+  validationMode?: ValidationMode,
 ): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
+  const mode = validationMode ?? DEFAULT_STAGE_VALIDATION.stage1;
   try {
     const parsed = parseAIJsonResponse<AIChapterResponse>(responseText, undefined, `course-creation-stage1-ch${chapterNumber}`);
     if (!parsed) throw new Error('Invalid JSON in chapter response');
     validateCriticalFields(parsed, 'chapter');
-    validateWithSchema(parsed, AIChapterResponseSchema, 'Stage 1 (chapter)');
+    const validation = validateWithSchema(parsed, AIChapterResponseSchema, 'Stage 1 (chapter)', mode);
     const thinking = parsed.thinking ?? 'Generated chapter based on course context.';
     const ch = parsed.chapter;
 
@@ -252,6 +327,14 @@ export function parseChapterResponse(
     };
 
     const qualityScore = scoreChapter(chapter, courseContext, previousChapters, blueprintEntry);
+
+    // Apply penalty for schema issues in non-strict modes
+    if (!validation.valid) {
+      const penalty = Math.min(validation.issues.length * 3, 15);
+      qualityScore.overall = Math.max(qualityScore.overall - penalty, 25);
+      qualityScore.schemaIssues = validation.issues;
+    }
+
     return { chapter, thinking, qualityScore };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
@@ -288,20 +371,28 @@ export function parseSectionResponse(
   existingTitles: string[],
   templateDef?: TemplateSectionDef,
   fallbackTracker?: FallbackTracker,
+  validationMode?: ValidationMode,
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
+  const mode = validationMode ?? DEFAULT_STAGE_VALIDATION.stage2;
   try {
     const parsed = parseAIJsonResponse<AISectionResponse>(responseText, undefined, `course-creation-stage2-ch${chapter.position}-sec${sectionNumber}`);
     if (!parsed) throw new Error('Invalid JSON in section response');
     validateCriticalFields(parsed, 'section');
-    validateWithSchema(parsed, AISectionResponseSchema, 'Stage 2 (section)');
+    const validation = validateWithSchema(parsed, AISectionResponseSchema, 'Stage 2 (section)', mode);
     const thinking = parsed.thinking ?? 'Generated section based on chapter context.';
     const sec = parsed.section;
 
     if (!sec) throw new Error('No section data in response');
 
     let title = sec.title ?? `Section ${sectionNumber}`;
-    // Ensure uniqueness
-    if (existingTitles.some((t) => t.toLowerCase() === title.toLowerCase())) {
+    // Ensure uniqueness — use lexical similarity instead of exact matching
+    // to catch near-duplicates like "Python Basics" vs "Basics of Python"
+    const SECTION_TITLE_SIMILARITY_THRESHOLD = 0.70;
+    const isTooSimilar = existingTitles.some((t) => {
+      if (t.toLowerCase() === title.toLowerCase()) return true;
+      return lexicalSimilarity(t.toLowerCase(), title.toLowerCase()) >= SECTION_TITLE_SIMILARITY_THRESHOLD;
+    });
+    if (isTooSimilar) {
       title = `${title} - ${chapter.title.split(':')[0]}`;
     }
 
@@ -324,6 +415,14 @@ export function parseSectionResponse(
     };
 
     const qualityScore = scoreSection(section, existingTitles, templateDef);
+
+    // Apply penalty for schema issues in non-strict modes
+    if (!validation.valid) {
+      const penalty = Math.min(validation.issues.length * 3, 15);
+      qualityScore.overall = Math.max(qualityScore.overall - penalty, 25);
+      qualityScore.schemaIssues = validation.issues;
+    }
+
     return { section, thinking, qualityScore };
   } catch (error) {
     if (error instanceof SchemaValidationError) {
@@ -360,12 +459,14 @@ export function parseDetailsResponse(
   courseContext: CourseContext,
   templateDef?: TemplateSectionDef,
   fallbackTracker?: FallbackTracker,
+  validationMode?: ValidationMode,
 ): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
+  const mode = validationMode ?? DEFAULT_STAGE_VALIDATION.stage3;
   try {
     const parsed = parseAIJsonResponse<AIDetailsResponse>(responseText, undefined, `course-creation-stage3-ch${chapter.position}-sec${section.position}`);
     if (!parsed) throw new Error('Invalid JSON in details response');
     validateCriticalFields(parsed, 'details');
-    validateWithSchema(parsed, AIDetailsResponseSchema, 'Stage 3 (details)');
+    const validation = validateWithSchema(parsed, AIDetailsResponseSchema, 'Stage 3 (details)', mode);
     const thinking = parsed.thinking ?? 'Generated section details based on context.';
     const det = parsed.details;
 
@@ -384,6 +485,14 @@ export function parseDetailsResponse(
     };
 
     const qualityScore = scoreDetails(details, section, chapter.bloomsLevel, templateDef);
+
+    // Apply penalty for schema issues in non-strict modes
+    if (!validation.valid) {
+      const penalty = Math.min(validation.issues.length * 3, 15);
+      qualityScore.overall = Math.max(qualityScore.overall - penalty, 25);
+      qualityScore.schemaIssues = validation.issues;
+    }
+
     return { details, thinking, qualityScore };
   } catch (error) {
     if (error instanceof SchemaValidationError) {

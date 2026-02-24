@@ -31,6 +31,7 @@ jest.mock('@/lib/sam/ai-provider', () => ({
   runSAMChatStream: jest.fn().mockReturnValue((async function* () { /* empty stream */ })()),
   withSubscriptionGate: jest.fn().mockResolvedValue({ allowed: true }),
   handleAIAccessError: jest.fn().mockReturnValue(null),
+  resolveAIModelInfo: jest.fn().mockResolvedValue({ provider: 'deepseek', model: 'deepseek-chat', isReasoningModel: false }),
 }));
 
 // Mock subscription enforcement
@@ -225,6 +226,7 @@ jest.mock('@/lib/sam/course-creation/self-critique', () => ({
 // Mock post-creation enrichment
 jest.mock('@/lib/sam/course-creation/post-creation-enrichment', () => ({
   runPostCreationEnrichmentBackground: jest.fn(),
+  triggerBackgroundDepthAnalysis: jest.fn(),
 }));
 
 // Mock checkpoint manager (Phase 6: extracted from orchestrator)

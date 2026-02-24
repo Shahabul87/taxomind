@@ -278,6 +278,8 @@ export interface CreationProgress {
     isReasoningModel: boolean;
     batchSize: number;
   };
+  /** AI-recommended chapter count from blueprint (may differ from user's totalChapters) */
+  aiRecommendedChapters?: number;
 }
 
 // ============================================================================
@@ -380,7 +382,12 @@ export type SSEEventType =
   // Parallel model info
   | 'parallel_model_info'       // Pre-resolved model info for parallel pipeline
   // Parallel chapter stage tracking
-  | 'parallel_chapter_stage_change';  // Chapter transitions between generation stages
+  | 'parallel_chapter_stage_change'   // Chapter transitions between generation stages
+  // Budget guard events
+  | 'budget_warning'                  // Budget utilization threshold crossed
+  // Adaptive pipeline events
+  | 'adaptive_batch_size'             // Batch size adjusted based on observed timing
+  | 'coherence_warning';              // Inter-batch keyword overlap detected
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -414,6 +421,8 @@ export interface QualityScore {
   chapterNumber?: number;
   /** Which pipeline stage produced this score: 1=chapter, 2=section, 3=details */
   stage?: 1 | 2 | 3;
+  /** Schema validation issues found (non-blocking in warn mode) */
+  schemaIssues?: string[];
 }
 
 export interface ValidationResult {
@@ -794,6 +803,8 @@ export interface ChapterStepContext {
   /** Raw enhancer for per-chapter Bloom's-filtered composition */
   categoryEnhancer?: import('./category-prompts').CategoryPromptEnhancer;
   experimentVariant?: string;
+  /** Whether the resolved AI model is a reasoning model (affects responseFormat) */
+  isReasoningModel?: boolean;
   /** Bridge content to scaffold concept gaps from prior chapter */
   bridgeContent?: string;
   /** Correlation ID for end-to-end tracing across AI calls */

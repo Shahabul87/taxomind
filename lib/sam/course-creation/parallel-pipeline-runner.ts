@@ -93,6 +93,86 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+// Stop words for coherence checking (common words to exclude)
+const COHERENCE_STOP_WORDS = new Set([
+  'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was', 'were',
+  'will', 'have', 'has', 'had', 'been', 'being', 'what', 'when', 'where',
+  'which', 'their', 'there', 'your', 'about', 'into', 'more', 'some', 'than',
+  'then', 'them', 'also', 'each', 'does', 'how', 'its', 'may', 'can', 'would',
+  'could', 'should', 'chapter', 'section', 'learn', 'learning', 'course',
+  'understand', 'introduction', 'overview', 'summary', 'objectives',
+]);
+
+/**
+ * Extract keywords from section titles for coherence comparison.
+ * Returns lowercase words >3 chars excluding stop words.
+ */
+function extractKeywords(titles: string[]): Set<string> {
+  const keywords = new Set<string>();
+  for (const title of titles) {
+    const words = title.toLowerCase().split(/\W+/).filter(
+      (w) => w.length > 3 && !COHERENCE_STOP_WORDS.has(w)
+    );
+    for (const word of words) {
+      keywords.add(word);
+    }
+  }
+  return keywords;
+}
+
+/**
+ * Jaccard similarity between two sets: |A ∩ B| / |A ∪ B|
+ */
+function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersection = 0;
+  for (const item of a) {
+    if (b.has(item)) intersection++;
+  }
+  const union = new Set([...a, ...b]).size;
+  return union > 0 ? intersection / union : 0;
+}
+
+/**
+ * Check inter-batch coherence: detect >80% keyword overlap between
+ * completed chapter section titles. ~50ms, rule-based, no AI cost.
+ */
+function checkInterBatchCoherence(
+  chapters: CompletedChapter[],
+): Array<{ chapterA: number; chapterB: number; titleA: string; titleB: string; similarity: number }> {
+  const warnings: Array<{ chapterA: number; chapterB: number; titleA: string; titleB: string; similarity: number }> = [];
+  if (chapters.length < 2) return warnings;
+
+  // Build keyword sets per chapter from section titles
+  const chapterKeywords: Array<{ position: number; title: string; keywords: Set<string> }> = [];
+  for (const ch of chapters) {
+    const sectionTitles = ch.sections.map((s) => s.title);
+    chapterKeywords.push({
+      position: ch.position,
+      title: ch.title,
+      keywords: extractKeywords(sectionTitles),
+    });
+  }
+
+  // Compare all pairs
+  for (let i = 0; i < chapterKeywords.length; i++) {
+    for (let j = i + 1; j < chapterKeywords.length; j++) {
+      const sim = jaccardSimilarity(chapterKeywords[i].keywords, chapterKeywords[j].keywords);
+      if (sim > 0.8) {
+        warnings.push({
+          chapterA: chapterKeywords[i].position,
+          chapterB: chapterKeywords[j].position,
+          titleA: chapterKeywords[i].title,
+          titleB: chapterKeywords[j].title,
+          similarity: Math.round(sim * 100),
+        });
+      }
+    }
+  }
+
+  return warnings;
+}
+
 // ============================================================================
 // PARALLEL PIPELINE RUNNER (BATCHED)
 // ============================================================================
@@ -152,8 +232,10 @@ export async function runParallelPipeline(
     chapterPositions.push(i);
   }
 
-  const batches = chunkArray(chapterPositions, effectiveBatchSize);
-  const totalBatches = batches.length;
+  // Use dynamic batching: start with effectiveBatchSize, adapt per iteration
+  let currentBatchSize = effectiveBatchSize;
+  const remainingPositions = [...chapterPositions];
+  const estimatedTotalBatches = Math.ceil(chapterPositions.length / effectiveBatchSize);
 
   logger.info('[PARALLEL_PIPELINE] Starting batched parallel generation', {
     courseId,
@@ -161,7 +243,7 @@ export async function runParallelPipeline(
     startChapter,
     chaptersToGenerate: chapterPositions.length,
     batchSize: effectiveBatchSize,
-    totalBatches,
+    estimatedTotalBatches,
     runId,
   });
 
@@ -173,7 +255,7 @@ export async function runParallelPipeline(
       totalChapters,
       chapterPositions,
       batchSize: effectiveBatchSize,
-      totalBatches,
+      totalBatches: estimatedTotalBatches,
     },
   });
 
@@ -212,6 +294,7 @@ export async function runParallelPipeline(
       categoryPrompt,
       categoryEnhancer,
       experimentVariant,
+      isReasoningModel: modelInfo.isReasoningModel,
       runId,
       budgetTracker,
       fallbackTracker,
@@ -379,15 +462,18 @@ export async function runParallelPipeline(
   let chaptersCreated = completedChapters.length;
   let sectionsCreated = completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0);
   const allFailedPositions: number[] = [];
+  let batchIndex = 0;
 
-  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+  while (remainingPositions.length > 0) {
     if (abortSignal?.aborted) break;
 
-    const batch = batches[batchIndex];
+    // Dynamic slice: take currentBatchSize chapters from remaining
+    const batch = remainingPositions.splice(0, currentBatchSize);
     const batchNumber = batchIndex + 1;
+    const totalBatches = batchNumber + Math.ceil(remainingPositions.length / currentBatchSize);
 
     logger.info('[PARALLEL_PIPELINE] Starting batch', {
-      courseId, batchNumber, totalBatches, chapters: batch, runId,
+      courseId, batchNumber, totalBatches, chapters: batch, currentBatchSize, runId,
     });
 
     onSSEEvent?.({
@@ -399,6 +485,9 @@ export async function runParallelPipeline(
         chapters: batch,
       },
     });
+
+    // Track batch start time for adaptive sizing
+    const batchStartTime = Date.now();
 
     // ── Run batch in parallel with batch-level timeout ──
     // Fix 5: Batch-level timeout as defense-in-depth above per-chapter timeouts.
@@ -492,6 +581,8 @@ export async function runParallelPipeline(
 
     // ── Emit batch completion ──
     const batchCompletedCount = completedChapters.length;
+    const batchElapsedMs = Date.now() - batchStartTime;
+    const successfulInBatch = batch.length - batchFailed.length;
 
     onSSEEvent?.({
       type: 'parallel_batch_complete',
@@ -509,8 +600,64 @@ export async function runParallelPipeline(
       courseId, batchNumber, totalBatches,
       completedSoFar: batchCompletedCount,
       totalChapters,
+      batchElapsedMs,
       runId,
     });
+
+    // ── Adaptive batch sizing based on observed timing ──
+    if (successfulInBatch > 0 && remainingPositions.length > 0) {
+      const avgPerChapterMs = batchElapsedMs / successfulInBatch;
+      const previousSize = currentBatchSize;
+
+      if (avgPerChapterMs > 60_000 && currentBatchSize > 1) {
+        // Chapters taking >60s avg → decrease batch size
+        currentBatchSize = Math.max(1, currentBatchSize - 1);
+      } else if (avgPerChapterMs < 20_000 && currentBatchSize < 5) {
+        // Chapters taking <20s avg → increase batch size
+        currentBatchSize = Math.min(5, currentBatchSize + 1);
+      }
+
+      if (currentBatchSize !== previousSize) {
+        const reason = avgPerChapterMs > 60_000
+          ? `Avg ${Math.round(avgPerChapterMs / 1000)}s/chapter exceeds 60s threshold`
+          : `Avg ${Math.round(avgPerChapterMs / 1000)}s/chapter below 20s threshold`;
+
+        onSSEEvent?.({
+          type: 'adaptive_batch_size',
+          data: {
+            courseId,
+            previousSize,
+            newSize: currentBatchSize,
+            avgTimeMs: Math.round(avgPerChapterMs),
+            reason,
+          },
+        });
+
+        logger.info('[PARALLEL_PIPELINE] Adaptive batch size adjusted', {
+          courseId, previousSize, newSize: currentBatchSize,
+          avgPerChapterMs: Math.round(avgPerChapterMs), reason, runId,
+        });
+      }
+    }
+
+    // ── Inter-batch coherence check (rule-based, ~50ms) ──
+    if (completedChapters.length >= 2) {
+      const coherenceWarnings = checkInterBatchCoherence(completedChapters);
+      for (const warning of coherenceWarnings) {
+        onSSEEvent?.({
+          type: 'coherence_warning',
+          data: {
+            courseId,
+            chapterA: warning.chapterA,
+            chapterB: warning.chapterB,
+            titleA: warning.titleA,
+            titleB: warning.titleB,
+            similarity: warning.similarity,
+            message: `Chapters ${warning.chapterA} ("${warning.titleA}") and ${warning.chapterB} ("${warning.titleB}") have ${warning.similarity}% section title keyword overlap`,
+          },
+        });
+      }
+    }
 
     // ── Save checkpoint after each batch so auto-reconnect can resume ──
     if (planId && batchCompletedCount > 0) {
@@ -537,6 +684,8 @@ export async function runParallelPipeline(
         courseId, batchNumber, completedChapters: batchCompletedCount, runId,
       });
     }
+
+    batchIndex++;
   }
 
   // ── Handle permanently failed chapters with fallbacks ──

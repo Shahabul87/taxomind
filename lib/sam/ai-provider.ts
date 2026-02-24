@@ -48,6 +48,8 @@ interface SAMChatOptions {
   maxTokens?: number;
   temperature?: number;
   extended?: boolean;
+  /** Request JSON-guaranteed output from the AI provider */
+  responseFormat?: 'json' | 'text';
 }
 
 interface SAMChatMetadataResult {
@@ -86,6 +88,7 @@ export async function runSAMChatWithPreference(options: SAMChatOptions): Promise
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
+    responseFormat: options.responseFormat,
   });
 
   logger.debug('[SAM Chat] Response from provider', {
@@ -115,6 +118,7 @@ export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<S
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
+    responseFormat: options.responseFormat,
   });
 
   logger.debug('[SAM Chat] Response with metadata', {
@@ -151,6 +155,7 @@ export async function runSAMChatWithUsage(options: SAMChatOptions): Promise<SAMC
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
+    responseFormat: options.responseFormat,
   });
 
   logger.debug('[SAM Chat] Response with usage', {
@@ -196,6 +201,7 @@ export async function* runSAMChatStream(options: SAMChatOptions): AsyncGenerator
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
+    responseFormat: options.responseFormat,
   });
 }
 

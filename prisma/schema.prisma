@@ -3712,6 +3712,10 @@ enum IssueType {
   TIME             // Time estimation issues
   PREREQUISITE     // Missing prerequisite concepts
   GAP              // Content gaps/duplication
+  READABILITY      // Flesch-Kincaid readability mismatch
+  FALLBACK         // Detected fallback/template content
+  FACTUAL          // Unverified factual claims
+  LEARNER_EXPERIENCE // Learner simulation issues
 }
 
 enum IssueStatus {

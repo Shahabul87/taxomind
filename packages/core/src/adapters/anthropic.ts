@@ -28,11 +28,17 @@ interface AnthropicMessage {
   content: string;
 }
 
+interface AnthropicSystemBlock {
+  type: 'text';
+  text: string;
+  cache_control?: { type: 'ephemeral' };
+}
+
 interface AnthropicRequest {
   model: string;
   max_tokens: number;
   messages: AnthropicMessage[];
-  system?: string;
+  system?: string | AnthropicSystemBlock[];
   temperature?: number;
   top_p?: number;
   stop_sequences?: string[];
@@ -52,6 +58,8 @@ interface AnthropicResponse {
   usage: {
     input_tokens: number;
     output_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
   };
 }
 
@@ -105,6 +113,8 @@ export class AnthropicAdapter implements AIAdapter {
     // Extract system message from messages array if not provided via systemPrompt
     const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
 
+    let useCaching = false;
+
     const requestBody: AnthropicRequest = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -114,7 +124,9 @@ export class AnthropicAdapter implements AIAdapter {
     };
 
     if (systemMessage) {
-      requestBody.system = systemMessage;
+      const formatted = this.formatSystemMessage(systemMessage);
+      requestBody.system = formatted.system;
+      useCaching = formatted.useCaching;
     }
 
     let lastError: Error | undefined;
@@ -123,7 +135,8 @@ export class AnthropicAdapter implements AIAdapter {
       try {
         const response = await this.makeRequest<AnthropicResponse>(
           '/v1/messages',
-          requestBody
+          requestBody,
+          useCaching
         );
 
         const content = response.content
@@ -169,6 +182,8 @@ export class AnthropicAdapter implements AIAdapter {
     // Extract system message from messages array if not provided via systemPrompt
     const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
 
+    let useCaching = false;
+
     const requestBody: AnthropicRequest = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -179,16 +194,24 @@ export class AnthropicAdapter implements AIAdapter {
     };
 
     if (systemMessage) {
-      requestBody.system = systemMessage;
+      const formatted = this.formatSystemMessage(systemMessage);
+      requestBody.system = formatted.system;
+      useCaching = formatted.useCaching;
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': this.apiKey,
+      'anthropic-version': '2023-06-01',
+    };
+
+    if (useCaching) {
+      headers['anthropic-beta'] = 'prompt-caching-2024-07-31';
     }
 
     const response = await fetch(`${this.baseURL}/v1/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
@@ -269,20 +292,51 @@ export class AnthropicAdapter implements AIAdapter {
   }
 
   /**
+   * Format system message for Anthropic API, enabling prompt caching for long prompts.
+   * Prompts exceeding CACHE_THRESHOLD are converted to the structured block format
+   * with cache_control so Anthropic can cache them across calls.
+   */
+  private formatSystemMessage(systemMessage: string): {
+    system: AnthropicRequest['system'];
+    useCaching: boolean;
+  } {
+    const CACHE_THRESHOLD = 2000;
+    if (systemMessage.length > CACHE_THRESHOLD) {
+      return {
+        system: [
+          { type: 'text' as const, text: systemMessage, cache_control: { type: 'ephemeral' as const } },
+        ],
+        useCaching: true,
+      };
+    }
+    return { system: systemMessage, useCaching: false };
+  }
+
+  /**
    * Make a request to the Anthropic API
    */
-  private async makeRequest<T>(endpoint: string, body: unknown): Promise<T> {
+  private async makeRequest<T>(
+    endpoint: string,
+    body: unknown,
+    useCaching = false
+  ): Promise<T> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
+      };
+
+      if (useCaching) {
+        headers['anthropic-beta'] = 'prompt-caching-2024-07-31';
+      }
+
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });

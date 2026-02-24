@@ -14,6 +14,11 @@ import type {
   BloomsLevel,
 } from '../types';
 
+/** Ordered Bloom's levels for gap calculation */
+const BLOOMS_KEYWORDS_ORDER: BloomsLevel[] = [
+  'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE',
+];
+
 // Bloom's taxonomy keywords for rule-based classification
 const BLOOMS_KEYWORDS: Record<BloomsLevel, string[]> = {
   REMEMBER: [
@@ -385,10 +390,51 @@ export async function classifyBlooms(
   const chapterDistributions = chapterResults.map((c) => c.distribution);
   const courseDistribution = aggregateDistributions(chapterDistributions);
 
+  // Build Bloom's alignment: compare assigned level (from [LEVEL] prefix in objectives) vs actual
+  const bloomsAlignment: BloomsAnalysisResult['bloomsAlignment'] = [];
+  const bloomsLevelSet = new Set(['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE']);
+
+  for (const chResult of chapterResults) {
+    for (const secResult of chResult.sectionResults) {
+      // Extract assigned level from objectives with [LEVEL] prefix pattern
+      let assignedLevel: BloomsLevel | null = null;
+      const chapter = course.chapters.find((c) => c.id === secResult.chapterId);
+      const section = chapter?.sections.find((s) => s.id === secResult.sectionId);
+
+      if (section?.objectives) {
+        for (const obj of section.objectives) {
+          const match = obj.match(/^\[(\w+)\]/);
+          if (match && bloomsLevelSet.has(match[1].toUpperCase())) {
+            assignedLevel = match[1].toUpperCase() as BloomsLevel;
+            break;
+          }
+        }
+      }
+
+      if (assignedLevel) {
+        const actualLevel = secResult.primaryLevel;
+        const assignedIdx = BLOOMS_KEYWORDS_ORDER.indexOf(assignedLevel);
+        const actualIdx = BLOOMS_KEYWORDS_ORDER.indexOf(actualLevel);
+        const gap = Math.abs(assignedIdx - actualIdx);
+
+        bloomsAlignment.push({
+          sectionId: secResult.sectionId,
+          sectionTitle: secResult.sectionTitle,
+          chapterId: secResult.chapterId,
+          assignedLevel,
+          actualLevel,
+          isAligned: gap <= 1,
+          gap,
+        });
+      }
+    }
+  }
+
   return {
     courseDistribution,
     courseBalance: determineBalance(courseDistribution),
     chapters: chapterResults,
     cognitiveDepthScore: calculateDepthScore(courseDistribution),
+    bloomsAlignment: bloomsAlignment.length > 0 ? bloomsAlignment : undefined,
   };
 }

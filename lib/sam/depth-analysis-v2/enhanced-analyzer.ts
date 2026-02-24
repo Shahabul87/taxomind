@@ -13,6 +13,8 @@
  * 6. Outcomes Analysis - Determine learning outcomes
  * 7. Issue Generation - Create specific actionable issues
  * 8. Fix Generation - Generate fix instructions
+ * 9. Factual Analysis (AI-only) - Check factual claims
+ * 10. Learner Simulation (AI-only) - Simulate target learner
  */
 
 import { createHash } from 'crypto';
@@ -41,6 +43,10 @@ import { analyzeContent } from './analyzers/content-analyzer';
 import { analyzeOutcomes } from './analyzers/outcomes-analyzer';
 import { generateIssues } from './analyzers/issue-generator';
 import { generateFixes } from './analyzers/fix-generator';
+import { detectFallbacks } from './analyzers/fallback-detector';
+import { analyzeReadability, type ReadabilityResult } from './analyzers/content-analyzer';
+import { analyzeFactualClaims } from './analyzers/factual-analyzer';
+import { simulateLearner } from './analyzers/learner-simulator';
 
 // =============================================================================
 // CONSTANTS
@@ -55,6 +61,8 @@ const ANALYSIS_STEPS = [
   { id: 6, name: 'outcomes', label: 'Determining learning outcomes' },
   { id: 7, name: 'issues', label: 'Generating actionable issues' },
   { id: 8, name: 'fixes', label: 'Creating fix instructions' },
+  { id: 9, name: 'factual', label: 'Checking factual accuracy' },
+  { id: 10, name: 'learner', label: 'Simulating learner experience' },
 ];
 
 // =============================================================================
@@ -150,6 +158,7 @@ export class EnhancedCourseAnalyzerV2 {
   private onProgress?: ProgressCallback;
   private aiEnabled: boolean;
   private previousAnalysisId?: string;
+  private userId?: string;
 
   constructor(options: AnalyzerOptions) {
     this.course = options.course;
@@ -157,6 +166,7 @@ export class EnhancedCourseAnalyzerV2 {
     this.onProgress = options.onProgress;
     this.aiEnabled = options.aiEnabled ?? true;
     this.previousAnalysisId = options.previousAnalysisId;
+    this.userId = options.userId;
   }
 
   /**
@@ -241,8 +251,90 @@ export class EnhancedCourseAnalyzerV2 {
         contentResult,
         outcomesResult,
       });
+
+      // Step 7.5: Fallback Detection (rule-based, zero cost)
+      const fallbackIssues = detectFallbacks(this.course);
+      issues.push(...fallbackIssues);
+
+      // Step 7.6: Readability Issues (rule-based, zero cost)
+      const readabilityResults = analyzeReadability(this.course);
+      for (const r of readabilityResults) {
+        if (!r.isWithinRange && r.deviation > 2) {
+          issues.push({
+            id: `readability-${r.sectionId}`,
+            type: 'READABILITY',
+            severity: r.deviation > 4 ? 'HIGH' : 'MEDIUM',
+            status: 'OPEN',
+            location: {
+              chapterId: r.chapterId,
+              chapterTitle: r.chapterTitle,
+              sectionId: r.sectionId,
+              sectionTitle: r.sectionTitle,
+            },
+            title: `Readability mismatch (FK grade ${r.fkGrade} vs expected ${r.expectedRange.min}-${r.expectedRange.max})`,
+            description: `Section "${r.sectionTitle}" has a Flesch-Kincaid grade level of ${r.fkGrade}, which is ${r.deviation.toFixed(1)} levels outside the expected range for this course difficulty.`,
+            evidence: [
+              `FK Grade Level: ${r.fkGrade}`,
+              `Expected range: ${r.expectedRange.min}-${r.expectedRange.max}`,
+              `Deviation: ${r.deviation.toFixed(1)} levels`,
+            ],
+            impact: {
+              area: 'Readability',
+              description: 'Content that is too complex or too simple for the target audience reduces learning effectiveness.',
+            },
+            fix: {
+              action: 'modify',
+              what: r.fkGrade > r.expectedRange.max
+                ? 'Simplify language and sentence structure'
+                : 'Add more technical depth and complexity',
+              why: 'Content readability should match the expected level for the target audience.',
+              how: r.fkGrade > r.expectedRange.max
+                ? 'Use shorter sentences, simpler vocabulary, and break complex ideas into smaller chunks.'
+                : 'Incorporate more domain-specific terminology and complex sentence structures.',
+            },
+          });
+        }
+      }
+
+      // Step 7.7: Time Estimation Issues (rule-based, zero cost)
+      if (structureResult.timeEstimates) {
+        for (const estimate of structureResult.timeEstimates) {
+          // Flag chapters with very short content (<2 min reading time)
+          if (estimate.estimatedMinutes < 2 && estimate.wordCount > 0) {
+            issues.push({
+              id: `time-${estimate.chapterId}`,
+              type: 'TIME',
+              severity: 'MEDIUM',
+              status: 'OPEN',
+              location: {
+                chapterId: estimate.chapterId,
+                chapterTitle: estimate.chapterTitle,
+              },
+              title: `Very short chapter (${estimate.estimatedMinutes} min reading time)`,
+              description: `Chapter "${estimate.chapterTitle}" has only ${estimate.wordCount} words (~${estimate.estimatedMinutes} min reading time). This may be too thin for a full chapter.`,
+              evidence: [
+                `Word count: ${estimate.wordCount}`,
+                `Estimated reading time: ${estimate.estimatedMinutes} min`,
+              ],
+              impact: {
+                area: 'Content Depth',
+                description: 'Very short chapters may not provide sufficient depth for learning.',
+              },
+              fix: {
+                action: 'add',
+                what: 'Expand chapter content',
+                why: 'Each chapter should provide enough depth for meaningful learning.',
+                how: 'Add more explanations, examples, exercises, or merge with an adjacent chapter.',
+              },
+            });
+          }
+        }
+      }
+
       logger.info('[DepthAnalyzerV2] Step 7 complete: Issue generation', {
         issueCount: issues.length,
+        fallbackIssues: fallbackIssues.length,
+        readabilityIssues: readabilityResults.filter((r) => !r.isWithinRange && r.deviation > 2).length,
       });
 
       // Step 8: Fix Generation
@@ -253,6 +345,42 @@ export class EnhancedCourseAnalyzerV2 {
         this.aiEnabled
       );
       logger.info('[DepthAnalyzerV2] Step 8 complete: Fix generation');
+
+      // Step 9: Factual Analysis (AI-only, skip if rule-based)
+      if (this.aiEnabled) {
+        this.reportProgress(9, 'Checking factual accuracy...');
+        const factualIssues = await analyzeFactualClaims(
+          this.course,
+          this.aiEnabled,
+          this.userId
+        );
+        if (factualIssues.length > 0) {
+          issuesWithFixes.push(...factualIssues);
+        }
+        logger.info('[DepthAnalyzerV2] Step 9 complete: Factual analysis', {
+          factualIssues: factualIssues.length,
+        });
+      } else {
+        logger.info('[DepthAnalyzerV2] Step 9 skipped: Factual analysis (rule-based mode)');
+      }
+
+      // Step 10: Learner Simulation (AI-only, skip if rule-based)
+      if (this.aiEnabled) {
+        this.reportProgress(10, 'Simulating learner experience...');
+        const learnerIssues = await simulateLearner(
+          this.course,
+          this.aiEnabled,
+          this.userId
+        );
+        if (learnerIssues.length > 0) {
+          issuesWithFixes.push(...learnerIssues);
+        }
+        logger.info('[DepthAnalyzerV2] Step 10 complete: Learner simulation', {
+          learnerIssues: learnerIssues.length,
+        });
+      } else {
+        logger.info('[DepthAnalyzerV2] Step 10 skipped: Learner simulation (rule-based mode)');
+      }
 
       // Calculate scores
       const depthScore = bloomsResult.cognitiveDepthScore;

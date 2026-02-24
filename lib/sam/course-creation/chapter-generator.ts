@@ -75,6 +75,13 @@ import type { OrchestrateOptions } from './orchestrator';
 // HELPERS
 // =============================================================================
 
+/**
+ * Batch size for parallel section processing (blueprint-driven only).
+ * Limits concurrent AI calls to avoid rate-limit pressure while still
+ * delivering meaningful speedup over sequential execution.
+ */
+const PARALLEL_SECTION_BATCH_SIZE = 3;
+
 /** Strip the `id` field from an object with id. */
 function stripId<T extends { id: string }>(obj: T): Omit<T, 'id'> {
   const result = { ...obj };
@@ -152,9 +159,14 @@ export async function generateSingleChapter(
     partialChapterDbId,
     partialChapterSectionIds,
     sectionsWithDetails,
+    isReasoningModel,
   } = context;
   const { onSSEEvent, enableStreamingThinking, abortSignal } = callbacks;
   throwIfAborted(abortSignal);
+
+  // JSON mode: request structured JSON output from non-reasoning models.
+  // Reasoning models (e.g. deepseek-reasoner, o1) don't support responseFormat.
+  const responseFormat = isReasoningModel ? undefined : ('json' as const);
 
   // Extract teacher blueprint chapter entry for this chapter (prompt simplification)
   const teacherBlueprintChapter = teacherBlueprintChapters?.find(
@@ -305,12 +317,14 @@ export async function generateSingleChapter(
         ? `${s1User}${agenticBlocks}\n\n${buildQualityFeedbackBlock(feedback)}`
         : `${s1User}${agenticBlocks}`;
 
-      const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature };
+      const chatParams = { messages: [{ role: 'user' as const, content: augmentedS1User }], systemPrompt: s1System, maxTokens: s1Strategy.maxTokens, temperature: s1Strategy.temperature, responseFormat };
       const s1Trace = { runId, stage: 1 as const, chapter: chNum, attempt, label: `Stage1 Ch${chNum}` };
       let responseText: string;
       if (enableStreamingThinking) {
+        // Streaming calls do not support responseFormat — strip it from spread params
+        const { responseFormat: _rf, ...streamParams } = chatParams;
         const { fullContent } = await traceAICall(s1Trace, () => streamWithThinkingExtraction({
-          userId, ...chatParams,
+          userId, ...streamParams,
           onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 1, chapter: chNum, chunk } }); },
         }));
         responseText = fullContent;
@@ -526,6 +540,7 @@ export async function generateSingleChapter(
           systemPrompt: retrySystem,
           maxTokens: s1Retry.maxTokens,
           temperature: s1Retry.temperature,
+          responseFormat,
         }),
       );
       const retryResult = parseChapterResponse(retryResponse, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
@@ -748,12 +763,14 @@ export async function generateSingleChapter(
         });
         const augmentedS3User = feedback ? `${s3User}\n\n${buildQualityFeedbackBlock(feedback)}` : s3User;
 
-        const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature };
+        const s3ChatParams = { messages: [{ role: 'user' as const, content: augmentedS3User }], systemPrompt: s3System, maxTokens: s3Strategy.maxTokens, temperature: s3Strategy.temperature, responseFormat };
         const s3Trace = { runId, stage: 3 as const, chapter: chNum, section: section.position, attempt, label: `Stage3 Ch${chNum}S${section.position}` };
         let s3ResponseText: string;
         if (enableStreamingThinking) {
+          // Streaming calls do not support responseFormat — strip it from spread params
+          const { responseFormat: _rf3, ...s3StreamParams } = s3ChatParams;
           const { fullContent } = await traceAICall(s3Trace, () => streamWithThinkingExtraction({
-            userId, ...s3ChatParams,
+            userId, ...s3StreamParams,
             onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 3, chapter: chNum, section: section.position, chunk } }); },
           }));
           s3ResponseText = fullContent;
@@ -867,6 +884,350 @@ export async function generateSingleChapter(
     }
   };
 
+  // =====================================================================
+  // PARALLEL SECTION PROCESSING (Blueprint-Driven Only)
+  // =====================================================================
+  // When the teacher blueprint provides pre-approved section titles and key
+  // topics, sections within a chapter are independent enough to generate in
+  // parallel. Each section still runs Stage 2 -> Stage 3 sequentially, but
+  // multiple sections execute concurrently in batches of PARALLEL_SECTION_BATCH_SIZE.
+  //
+  // Fallback: if any section in a batch fails, remaining batches fall back
+  // to the sequential path to maintain pipeline stability.
+  // =====================================================================
+
+  /**
+   * Process a single section through Stage 2 + Stage 3 (for parallel execution).
+   * Creates the DB row, runs AI generation, and populates shared arrays.
+   * Returns the section number on success for tracking.
+   */
+  const processSectionForBlueprint = async (
+    secNum: number,
+  ): Promise<{ secNum: number; sectionWithId: GeneratedSection & { id: string } }> => {
+    throwIfAborted(abortSignal);
+
+    // Budget check before starting this section
+    if (budgetTracker && !budgetTracker.canProceed()) {
+      throw new BudgetExceededError(budgetTracker.getSnapshot());
+    }
+
+    const templateSectionDef = selectedSections[secNum - 1];
+    const sectionRoleName = templateSectionDef?.displayName ?? `Section ${secNum}`;
+
+    onSSEEvent?.({
+      type: 'item_generating',
+      data: { stage: 2, chapter: chNum, section: secNum, message: `Generating ${sectionRoleName}...` },
+    });
+
+    const enrichedContext: EnrichedChapterContext = {
+      allChapters: generatedChapters.map(ch => stripId(ch)),
+      conceptTracker,
+      bloomsProgression,
+    };
+
+    // For parallel execution, use the chapterSections snapshot at batch start.
+    // Sections within the same batch don't depend on each other's output.
+    const previousPlainSections = chapterSections.map((s) => stripId(s));
+    const s2TemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, secNum, {
+      totalSectionsOverride: effectiveSectionsPerChapter,
+      sectionDefOverride: templateSectionDef,
+      sequenceOverride: selectedSections,
+    });
+    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum);
+    // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
+    const s2Strategy = { ...s2StrategyBase, maxRetries: 0, retryThreshold: 0 };
+    const s2StartTime = Date.now();
+
+    const s2Retry = await retryWithQualityGate<
+      { section: ReturnType<typeof buildFallbackSection>; thinking: string; qualityScore: QualityScore },
+      QualityFeedback
+    >({
+      strategy: s2Strategy,
+      buildFallback: () => ({ section: buildFallbackSection(secNum, chapterPlain, allSectionTitles, templateSectionDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
+      executeAttempt: async (attempt, feedback) => {
+        throwIfAborted(abortSignal);
+        const blueprintSec2 = teacherBlueprintChapter?.sections.find(s => s.position === secNum);
+        const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(
+          courseContext,
+          chapterPlain,
+          secNum,
+          previousPlainSections,
+          allSectionTitles,
+          enrichedContext,
+          chapterCategoryPrompt,
+          experimentVariant,
+          s2TemplatePrompt,
+          recalledMemory ?? undefined,
+          (alert) => emitPromptBudgetAlert(alert, 2, secNum),
+          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics } : undefined,
+          northStarProject,
+          teacherBlueprintChapter?.deliverable,
+        );
+        const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
+
+        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature, responseFormat };
+        const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum} parallel` };
+        let s2ResponseText: string;
+        if (enableStreamingThinking) {
+          const { responseFormat: _rf2, ...s2StreamParams } = s2ChatParams;
+          const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
+            userId, ...s2StreamParams,
+            onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
+          }));
+          s2ResponseText = fullContent;
+        } else {
+          const s2UsageResult = await traceAICall(s2Trace, () => runSAMChatWithUsage({ userId, capability: 'course', ...s2ChatParams }));
+          s2ResponseText = s2UsageResult.content;
+          if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
+            budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
+          }
+        }
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+
+        // Blueprint-driven: skip SAM validation — teacher already approved structure
+        return { result, score: result.qualityScore.overall };
+      },
+      extractFeedback: (result, _score, nextAttempt) => {
+        // Blueprint-driven with maxRetries=0: this callback is never invoked.
+        // Provide a no-op SAMValidationResult for type safety.
+        const emptySamResult = {
+          combinedScore: result.qualityScore.overall,
+          qualityGateScore: 0,
+          pedagogyScore: 0,
+          qualityIssues: [] as string[],
+          pedagogyIssues: [] as string[],
+          suggestions: [] as string[],
+          failedGates: [] as string[],
+          samValidationRan: false,
+        };
+        return extractQualityFeedback(emptySamResult, result.qualityScore, nextAttempt);
+      },
+      onRetry: (attempt, previousScore, topIssue) => {
+        onSSEEvent?.({ type: 'quality_retry', data: {
+          stage: 2, chapter: chNum, section: secNum, attempt, previousScore, topIssue,
+        }});
+      },
+    });
+
+    const bestSec = s2Retry.bestResult;
+    const s2ParseError = bestSec.thinking.includes('Used fallback generation due to parsing error');
+
+    strategyMonitor.record({
+      stage: 2, chapterNumber: chNum, sectionNumber: secNum,
+      score: bestSec.qualityScore.overall, attempt: s2Retry.attemptsUsed - 1,
+      timeMs: Date.now() - s2StartTime, parseError: s2ParseError,
+    });
+
+    const { section, thinking: secThinking } = bestSec;
+    section.templateRole = templateSectionDef?.role;
+    const secQuality = bestSec.qualityScore;
+
+    secQuality.chapterNumber = chNum;
+    secQuality.stage = 2;
+    localQualityScores.push(secQuality);
+    qualityScores.push(secQuality);
+
+    // Blueprint-driven: skip semantic duplicate detection
+    allSectionTitles.push(section.title);
+
+    const sectionConcepts = section.conceptsIntroduced ?? [];
+    for (const concept of sectionConcepts) {
+      if (!conceptTracker.concepts.has(concept)) {
+        const entry: ConceptEntry = { concept, introducedInChapter: chNum, introducedInSection: secNum, bloomsLevel: chapterWithId.bloomsLevel };
+        conceptTracker.concepts.set(concept, entry);
+      }
+    }
+
+    onSSEEvent?.({ type: 'thinking', data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking } });
+
+    const durationMinutes = parseDuration(section.estimatedDuration);
+    const dbSection = await db.section.create({
+      data: {
+        title: section.title,
+        position: section.position,
+        chapterId: chapterWithId.id,
+        type: section.contentType,
+        duration: durationMinutes,
+        isPublished: false,
+      },
+    });
+
+    const sectionWithId = { ...section, id: dbSection.id };
+    chapterSections.push(sectionWithId);
+    sectionsCreated++;
+
+    onSSEEvent?.({
+      type: 'item_complete',
+      data: { stage: 2, chapter: chNum, section: secNum, title: section.title, id: dbSection.id, qualityScore: secQuality.overall },
+    });
+
+    recordAIUsage(userId, 'course', 1, { requestType: 'orchestrator-stage-2' }).catch(() => {});
+    if (enableStreamingThinking) {
+      trackBudget(5000);
+    } else if (budgetTracker && !budgetTracker.canProceed()) {
+      throw new BudgetExceededError(budgetTracker.getSnapshot());
+    }
+
+    // Stage 3: generate details immediately after section creation
+    await generateSectionDetails(sectionWithId, secNum - 1);
+
+    return { secNum, sectionWithId };
+  };
+
+  /**
+   * Run Stage 2+3 for sections in parallel batches (blueprint-driven only).
+   * Sections within each batch of PARALLEL_SECTION_BATCH_SIZE run concurrently.
+   * If any section in a batch fails, remaining sections fall back to sequential.
+   *
+   * @param sectionNumbers - Section numbers to process (1-based)
+   * @returns Whether all sections completed successfully via parallel path
+   */
+  const runParallelSectionsForBlueprint = async (
+    sectionNumbers: number[],
+  ): Promise<boolean> => {
+    const batches: number[][] = [];
+    for (let i = 0; i < sectionNumbers.length; i += PARALLEL_SECTION_BATCH_SIZE) {
+      batches.push(sectionNumbers.slice(i, i + PARALLEL_SECTION_BATCH_SIZE));
+    }
+
+    logger.info('[ORCHESTRATOR] Starting parallel section processing (blueprint-driven)', {
+      chapter: chNum,
+      totalSections: sectionNumbers.length,
+      batchCount: batches.length,
+      batchSize: PARALLEL_SECTION_BATCH_SIZE,
+    });
+
+    onSSEEvent?.({
+      type: 'parallel_sections_start',
+      data: {
+        chapter: chNum,
+        totalSections: sectionNumbers.length,
+        batchSize: PARALLEL_SECTION_BATCH_SIZE,
+        batchCount: batches.length,
+      },
+    });
+
+    for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+      const batch = batches[batchIdx];
+      throwIfAborted(abortSignal);
+
+      // Budget check before starting each batch
+      if (budgetTracker && !budgetTracker.canProceed()) {
+        throw new BudgetExceededError(budgetTracker.getSnapshot());
+      }
+
+      logger.info('[ORCHESTRATOR] Processing parallel batch', {
+        chapter: chNum,
+        batchIndex: batchIdx + 1,
+        batchSections: batch,
+        totalBatches: batches.length,
+      });
+
+      const results = await Promise.allSettled(
+        batch.map(secNum => processSectionForBlueprint(secNum)),
+      );
+
+      // Check for failures in this batch
+      const failures = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected',
+      );
+
+      if (failures.length > 0) {
+        // Log warnings for failed sections
+        for (const failure of failures) {
+          const errorMessage = failure.reason instanceof Error
+            ? failure.reason.message
+            : String(failure.reason);
+
+          // Re-throw abort errors and budget errors immediately
+          if (failure.reason instanceof Error && failure.reason.name === 'AbortError') {
+            throw failure.reason;
+          }
+          if (failure.reason instanceof BudgetExceededError) {
+            throw failure.reason;
+          }
+
+          logger.warn('[ORCHESTRATOR] Parallel section failed, falling back to sequential', {
+            chapter: chNum,
+            batchIndex: batchIdx + 1,
+            error: errorMessage,
+          });
+        }
+
+        // Determine which sections from this batch succeeded and which need retry
+        const succeededInBatch = new Set<number>();
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            succeededInBatch.add(batch[i]);
+          }
+        }
+
+        // Collect remaining sections: failed from this batch + all future batches
+        const remainingSections: number[] = [];
+        for (const secNum of batch) {
+          if (!succeededInBatch.has(secNum)) {
+            remainingSections.push(secNum);
+          }
+        }
+        for (let futureIdx = batchIdx + 1; futureIdx < batches.length; futureIdx++) {
+          remainingSections.push(...batches[futureIdx]);
+        }
+
+        if (remainingSections.length > 0) {
+          logger.info('[ORCHESTRATOR] Falling back to sequential for remaining sections', {
+            chapter: chNum,
+            remainingSections,
+          });
+
+          onSSEEvent?.({
+            type: 'parallel_sections_fallback',
+            data: {
+              chapter: chNum,
+              failedBatch: batchIdx + 1,
+              remainingSections,
+              reason: 'batch_failure',
+            },
+          });
+
+          // Fall back to sequential for remaining sections
+          for (const secNum of remainingSections) {
+            await processSectionForBlueprint(secNum);
+          }
+        }
+
+        // All sections processed (some parallel, some sequential fallback)
+        return true;
+      }
+    }
+
+    logger.info('[ORCHESTRATOR] Parallel section processing complete', {
+      chapter: chNum,
+      totalSections: sectionNumbers.length,
+    });
+
+    return true;
+  };
+
+  // Determine whether to use parallel or sequential section processing.
+  // Parallel path activates ONLY when:
+  //   1. Blueprint-driven mode (teacher-approved structure with key topics)
+  //   2. More than 1 section to generate (parallelism is pointless for 1)
+  //   3. No resumed partial sections (resume path handles its own logic)
+  const hasResumedSections = existingSectionsByPosition.size > 0;
+  const useParallelSections = isBlueprintDriven && effectiveSectionsPerChapter > 1 && !hasResumedSections;
+
+  if (useParallelSections) {
+    // Parallel path: batch sections for concurrent Stage 2+3 execution
+    const sectionNumbers = Array.from(
+      { length: effectiveSectionsPerChapter },
+      (_, i) => i + 1,
+    );
+    await runParallelSectionsForBlueprint(sectionNumbers);
+  } else {
+
+  // =====================================================================
+  // SEQUENTIAL SECTION PROCESSING (Default / Non-Blueprint Path)
+  // =====================================================================
   for (let secNum = 1; secNum <= effectiveSectionsPerChapter; secNum++) {
     throwIfAborted(abortSignal);
     const templateSectionDef = selectedSections[secNum - 1];
@@ -955,12 +1316,14 @@ export async function generateSingleChapter(
         );
         const augmentedS2User = feedback ? `${s2User}\n\n${buildQualityFeedbackBlock(feedback)}` : s2User;
 
-        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature };
+        const s2ChatParams = { messages: [{ role: 'user' as const, content: augmentedS2User }], systemPrompt: s2System, maxTokens: s2Strategy.maxTokens, temperature: s2Strategy.temperature, responseFormat };
         const s2Trace = { runId, stage: 2 as const, chapter: chNum, section: secNum, attempt, label: `Stage2 Ch${chNum}S${secNum}` };
         let s2ResponseText: string;
         if (enableStreamingThinking) {
+          // Streaming calls do not support responseFormat — strip it from spread params
+          const { responseFormat: _rf2, ...s2StreamParams } = s2ChatParams;
           const { fullContent } = await traceAICall(s2Trace, () => streamWithThinkingExtraction({
-            userId, ...s2ChatParams,
+            userId, ...s2StreamParams,
             onThinkingChunk: (chunk) => { onSSEEvent?.({ type: 'thinking_chunk', data: { stage: 2, chapter: chNum, section: secNum, chunk } }); },
           }));
           s2ResponseText = fullContent;
@@ -1110,6 +1473,8 @@ export async function generateSingleChapter(
 
     await generateSectionDetails(sectionWithId, secNum - 1);
   }
+
+  } // end if/else useParallelSections
 
   const coveredTopics = validateChapterSectionCoverage(
     { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },

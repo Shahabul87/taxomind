@@ -16,6 +16,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { resolveAIModelInfo } from '@/lib/sam/ai-provider';
 import {
   getTemplateForDifficulty,
   getMinimumSectionsForDifficulty,
@@ -102,6 +103,9 @@ export async function orchestrateCourseCreation(
   const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId, requestId, requestFingerprint } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
+
+  // Pre-resolve model info for responseFormat decisions (JSON mode for non-reasoning models)
+  const { isReasoningModel } = await resolveAIModelInfo({ userId, capability: 'course' });
 
   // Resolve A/B experiments (all active -- supports concurrent experiments)
   const experimentAssignments = await getActiveExperiments(userId);
@@ -275,8 +279,9 @@ export async function orchestrateCourseCreation(
             requested: config.totalChapters,
             recommended: blueprintPlan.recommendedChapterCount,
             resolved: config.totalChapters,
-            policy: 'user_authoritative',
-            message: `Blueprint suggested ${blueprintPlan.recommendedChapterCount} chapters; keeping requested ${config.totalChapters}.`,
+            policy: 'user_informed',
+            showRecommendation: true,
+            message: `Blueprint suggests ${blueprintPlan.recommendedChapterCount} chapters; using your requested ${config.totalChapters}.`,
           },
         });
       }
@@ -305,7 +310,23 @@ export async function orchestrateCourseCreation(
   const estimatedTokensPerCall = 6000;
   const estimatedTotalTokens = estimatedTotalCalls * estimatedTokensPerCall;
   const estimatedCostUSD = estimatedTotalTokens * 0.000003;
-  const budgetTracker = new PipelineBudgetTracker(estimatedTotalTokens, estimatedCostUSD);
+  const budgetTracker = new PipelineBudgetTracker(
+    estimatedTotalTokens,
+    estimatedCostUSD,
+    undefined,
+    (event) => {
+      trackingOnSSEEvent?.({
+        type: 'budget_warning',
+        data: {
+          threshold: event.threshold,
+          utilization: event.utilization,
+          tokensUsed: event.tokensUsed,
+          maxTokens: event.maxTokens,
+          callCount: event.callCount,
+        },
+      });
+    },
+  );
 
   // Strict mode: always use user's requested chapter count
   const totalChapters = config.totalChapters;
@@ -599,6 +620,7 @@ export async function orchestrateCourseCreation(
         effectiveSectionsPerChapter,
         resumeState,
         batchSize: 3,
+        isReasoningModel,
       });
     } else {
       logger.info('[ORCHESTRATOR] Using SEQUENTIAL pipeline (state machine)', {
@@ -643,6 +665,7 @@ export async function orchestrateCourseCreation(
         totalChapters,
         effectiveSectionsPerChapter,
         resumeState,
+        isReasoningModel,
       });
     }
     chaptersCreated = pipelineResult.chaptersCreated;

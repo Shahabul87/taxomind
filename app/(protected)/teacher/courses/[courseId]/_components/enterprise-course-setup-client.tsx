@@ -71,6 +71,13 @@ interface CategoryOption {
   subcategories?: { label: string; value: string }[];
 }
 
+interface DepthAnalysisInfo {
+  overallScore: number;
+  totalIssues: number;
+  analysisMethod: 'ai' | 'rule-based' | 'hybrid';
+  isStale: boolean;
+}
+
 interface EnterpriseCourseSetupClientProps {
   course: CourseWithRelations;
   categories: CategoryOption[];
@@ -84,6 +91,7 @@ interface EnterpriseCourseSetupClientProps {
     chapters: boolean;
     attachments: boolean;
   };
+  depthAnalysis?: DepthAnalysisInfo;
 }
 
 // MetricCard Component
@@ -245,6 +253,7 @@ export const EnterpriseCourseSetupClient = ({
   categories,
   userId,
   completionStatus,
+  depthAnalysis,
 }: EnterpriseCourseSetupClientProps) => {
   // Calculate course statistics
   const courseStats = useMemo(() => {
@@ -342,6 +351,60 @@ export const EnterpriseCourseSetupClient = ({
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* Depth Analysis Quality Score Banner */}
+        {depthAnalysis && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="w-full mb-3 sm:mb-4 md:mb-6 px-2 sm:px-4 md:px-6"
+          >
+            <Link href="/teacher/depth-analyzer">
+              <div className={cn(
+                "w-full backdrop-blur-md rounded-xl sm:rounded-2xl border-2 shadow-lg p-3 sm:p-4 md:p-5 transition-all duration-300 cursor-pointer group",
+                depthAnalysis.isStale
+                  ? "bg-gradient-to-r from-slate-50/90 to-zinc-50/90 dark:from-slate-950/50 dark:to-zinc-950/50 border-slate-200/60 dark:border-slate-700/40 hover:shadow-xl hover:border-slate-300"
+                  : depthAnalysis.overallScore >= 70
+                    ? "bg-gradient-to-r from-emerald-50/90 to-green-50/90 dark:from-emerald-950/50 dark:to-green-950/50 border-emerald-200/60 dark:border-emerald-700/40 hover:shadow-emerald-500/20"
+                    : "bg-gradient-to-r from-orange-50/90 to-amber-50/90 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200/60 dark:border-orange-700/40 hover:shadow-orange-500/20"
+              )}>
+                <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4">
+                  <div className={cn(
+                    "p-2 sm:p-2.5 rounded-lg sm:rounded-xl shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300",
+                    depthAnalysis.isStale
+                      ? "bg-gradient-to-br from-slate-400 to-zinc-500"
+                      : depthAnalysis.overallScore >= 70
+                        ? "bg-gradient-to-br from-emerald-500 to-green-500"
+                        : "bg-gradient-to-br from-orange-500 to-amber-500"
+                  )}>
+                    <Microscope className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {depthAnalysis.isStale ? (
+                      <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Quality analysis may be outdated. Click to re-analyze.
+                      </p>
+                    ) : (
+                      <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Quality Score: {depthAnalysis.overallScore}/100
+                        {depthAnalysis.totalIssues > 0 && (
+                          <span className="font-normal text-slate-500 dark:text-slate-400">
+                            {' '}&mdash; {depthAnalysis.totalIssues} issue{depthAnalysis.totalIssues !== 1 ? 's' : ''} found
+                          </span>
+                        )}
+                      </p>
+                    )}
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">
+                      {depthAnalysis.analysisMethod === 'rule-based' ? 'Rule-based' : 'AI-powered'} analysis &middot; Click to view details
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+                </div>
+              </div>
+            </Link>
           </motion.div>
         )}
 

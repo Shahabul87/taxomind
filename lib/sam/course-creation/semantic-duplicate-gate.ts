@@ -69,6 +69,38 @@ export class SemanticDuplicateGate {
     return this.assessLexically(candidateText);
   }
 
+  /**
+   * Assess whether a chapter title is too similar to an existing chapter title.
+   * Uses lexical similarity only (no embedding overhead for titles).
+   */
+  assessChapterTitle(
+    candidateTitle: string,
+    existingChapterTitles: string[],
+  ): { isDuplicate: boolean; similarity: number; matchedTitle: string } | null {
+    if (existingChapterTitles.length === 0) return null;
+
+    const candidateNorm = candidateTitle.toLowerCase().trim();
+    let bestSimilarity = -1;
+    let bestMatch = '';
+
+    for (const existing of existingChapterTitles) {
+      const similarity = lexicalSimilarity(candidateNorm, existing.toLowerCase().trim());
+      if (similarity > bestSimilarity) {
+        bestSimilarity = similarity;
+        bestMatch = existing;
+      }
+    }
+
+    const CHAPTER_TITLE_THRESHOLD = 0.65;
+    if (bestSimilarity < CHAPTER_TITLE_THRESHOLD) return null;
+
+    return {
+      isDuplicate: true,
+      similarity: round2(bestSimilarity),
+      matchedTitle: bestMatch,
+    };
+  }
+
   private async getProvider(): Promise<EmbeddingProvider | null> {
     if (!this.embeddingProviderResolved) {
       this.embeddingProviderResolved = true;
@@ -191,7 +223,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-function lexicalSimilarity(a: string, b: string): number {
+export function lexicalSimilarity(a: string, b: string): number {
   const tokensA = normalizeTokens(a);
   const tokensB = normalizeTokens(b);
   if (tokensA.size === 0 || tokensB.size === 0) return 0;
@@ -205,7 +237,7 @@ function lexicalSimilarity(a: string, b: string): number {
   return union > 0 ? overlap / union : 0;
 }
 
-function normalizeTokens(text: string): Set<string> {
+export function normalizeTokens(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()

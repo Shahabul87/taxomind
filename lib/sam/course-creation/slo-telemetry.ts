@@ -39,6 +39,13 @@ export interface CourseCreationSLOSnapshot {
     stage2?: StageLatencyPercentiles;
     stage3?: StageLatencyPercentiles;
   };
+  schemaValidation?: {
+    total: number;
+    passCount: number;
+    warnCount: number;
+    failCount: number;
+    warnRate: number;
+  };
 }
 
 export interface SLOBreach {

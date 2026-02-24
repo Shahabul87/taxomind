@@ -36,6 +36,7 @@ interface DeepSeekRequest {
   top_p?: number;
   stop?: string[];
   stream?: boolean;
+  response_format?: { type: 'json_object' | 'text' };
 }
 
 interface DeepSeekChoice {
@@ -135,6 +136,11 @@ export class DeepSeekAdapter implements AIAdapter {
       stop: params.stopSequences,
     };
 
+    // deepseek-reasoner doesn't support response_format
+    if (params.responseFormat === 'json' && !model.includes('reasoner')) {
+      requestBody.response_format = { type: 'json_object' };
+    }
+
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -197,6 +203,11 @@ export class DeepSeekAdapter implements AIAdapter {
       stop: params.stopSequences,
       stream: true,
     };
+
+    // deepseek-reasoner doesn't support response_format
+    if (params.responseFormat === 'json' && !model.includes('reasoner')) {
+      requestBody.response_format = { type: 'json_object' };
+    }
 
     const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
       method: 'POST',

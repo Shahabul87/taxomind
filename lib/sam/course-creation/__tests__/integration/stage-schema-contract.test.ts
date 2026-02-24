@@ -8,6 +8,8 @@ import {
   parseSectionResponse,
   parseDetailsResponse,
   FallbackTracker,
+  SchemaValidationMetrics,
+  schemaValidationMetrics,
 } from '../../response-parsers';
 import type { CourseContext, GeneratedChapter, GeneratedSection } from '../../types';
 
@@ -226,5 +228,245 @@ describe('Stage schema contracts', () => {
     expect(result.qualityScore.overall).toBe(50);
     expect(result.details.creatorGuidelines.length).toBeGreaterThan(20);
     expect(tracker.count).toBe(1);
+  });
+});
+
+// =============================================================================
+// Validation Mode Tests
+// =============================================================================
+
+describe('Validation mode behavior', () => {
+  beforeEach(() => {
+    schemaValidationMetrics.reset();
+  });
+
+  // Stage 1 chapter with a minor schema issue: bloomsLevel is invalid
+  // but all critical fields (title, objectives) are present and pass validateCriticalFields
+  const chapterPayloadWithMinorIssue = JSON.stringify({
+    thinking: 'Stage1 reasoning',
+    chapter: {
+      title: 'Designing Resilient API Boundaries',
+      description: 'This chapter covers practical API boundary design for resilient systems in production environments.',
+      bloomsLevel: 'INVALID_LEVEL', // <-- invalid enum value
+      learningObjectives: [
+        'Explain resilience patterns in API boundaries',
+        'Describe contract versioning constraints in distributed systems',
+        'Summarize observability signals for API health',
+      ],
+      keyTopics: ['Boundary design', 'Versioning', 'Observability'],
+      prerequisites: 'HTTP basics',
+      estimatedTime: '2 hours',
+      topicsToExpand: ['Boundary design', 'Versioning', 'Observability'],
+    },
+  });
+
+  describe('warn mode keeps AI content with quality penalty', () => {
+    it('Stage 1 (chapter): preserves AI content and penalizes quality score', () => {
+      const result = parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        1,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'warn',
+      );
+
+      // AI content is preserved (not fallback)
+      expect(result.chapter.title).toContain('Resilient API Boundaries');
+      expect(result.chapter.learningObjectives).toHaveLength(courseContext.learningObjectivesPerChapter);
+      // Quality score is penalized (schemaIssues present)
+      expect(result.qualityScore.schemaIssues).toBeDefined();
+      expect(result.qualityScore.schemaIssues!.length).toBeGreaterThan(0);
+      // Not a fallback score (40/50) — should be higher than fallback
+      expect(result.qualityScore.overall).toBeGreaterThan(40);
+    });
+
+    it('Stage 2 (section): preserves AI content and penalizes quality score', () => {
+      // Section with extra unknown field (strict Zod would reject, but our schemas are not .strict())
+      // Instead, use a missing minimum-length title (3 chars required)
+      // Actually the schema uses .min(3) on title, so a 2-char title would fail.
+      // But validateCriticalFields also checks title < 2 chars. Let's use a field
+      // that only Zod validates: topicFocus is optional so missing is fine.
+      // Let's produce something that fails Zod but passes critical fields.
+      // AISectionResponseSchema requires section.title.min(3). A 2-char title
+      // would fail critical field check too. Best approach: use an array where
+      // a string of min(0) is expected but schema requires min(5) for objectives?
+      // Actually section schema has no min-length strings that overlap with critical.
+      // Let's just verify the default warn mode works for Stage 2 with a valid payload.
+      // We can test with an invalid parentChapterContext type.
+      const sectionPayloadWithIssue = JSON.stringify({
+        thinking: 'Stage2',
+        section: {
+          title: 'Versioning Without Breaking Clients',
+          contentType: 'reading',
+          estimatedDuration: '20 minutes',
+          topicFocus: 'Backward compatibility',
+          parentChapterContext: 'invalid_not_an_object', // <-- should be object
+          conceptsIntroduced: ['semantic versioning'],
+        },
+      });
+
+      const result = parseSectionResponse(
+        sectionPayloadWithIssue,
+        1,
+        chapter,
+        [],
+        undefined,
+        undefined,
+        'warn',
+      );
+
+      // AI content preserved
+      expect(result.section.title).toContain('Versioning');
+      // Quality penalized
+      expect(result.qualityScore.schemaIssues).toBeDefined();
+      expect(result.qualityScore.schemaIssues!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('strict mode triggers fallback', () => {
+    it('Stage 1 (chapter): returns fallback content on schema failure', () => {
+      const tracker = new FallbackTracker();
+      const result = parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        1,
+        courseContext,
+        [],
+        null,
+        tracker,
+        'strict',
+      );
+
+      // Fallback content is used
+      expect(result.qualityScore.overall).toBe(40);
+      expect(result.thinking).toContain('fallback');
+      expect(tracker.count).toBe(1);
+      // No schemaIssues on fallback quality score
+      expect(result.qualityScore.schemaIssues).toBeUndefined();
+    });
+
+    it('Stage 3 (details): returns fallback on schema failure (default behavior)', () => {
+      const tracker = new FallbackTracker();
+      // Details with description too short for Zod (< 100 chars) but long enough
+      // for critical validation (>= 30 chars), and practicalActivity too short (< 10 chars)
+      const detailsPayloadWithSchemaIssue = JSON.stringify({
+        details: {
+          description: 'This section explains API versioning patterns for enterprise use.',
+          learningObjectives: [
+            'Apply versioning criteria to enterprise API changes',
+            'Evaluate migration paths for existing API clients',
+          ],
+          keyConceptsCovered: ['versioning'],
+          practicalActivity: 'Draft a versioning policy for a breaking API change.',
+          creatorGuidelines: 'Open with incident context, compare strategies, then demonstrate a migration checklist and common pitfalls in production environments.',
+        },
+      });
+
+      const result = parseDetailsResponse(
+        detailsPayloadWithSchemaIssue,
+        chapter,
+        section,
+        courseContext,
+        undefined,
+        tracker,
+        'strict',
+      );
+
+      // Strict mode for Stage 3 returns fallback
+      expect(result.qualityScore.overall).toBe(40);
+      expect(tracker.count).toBe(1);
+    });
+  });
+
+  describe('silent mode suppresses logging and preserves content', () => {
+    it('Stage 1 (chapter): keeps AI content without throwing', () => {
+      const result = parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        1,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'silent',
+      );
+
+      // AI content preserved (not fallback)
+      expect(result.chapter.title).toContain('Resilient API Boundaries');
+      expect(result.qualityScore.schemaIssues).toBeDefined();
+      expect(result.qualityScore.overall).toBeGreaterThan(40);
+    });
+  });
+
+  describe('SchemaValidationMetrics tracking', () => {
+    it('records pass/warn/fail counts correctly', () => {
+      // Pass: valid Stage 1 payload
+      parseChapterResponse(
+        JSON.stringify({
+          thinking: 'valid',
+          chapter: {
+            title: 'Designing Resilient API Boundaries',
+            description: 'This chapter covers practical API boundary design for resilient systems in production environments.',
+            bloomsLevel: 'UNDERSTAND',
+            learningObjectives: [
+              'Explain resilience patterns',
+              'Describe contract constraints',
+              'Summarize observability signals',
+            ],
+            keyTopics: ['Boundary design', 'Versioning', 'Observability'],
+          },
+        }),
+        1,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'strict',
+      );
+
+      // Warn: invalid Stage 1 payload in warn mode
+      parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        2,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'warn',
+      );
+
+      // Fail: invalid Stage 1 payload in strict mode (triggers fallback)
+      parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        3,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'strict',
+      );
+
+      const snapshot = schemaValidationMetrics.getSnapshot();
+      expect(snapshot.total).toBe(3);
+      expect(snapshot.byOutcome.pass).toBe(1);
+      expect(snapshot.byOutcome.warn).toBe(1);
+      expect(snapshot.byOutcome.fail).toBe(1);
+    });
+
+    it('reset() clears all records', () => {
+      parseChapterResponse(
+        chapterPayloadWithMinorIssue,
+        1,
+        courseContext,
+        [],
+        null,
+        undefined,
+        'warn',
+      );
+
+      expect(schemaValidationMetrics.getSnapshot().total).toBeGreaterThan(0);
+      schemaValidationMetrics.reset();
+      expect(schemaValidationMetrics.getSnapshot().total).toBe(0);
+    });
   });
 });

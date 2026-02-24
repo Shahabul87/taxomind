@@ -37,6 +37,7 @@ interface OpenAIRequest {
   top_p?: number;
   stop?: string[];
   stream?: boolean;
+  response_format?: { type: 'json_object' | 'text' };
 }
 
 interface OpenAIChoice {
@@ -137,6 +138,10 @@ export class OpenAIAdapter implements AIAdapter {
       stop: params.stopSequences,
     };
 
+    if (params.responseFormat === 'json') {
+      requestBody.response_format = { type: 'json_object' };
+    }
+
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -194,6 +199,10 @@ export class OpenAIAdapter implements AIAdapter {
       stop: params.stopSequences,
       stream: true,
     };
+
+    if (params.responseFormat === 'json') {
+      requestBody.response_format = { type: 'json_object' };
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

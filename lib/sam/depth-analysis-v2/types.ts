@@ -28,7 +28,11 @@ export type IssueType =
   | 'ASSESSMENT'
   | 'PREREQUISITE'
   | 'TIME'
-  | 'GAP';
+  | 'GAP'
+  | 'READABILITY'
+  | 'FALLBACK'
+  | 'FACTUAL'
+  | 'LEARNER_EXPERIENCE';
 
 export type IssueStatus =
   | 'OPEN'
@@ -141,6 +145,13 @@ export interface StructureAnalysisResult {
     hasVideo: number;
     hasAssessment: number;
   };
+  /** Content-based reading time estimates per chapter (200 wpm) */
+  timeEstimates?: Array<{
+    chapterId: string;
+    chapterTitle: string;
+    estimatedMinutes: number;
+    wordCount: number;
+  }>;
 }
 
 export interface SectionBloomsResult {
@@ -170,6 +181,16 @@ export interface BloomsAnalysisResult {
   courseBalance: 'well-balanced' | 'bottom-heavy' | 'top-heavy';
   chapters: ChapterBloomsResult[];
   cognitiveDepthScore: number;
+  /** Assigned vs actual Bloom's level alignment per section */
+  bloomsAlignment?: Array<{
+    sectionId: string;
+    sectionTitle: string;
+    chapterId: string;
+    assignedLevel: BloomsLevel;
+    actualLevel: BloomsLevel;
+    isAligned: boolean;
+    gap: number;
+  }>;
 }
 
 export interface FlowAnalysisResult {
@@ -225,6 +246,14 @@ export interface ConsistencyAnalysisResult {
     lengthConsistencyScore: number;
     issues: string[];
   };
+  /** Content diversity score (0-100) — types of content present per chapter */
+  contentDiversityScore?: number;
+  contentDiversityPerChapter?: Array<{
+    chapterId: string;
+    chapterTitle: string;
+    typesFound: string[];
+    score: number;
+  }>;
 }
 
 export interface DuplicateContent {
@@ -434,4 +463,6 @@ export interface AnalyzerOptions {
   onProgress?: ProgressCallback;
   previousAnalysisId?: string;
   aiEnabled?: boolean;
+  /** User ID for AI-powered analyzers that need provider resolution */
+  userId?: string;
 }

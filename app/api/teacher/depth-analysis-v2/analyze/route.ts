@@ -40,6 +40,7 @@ const AnalyzeSchema = z.object({
 const VALID_ISSUE_TYPES: readonly IssueType[] = [
   'STRUCTURE', 'CONTENT', 'FLOW', 'DUPLICATE', 'CONSISTENCY',
   'DEPTH', 'OBJECTIVE', 'ASSESSMENT', 'TIME', 'PREREQUISITE', 'GAP',
+  'READABILITY', 'FALLBACK', 'FACTUAL', 'LEARNER_EXPERIENCE',
 ] as const;
 
 function isValidIssueType(value: string): value is IssueType {
@@ -765,6 +766,7 @@ export async function POST(req: NextRequest) {
                 courseId: validated.courseId,
                 course,
                 aiEnabled: false,
+                userId: session.user.id,
                 previousAnalysisId: status.exists
                   ? (
                       await db.courseDepthAnalysisV2.findFirst({
@@ -844,6 +846,7 @@ export async function POST(req: NextRequest) {
           courseId: validated.courseId,
           course,
           aiEnabled: false,
+          userId: session.user.id,
           previousAnalysisId: status.exists
             ? (
                 await db.courseDepthAnalysisV2.findFirst({

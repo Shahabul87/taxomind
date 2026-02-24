@@ -15,7 +15,7 @@ import {
   completeCourseCreation,
 } from './course-creation-controller';
 import { recordExperimentOutcome, type ExperimentAssignment } from './experiments';
-import { runPostCreationEnrichmentBackground } from './post-creation-enrichment';
+import { runPostCreationEnrichmentBackground, triggerBackgroundDepthAnalysis } from './post-creation-enrichment';
 import { PROMPT_VERSION } from './prompts';
 import {
   CourseCreationSLOTracker,
@@ -178,6 +178,9 @@ export async function finalizeAndEmit(
 
   // Post-creation enrichment (fire-and-forget)
   runPostCreationEnrichmentBackground({ userId, courseId, courseTitle });
+
+  // Auto-trigger background depth analysis (fire-and-forget, 10s delay, rule-based only)
+  triggerBackgroundDepthAnalysis({ courseId, userId });
 
   return {
     success: true,

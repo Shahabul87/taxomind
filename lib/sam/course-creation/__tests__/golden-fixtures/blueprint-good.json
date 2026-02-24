@@ -1,0 +1,40 @@
+{
+  "chapters": [
+    {
+      "position": 1,
+      "title": "HTML Foundations: Document Structure and Semantics",
+      "goal": "Establish understanding of HTML document structure and semantic markup",
+      "bloomsLevel": "REMEMBER",
+      "sections": [
+        { "position": 1, "title": "How Browsers Read Your Code: The Parsing Pipeline", "keyTopics": ["HTML parsing", "DOM construction", "browser rendering"] },
+        { "position": 2, "title": "Semantic Elements: Choosing Tags That Convey Meaning", "keyTopics": ["header", "nav", "main", "article", "section", "footer"] },
+        { "position": 3, "title": "Your First Valid HTML5 Document", "keyTopics": ["doctype", "head", "body", "meta tags", "character encoding"] }
+      ]
+    },
+    {
+      "position": 2,
+      "title": "CSS Fundamentals: Styling and the Box Model",
+      "goal": "Build understanding of CSS selectors, specificity, and the box model",
+      "bloomsLevel": "UNDERSTAND",
+      "sections": [
+        { "position": 1, "title": "Selectors and Specificity: Targeting Elements with Precision", "keyTopics": ["CSS selectors", "specificity hierarchy", "cascade order"] },
+        { "position": 2, "title": "The Box Model: Content, Padding, Border, and Margin", "keyTopics": ["box model", "margin collapse", "box-sizing"] },
+        { "position": 3, "title": "Typography and Color: Making Text Readable and Beautiful", "keyTopics": ["font properties", "color values", "text layout"] }
+      ]
+    },
+    {
+      "position": 3,
+      "title": "Layout Mastery: Flexbox and Grid",
+      "goal": "Apply modern CSS layout techniques to build responsive page structures",
+      "bloomsLevel": "APPLY",
+      "sections": [
+        { "position": 1, "title": "Flexbox: One-Dimensional Layout Made Simple", "keyTopics": ["flex container", "flex items", "alignment", "wrapping"] },
+        { "position": 2, "title": "CSS Grid: Two-Dimensional Layouts for Complex Pages", "keyTopics": ["grid template", "grid areas", "gap", "auto-fit"] },
+        { "position": 3, "title": "Responsive Design: Media Queries and Fluid Layouts", "keyTopics": ["media queries", "breakpoints", "mobile-first", "viewport units"] }
+      ]
+    }
+  ],
+  "northStarProject": "Build a complete responsive portfolio website with semantic HTML, styled with modern CSS including Flexbox and Grid layouts",
+  "confidence": 85,
+  "riskAreas": ["Students may struggle with CSS specificity conflicts", "Grid layout concepts can be overwhelming initially"]
+}

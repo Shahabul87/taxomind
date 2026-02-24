@@ -2,12 +2,11 @@
  * Zod Schemas for AI Response Validation (Course Creation Pipeline)
  *
  * These schemas provide structural validation for AI-generated responses
- * across all 3 pipeline stages. They act as a **soft validation layer**:
- * - On success: confirms AI output matches expected structure
- * - On failure: logs warnings with specific field errors (non-blocking)
- *
- * The pipeline continues with existing `??` fallbacks regardless of
- * validation outcome — Zod catches issues without breaking graceful degradation.
+ * across all 3 pipeline stages. Validation behavior is controlled by
+ * `ValidationMode` ('strict' | 'warn' | 'silent'):
+ * - strict: rejects malformed output and triggers fallback
+ * - warn:   keeps AI content, penalizes quality score, logs issues
+ * - silent: keeps AI content, penalizes quality score, no logging
  */
 
 import { z } from 'zod';
@@ -70,6 +69,31 @@ export const AIDetailsResponseSchema = z.object({
 export type AIChapterResponse = z.infer<typeof AIChapterResponseSchema>;
 export type AISectionResponse = z.infer<typeof AISectionResponseSchema>;
 export type AIDetailsResponse = z.infer<typeof AIDetailsResponseSchema>;
+
+// =============================================================================
+// Validation Mode Configuration
+// =============================================================================
+
+/** How strictly to enforce Zod schema validation on AI responses */
+export type ValidationMode = 'strict' | 'warn' | 'silent';
+
+/** Per-stage validation configuration */
+export interface StageValidationConfig {
+  stage1: ValidationMode; // Chapter structure
+  stage2: ValidationMode; // Section structure
+  stage3: ValidationMode; // Student-facing details
+}
+
+/**
+ * Default validation modes per stage:
+ * - Stage 1/2 (internal structure): 'warn' — keep AI content, penalize score
+ * - Stage 3 (student-facing): 'strict' — reject and retry on schema failure
+ */
+export const DEFAULT_STAGE_VALIDATION: StageValidationConfig = {
+  stage1: 'warn',
+  stage2: 'warn',
+  stage3: 'strict',
+};
 
 // =============================================================================
 // Breadth-First Pipeline: Roadmap Schemas

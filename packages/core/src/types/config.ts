@@ -45,6 +45,8 @@ export interface AIChatParams {
   maxTokens?: number;
   systemPrompt?: string;
   stopSequences?: string[];
+  /** Request JSON-guaranteed output from the provider. Supported: OpenAI, DeepSeek. Ignored by Anthropic. */
+  responseFormat?: 'json' | 'text';
 }
 
 export interface AIMessage {

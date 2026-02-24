@@ -33,6 +33,22 @@ export class BudgetExceededError extends Error {
 }
 
 // ============================================================================
+// Budget Threshold Types
+// ============================================================================
+
+/** Budget threshold event emitted when utilization crosses key thresholds */
+export interface BudgetThresholdEvent {
+  threshold: 70 | 90 | 100;
+  utilization: number;
+  tokensUsed: number;
+  maxTokens: number;
+  callCount: number;
+}
+
+/** Callback type for budget threshold notifications */
+export type BudgetThresholdCallback = (event: BudgetThresholdEvent) => void;
+
+// ============================================================================
 // Budget Tracker
 // ============================================================================
 
@@ -45,19 +61,24 @@ export class PipelineBudgetTracker {
   private accumulatedTokens: number = 0;
   private accumulatedCostUSD: number = 0;
   private callCount: number = 0;
+  private onThreshold?: BudgetThresholdCallback;
+  private thresholdFired: { 70: boolean; 90: boolean; 100: boolean } = { 70: false, 90: false, 100: false };
 
   /**
    * @param estimatedTotalTokens Expected total tokens for the full pipeline run
    * @param estimatedCostUSD Expected total cost for the full pipeline run
    * @param multiplier Budget ceiling multiplier (default: 3x estimate)
+   * @param onThreshold Optional callback fired when utilization crosses 70%, 90%, or 100%
    */
   constructor(
     estimatedTotalTokens: number,
     estimatedCostUSD: number,
     multiplier: number = BUDGET_MULTIPLIER,
+    onThreshold?: BudgetThresholdCallback,
   ) {
     this.maxTotalTokens = Math.ceil(estimatedTotalTokens * multiplier);
     this.maxCostUSD = estimatedCostUSD * multiplier;
+    this.onThreshold = onThreshold;
 
     logger.info('[PipelineBudget] Budget initialized', {
       estimatedTokens: estimatedTotalTokens,
@@ -86,6 +107,8 @@ export class PipelineBudgetTracker {
         utilization: `${Math.round((this.accumulatedTokens / this.maxTotalTokens) * 100)}%`,
       });
     }
+
+    this.checkThresholds();
   }
 
   /**
@@ -128,6 +151,31 @@ export class PipelineBudgetTracker {
         utilization: `${utilization}%`,
         remaining: this.maxTotalTokens - this.accumulatedTokens,
       });
+    }
+
+    this.checkThresholds();
+  }
+
+  /**
+   * Check whether utilization has crossed any threshold (70%, 90%, 100%)
+   * and fire the callback once per threshold.
+   */
+  private checkThresholds(): void {
+    if (!this.onThreshold) return;
+    const utilization = Math.round((this.accumulatedTokens / this.maxTotalTokens) * 100);
+
+    const thresholds = [70, 90, 100] as const;
+    for (const threshold of thresholds) {
+      if (utilization >= threshold && !this.thresholdFired[threshold]) {
+        this.thresholdFired[threshold] = true;
+        this.onThreshold({
+          threshold,
+          utilization,
+          tokensUsed: this.accumulatedTokens,
+          maxTokens: this.maxTotalTokens,
+          callCount: this.callCount,
+        });
+      }
     }
   }
 

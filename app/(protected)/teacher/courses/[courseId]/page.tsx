@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { getLatestAnalysisForCourse } from "@/lib/sam/depth-analysis-v2/analysis-status";
 import { EnterpriseCourseSetupClient } from "./_components/enterprise-course-setup-client";
 
 interface CourseIdPageProps {
@@ -57,6 +58,9 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
    return redirect("/");
  }
 
+  // Fetch latest depth analysis status (for quality score banner)
+  const analysisStatus = await getLatestAnalysisForCourse(course.id);
+
   // Define sections as individual items for tracking completion
   const completionStatus = {
     titleDesc: Boolean(course.title && course.description),
@@ -77,6 +81,12 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
       }))}
       userId={userId}
       completionStatus={completionStatus}
+      depthAnalysis={analysisStatus.hasAnalysis ? {
+        overallScore: analysisStatus.overallScore ?? 0,
+        totalIssues: analysisStatus.totalIssues ?? 0,
+        analysisMethod: analysisStatus.analysisMethod ?? 'rule-based',
+        isStale: analysisStatus.isStale ?? false,
+      } : undefined}
     />
   );
 }
