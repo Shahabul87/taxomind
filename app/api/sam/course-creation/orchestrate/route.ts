@@ -25,6 +25,7 @@ import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
+import { runCoherencePreflight } from '@/lib/sam/course-creation/coherence-preflight';
 
 export const runtime = 'nodejs';
 export const maxDuration = 900; // 15 min per SSE segment; auto-reconnection handles longer courses
@@ -449,6 +450,27 @@ export async function POST(request: NextRequest) {
           percentage: 0,
           message: 'Starting course creation...',
         });
+
+        // === Coherence Preflight (Improvement #8) ===
+        // Run a lightweight coherence check on the teacher blueprint BEFORE
+        // committing to the expensive generation pipeline.
+        if (config.teacherBlueprint) {
+          const preflight = runCoherencePreflight({
+            courseTitle: config.courseTitle,
+            courseGoals: config.courseGoals,
+            teacherBlueprint: config.teacherBlueprint,
+          });
+          sendSSE('coherence_preflight', {
+            score: preflight.score,
+            warnings: preflight.warnings,
+            passed: preflight.passed,
+          });
+          if (!preflight.passed) {
+            logger.warn('[ORCHESTRATE_ROUTE] Low coherence preflight score', {
+              runId, score: preflight.score, warnings: preflight.warnings,
+            });
+          }
+        }
 
         try {
           const orchestrateOptions = {

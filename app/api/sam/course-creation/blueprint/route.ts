@@ -8,6 +8,7 @@
  * This route handles: auth, validation, SSE setup, and orchestration.
  */
 
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithMetadata, resolveAIModelInfo, withSubscriptionGate } from '@/lib/sam/ai-provider';
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parseResult.data;
+  const runId = crypto.randomUUID();
 
   // --- SSE stream ---
   const encoder = new TextEncoder();
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
       function sendSSE(event: string, payload: Record<string, unknown>) {
         if (streamClosed) return;
         try {
-          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`));
+          controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify({ ...payload, runId })}\n\n`));
         } catch { streamClosed = true; }
       }
 
@@ -163,15 +165,15 @@ export async function POST(request: NextRequest) {
               milestoneCount: northStarContext.milestones.length,
             });
             logger.info('[BLUEPRINT_ROUTE] North Star Pass 1 succeeded', {
-              northStarProject: northStarContext.northStarProject.slice(0, 100),
+              runId, northStarProject: northStarContext.northStarProject.slice(0, 100),
               milestones: northStarContext.milestones.length,
             });
           } else {
-            logger.warn('[BLUEPRINT_ROUTE] North Star Pass 1 parse failed, falling back to single-pass');
+            logger.warn('[BLUEPRINT_ROUTE] North Star Pass 1 parse failed, falling back to single-pass', { runId });
           }
         } catch (nsError) {
           logger.warn('[BLUEPRINT_ROUTE] North Star Pass 1 failed, falling back to single-pass', {
-            error: nsError instanceof Error ? nsError.message : String(nsError),
+            runId, error: nsError instanceof Error ? nsError.message : String(nsError),
           });
           // Graceful fallback: proceed without North Star context (single-pass behavior)
         }
@@ -193,7 +195,7 @@ export async function POST(request: NextRequest) {
           : Math.min(8192, 2000 + data.chapterCount * 300 + totalSections * 150);
 
         logger.info('[BLUEPRINT_ROUTE] Strategy', {
-          isReasoningModel, model: resolvedModel, timeout: BLUEPRINT_TIMEOUT_MS,
+          runId, isReasoningModel, model: resolvedModel, timeout: BLUEPRINT_TIMEOUT_MS,
           maxTokens: blueprintMaxTokens, totalSections,
         });
 
@@ -219,12 +221,12 @@ export async function POST(request: NextRequest) {
           const aiResult = await Promise.race([aiPromise, timeoutPromise]);
           responseText = aiResult.content;
           logger.info('[BLUEPRINT_ROUTE] AI call succeeded', {
-            elapsed: `${Date.now() - aiStartTime}ms`, responseLength: responseText.length,
+            runId, elapsed: `${Date.now() - aiStartTime}ms`, responseLength: responseText.length,
             provider: aiResult.provider, model: aiResult.model,
           });
         } catch (aiError) {
           const errMsg = aiError instanceof Error ? aiError.message : 'Unknown AI error';
-          logger.warn('[BLUEPRINT_ROUTE] AI call failed, using heuristic fallback', { error: errMsg });
+          logger.warn('[BLUEPRINT_ROUTE] AI call failed, using heuristic fallback', { runId, error: errMsg });
           const fallback = buildHeuristicBlueprint(data);
           sendSSE('progress', { stage: 'complete', message: 'Blueprint ready (fallback)!', percentage: 100 });
           sendSSE('complete', { success: true, blueprint: fallback });
@@ -238,7 +240,7 @@ export async function POST(request: NextRequest) {
         // =====================================================================
         let blueprint = parseBlueprintResponse(responseText, data, bloomsDistribution);
         if (!blueprint) {
-          logger.warn('[BLUEPRINT_ROUTE] Failed to parse AI response, using heuristic');
+          logger.warn('[BLUEPRINT_ROUTE] Failed to parse AI response, using heuristic', { runId });
           const fallback = buildHeuristicBlueprint(data);
           sendSSE('progress', { stage: 'complete', message: 'Blueprint ready (fallback)!', percentage: 100 });
           sendSSE('complete', { success: true, blueprint: fallback });
@@ -374,7 +376,7 @@ export async function POST(request: NextRequest) {
             }
           } catch (retryError) {
             logger.warn('[BLUEPRINT_ROUTE] Retry failed, keeping original', {
-              error: retryError instanceof Error ? retryError.message : String(retryError),
+              runId, error: retryError instanceof Error ? retryError.message : String(retryError),
             });
           }
         }
@@ -415,7 +417,7 @@ export async function POST(request: NextRequest) {
 
       } catch (error) {
         const msg = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('[BLUEPRINT_ROUTE] Error:', { error: msg });
+        logger.error('[BLUEPRINT_ROUTE] Error:', { runId, error: msg });
         sendSSE('error', { success: false, error: msg });
       } finally {
         clearInterval(heartbeat);
@@ -430,6 +432,7 @@ export async function POST(request: NextRequest) {
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no',
+      'X-Run-Id': runId,
     },
   });
 }

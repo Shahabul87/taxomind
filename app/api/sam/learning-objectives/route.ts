@@ -1,3 +1,13 @@
+/**
+ * Learning Objectives API
+ *
+ * Generates AI-powered learning objectives with Bloom&apos;s taxonomy alignment.
+ * Improvements applied: Zod response schemas (#1), input sanitization (#2),
+ * retry+quality gate (#3), safety moderation (#4), runId tracing (#5),
+ * explicit source field (#6).
+ */
+
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
@@ -5,6 +15,17 @@ import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
+import { sanitizeForPrompt } from '@/lib/sam/course-creation/helpers';
+import { retryWithQualityGate } from '@/lib/sam/course-creation/retry-quality-gate';
+import {
+  extractJSON,
+  ObjectivesAIResponseSchema,
+  runStepSafetyCheck,
+  scoreObjectives,
+  type LearningObjectiveItem,
+  type StepApiSource,
+  type StepSafetyWarning,
+} from '@/lib/sam/course-creation/step-api-utils';
 
 export const runtime = 'nodejs';
 
@@ -27,29 +48,32 @@ const LearningObjectiveRequestSchema = z.object({
 
 type LearningObjectiveRequest = z.infer<typeof LearningObjectiveRequestSchema>;
 
-interface LearningObjective {
-  objective: string;
-  bloomsLevel: string;
-  actionVerb: string;
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface ObjectivesResponse {
+  objectives: LearningObjectiveItem[];
+  source: StepApiSource;
+  runId: string;
+  safetyWarnings?: StepSafetyWarning[];
 }
 
-/**
- * Extract JSON from AI response that may contain markdown fences, extra text,
- * or <think>...</think> blocks from reasoning models (e.g. deepseek-reasoner).
- */
-function extractJSON(text: string): string {
-  // Strip <think>...</think> blocks (reasoning models like deepseek-reasoner)
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-
-  // Strip markdown code fences
-  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-
-  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (objectMatch) return objectMatch[0];
-  const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (arrayMatch) return arrayMatch[0];
-  return cleaned.trim();
+interface ObjectivesRetryFeedback {
+  issues: string[];
+  missingLevels?: string[];
 }
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const RETRY_THRESHOLD = 70;
+const FALLBACK_SCORE = 50;
+
+// =============================================================================
+// HANDLER
+// =============================================================================
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,32 +94,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const runId = crypto.randomUUID();
     const body = parseResult.data;
     const requestedCount = body.count ?? 5;
 
     try {
-      const objectives = await withRetryableTimeout(
-        () => generateLearningObjectivesAI(user.id, body, requestedCount),
+      const result = await withRetryableTimeout(
+        () => generateObjectivesWithRetry(user.id, body, requestedCount, runId),
         90_000,
         'learning-objectives'
       );
-      return NextResponse.json({ objectives });
+      return NextResponse.json(result, {
+        headers: { 'X-Run-Id': runId },
+      });
     } catch (aiError) {
       if (aiError instanceof OperationTimeoutError) {
         logger.warn('[LEARNING-OBJECTIVES] AI timed out, using fallback', {
-          operation: aiError.operationName,
+          runId, operation: aiError.operationName,
         });
       } else {
         const accessResponse = handleAIAccessError(aiError);
         if (accessResponse) return accessResponse;
         logger.warn('[LEARNING-OBJECTIVES] AI failed, using fallback', {
-          error: aiError instanceof Error ? aiError.message : String(aiError),
+          runId, error: aiError instanceof Error ? aiError.message : String(aiError),
         });
       }
 
-      // Fall back to rule-based generation
+      // Final fallback (both retry attempts failed + withRetryableTimeout failed)
       const objectives = generateLearningObjectivesFallback(body, requestedCount);
-      return NextResponse.json({ objectives });
+      return NextResponse.json(
+        { objectives, source: 'fallback' as const, runId },
+        { headers: { 'X-Run-Id': runId } },
+      );
     }
   } catch (error) {
     logger.error('[LEARNING-OBJECTIVES] Error:', error);
@@ -104,15 +134,24 @@ export async function POST(request: NextRequest) {
 }
 
 // =============================================================================
-// AI-Powered Generation
+// GENERATION WITH RETRY + QUALITY GATE
 // =============================================================================
 
-async function generateLearningObjectivesAI(
+async function generateObjectivesWithRetry(
   userId: string,
   data: LearningObjectiveRequest,
-  count: number
-): Promise<LearningObjective[]> {
-  const { title, overview, category, subcategory, targetAudience, difficulty, intent, bloomsFocus, existingObjectives } = data;
+  requestedCount: number,
+  runId: string,
+): Promise<ObjectivesResponse> {
+  // === Input Sanitization (Improvement #2) ===
+  const title = sanitizeForPrompt(data.title, 500);
+  const overview = data.overview ? sanitizeForPrompt(data.overview, 2000) : undefined;
+  const category = data.category ? sanitizeForPrompt(data.category, 100) : undefined;
+  const subcategory = data.subcategory ? sanitizeForPrompt(data.subcategory, 100) : undefined;
+  const targetAudience = data.targetAudience ? sanitizeForPrompt(data.targetAudience, 200) : undefined;
+  const difficulty = data.difficulty ? sanitizeForPrompt(data.difficulty, 50) : undefined;
+  const intent = data.intent ? sanitizeForPrompt(data.intent, 500) : undefined;
+  const { bloomsFocus, existingObjectives } = data;
 
   const hasBloomsFocus = bloomsFocus && bloomsFocus.length > 0;
 
@@ -133,24 +172,43 @@ You MUST distribute objectives across ONLY these levels: ${bloomsFocus.join(', '
 
   const systemPrompt = `You are a senior instructional designer with expertise in Bloom's taxonomy and backward design. Generate measurable, course-specific learning objectives using the ABCD format (Audience, Behavior, Condition, Degree). Every objective must use the correct action verb for its Bloom's level and reference specific skills from the course — not generic filler. Return ONLY valid JSON. No markdown fences, no extra text.`;
 
-  // Build context block — omit empty fields instead of "Not specified"
-  const contextLines: string[] = [];
-  if (overview) contextLines.push(`COURSE OVERVIEW: "${overview.slice(0, 500)}"`);
-  if (category) contextLines.push(`CATEGORY: ${category}${subcategory ? ` > ${subcategory}` : ''}`);
-  if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
-  if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
-  if (intent) contextLines.push(`INTENT: ${intent}`);
+  // === Retry with Quality Gate (Improvement #3) ===
+  const buildFallback = (): LearningObjectiveItem[] => {
+    return generateLearningObjectivesFallback(data, requestedCount);
+  };
 
-  const contextBlock = contextLines.length > 0
-    ? `\n${contextLines.join('\n')}\n`
-    : '';
+  const { bestResult, attemptsUsed } = await retryWithQualityGate<
+    LearningObjectiveItem[],
+    ObjectivesRetryFeedback
+  >({
+    strategy: { maxRetries: 1, retryThreshold: RETRY_THRESHOLD },
+    fallbackScore: FALLBACK_SCORE,
+    buildFallback,
+    executeAttempt: async (attempt, feedback) => {
+      try {
+        // Build retry feedback block
+        const retryBlock = attempt > 0 && feedback
+          ? buildRetryFeedbackBlock(feedback)
+          : '';
 
-  const prompt = `COURSE TITLE: "${title}"
+        // Build context block
+        const contextLines: string[] = [];
+        if (overview) contextLines.push(`COURSE OVERVIEW: "${overview.slice(0, 500)}"`);
+        if (category) contextLines.push(`CATEGORY: ${category}${subcategory ? ` > ${subcategory}` : ''}`);
+        if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
+        if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
+        if (intent) contextLines.push(`INTENT: ${intent}`);
+
+        const contextBlock = contextLines.length > 0
+          ? `\n${contextLines.join('\n')}\n`
+          : '';
+
+        const prompt = `COURSE TITLE: "${title}"
 ${contextBlock}
 ${bloomsConstraint}
 ${existingBlock}
-
-Generate ${count} learning objectives for "${title}".
+${retryBlock}
+Generate ${requestedCount} learning objectives for "${title}".
 
 For each objective:
 - START with a measurable action verb from the correct Bloom's level
@@ -175,34 +233,114 @@ QUALITY REQUIREMENTS:
 Return ONLY this JSON:
 {"objectives":[{"objective":"Full text","bloomsLevel":"LEVEL","actionVerb":"verb"}]}`;
 
-  const responseText = await runSAMChatWithPreference({
-    userId,
-    capability: 'course',
-    systemPrompt,
-    maxTokens: 4000,
-    temperature: 0.4,
-    messages: [{ role: 'user', content: prompt }],
+        const responseText = await runSAMChatWithPreference({
+          userId,
+          capability: 'course',
+          systemPrompt,
+          maxTokens: 4000,
+          temperature: 0.4,
+          messages: [{ role: 'user', content: prompt }],
+        });
+
+        // === Zod Response Validation (Improvement #1) ===
+        const jsonStr = extractJSON(responseText);
+        const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+
+        const validated = ObjectivesAIResponseSchema.safeParse(parsed);
+        if (validated.success && validated.data.objectives.length > 0) {
+          const objectives = validated.data.objectives.slice(0, requestedCount);
+          return {
+            result: objectives,
+            score: scoreObjectives(objectives, requestedCount),
+          };
+        }
+
+        logger.warn('[LEARNING-OBJECTIVES] AI response did not match schema', {
+          runId, responsePreview: responseText.slice(0, 300),
+        });
+        return { result: buildFallback(), score: FALLBACK_SCORE };
+      } catch (error) {
+        logger.warn('[LEARNING-OBJECTIVES] AI attempt failed', {
+          runId, attempt, error: error instanceof Error ? error.message : String(error),
+        });
+        return { result: buildFallback(), score: FALLBACK_SCORE };
+      }
+    },
+    extractFeedback: (result, score) => {
+      const issues: string[] = [];
+      if (result.length < requestedCount) {
+        issues.push(`Only ${result.length} objectives generated, need ${requestedCount}`);
+      }
+      const uniqueLevels = new Set(result.map(o => o.bloomsLevel.toUpperCase()));
+      if (uniqueLevels.size < 3 && requestedCount >= 4) {
+        const allLevels = hasBloomsFocus ? bloomsFocus : ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+        const missing = allLevels.filter(l => !uniqueLevels.has(l.toUpperCase()));
+        issues.push(`Poor Bloom's diversity — only ${uniqueLevels.size} unique levels`);
+        return { issues, missingLevels: missing.slice(0, 3) };
+      }
+      const vague = result.filter(o => o.objective.length < 30);
+      if (vague.length > 0) {
+        issues.push(`${vague.length} objectives are too vague (under 30 chars)`);
+      }
+      if (issues.length === 0 && score < RETRY_THRESHOLD) {
+        issues.push('Overall quality below threshold');
+      }
+      return { issues };
+    },
+    onRetry: (attempt, previousScore, topIssue) => {
+      logger.info('[LEARNING-OBJECTIVES] Retrying with quality feedback', {
+        runId, attempt, previousScore, topIssue,
+      });
+    },
   });
 
-  try {
-    const jsonStr = extractJSON(responseText);
-    const parsed = JSON.parse(jsonStr) as { objectives: LearningObjective[] };
+  // === Determine Source (Improvement #6) ===
+  // Check if all objectives come from the rule-based fallback
+  const isFallback = bestResult.every(o =>
+    o.objective.startsWith('Identify the key concepts') ||
+    o.objective.startsWith('Define the foundational') ||
+    o.objective.startsWith('Explain the fundamental') ||
+    o.objective.startsWith('Summarize the core') ||
+    o.objective.startsWith('Apply learned techniques') ||
+    o.objective.startsWith('Implement industry-standard')
+  );
+  const source: StepApiSource = isFallback ? 'fallback' : 'ai';
 
-    if (Array.isArray(parsed.objectives) && parsed.objectives.length > 0) {
-      return parsed.objectives.slice(0, count).map(obj => ({
-        objective: obj.objective,
-        bloomsLevel: obj.bloomsLevel ?? 'UNDERSTAND',
-        actionVerb: obj.actionVerb ?? obj.objective.split(' ')[0],
-      }));
-    }
-  } catch (parseError) {
-    logger.error('[LEARNING-OBJECTIVES] Failed to parse AI response:', {
-      error: parseError instanceof Error ? parseError.message : String(parseError),
-      responsePreview: responseText.slice(0, 500),
-    });
-  }
+  // === Safety Check (Improvement #4) ===
+  const safetyContent = bestResult.map(o => o.objective).join(' | ');
+  const safetyResult = await runStepSafetyCheck(safetyContent, {
+    difficulty: difficulty || 'BEGINNER',
+    targetAudience: targetAudience || 'general audience',
+  });
 
-  throw new Error('AI response did not contain valid objectives');
+  logger.info('[LEARNING-OBJECTIVES] Generation complete', {
+    runId, source, attemptsUsed, objectiveCount: bestResult.length,
+    qualityScore: scoreObjectives(bestResult, requestedCount),
+    safetyPassed: safetyResult.passed,
+  });
+
+  return {
+    objectives: bestResult,
+    source,
+    runId,
+    ...(safetyResult.warnings.length > 0 && { safetyWarnings: safetyResult.warnings }),
+  };
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function buildRetryFeedbackBlock(feedback: ObjectivesRetryFeedback): string {
+  if (feedback.issues.length === 0) return '';
+  const lines = feedback.issues.map(i => `- ${i}`).join('\n');
+  const missingBlock = feedback.missingLevels?.length
+    ? `\nMissing Bloom's levels to include: ${feedback.missingLevels.join(', ')}`
+    : '';
+  return `
+QUALITY FEEDBACK — Fix these issues in your next attempt:
+${lines}${missingBlock}
+`;
 }
 
 // =============================================================================
@@ -212,7 +350,7 @@ Return ONLY this JSON:
 function generateLearningObjectivesFallback(
   data: LearningObjectiveRequest,
   count: number
-): LearningObjective[] {
+): LearningObjectiveItem[] {
   const { title, category, difficulty, bloomsFocus } = data;
   const topic = title || 'the subject matter';
   const skillArea = category ? getSkillAreaFromCategory(category) : topic;
@@ -256,7 +394,7 @@ function generateLearningObjectivesFallback(
     levels = ['REMEMBER', 'UNDERSTAND', 'APPLY'];
   }
 
-  const results: LearningObjective[] = [];
+  const results: LearningObjectiveItem[] = [];
   let levelIdx = 0;
   while (results.length < count && levelIdx < levels.length * 2) {
     const level = levels[levelIdx % levels.length];

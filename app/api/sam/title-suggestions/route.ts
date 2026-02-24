@@ -1,3 +1,13 @@
+/**
+ * Title Suggestions API
+ *
+ * Generates AI-powered course title suggestions with quality scores.
+ * Improvements applied: Zod response schemas (#1), input sanitization (#2),
+ * retry+quality gate (#3), safety moderation (#4), runId tracing (#5),
+ * explicit source field (#6).
+ */
+
+import crypto from 'crypto';
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
@@ -6,6 +16,18 @@ import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/tim
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
 import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
+import { sanitizeForPrompt } from '@/lib/sam/course-creation/helpers';
+import { retryWithQualityGate } from '@/lib/sam/course-creation/retry-quality-gate';
+import {
+  extractJSON,
+  TitleAIResponseSchema,
+  TitleLegacyResponseSchema,
+  runStepSafetyCheck,
+  computeAverageScore,
+  type TitleWithScore,
+  type StepApiSource,
+  type StepSafetyWarning,
+} from '@/lib/sam/course-creation/step-api-utils';
 
 export const runtime = 'nodejs';
 
@@ -35,48 +57,29 @@ const TitleSuggestionRequestSchema = z.object({
 // TYPES
 // =============================================================================
 
-interface TitleWithScore {
-  title: string;
-  marketingScore: number;
-  brandingScore: number;
-  salesScore: number;
-  overallScore: number;
-  reasoning: string;
-}
-
 interface TitleSuggestionResponse {
   titles: string[];
   scoredTitles: TitleWithScore[];
-  suggestions: {
-    message: string;
-    reasoning: string;
-  };
+  suggestions: { message: string; reasoning: string };
+  source: StepApiSource;
+  runId: string;
+  safetyWarnings?: StepSafetyWarning[];
 }
+
+interface TitleRetryFeedback {
+  weakTitles: Array<{ title: string; score: number; issues: string[] }>;
+}
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const RETRY_THRESHOLD = 70;
+const FALLBACK_SCORE = 50;
 
 // =============================================================================
 // HANDLER
 // =============================================================================
-
-/**
- * Extract JSON from AI response that may contain markdown fences or extra text.
- */
-function extractJSON(text: string): string {
-  // Strip <think>...</think> blocks (reasoning models like deepseek-reasoner)
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-
-  // Strip markdown code fences
-  cleaned = cleaned.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
-
-  // Try to find a JSON object
-  const objectMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (objectMatch) return objectMatch[0];
-
-  // Try to find a JSON array
-  const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (arrayMatch) return arrayMatch[0];
-
-  return cleaned.trim();
-}
 
 export async function POST(req: Request) {
   try {
@@ -84,7 +87,6 @@ export async function POST(req: Request) {
     if (rateLimitResponse) return rateLimitResponse;
 
     const user = await currentUser();
-
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -98,13 +100,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const runId = crypto.randomUUID();
+
     const suggestions = await withRetryableTimeout(
-      () => generateTitleSuggestions(user.id, parseResult.data),
+      () => generateTitleSuggestions(user.id, parseResult.data, runId),
       90_000,
       'title-suggestions'
     );
 
-    return NextResponse.json(suggestions);
+    return NextResponse.json(suggestions, {
+      headers: { 'X-Run-Id': runId },
+    });
 
   } catch (error) {
     if (error instanceof OperationTimeoutError) {
@@ -117,7 +123,6 @@ export async function POST(req: Request) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error("[TITLE-SUGGESTIONS] Error:", error);
 
-    // Return structured error so the frontend can show a meaningful message
     const isProviderError = errorMsg.includes('Rate limit') || errorMsg.includes('credit balance') || errorMsg.includes('Model Not Exist');
     return NextResponse.json(
       {
@@ -131,11 +136,25 @@ export async function POST(req: Request) {
   }
 }
 
+// =============================================================================
+// GENERATION WITH RETRY + QUALITY GATE
+// =============================================================================
+
 async function generateTitleSuggestions(
   userId: string,
   request: z.infer<typeof TitleSuggestionRequestSchema>,
+  runId: string,
 ): Promise<TitleSuggestionResponse> {
-  const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 4, refinementContext } = request;
+  const { count = 4, refinementContext } = request;
+
+  // === Input Sanitization (Improvement #2) ===
+  const currentTitle = sanitizeForPrompt(request.currentTitle, 500);
+  const overview = request.overview ? sanitizeForPrompt(request.overview, 2000) : undefined;
+  const category = request.category ? sanitizeForPrompt(request.category, 100) : undefined;
+  const subcategory = request.subcategory ? sanitizeForPrompt(request.subcategory, 100) : undefined;
+  const difficulty = request.difficulty ? sanitizeForPrompt(request.difficulty, 50) : undefined;
+  const intent = request.intent ? sanitizeForPrompt(request.intent, 500) : undefined;
+  const targetAudience = request.targetAudience ? sanitizeForPrompt(request.targetAudience, 200) : undefined;
 
   // Load domain skills for domain-aware title generation
   let domainExpertiseBlock = '';
@@ -161,34 +180,39 @@ ${domainExpertiseBlock}
 
 Return ONLY valid JSON. No markdown fences, no extra text.`;
 
-  // Build refinement block if refining weak titles
-  let refinementBlock = '';
-  if (refinementContext?.weakTitles && refinementContext.weakTitles.length > 0) {
-    const weakList = refinementContext.weakTitles
-      .map(w => `- "${w.title}" (score: ${w.score}/100, issues: ${w.issues.join(', ') || 'general quality'})`)
-      .join('\n');
-    refinementBlock = `
-REFINEMENT MODE — The following titles scored poorly. Generate IMPROVED replacements that fix the identified issues:
-${weakList}
+  // === Retry with Quality Gate (Improvement #3) ===
+  const buildFallback = (): { scoredTitles: TitleWithScore[]; suggestions: { message: string; reasoning: string } } => {
+    return buildTitleFallback(currentTitle, difficulty, count);
+  };
 
-Focus on fixing the specific weaknesses while keeping the titles on-topic.
-`;
-  }
+  const { bestResult, attemptsUsed } = await retryWithQualityGate<
+    { scoredTitles: TitleWithScore[]; suggestions: { message: string; reasoning: string } },
+    TitleRetryFeedback
+  >({
+    strategy: { maxRetries: 1, retryThreshold: RETRY_THRESHOLD },
+    fallbackScore: FALLBACK_SCORE,
+    buildFallback,
+    executeAttempt: async (attempt, feedback) => {
+      try {
+        // Build refinement block: user context for first attempt, server feedback for retry
+        const refinementBlock = attempt === 0
+          ? buildRefinementBlock(refinementContext?.weakTitles)
+          : buildRefinementBlock(feedback?.weakTitles);
 
-  // Build context block — omit empty fields instead of "Not specified"
-  const contextLines: string[] = [];
-  if (category) contextLines.push(`CATEGORY: ${category}`);
-  if (subcategory) contextLines.push(`SUBCATEGORY: ${subcategory}`);
-  if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
-  if (intent) contextLines.push(`INTENT: ${intent}`);
-  if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
-  if (overview) contextLines.push(`OVERVIEW SUMMARY: ${overview.slice(0, 300)}`);
+        // Build context block
+        const contextLines: string[] = [];
+        if (category) contextLines.push(`CATEGORY: ${category}`);
+        if (subcategory) contextLines.push(`SUBCATEGORY: ${subcategory}`);
+        if (difficulty) contextLines.push(`DIFFICULTY: ${difficulty}`);
+        if (intent) contextLines.push(`INTENT: ${intent}`);
+        if (targetAudience) contextLines.push(`TARGET AUDIENCE: ${targetAudience}`);
+        if (overview) contextLines.push(`OVERVIEW SUMMARY: ${overview.slice(0, 300)}`);
 
-  const contextBlock = contextLines.length > 0
-    ? `\nCONTEXT:\n${contextLines.join('\n')}\n`
-    : '';
+        const contextBlock = contextLines.length > 0
+          ? `\nCONTEXT:\n${contextLines.join('\n')}\n`
+          : '';
 
-  const prompt = `SUBJECT: "${currentTitle}"
+        const prompt = `SUBJECT: "${currentTitle}"
 ${contextBlock}${refinementBlock}
 Generate exactly ${count} course titles for the subject above, each with quality scores.
 
@@ -219,78 +243,144 @@ Return this JSON:
   }
 }`;
 
-  const responseText = await runSAMChatWithPreference({
-    userId,
-    capability: 'course',
-    systemPrompt,
-    maxTokens: 1500,
-    temperature: 0.5,
-    messages: [{ role: 'user', content: prompt }],
+        const responseText = await runSAMChatWithPreference({
+          userId,
+          capability: 'course',
+          systemPrompt,
+          maxTokens: 1500,
+          temperature: 0.5,
+          messages: [{ role: 'user', content: prompt }],
+        });
+
+        // === Zod Response Validation (Improvement #1) ===
+        const jsonStr = extractJSON(responseText);
+        const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+
+        // Try primary schema (scoredTitles format)
+        const primaryResult = TitleAIResponseSchema.safeParse(parsed);
+        if (primaryResult.success) {
+          const scored = primaryResult.data.scoredTitles
+            .slice(0, count)
+            .filter(t => t.title.length > 0);
+
+          if (scored.length > 0) {
+            return {
+              result: {
+                scoredTitles: scored,
+                suggestions: primaryResult.data.suggestions ?? {
+                  message: 'AI-generated titles based on your course topic.',
+                  reasoning: 'These titles are optimized for the specific subject matter.',
+                },
+              },
+              score: computeAverageScore(scored),
+            };
+          }
+        }
+
+        // Try legacy schema (titles array format)
+        const legacyResult = TitleLegacyResponseSchema.safeParse(parsed);
+        if (legacyResult.success) {
+          const titles = legacyResult.data.titles.slice(0, count);
+          const scored: TitleWithScore[] = titles.map(title => ({
+            title,
+            marketingScore: 75,
+            brandingScore: 75,
+            salesScore: 75,
+            overallScore: 75,
+            reasoning: 'AI-generated title based on your course topic.',
+          }));
+          return {
+            result: {
+              scoredTitles: scored,
+              suggestions: legacyResult.data.suggestions ?? {
+                message: 'AI-generated titles based on your course topic.',
+                reasoning: 'These titles are optimized for the specific subject matter.',
+              },
+            },
+            score: computeAverageScore(scored),
+          };
+        }
+
+        logger.warn('[TITLE-SUGGESTIONS] AI response did not match any schema', {
+          runId, responsePreview: responseText.slice(0, 300),
+        });
+        return { result: buildFallback(), score: FALLBACK_SCORE };
+      } catch (error) {
+        logger.warn('[TITLE-SUGGESTIONS] AI attempt failed', {
+          runId, attempt, error: error instanceof Error ? error.message : String(error),
+        });
+        return { result: buildFallback(), score: FALLBACK_SCORE };
+      }
+    },
+    extractFeedback: (result) => ({
+      weakTitles: result.scoredTitles
+        .filter(t => t.overallScore < RETRY_THRESHOLD)
+        .map(t => ({
+          title: t.title,
+          score: t.overallScore,
+          issues: [t.overallScore < 50 ? 'Very low quality score' : 'Below quality threshold'],
+        })),
+    }),
+    onRetry: (attempt, previousScore, topIssue) => {
+      logger.info('[TITLE-SUGGESTIONS] Retrying with quality feedback', {
+        runId, attempt, previousScore, topIssue,
+      });
+    },
   });
 
-  // Robust JSON parsing: strip markdown fences, find JSON object
-  try {
-    const jsonStr = extractJSON(responseText);
-    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+  // === Determine Source (Improvement #6) ===
+  const isFallback = bestResult.scoredTitles.some(t =>
+    t.reasoning.includes('Fallback') || t.reasoning.includes('unavailable')
+  );
+  const source: StepApiSource = isFallback ? 'fallback' : 'ai';
 
-    // Handle new combined format with scoredTitles
-    if (Array.isArray(parsed.scoredTitles) && (parsed.scoredTitles as Array<Record<string, unknown>>).length > 0) {
-      const scoredTitles: TitleWithScore[] = (parsed.scoredTitles as Array<Record<string, unknown>>)
-        .slice(0, count)
-        .map(item => ({
-          title: typeof item.title === 'string' ? item.title : '',
-          marketingScore: typeof item.marketingScore === 'number' ? item.marketingScore : 75,
-          brandingScore: typeof item.brandingScore === 'number' ? item.brandingScore : 75,
-          salesScore: typeof item.salesScore === 'number' ? item.salesScore : 75,
-          overallScore: typeof item.overallScore === 'number'
-            ? item.overallScore
-            : Math.round(((typeof item.marketingScore === 'number' ? item.marketingScore : 75)
-                + (typeof item.brandingScore === 'number' ? item.brandingScore : 75)
-                + (typeof item.salesScore === 'number' ? item.salesScore : 75)) / 3),
-          reasoning: typeof item.reasoning === 'string' ? item.reasoning : 'AI-generated title optimized for the target audience.',
-        }))
-        .filter(t => t.title.length > 0);
+  // === Safety Check (Improvement #4) ===
+  const safetyContent = bestResult.scoredTitles.map(t => t.title).join(' | ');
+  const safetyResult = await runStepSafetyCheck(safetyContent, {
+    difficulty: difficulty || 'BEGINNER',
+    targetAudience: targetAudience || 'general audience',
+  });
 
-      const suggestions = parsed.suggestions as Record<string, unknown> | undefined;
+  logger.info('[TITLE-SUGGESTIONS] Generation complete', {
+    runId, source, attemptsUsed, titleCount: bestResult.scoredTitles.length,
+    avgScore: computeAverageScore(bestResult.scoredTitles),
+    safetyPassed: safetyResult.passed,
+  });
 
-      return {
-        titles: scoredTitles.map(t => t.title),
-        scoredTitles,
-        suggestions: {
-          message: typeof suggestions?.message === 'string' ? suggestions.message : 'AI-generated titles based on your course topic.',
-          reasoning: typeof suggestions?.reasoning === 'string' ? suggestions.reasoning : 'These titles are optimized for the specific subject matter.',
-        },
-      };
-    }
+  return {
+    titles: bestResult.scoredTitles.map(t => t.title),
+    scoredTitles: bestResult.scoredTitles,
+    suggestions: bestResult.suggestions,
+    source,
+    runId,
+    ...(safetyResult.warnings.length > 0 && { safetyWarnings: safetyResult.warnings }),
+  };
+}
 
-    // Fallback: handle legacy format with just titles array
-    if (Array.isArray(parsed.titles) && (parsed.titles as string[]).length > 0) {
-      const titles = (parsed.titles as string[]).slice(0, count);
-      const suggestions = parsed.suggestions as Record<string, unknown> | undefined;
-      return {
-        titles,
-        scoredTitles: titles.map(title => ({
-          title,
-          marketingScore: 75,
-          brandingScore: 75,
-          salesScore: 75,
-          overallScore: 75,
-          reasoning: 'AI-generated title based on your course topic.',
-        })),
-        suggestions: {
-          message: typeof suggestions?.message === 'string' ? suggestions.message : 'AI-generated titles based on your course topic.',
-          reasoning: typeof suggestions?.reasoning === 'string' ? suggestions.reasoning : 'These titles are optimized for the specific subject matter.',
-        },
-      };
-    }
-  } catch (parseError) {
-    logger.error('[TITLE-SUGGESTIONS] Failed to parse AI response:', {
-      error: parseError instanceof Error ? parseError.message : String(parseError),
-      responsePreview: responseText.slice(0, 500),
-    });
-  }
+// =============================================================================
+// HELPERS
+// =============================================================================
 
-  // Fallback: titles derived from the actual currentTitle
+function buildRefinementBlock(
+  weakTitles?: Array<{ title: string; score: number; issues: string[] }>,
+): string {
+  if (!weakTitles || weakTitles.length === 0) return '';
+  const weakList = weakTitles
+    .map(w => `- "${w.title}" (score: ${w.score}/100, issues: ${w.issues.join(', ') || 'general quality'})`)
+    .join('\n');
+  return `
+REFINEMENT MODE — The following titles scored poorly. Generate IMPROVED replacements that fix the identified issues:
+${weakList}
+
+Focus on fixing the specific weaknesses while keeping the titles on-topic.
+`;
+}
+
+function buildTitleFallback(
+  currentTitle: string,
+  difficulty: string | undefined,
+  count: number,
+): { scoredTitles: TitleWithScore[]; suggestions: { message: string; reasoning: string } } {
   const rawTopic = currentTitle ?? 'Professional Skills';
   const topic = rawTopic
     .replace(/[?!.…]+$/g, '')
@@ -312,13 +402,10 @@ Return this JSON:
     `Learn ${topic}: The Complete ${level} to Advanced Path`,
     `${topic} Essentials: Core Knowledge for Modern Professionals`,
     `Applied ${topic}: From Theory to Real-World Impact`,
-  ];
-
-  const selectedFallbacks = fallbackTitles.slice(0, count);
+  ].slice(0, count);
 
   return {
-    titles: selectedFallbacks,
-    scoredTitles: selectedFallbacks.map(title => ({
+    scoredTitles: fallbackTitles.map(title => ({
       title,
       marketingScore: 65,
       brandingScore: 60,
