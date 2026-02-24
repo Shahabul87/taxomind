@@ -52,6 +52,7 @@ import {
 } from './helpers';
 import { retryWithQualityGate } from './retry-quality-gate';
 import { validateAndFixMath } from './math-validator';
+import { validateBloomsVerbs } from './blooms-verb-validator';
 import { SemanticDuplicateGate } from './semantic-duplicate-gate';
 import type {
   CourseContext,
@@ -408,6 +409,16 @@ export async function generateSingleChapter(
   });
 
   ({ chapter, thinking: chThinking, qualityScore: chQuality } = bestResult);
+
+  // Auto-correct Bloom's verb violations in learning objectives
+  const bloomsCheck = validateBloomsVerbs(chapter.learningObjectives, chapter.bloomsLevel);
+  if (!bloomsCheck.valid) {
+    chapter.learningObjectives = bloomsCheck.correctedObjectives;
+    logger.info('[CHAPTER_GEN] Auto-corrected Bloom\'s verb violations', {
+      chapter: chNum, violations: bloomsCheck.violations.length,
+    });
+  }
+
   chQuality.chapterNumber = chNum;
   chQuality.stage = 1;
   localQualityScores.push(chQuality);
@@ -817,6 +828,15 @@ export async function generateSingleChapter(
 
     let { details, thinking: detThinking } = bestDet;
     let detQuality = bestDet.qualityScore;
+
+    // Auto-correct Bloom's verb violations in details objectives
+    const detBloomsCheck = validateBloomsVerbs(details.learningObjectives, chapterWithId.bloomsLevel);
+    if (!detBloomsCheck.valid) {
+      details = { ...details, learningObjectives: detBloomsCheck.correctedObjectives };
+      logger.info('[CHAPTER_GEN] Auto-corrected Stage 3 Bloom\'s verb violations', {
+        chapter: chNum, section: section.position, violations: detBloomsCheck.violations.length,
+      });
+    }
 
     detQuality.chapterNumber = chNum;
     detQuality.stage = 3;

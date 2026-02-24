@@ -28,6 +28,7 @@ import {
 } from '@sam-ai/pedagogy';
 
 import { logger } from '@/lib/logger';
+import { validateBloomsVerbs } from './blooms-verb-validator';
 import type {
   QualityScore,
   GeneratedChapter,
@@ -160,6 +161,14 @@ export async function validateChapterWithSAM(
     ]);
 
     const result = buildCombinedResult(customScore, qualityResult, pedagogyResult);
+
+    // Bloom's verb validation — penalize objectives that use wrong-level verbs
+    const bloomsCheck = validateBloomsVerbs(chapter.learningObjectives, chapter.bloomsLevel);
+    if (!bloomsCheck.valid) {
+      result.qualityIssues.push(`${bloomsCheck.violations.length} objectives use wrong-level Bloom's verbs`);
+      result.combinedScore = Math.max(0, result.combinedScore - Math.round((100 - bloomsCheck.score) * 0.3));
+    }
+
     return attachSafetyResults(result, safetyResult);
   } catch (error) {
     logger.debug('[QUALITY_INTEGRATION] Chapter validation failed, using custom score only', error);

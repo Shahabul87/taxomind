@@ -16,9 +16,9 @@
  * Included in SSE events and checkpoints for quality correlation.
  */
 export const PROMPT_VERSIONS = {
-  stage1: '2.2.0',
-  stage2: '2.2.0',
-  stage3: '2.2.0',
+  stage1: '2.3.0',
+  stage2: '2.3.0',
+  stage3: '2.3.0',
 } as const;
 
 export type PromptStage = keyof typeof PROMPT_VERSIONS;
@@ -203,14 +203,21 @@ export function getCourseDesignExpertise(variant?: string): string {
  */
 const STAGE3_DESIGN_EXPERTISE = `You are SAM, an expert-level course creator. You do NOT teach like a textbook. You teach like the world&apos;s best professor — someone who has built real systems, failed, learned, and can make anyone understand anything by showing them WHY it matters first.
 
-## ARROW FRAMEWORK (Condensed — Your Core Teaching Approach)
+## ARROW FRAMEWORK (Apply ALL 11 phases to lesson content)
 
-1. **APPLICATION FIRST** — Show a stunning real-world use case. Make students curious. NEVER start with definitions.
-2. **INTUITION BUILDING** — Build gut-level understanding using analogies, thought experiments, and prediction questions before any formalization.
-3. **THEORY & FORMALIZATION** — Every equation earns its place by mapping to something the student already intuitively understands.
-4. **FAILURE ANALYSIS** — Show what breaks and why. Present broken systems and ask students to diagnose before revealing answers.
-5. **BUILD & ITERATE** — Guide students through building a minimal working version. Build → Measure → Learn → Iterate.
-6. **META-COGNITION** — Pause to reflect on the thinking PROCESS, not just content. Help students build transferable reasoning strategies.
+| # | Phase | Core Action |
+|---|-------|-------------|
+| 1 | APPLICATION | Open with real-world use case — never definitions |
+| 2 | REVERSE ENGINEER | Decompose into core components |
+| 3 | INTUITION | Analogies + prediction prompts before formalism |
+| 4 | FORMALIZATION | Theory that maps to built intuition |
+| 5 | FAILURE ANALYSIS | Show what breaks; diagnose before revealing |
+| 6 | DESIGN THINKING | Open-ended problem with constraints/trade-offs |
+| 7 | CONSTRAINTS | Remove familiar tools, force creative solutions |
+| 8 | BUILD &amp; ITERATE | Minimal working version, then improve |
+| 9 | SOCRATIC | Challenge assumptions, push edge cases |
+| 10 | META-COGNITION | Reflect on thinking process, not just content |
+| 11 | KNOWLEDGE GRAPH | Connect topic to adjacent fields |
 
 ## YOUR PERSONALITY
 
@@ -396,6 +403,14 @@ Your titles must follow the CURIOSITY-OUTCOME pattern used by the world&apos;s b
 - "X: Concepts and Applications" — academic paper style, not a learning experience
 - Any title that could be a Wikipedia section heading
 
+### Title Transformations (Before → After)
+- "Introduction to Neural Networks" → "How Your Phone Recognizes Your Face — Neural Networks from Pixel to Prediction"
+- "Understanding SQL Databases" → "Why Does Netflix Never Lose Your Watchlist? — Mastering Relational Data with SQL"
+- "Overview of REST APIs" → "How Does Uber Know Your Driver&apos;s Location? — Building Real-Time APIs That Scale"
+- "Working with React Hooks" → "The useState Trap That Breaks 90% of React Apps — Mastering Hook Lifecycles"
+- "Basics of Cybersecurity" → "How Hackers Stole 3 Billion Passwords — Building Defenses That Actually Work"
+- "Exploring Neural Networks" → "From 10,000 Cat Photos to Self-Driving Cars — How Neural Networks Learn to See"
+
 ### Litmus Test
 Would a busy professional stop scrolling and click on this title? If not, rewrite it. The title should make someone think "I NEED to know this."`;
 
@@ -524,9 +539,9 @@ WHY: Every section must connect to the learning arc. Isolated concepts confuse s
 const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
 
 ### Writing Lesson Content (Rich HTML Descriptions)
-A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 1000-1600 words of structured HTML, organized into exactly 8 sections with these h2 headings in this exact order:
+A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 1000-1600 words of structured HTML with 5-8 sections. The 4 MANDATORY sections must always appear. Choose 1-4 ELECTIVE sections that genuinely serve the topic.
 
-1. **&lt;h2&gt;The Big Picture&lt;/h2&gt;** — HOW THE CONCEPT WAS DEVELOPED AND WHAT PROBLEM IT SOLVES
+**MANDATORY** 1. **&lt;h2&gt;The Big Picture&lt;/h2&gt;** — THE ORIGIN STORY AND PROBLEM IT SOLVES
    Do not just name the problem. Tell the ORIGIN STORY — make the reader FEEL the frustration:
    - What were people trying to do before this concept existed?
    - What specific failure or limitation forced this invention?
@@ -535,7 +550,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - CONCRETIZE: Use a real historical example or a specific scenario where the lack of this concept caused visible failure.
    - End by framing the concept as the SOLUTION to a real, felt problem.
 
-2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — WHAT THE KEYWORDS ACTUALLY MEAN
+**MANDATORY** 2. **&lt;h2&gt;Core Intuition&lt;/h2&gt;** — WHAT THE KEYWORDS ACTUALLY MEAN
    Your job is to demystify every key term and build a mental model so strong the reader can PREDICT the math before seeing it:
    - Start by listing the 3-5 key terms/keywords of this topic and explain what each ACTUALLY means in plain language — not textbook definitions, but what they represent in reality.
    - Build an analogy with EXPLICIT MAPPING: Real-world element maps to Concept element
@@ -544,7 +559,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - The analogy must be PRECISE enough that 4+ elements of the concept map to specific elements of the analogy
    - End with: "With this mental picture, let us see if the formal definition matches what you would expect..."
 
-3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — THE INTUITION BEHIND THE EQUATION AND WHAT IT MEANS IN REALITY
+**ELECTIVE** 3. **&lt;h2&gt;Equation Intuition&lt;/h2&gt;** — ONLY include if the topic involves math/equations
    If the topic involves math/equations:
    - Present the equation as CONFIRMATION of the intuition already built, not as new information
    - For EVERY term: "This term represents [intuitive meaning]. In our analogy, this is [analogy element]. In reality, this means [real-world meaning]."
@@ -555,7 +570,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Explicitly state: "This concept is non-mathematical because [reason]."
    - Replace with a DECISION FRAMEWORK or PROCESS DIAGRAM that serves the same structuring purpose.
 
-4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — HELP THE STUDENT CREATE A MENTAL MAP
+**ELECTIVE** 4. **&lt;h2&gt;Step-by-Step Visualization&lt;/h2&gt;** — Best for process-oriented topics
    Guide the reader through a mental simulation so they build a map of the concept:
    - "Close your eyes and picture [starting state]..."
    - Step 1: "Now imagine [first change]. What happens to [element]?"
@@ -564,7 +579,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Help students see the RELATIONSHIP between components — how changing one thing affects another
    - End with: "If you can replay this mental movie and predict the outcome, you understand [concept]."
 
-5. **&lt;h2&gt;Concrete Example and Analogy&lt;/h2&gt;** — MAKE THE CONCEPT CRYSTAL CLEAR
+**MANDATORY** 5. **&lt;h2&gt;Concrete Example and Analogy&lt;/h2&gt;** — MAKE THE CONCEPT CRYSTAL CLEAR
    A fully worked mini-scenario PLUS a memorable analogy:
    - State the setup with SPECIFIC numbers: "Suppose we have 1,000 data points, each with 50 features..."
    - Walk through each step: Input, Process, Output with actual values
@@ -572,7 +587,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Include a VARIATION: "What if we changed [parameter] to [different value]? The result would be [X] because [intuitive reason]."
    - Provide a second, different analogy from everyday life to reinforce understanding from a different angle.
 
-6. **&lt;h2&gt;Real-World Application&lt;/h2&gt;** — WHERE AND WHY THIS CONCEPT IS USED
+**ELECTIVE** 6. **&lt;h2&gt;Real-World Application&lt;/h2&gt;** — Best for applied topics
    Show the student WHERE this concept lives in the real world:
    - List 3-5 specific real-world domains or industries where this concept is actively used
    - For each: explain WHAT PROBLEM it solves and WHY this concept is the right tool for that problem
@@ -580,7 +595,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Show the student what role or job title would use this concept daily
    - Make the connection between the theory they just learned and the practical impact it has
 
-7. **&lt;h2&gt;Thinking Like an Expert&lt;/h2&gt;** — HOW TO APPROACH THIS IN REAL LIFE
+**ELECTIVE** 7. **&lt;h2&gt;Thinking Like an Expert&lt;/h2&gt;** — Best for topics with expert mental models
    Teach the student how an EXPERT thinks when they encounter this concept:
    - "When you see [this equation/pattern/problem] in the wild, here is how to think about it..."
    - Provide a mental checklist: "First, ask yourself [X]. Then check [Y]. If [Z], then..."
@@ -588,7 +603,7 @@ A section description is a FULL LESSON — the text version of what a great prof
    - Include a THOUGHT-PROVOKING idea or open question that pushes creative thinking: "What would happen if [unconventional scenario]? Could you use [concept] to [unexpected application]?"
    - Share an expert heuristic or rule of thumb that comes from deep experience, not textbooks
 
-8. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — THE TRAP DETECTOR AND SELF-TEST
+**MANDATORY** 8. **&lt;h2&gt;Common Confusion + Fix&lt;/h2&gt;** — THE TRAP DETECTOR AND SELF-TEST
    Name the specific misconception with a memorable label:
    - "THE [NAME] TRAP: Many learners think [misconception] because [why it seems logical]."
    - "WHY IT IS WRONG: [Specific reason, referring back to the Core Intuition analogy]."
@@ -990,6 +1005,11 @@ ${CHAPTER_THINKING_FRAMEWORK}`;
 ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
     },
     {
+      label: 'learnerPersona',
+      priority: PromptPriority.MEDIUM,
+      content: buildLearnerPersona(ctx),
+    },
+    {
       label: 'previousChapters',
       priority: PromptPriority.HIGH,
       content: `\n## PREVIOUS CHAPTERS\n${previousChaptersSummary}`,
@@ -1330,6 +1350,11 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 - **Chapter's Learning Arc (Topics)**: ${chapter.keyTopics.map((t, i) => `${i + 1}. ${t}`).join(' → ')}`,
     },
     {
+      label: 'learnerPersona',
+      priority: PromptPriority.MEDIUM,
+      content: buildLearnerPersona(ctx),
+    },
+    {
       label: 'courseWideContext',
       priority: PromptPriority.HIGH,
       content: courseWideSection,
@@ -1519,6 +1544,23 @@ Return ONLY valid JSON, no markdown formatting`,
 // ============================================================================
 
 /**
+ * Builds a learner persona paragraph from course context.
+ * Injected at MEDIUM priority into Stage 1-3 prompts to ground the AI's tone
+ * and vocabulary in the specific learner's background.
+ */
+function buildLearnerPersona(ctx: CourseContext): string {
+  const backgrounds: Record<string, string> = {
+    beginner: 'just starting out with no prior experience in this field',
+    intermediate: 'has foundational knowledge and wants to deepen skills',
+    advanced: 'an experienced practitioner seeking expert-level depth',
+    expert: 'a seasoned professional seeking cutting-edge techniques',
+  };
+  const bg = backgrounds[ctx.difficulty] ?? backgrounds.intermediate;
+  return `## YOUR LEARNER
+Picture your student: a ${ctx.targetAudience} who ${bg}. They enrolled in "${ctx.courseTitle}" because it promised something they need for their career in ${ctx.courseCategory}. Write every explanation as if this person is across from you.`;
+}
+
+/**
  * Returns difficulty-based word count target for Stage 3 lesson content.
  * Lower difficulties get shorter, more focused content to manage cognitive load
  * and reduce output token burn.
@@ -1568,17 +1610,25 @@ function getContentTypeHeadingInstructions(contentType: string, topicFocus: stri
   if (contentType === 'reading' || contentType === 'video') {
     return {
       step1Instructions: `### Step 1: LESSON CONTENT — Write a full HTML lesson for "${topicFocus}"
-Write a rich, structured HTML lesson (${wordTarget} words) with EXACTLY these 8 required <h2> sections in this exact order:
-1. **<h2>The Big Picture</h2>** — HOW THE CONCEPT WAS DEVELOPED AND WHAT PROBLEM IT SOLVES: Tell the origin story — make the reader FEEL the frustration. What were people trying to do before "${topicFocus}" existed? What specific failure forced this invention? Use a real historical example or concrete scenario. End by framing the concept as the SOLUTION to a real, felt problem.
+Write a rich, structured HTML lesson (${wordTarget} words) using the section pool below. You MUST include all 4 MANDATORY sections. Then choose 1-4 ELECTIVE sections that genuinely serve "${topicFocus}". Total: 5-8 sections.
+
+**4 MANDATORY sections (always include, in this order):**
+1. **<h2>The Big Picture</h2>** — THE ORIGIN STORY AND PROBLEM IT SOLVES: Tell the origin story — make the reader FEEL the frustration. What were people trying to do before "${topicFocus}" existed? What specific failure forced this invention? Use a real historical example or concrete scenario. End by framing the concept as the SOLUTION to a real, felt problem.
 2. **<h2>Core Intuition</h2>** — WHAT THE KEYWORDS ACTUALLY MEAN: List the 3-5 key terms and explain what each ACTUALLY means in plain language. Build a mental model with an analogy — map 4+ elements explicitly. Include a PREDICTION PROMPT: "Before the formal definition, what should happen when [X changes]?" End with: "With this mental picture, let us see if the formal definition matches..."
-3. **<h2>Equation Intuition</h2>** — THE INTUITION BEHIND THE EQUATION: If math exists, present the equation as CONFIRMATION of the intuition already built. For EVERY term explain its intuitive meaning, analogy element, and real-world meaning. Explain WHY the equation has its specific shape. Ask "What if this term is very large? Very small? Zero?" If no math, explicitly state why and provide a decision framework instead.
-4. **<h2>Step-by-Step Visualization</h2>** — HELP THE STUDENT CREATE A MENTAL MAP: Guide through a mental simulation. "Picture [starting state]..." then walk through each change and its effect. Show RELATIONSHIPS between components — how changing one thing affects another. End with: "If you can replay this mental movie, you understand [concept]."
-5. **<h2>Concrete Example and Analogy</h2>** — MAKE THE CONCEPT CRYSTAL CLEAR: A fully worked scenario with SPECIFIC numbers. Walk through Input, Process, Output with actual values. Connect back to Core Intuition. Include a VARIATION: "What if we changed [parameter]?" Provide a second everyday-life analogy to reinforce understanding from a different angle.
-6. **<h2>Real-World Application</h2>** — WHERE AND WHY THIS CONCEPT IS USED: List 3-5 specific real-world domains where this concept is actively used. For each, explain WHAT PROBLEM it solves. Include a concrete example: "At [Company/Industry], engineers use [concept] to [task]." Show what role or job title uses this daily.
-7. **<h2>Thinking Like an Expert</h2>** — HOW TO APPROACH THIS IN REAL LIFE: Teach how an expert thinks when encountering this concept. Provide a mental checklist. If equations exist: "When you see this equation, read it as [plain English]." Include a thought-provoking open question for creative development. Share an expert heuristic or rule of thumb from deep experience.
-8. **<h2>Common Confusion + Fix</h2>** — THE TRAP DETECTOR AND SELF-TEST: Name the misconception: "THE [NAME] TRAP". Explain WHY it seems logical. Explain WHY it is wrong (referring to Core Intuition). Give THE FIX with a corrected mental model. Include a SELF-TEST question. Add 2-3 rapid-fire true/false questions testing the most common misunderstandings.`,
-      outputDescriptionField: `"${wordTarget} words of structured HTML lesson content. Must contain EXACTLY these eight <h2> headings in order: 'The Big Picture', 'Core Intuition', 'Equation Intuition', 'Step-by-Step Visualization', 'Concrete Example and Analogy', 'Real-World Application', 'Thinking Like an Expert', 'Common Confusion + Fix'."`,
-      qualityGateHeadings: `Does the description contain the exact 8 required headings in order (The Big Picture, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example and Analogy, Real-World Application, Thinking Like an Expert, Common Confusion + Fix), with substantive content under each and "${topicFocus}" mentioned at least 3 times?`,
+3. **<h2>Concrete Example and Analogy</h2>** — MAKE THE CONCEPT CRYSTAL CLEAR: A fully worked scenario with SPECIFIC numbers. Walk through Input, Process, Output with actual values. Connect back to Core Intuition. Include a VARIATION: "What if we changed [parameter]?" Provide a second everyday-life analogy to reinforce understanding from a different angle.
+4. **<h2>Common Confusion + Fix</h2>** — THE TRAP DETECTOR AND SELF-TEST: Name the misconception: "THE [NAME] TRAP". Explain WHY it seems logical. Explain WHY it is wrong (referring to Core Intuition). Give THE FIX with a corrected mental model. Include a SELF-TEST question. Add 2-3 rapid-fire true/false questions testing the most common misunderstandings.
+
+**6 ELECTIVE sections (choose 1-4 that genuinely serve the topic):**
+5. **<h2>Equation Intuition</h2>** — ONLY include if "${topicFocus}" involves math/equations. Present the equation as CONFIRMATION of intuition already built. For EVERY term explain its intuitive meaning. Explain WHY the equation has its specific shape. Ask "What if this term is very large? Very small? Zero?"
+6. **<h2>Step-by-Step Visualization</h2>** — Best for process-oriented topics. Guide through a mental simulation: "Picture [starting state]..." then walk through each change and its effect. Show RELATIONSHIPS between components.
+7. **<h2>Real-World Application</h2>** — Best for applied topics. List 3-5 specific real-world domains where this concept is used. Include: "At [Company/Industry], engineers use [concept] to [task]."
+8. **<h2>Thinking Like an Expert</h2>** — Best for topics with expert mental models. Teach how an expert thinks when encountering this concept. Provide a mental checklist and expert heuristics.
+9. **<h2>Design Trade-offs</h2>** — Best for engineering/decision topics. Present 2-3 real trade-off scenarios with constraints. Show how changing one factor affects others. Include a decision framework.
+10. **<h2>Historical Context and Evolution</h2>** — Best for mature fields. Show how the concept evolved, what it replaced, and why. Connect past limitations to current best practices.
+
+**Selection criteria**: Choose elective sections that genuinely serve "${topicFocus}". Do NOT include Equation Intuition for non-mathematical topics. Do NOT include Design Trade-offs for purely theoretical topics.`,
+      outputDescriptionField: `"${wordTarget} words of structured HTML lesson content. Must contain the 4 mandatory <h2> headings ('The Big Picture', 'Core Intuition', 'Concrete Example and Analogy', 'Common Confusion + Fix') plus 1-4 elective headings chosen from: 'Equation Intuition', 'Step-by-Step Visualization', 'Real-World Application', 'Thinking Like an Expert', 'Design Trade-offs', 'Historical Context and Evolution'. Total 5-8 sections."`,
+      qualityGateHeadings: `Does the description contain the 4 mandatory headings (The Big Picture, Core Intuition, Concrete Example and Analogy, Common Confusion + Fix) with substantive content under each, plus at least 1 elective heading, and "${topicFocus}" mentioned at least 3 times?`,
     };
   }
 
@@ -1740,7 +1790,7 @@ ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'This is early in the co
 Build descriptions and objectives that reference and extend this knowledge.
 
 ## STYLE AND DEPTH GUIDELINES
-- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 8 sections: The Big Picture, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example and Analogy, Real-World Application, Thinking Like an Expert, Common Confusion + Fix
+- Description: ${getStage3WordTarget(ctx.difficulty)} words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), 4 mandatory sections (The Big Picture, Core Intuition, Concrete Example and Analogy, Common Confusion + Fix) plus 1-4 elective sections chosen to serve the topic
 - Objectives: Use ONLY ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.join(', ')})
 - Activity: Must match content type "${section.contentType}" and demonstrate measurable skill
 - Each objective should be achievable within ${section.estimatedDuration}
@@ -1850,6 +1900,11 @@ ${activityGuidance}`;
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
     },
     {
+      label: 'learnerPersona',
+      priority: PromptPriority.MEDIUM,
+      content: buildLearnerPersona(options.courseContext),
+    },
+    {
       label: 'priorSections',
       priority: PromptPriority.HIGH,
       content: priorSectionsBlock,
@@ -1868,6 +1923,24 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
       label: 'bridgeContent',
       priority: PromptPriority.LOW,
       content: bridgeBlock,
+    },
+    {
+      label: 'spacedRepetition',
+      priority: PromptPriority.LOW,
+      content: (() => {
+        if (!enrichedContext?.conceptTracker || chapter.position <= 2) return '';
+        const reinforceable: string[] = [];
+        for (const [name, entry] of enrichedContext.conceptTracker.concepts) {
+          const dist = chapter.position - entry.introducedInChapter;
+          if (dist >= 2 && dist <= 4) reinforceable.push(name);
+        }
+        if (reinforceable.length === 0) return '';
+        const selected = reinforceable.slice(0, 3);
+        return `## SPACED REINFORCEMENT
+These concepts from earlier chapters benefit from natural reinforcement:
+${selected.map(c => `- **${c}**: reference naturally if relevant to "${section.topicFocus}"`).join('\n')}
+Weave into explanations — do not create a separate section for these.`;
+      })(),
     },
     {
       label: 'currentSection',

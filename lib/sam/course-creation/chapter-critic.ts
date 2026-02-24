@@ -52,6 +52,8 @@ export interface ChapterCritique {
   conceptFlow: number;
   /** Content specificity score (0-100) */
   specificity: number;
+  /** Difficulty calibration score (0-100) */
+  difficultyCalibration: number;
   /** Actionable improvements for revision */
   actionableImprovements: string[];
 }
@@ -106,6 +108,16 @@ Your role is to critically evaluate a generated chapter from an INDEPENDENT pers
 
 You are NOT the creator. You are the reviewer. Be honest, specific, and constructive.
 
+Your PRIMARY job is to FIND PROBLEMS, not to validate. A rubber-stamp approval helps nobody.
+
+## Scoring Calibration
+- 95-100: RARE — reserved for genuinely exceptional work with zero identifiable flaws
+- 80-94: Strong work with minor improvements possible
+- 70-79: Acceptable but with clear areas for improvement — this is the expected range
+- Below 70: Significant issues that must be addressed before approval
+- For EACH dimension below 85, you MUST provide at least one specific, actionable improvement
+- Vague feedback like "could be better" or "generally good" is FORBIDDEN — name the exact issue and how to fix it
+
 ## Evaluation Dimensions
 
 1. **ARROW Framework Compliance** (0-100):
@@ -128,6 +140,12 @@ You are NOT the creator. You are the reviewer. Be honest, specific, and construc
    - Or are they vague and generic ("introduction to concepts")?
    - Score 80+ if topics are clearly actionable and specific.
 
+5. **Difficulty Calibration** (0-100):
+   - Does vocabulary match the stated difficulty? (BEGINNER=plain language, define every term; EXPERT=field terminology freely)
+   - Are prerequisite assumptions appropriate? (BEGINNER=assume nothing; EXPERT=assume deep foundations)
+   - Do examples match audience level? (BEGINNER=everyday analogies; EXPERT=industry scenarios)
+   - Score 80+ if content is correctly calibrated for the stated difficulty level and target audience.
+
 ## Response Format
 
 Return ONLY a JSON object (no markdown, no explanation outside JSON):
@@ -139,6 +157,7 @@ Return ONLY a JSON object (no markdown, no explanation outside JSON):
   "bloomsAlignment": <0-100>,
   "conceptFlow": <0-100>,
   "specificity": <0-100>,
+  "difficultyCalibration": <0-100>,
   "actionableImprovements": ["<specific improvement 1>", "<specific improvement 2>"]
 }
 
@@ -287,6 +306,7 @@ function parseCriticResponse(responseText: string, chapter: GeneratedChapter): C
   const bloomsAlignment = clamp(Number(parsed.bloomsAlignment) || 70, 0, 100);
   const conceptFlow = clamp(Number(parsed.conceptFlow) || 70, 0, 100);
   const specificity = clamp(Number(parsed.specificity) || 70, 0, 100);
+  const difficultyCalibration = clamp(Number(parsed.difficultyCalibration) || 70, 0, 100);
   const reasoning = String(parsed.reasoning || `Chapter ${chapter.position} review complete`);
   const actionableImprovements = Array.isArray(parsed.actionableImprovements)
     ? (parsed.actionableImprovements as unknown[]).map(String).slice(0, 5)
@@ -305,6 +325,7 @@ function parseCriticResponse(responseText: string, chapter: GeneratedChapter): C
     bloomsAlignment,
     conceptFlow,
     specificity,
+    difficultyCalibration,
     actionableImprovements,
   };
 }
@@ -333,6 +354,7 @@ function buildRuleBasedCritique(
   let bloomsAlignment = 75;
   let conceptFlow = 80;
   let specificity = 75;
+  let difficultyCalibration = 75;
 
   // Check learning objectives count
   if (chapter.learningObjectives.length < 3) {
@@ -375,7 +397,32 @@ function buildRuleBasedCritique(
     arrowCompliance -= 10;
   }
 
-  const scores = [arrowCompliance, bloomsAlignment, conceptFlow, specificity];
+  // Difficulty calibration heuristics
+  const difficulty = courseContext.difficulty?.toLowerCase() ?? 'intermediate';
+  if (difficulty === 'beginner') {
+    // Penalize if objectives use ANALYZE+ verbs in early chapters
+    const highLevelVerbs = /\b(analyze|evaluate|create|design|synthesize|critique)\b/i;
+    const earlyViolations = chapter.learningObjectives.filter(o => highLevelVerbs.test(o));
+    if (earlyViolations.length > 2 && chapter.position <= 2) {
+      improvements.push('Beginner-level early chapters should not rely heavily on ANALYZE+ verbs');
+      difficultyCalibration -= 20;
+    }
+  }
+  if (difficulty === 'expert') {
+    // Penalize if objectives only use REMEMBER/UNDERSTAND verbs in late chapters
+    const lowLevelVerbs = /\b(list|recall|identify|name|define|explain|describe|summarize)\b/i;
+    const lateChapterThreshold = Math.ceil(courseContext.totalChapters * 0.7);
+    if (chapter.position >= lateChapterThreshold) {
+      const firstWords = chapter.learningObjectives.map(o => o.split(' ')[0]);
+      const lowLevelCount = firstWords.filter(w => lowLevelVerbs.test(w)).length;
+      if (lowLevelCount > chapter.learningObjectives.length / 2) {
+        improvements.push('Expert-level late chapters should use higher-order verbs (APPLY, ANALYZE, CREATE)');
+        difficultyCalibration -= 20;
+      }
+    }
+  }
+
+  const scores = [arrowCompliance, bloomsAlignment, conceptFlow, specificity, difficultyCalibration];
   const allAbove70 = scores.every(s => s >= 70);
   const anyBelow50 = scores.some(s => s < 50);
 
@@ -395,6 +442,7 @@ function buildRuleBasedCritique(
     bloomsAlignment: clamp(bloomsAlignment, 0, 100),
     conceptFlow: clamp(conceptFlow, 0, 100),
     specificity: clamp(specificity, 0, 100),
+    difficultyCalibration: clamp(difficultyCalibration, 0, 100),
     actionableImprovements: improvements,
   };
 }
@@ -629,13 +677,15 @@ export function buildSectionCriticFeedbackBlock(critique: SectionCritique): stri
 const DETAILS_CRITIC_PERSONA = `You are a SECTION DETAILS REVIEWER for an AI course generator.
 Evaluate whether generated section details follow the required professor-style explanation anatomy.
 
+The lesson uses a flexible section pool: 4 MANDATORY sections (The Big Picture, Core Intuition, Concrete Example and Analogy, Common Confusion + Fix) plus 1-4 ELECTIVE sections chosen by the generator.
+
 ## Evaluation Dimensions (0-100 each)
 
-1. **Motivation Clarity**: Does "Why It Was Developed" clearly explain the motivating problem/limitation?
+1. **Motivation Clarity**: Does "The Big Picture" clearly explain the origin story and motivating problem/limitation?
 2. **Intuition Clarity**: Does "Core Intuition" give a beginner-friendly mental model/analogy?
-3. **Equation Intuition Quality**: Does "Equation Intuition" explain term meanings and equation shape (or clearly justify no equation)?
-4. **Visualization Quality**: Does "Step-by-Step Visualization" provide a clear sequential mental walkthrough?
-5. **Example Concreteness**: Does "Concrete Example" include a specific worked mini-scenario?
+3. **Equation Intuition Quality**: If "Equation Intuition" is present, does it explain term meanings and equation shape? If absent, is the topic non-mathematical? (Do not penalize absence for non-math topics.)
+4. **Visualization Quality**: If "Step-by-Step Visualization" is present, does it provide a clear sequential mental walkthrough? (Elective — do not require for all topics.)
+5. **Example Concreteness**: Does "Concrete Example and Analogy" include a specific worked mini-scenario?
 6. **Misconception Repair Quality**: Does "Common Confusion + Fix" include both misconception and correction?
 
 ## Response Format
@@ -808,11 +858,11 @@ function buildRuleBasedDetailsCritique(
     return (match?.[1] ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
-  if (!hasHeading('Why It Was Developed')) {
-    improvements.push('Add the required <h2>Why It Was Developed</h2> section.');
+  if (!hasHeading('The Big Picture')) {
+    improvements.push('Add the required <h2>The Big Picture</h2> section.');
     motivationClarity -= 25;
-  } else if (!/(problem|limitation|challenge|motivated|developed)/i.test(sectionText('Why It Was Developed'))) {
-    improvements.push('Strengthen the motivating problem/limitation in "Why It Was Developed".');
+  } else if (!/(problem|limitation|challenge|motivated|developed|origin|frustration)/i.test(sectionText('The Big Picture'))) {
+    improvements.push('Strengthen the origin story and motivating problem in "The Big Picture".');
     motivationClarity -= 15;
   }
 
@@ -825,8 +875,13 @@ function buildRuleBasedDetailsCritique(
   }
 
   if (!hasHeading('Equation Intuition')) {
-    improvements.push('Add the required <h2>Equation Intuition</h2> section.');
-    equationIntuitionQuality -= 25;
+    // Elective section — only penalize if the description contains math but lacks this section
+    const descHasMath = /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\sum|\\int)/.test(description);
+    if (descHasMath) {
+      improvements.push('Content contains math but lacks <h2>Equation Intuition</h2> section — add it to explain the equations.');
+      equationIntuitionQuality -= 20;
+    }
+    // Non-math topics: no penalty for absence
   } else {
     const eqText = sectionText('Equation Intuition');
     const eqHasMath = /(\$[^$]+\$|\$\$[\s\S]+?\$\$|\\frac|\\sum|\\int|=)/.test(description);
@@ -843,19 +898,21 @@ function buildRuleBasedDetailsCritique(
   }
 
   if (!hasHeading('Step-by-Step Visualization')) {
-    improvements.push('Add the required <h2>Step-by-Step Visualization</h2> section.');
-    visualizationQuality -= 25;
+    // Elective section — no penalty for absence
   } else if (!/(step|first|second|third|next|then|finally|visualize)/i.test(sectionText('Step-by-Step Visualization'))) {
     improvements.push('Make "Step-by-Step Visualization" explicitly sequential.');
     visualizationQuality -= 15;
   }
 
-  if (!hasHeading('Concrete Example')) {
-    improvements.push('Add the required <h2>Concrete Example</h2> section.');
+  if (!hasHeading('Concrete Example and Analogy') && !hasHeading('Concrete Example')) {
+    improvements.push('Add the required <h2>Concrete Example and Analogy</h2> section.');
     exampleConcreteness -= 25;
-  } else if (!/(\d|for example|scenario|suppose|worked example|mini)/i.test(sectionText('Concrete Example'))) {
-    improvements.push('Use a concrete worked mini-scenario in "Concrete Example".');
-    exampleConcreteness -= 15;
+  } else {
+    const exHeading = hasHeading('Concrete Example and Analogy') ? 'Concrete Example and Analogy' : 'Concrete Example';
+    if (!/(\d|for example|scenario|suppose|worked example|mini)/i.test(sectionText(exHeading))) {
+      improvements.push(`Use a concrete worked mini-scenario in "${exHeading}".`);
+      exampleConcreteness -= 15;
+    }
   }
 
   if (!hasHeading('Common Confusion + Fix')) {

@@ -131,7 +131,7 @@ function makeSection(overrides: Partial<GeneratedSection> = {}): GeneratedSectio
 
 function makeSectionDetails(overrides: Partial<SectionDetails> = {}): SectionDetails {
   return {
-    description: '<h2>Why It Was Developed</h2><p>The problem of managing UI state motivated React.</p><h2>Core Intuition</h2><p>Think of components as building blocks.</p><h2>Equation Intuition</h2><p>No equation is required for this topic.</p><h2>Step-by-Step Visualization</h2><p>First, create a component. Then, render it.</p><h2>Concrete Example</h2><p>For example, suppose you have a counter component with value 0.</p><h2>Common Confusion + Fix</h2><p>A common misconception is that state is shared. The fix is to remember state is local.</p>',
+    description: '<h2>The Big Picture</h2><p>The problem of managing UI state motivated React, emerging from the challenge of keeping complex interfaces in sync.</p><h2>Core Intuition</h2><p>Think of components as building blocks — each manages its own state like a self-contained widget.</p><h2>Concrete Example and Analogy</h2><p>For example, suppose you have a counter component with value 0. Each click increments the count independently.</p><h2>Common Confusion + Fix</h2><p>A common misconception is that state is shared between components. The fix is to remember state is local to each component.</p><h2>Step-by-Step Visualization</h2><p>First, create a component. Then, add state with useState. Next, render it and observe reactivity. Finally, compose multiple components together.</p>',
     learningObjectives: ['Understand component architecture'],
     keyConceptsCovered: ['components', 'props'],
     practicalActivity: 'Build a simple counter component',
@@ -169,6 +169,7 @@ function buildChapterCriticResponse(overrides: Record<string, unknown> = {}): st
     bloomsAlignment: 88,
     conceptFlow: 82,
     specificity: 90,
+    difficultyCalibration: 80,
     actionableImprovements: [],
     ...overrides,
   });

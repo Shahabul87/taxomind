@@ -164,7 +164,7 @@ export async function orchestrateCourseCreation(
   const categoryEnhancer = matchedEnhancers.length >= 2
     ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
     : matchedEnhancers[0];
-  const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
+  const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer, undefined, courseContext.courseSubcategory);
   logger.info('[ORCHESTRATOR] Category enhancer resolved', {
     categoryId: categoryEnhancer.categoryId,
     displayName: categoryEnhancer.displayName,

@@ -967,7 +967,7 @@ ${exampleBlock}
 ${template.teachingLaws.map((law, i) => `${i + 1}. ${law}`).join('\n')}
 
 IMPORTANT: The description HTML must follow the format rules and HTML structure above.
-You MUST keep the required 6-heading section-description anatomy (Why It Was Developed, Core Intuition, Equation Intuition, Step-by-Step Visualization, Concrete Example, Common Confusion + Fix) while applying the section-type-specific guidance for ${sectionDef.displayName}.`;
+You MUST include the 4 MANDATORY section headings (The Big Picture, Core Intuition, Concrete Example and Analogy, Common Confusion + Fix) and choose 1-4 ELECTIVE headings from: Equation Intuition, Step-by-Step Visualization, Real-World Application, Thinking Like an Expert, Design Trade-offs, Historical Context and Evolution. Apply the section-type-specific guidance for ${sectionDef.displayName}.`;
 
   return { stage1Block, stage2Block, stage3Block, totalSections: effectiveTotalSections };
 }

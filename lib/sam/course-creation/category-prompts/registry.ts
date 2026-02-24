@@ -278,23 +278,40 @@ export function blendEnhancers(
 // =============================================================================
 
 /**
+ * Build subcategory-specific context when the subcategory is not already
+ * covered by the base enhancer's domain expertise and teaching methodology.
+ */
+function buildSubcategoryContext(
+  enhancer: CategoryPromptEnhancer,
+  subcategory: string | undefined,
+): string {
+  if (!subcategory) return '';
+  const enhancerText = `${enhancer.domainExpertise} ${enhancer.teachingMethodology}`.toLowerCase();
+  if (enhancerText.includes(normalize(subcategory))) return ''; // Already covered
+  return `\n### Subcategory Focus: ${subcategory}\nThis course focuses on ${subcategory} within ${enhancer.displayName}. Tailor examples, terminology, and applications to this subdomain specifically.`;
+}
+
+/**
  * Compose a CategoryPromptEnhancer into pre-formatted prompt blocks
  * ready for injection into Stage 1/2/3 prompts.
  *
  * @param enhancer - The domain-specific enhancer
  * @param bloomsLevel - Optional: filter Bloom's guidance to target + adjacent level
+ * @param subcategory - Optional: adds subcategory-specific context when not already covered
  */
 export function composeCategoryPrompt(
   enhancer: CategoryPromptEnhancer,
   bloomsLevel?: BloomsLevel,
+  subcategory?: string,
 ): ComposedCategoryPrompt {
   const filterLevels = bloomsLevel ? getRelevantLevels(bloomsLevel) : undefined;
   const bloomsLines = buildBloomsLines(enhancer.bloomsInDomain, filterLevels);
   const activityLines = buildActivityLines(enhancer.activityExamples);
 
+  const subcategoryBlock = buildSubcategoryContext(enhancer, subcategory);
   const expertiseBlock = `
 ## DOMAIN EXPERTISE
-${enhancer.domainExpertise}`;
+${enhancer.domainExpertise}${subcategoryBlock}`;
 
   const chapterGuidanceBlock = `
 ${enhancer.teachingMethodology}

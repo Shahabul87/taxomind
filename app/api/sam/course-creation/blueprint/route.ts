@@ -27,6 +27,8 @@ import {
   computeBloomsDistribution,
   formatBloomsAssignments,
   buildBlueprintPrompts,
+  buildNorthStarPrompt,
+  parseNorthStarResponse,
   parseBlueprintResponse,
   repairIncompleteChapters,
   fillIncompleteSections,
@@ -36,7 +38,7 @@ import {
   buildRuleBasedBlueprintScore,
   buildHeuristicBlueprint,
 } from '@/lib/sam/course-creation/blueprint';
-import type { BlueprintResponse } from '@/lib/sam/course-creation/blueprint';
+import type { BlueprintResponse, NorthStarContext } from '@/lib/sam/course-creation/blueprint';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -127,18 +129,59 @@ export async function POST(request: NextRequest) {
           learningObjectivesPerSection: 3,
         });
 
-        const composed = enhancer ? composeCategoryPrompt(enhancer) : null;
+        const composed = enhancer ? composeCategoryPrompt(enhancer, undefined, data.subcategory) : null;
         const bloomsDistribution = computeBloomsDistribution(data.bloomsFocus, data.chapterCount);
         const bloomsAssignmentBlock = formatBloomsAssignments(bloomsDistribution);
-        const { systemPrompt, userPrompt } = buildBlueprintPrompts(
-          ctx, data, composed, bloomsAssignmentBlock, isReasoningModel,
-        );
 
-        // =====================================================================
-        // STAGE 3: AI call with timeout
-        // =====================================================================
         const routeStartTime = Date.now();
         const ROUTE_BUDGET_MS = (maxDuration - 10) * 1000;
+
+        // =====================================================================
+        // STAGE 2.5: North Star Pass 1 (2-pass split)
+        // =====================================================================
+        let northStarContext: NorthStarContext | undefined;
+
+        sendSSE('progress', { stage: 'northstar', message: 'Defining course capstone project...', percentage: 5 });
+
+        try {
+          const { systemPrompt: nsSystem, userPrompt: nsUser } = buildNorthStarPrompt(ctx, data, composed);
+          const nsResult = await runSAMChatWithMetadata({
+            userId: user.id,
+            capability: 'course',
+            messages: [{ role: 'user', content: nsUser }],
+            systemPrompt: nsSystem,
+            maxTokens: 800,
+            temperature: 0.8,
+            responseFormat: 'json',
+          });
+
+          northStarContext = parseNorthStarResponse(nsResult.content) ?? undefined;
+
+          if (northStarContext) {
+            sendSSE('northstar-complete', {
+              northStarProject: northStarContext.northStarProject,
+              milestoneCount: northStarContext.milestones.length,
+            });
+            logger.info('[BLUEPRINT_ROUTE] North Star Pass 1 succeeded', {
+              northStarProject: northStarContext.northStarProject.slice(0, 100),
+              milestones: northStarContext.milestones.length,
+            });
+          } else {
+            logger.warn('[BLUEPRINT_ROUTE] North Star Pass 1 parse failed, falling back to single-pass');
+          }
+        } catch (nsError) {
+          logger.warn('[BLUEPRINT_ROUTE] North Star Pass 1 failed, falling back to single-pass', {
+            error: nsError instanceof Error ? nsError.message : String(nsError),
+          });
+          // Graceful fallback: proceed without North Star context (single-pass behavior)
+        }
+
+        // =====================================================================
+        // STAGE 3: Blueprint AI call with timeout
+        // =====================================================================
+        const { systemPrompt, userPrompt } = buildBlueprintPrompts(
+          ctx, data, composed, bloomsAssignmentBlock, isReasoningModel, undefined, northStarContext,
+        );
         const totalSections = data.chapterCount * data.sectionsPerChapter;
 
         const BLUEPRINT_TIMEOUT_MS = isReasoningModel

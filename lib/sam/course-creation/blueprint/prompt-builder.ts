@@ -10,6 +10,100 @@ import type { CourseContext } from '@/lib/sam/course-creation/types';
 import type { composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
 import type { BlueprintRequestData } from './types';
 import { BLOOMS_ARTIFACT_GUIDANCE } from './bloom-distribution';
+import { logger } from '@/lib/logger';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/** Result from the North Star Pass 1 AI call */
+export interface NorthStarContext {
+  northStarProject: string;
+  milestones: Array<{
+    chapter: number;
+    deliverable: string;
+    bloomsLevel: string;
+  }>;
+}
+
+/**
+ * Build prompts for the North Star Pass 1 — a focused, creative AI call
+ * that defines the capstone project and per-chapter milestones before the
+ * full blueprint is generated.
+ *
+ * This 2-pass approach produces better blueprints because the full blueprint
+ * pass receives a concrete North Star to structure around, rather than having
+ * to both invent and structure simultaneously.
+ */
+export function buildNorthStarPrompt(
+  ctx: CourseContext,
+  data: BlueprintRequestData,
+  composed: ReturnType<typeof composeCategoryPrompt> | null,
+): { systemPrompt: string; userPrompt: string } {
+  const systemPrompt = `You are a world-class course architect. Define the capstone project for this course — the ONE ambitious product a student could show an employer. Return ONLY valid JSON.
+${composed?.expertiseBlock ?? ''}`;
+
+  const userPrompt = `Course: "${ctx.courseTitle}"
+Overview: ${ctx.courseDescription}
+Category: ${ctx.courseCategory}${ctx.courseSubcategory ? ` > ${ctx.courseSubcategory}` : ''}
+Audience: ${ctx.targetAudience}
+Difficulty: ${ctx.difficulty}
+Chapters: ${ctx.totalChapters}
+
+Learning Objectives:
+${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+
+Define:
+1. **North Star Project**: A single realistic, portfolio-worthy product the ENTIRE course builds toward. Ambitious but achievable.
+2. **Per-Chapter Milestones**: For each of the ${ctx.totalChapters} chapters, define a tangible deliverable that contributes to the North Star.
+
+Return JSON:
+{
+  "northStarProject": "1-2 sentence description of the capstone project",
+  "milestones": [
+    { "chapter": 1, "deliverable": "What the student produces in chapter 1", "bloomsLevel": "UNDERSTAND" },
+    { "chapter": 2, "deliverable": "...", "bloomsLevel": "APPLY" }
+  ]
+}`;
+
+  return { systemPrompt, userPrompt };
+}
+
+/**
+ * Parse the North Star response from Pass 1.
+ * Returns null on failure (triggers fallback to single-pass).
+ */
+export function parseNorthStarResponse(responseText: string): NorthStarContext | null {
+  try {
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+
+    const northStarProject = typeof parsed.northStarProject === 'string'
+      ? parsed.northStarProject
+      : null;
+
+    if (!northStarProject) return null;
+
+    const milestones = Array.isArray(parsed.milestones)
+      ? (parsed.milestones as Array<Record<string, unknown>>)
+          .filter(m => typeof m.chapter === 'number' && typeof m.deliverable === 'string')
+          .map(m => ({
+            chapter: m.chapter as number,
+            deliverable: m.deliverable as string,
+            bloomsLevel: (typeof m.bloomsLevel === 'string' ? m.bloomsLevel : 'UNDERSTAND'),
+          }))
+      : [];
+
+    return { northStarProject, milestones };
+  } catch (error) {
+    logger.warn('[NorthStarParser] Failed to parse response', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
 
 /**
  * Build prompts using Backwards Design (Understanding by Design).
@@ -23,6 +117,8 @@ import { BLOOMS_ARTIFACT_GUIDANCE } from './bloom-distribution';
  * For reasoning models, we use even less meta-instruction to reduce thinking time.
  *
  * When criticFeedback is provided (retry pass), it is appended to the prompt.
+ * When northStarContext is provided (from Pass 1), STEP 1 becomes a reference
+ * instead of asking the model to generate it.
  */
 export function buildBlueprintPrompts(
   ctx: CourseContext,
@@ -31,6 +127,7 @@ export function buildBlueprintPrompts(
   bloomsAssignmentBlock: string,
   isReasoningModel: boolean,
   criticFeedback?: string,
+  northStarContext?: NorthStarContext,
 ): { systemPrompt: string; userPrompt: string } {
   // Minimal system prompt — establish the role + Backwards Design + domain expertise
   const systemPrompt = `You are a world-class course architect who designs rigorous, well-sequenced courses at MIT/Stanford quality. You use Backwards Design (Understanding by Design): start from the final product, then work backward to the learning journey. Return ONLY valid JSON — no markdown fences, no extra text.
@@ -54,14 +151,21 @@ ${data.duration ? `- Duration: ${data.duration}` : ''}
 Learning Objectives:
 ${ctx.courseLearningObjectives.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
-## STEP 1 — DEFINE THE NORTH STAR (Backwards Design: start from the end)
+${northStarContext ? `## STEP 1 — NORTH STAR (Pre-defined — use this as the course anchor)
+
+The North Star project for this course is: "${northStarContext.northStarProject}"
+
+Per-chapter milestones:
+${northStarContext.milestones.map(m => `- Chapter ${m.chapter}: ${m.deliverable} (${m.bloomsLevel})`).join('\n')}
+
+Use this North Star and these milestones to structure the blueprint. Each chapter&apos;s deliverable should align with its milestone above.` : `## STEP 1 — DEFINE THE NORTH STAR (Backwards Design: start from the end)
 
 Every great course builds toward ONE realistic, portfolio-worthy product or project. Define this FIRST:
 
 1. **North Star Project**: Define a single realistic product/project that the ENTIRE course builds toward. This is what the student can show an employer or put in a portfolio at the end. It should be ambitious but achievable given the course scope.
 
 2. **Per-Chapter Deliverable**: Each chapter should produce a tangible artifact that contributes to the North Star Project. The deliverable type should match the chapter&apos;s Bloom&apos;s level:
-${Object.entries(BLOOMS_ARTIFACT_GUIDANCE).map(([level, artifacts]) => `   - ${level}: ${artifacts}`).join('\n')}
+${Object.entries(BLOOMS_ARTIFACT_GUIDANCE).map(([level, artifacts]) => `   - ${level}: ${artifacts}`).join('\n')}`}
 
 ## STEP 2 — DESIGN THE LEARNING JOURNEY BACKWARD
 
