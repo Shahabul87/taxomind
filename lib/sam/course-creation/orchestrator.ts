@@ -47,6 +47,7 @@ import {
   CourseCreationSLOTracker,
   recordCourseCreationSLOSnapshot,
 } from './slo-telemetry';
+import { sanitizeSSEEventData } from './helpers';
 import { initializeCourseRecord } from './course-initializer';
 import { runPipeline } from './pipeline-runner';
 import { runPostProcessing } from './post-processor';
@@ -353,9 +354,11 @@ export async function orchestrateCourseCreation(
   });
 
   const trackingOnSSEEvent = (event: { type: string; data: Record<string, unknown> }) => {
-    sloTracker.observeEvent(event);
+    // Sanitize user-provided strings in SSE event data to prevent XSS
+    const sanitizedEvent = { type: event.type, data: sanitizeSSEEventData(event.data) };
+    sloTracker.observeEvent(sanitizedEvent);
 
-    if (event.type === 'item_complete') {
+    if (sanitizedEvent.type === 'item_complete') {
       const stage = event.data.stage as number;
       if (stage === 1 || stage === 2 || stage === 3) {
         const isHealing = event.data.isHealing as boolean | undefined;
@@ -375,14 +378,14 @@ export async function orchestrateCourseCreation(
 
       if (onSSEEvent) {
         onSSEEvent({
-          type: event.type,
-          data: { ...event.data, completedItems, totalItems },
+          type: sanitizedEvent.type,
+          data: { ...sanitizedEvent.data, completedItems, totalItems },
         });
       }
       return;
     }
 
-    onSSEEvent?.(event);
+    onSSEEvent?.(sanitizedEvent);
   };
 
   const progress: CreationProgress = {
@@ -748,6 +751,7 @@ export async function orchestrateCourseCreation(
         fallbackTracker,
         sloTracker,
         coherenceScore: postProcessResult.courseReflection?.coherenceScore,
+        budgetTracker,
       },
       config,
       generatedChapters,
@@ -850,4 +854,6 @@ export {
   buildFallbackSection,
   buildFallbackDetails,
   buildFallbackDescription,
+  sanitizeForDisplay,
+  sanitizeSSEEventData,
 } from './helpers';

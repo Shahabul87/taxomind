@@ -1060,6 +1060,15 @@ export interface PipelineRunBudget {
   exceeded: boolean;
 }
 
+/** Persisted cost attribution data from the pipeline budget tracker */
+export interface GenerationCostData {
+  totalTokens: number;
+  estimatedCostUSD: number;
+  callCount: number;
+  budgetUtilizationPercent: number;
+  capturedAt: string; // ISO timestamp
+}
+
 /** AI-diagnosed healing strategy for a flagged chapter */
 export interface HealingStrategy {
   type: HealingStrategyType;

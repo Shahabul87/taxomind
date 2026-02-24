@@ -114,6 +114,45 @@ export function sanitizeHtmlOutput(html: string): string {
 }
 
 // =============================================================================
+// SSE DISPLAY SANITIZATION
+// =============================================================================
+
+/**
+ * Escape HTML entities in user-provided strings for safe display in SSE events.
+ * Lightweight alternative to DOMPurify — only escapes the 5 characters that
+ * create HTML injection risk when rendered via innerHTML/dangerouslySetInnerHTML.
+ *
+ * Returns the input unchanged if falsy.
+ */
+export function sanitizeForDisplay(input: string): string {
+  if (!input) return input;
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Sanitize all string values in an SSE event data object for safe display.
+ * Applies sanitizeForDisplay() to string values only; non-string values
+ * (numbers, booleans, objects, arrays) pass through unchanged.
+ *
+ * Returns a new object (no mutation of the input).
+ */
+export function sanitizeSSEEventData(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const sanitized: Record<string, unknown> = {};
+  for (const key of Object.keys(data)) {
+    const value = data[key];
+    sanitized[key] = typeof value === 'string' ? sanitizeForDisplay(value) : value;
+  }
+  return sanitized;
+}
+
+// =============================================================================
 // PARSING & NORMALIZATION
 // =============================================================================
 

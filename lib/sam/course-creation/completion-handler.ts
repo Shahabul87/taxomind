@@ -9,6 +9,8 @@
 import 'server-only';
 
 import { logger } from '@/lib/logger';
+import { db } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 import {
   advanceCourseStage,
   completeStageStep,
@@ -16,12 +18,13 @@ import {
 } from './course-creation-controller';
 import { recordExperimentOutcome, type ExperimentAssignment } from './experiments';
 import { runPostCreationEnrichmentBackground, triggerBackgroundDepthAnalysis } from './post-creation-enrichment';
+import type { PipelineBudgetTracker } from './pipeline-budget';
 import { PROMPT_VERSION } from './prompts';
 import {
   CourseCreationSLOTracker,
   recordCourseCreationSLOSnapshot,
 } from './slo-telemetry';
-import type { SequentialCreationConfig, SequentialCreationResult, QualityScore } from './types';
+import type { SequentialCreationConfig, SequentialCreationResult, QualityScore, GenerationCostData } from './types';
 import type { FallbackTracker } from './response-parsers';
 
 export interface CompletionOptions {
@@ -44,6 +47,7 @@ export interface CompletionStats {
   fallbackTracker?: FallbackTracker;
   sloTracker?: CourseCreationSLOTracker;
   coherenceScore?: number;
+  budgetTracker?: PipelineBudgetTracker;
 }
 
 /**
@@ -67,7 +71,31 @@ export async function finalizeAndEmit(
     fallbackTracker,
     sloTracker,
     coherenceScore,
+    budgetTracker,
   } = stats;
+
+  // Persist generation cost data (fire-and-forget)
+  let budgetSnapshot: GenerationCostData | undefined;
+  if (budgetTracker) {
+    const snapshot = budgetTracker.getSnapshot();
+    budgetSnapshot = {
+      totalTokens: snapshot.accumulatedTokens,
+      estimatedCostUSD: snapshot.accumulatedCostUSD,
+      callCount: snapshot.callCount,
+      budgetUtilizationPercent: snapshot.maxTotalTokens > 0
+        ? Math.round((snapshot.accumulatedTokens / snapshot.maxTotalTokens) * 100)
+        : 0,
+      capturedAt: new Date().toISOString(),
+    };
+    db.course.update({
+      where: { id: courseId },
+      data: { generationCostData: budgetSnapshot as unknown as Prisma.InputJsonValue },
+    }).catch((err: unknown) => {
+      logger.warn('[COMPLETION] Failed to persist generation cost data', {
+        courseId, error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
 
   // Emit stage completion events
   onSSEEvent?.({
@@ -173,6 +201,7 @@ export async function finalizeAndEmit(
       coherenceScore,
       promptVersion: PROMPT_VERSION,
       fallbackSummary: fallbackSummaryData,
+      ...(budgetSnapshot ? { budgetSnapshot } : {}),
     },
   });
 

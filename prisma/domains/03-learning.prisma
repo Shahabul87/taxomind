@@ -168,6 +168,9 @@ model Course {
   // AI-generated course blueprint (teacher-reviewed) — persisted for course regeneration and resume
   blueprintData            Json?
 
+  // AI generation cost data (token usage, cost estimate) from pipeline budget tracker
+  generationCostData       Json?
+
   @@index([categoryId])
   @@index([organizationId])
 }

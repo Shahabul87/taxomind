@@ -1,12 +1,15 @@
 /**
- * Sanitization Tests — Prompt Injection Defense
+ * Sanitization Tests — Prompt Injection Defense + SSE Display Sanitization
  *
  * Tests that sanitizeForPrompt() and sanitizeCourseContext() strip
  * known prompt injection patterns before user input reaches AI prompts.
+ *
+ * Tests that sanitizeForDisplay() and sanitizeSSEEventData() escape
+ * HTML entities in user-provided strings flowing through SSE events.
  */
 
-import { sanitizeForPrompt, sanitizeCourseContext, sanitizeHtmlOutput } from '../helpers';
-import type { CourseContext } from '../types';
+import { sanitizeForPrompt, sanitizeCourseContext, sanitizeHtmlOutput, sanitizeForDisplay, sanitizeSSEEventData } from '../helpers';
+import { CourseContext } from '../types';
 
 // ============================================================================
 // sanitizeForPrompt
@@ -300,5 +303,100 @@ describe('sanitizeHtmlOutput', () => {
 
   it('returns empty string for falsy input', () => {
     expect(sanitizeHtmlOutput('')).toBe('');
+  });
+});
+
+// ============================================================================
+// sanitizeForDisplay — HTML Entity Escaping for SSE Events
+// ============================================================================
+
+describe('sanitizeForDisplay', () => {
+  it('escapes ampersands', () => {
+    expect(sanitizeForDisplay('A & B')).toBe('A &amp; B');
+  });
+
+  it('escapes angle brackets', () => {
+    expect(sanitizeForDisplay('<script>alert("xss")</script>')).toBe(
+      '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+    );
+  });
+
+  it('escapes double quotes', () => {
+    expect(sanitizeForDisplay('say "hello"')).toBe('say &quot;hello&quot;');
+  });
+
+  it('escapes single quotes', () => {
+    expect(sanitizeForDisplay("it's")).toBe('it&#39;s');
+  });
+
+  it('escapes all five characters in one pass', () => {
+    const input = `<div class="test">'A & B'</div>`;
+    const result = sanitizeForDisplay(input);
+    expect(result).toBe('&lt;div class=&quot;test&quot;&gt;&#39;A &amp; B&#39;&lt;/div&gt;');
+  });
+
+  it('returns falsy input unchanged', () => {
+    expect(sanitizeForDisplay('')).toBe('');
+  });
+
+  it('preserves safe text without special characters', () => {
+    const input = 'Introduction to Machine Learning';
+    expect(sanitizeForDisplay(input)).toBe(input);
+  });
+});
+
+// ============================================================================
+// sanitizeSSEEventData — Shallow SSE Object Sanitization
+// ============================================================================
+
+describe('sanitizeSSEEventData', () => {
+  it('sanitizes string values in the data object', () => {
+    const data = {
+      message: '<script>alert("xss")</script>',
+      title: 'Course & More',
+    };
+    const result = sanitizeSSEEventData(data);
+    expect(result.message).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+    expect(result.title).toBe('Course &amp; More');
+  });
+
+  it('passes non-string values through unchanged', () => {
+    const data = {
+      stage: 1,
+      isComplete: true,
+      items: [1, 2, 3],
+      nested: { key: 'value' },
+      nothing: null,
+    };
+    const result = sanitizeSSEEventData(data);
+    expect(result.stage).toBe(1);
+    expect(result.isComplete).toBe(true);
+    expect(result.items).toEqual([1, 2, 3]);
+    expect(result.nested).toEqual({ key: 'value' });
+    expect(result.nothing).toBeNull();
+  });
+
+  it('does not mutate the original object', () => {
+    const data = { message: '<b>bold</b>', count: 5 };
+    const result = sanitizeSSEEventData(data);
+    expect(data.message).toBe('<b>bold</b>');
+    expect(result.message).toBe('&lt;b&gt;bold&lt;/b&gt;');
+    expect(result).not.toBe(data);
+  });
+
+  it('handles empty object', () => {
+    expect(sanitizeSSEEventData({})).toEqual({});
+  });
+
+  it('handles mixed safe and unsafe strings', () => {
+    const data = {
+      safe: 'Hello World',
+      unsafe: "User's <input> & \"data\"",
+      number: 42,
+    };
+    const result = sanitizeSSEEventData(data);
+    expect(result.safe).toBe('Hello World');
+    expect(result.unsafe).toBe('User&#39;s &lt;input&gt; &amp; &quot;data&quot;');
+    expect(result.number).toBe(42);
   });
 });

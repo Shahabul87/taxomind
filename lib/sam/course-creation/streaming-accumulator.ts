@@ -38,6 +38,10 @@ export interface StreamWithThinkingResult {
   fullContent: string;
   /** Extracted thinking text (may be incomplete if extraction failed) */
   thinkingExtracted: string;
+  /** Whether the streamed JSON structure appears complete (balanced braces/brackets) */
+  structureComplete: boolean;
+  /** Total bytes received from the stream */
+  bytesReceived: number;
 }
 
 // ============================================================================
@@ -159,6 +163,96 @@ class ThinkingExtractor {
 }
 
 // ============================================================================
+// Streaming JSON Structural Validator
+// ============================================================================
+
+/**
+ * Tracks brace/bracket depth during streaming to detect truncated JSON.
+ *
+ * Handles string escaping correctly so that `{`, `}`, `[`, `]` inside
+ * JSON string values are not counted. This is a structural completeness
+ * check — NOT a full JSON parser.
+ *
+ * Usage:
+ *   const validator = new StreamingJsonValidator();
+ *   validator.feed(chunk1);
+ *   validator.feed(chunk2);
+ *   if (!validator.isStructureComplete()) { // truncated! }
+ */
+export class StreamingJsonValidator {
+  private braceDepth = 0;
+  private bracketDepth = 0;
+  private inString = false;
+  private escaped = false;
+  private hasSeenOpenBrace = false;
+  private bytesProcessed = 0;
+
+  /** Feed a new chunk of text into the validator */
+  feed(chunk: string): void {
+    this.bytesProcessed += chunk.length;
+
+    for (let i = 0; i < chunk.length; i++) {
+      const char = chunk[i];
+
+      if (this.escaped) {
+        // Previous char was backslash inside a string — skip this char
+        this.escaped = false;
+        continue;
+      }
+
+      if (this.inString) {
+        if (char === '\\') {
+          this.escaped = true;
+        } else if (char === '"') {
+          this.inString = false;
+        }
+        continue;
+      }
+
+      // Outside a string
+      switch (char) {
+        case '"':
+          this.inString = true;
+          break;
+        case '{':
+          this.braceDepth++;
+          this.hasSeenOpenBrace = true;
+          break;
+        case '}':
+          this.braceDepth = Math.max(0, this.braceDepth - 1);
+          break;
+        case '[':
+          this.bracketDepth++;
+          break;
+        case ']':
+          this.bracketDepth = Math.max(0, this.bracketDepth - 1);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Returns true when the JSON structure appears complete:
+   * - At least one `{` has been seen
+   * - Brace depth and bracket depth are both 0
+   * - Not currently inside a string
+   */
+  isStructureComplete(): boolean {
+    return (
+      this.hasSeenOpenBrace &&
+      this.braceDepth === 0 &&
+      this.bracketDepth === 0 &&
+      !this.inString
+    );
+  }
+
+  /** Total bytes processed across all feed() calls */
+  getBytesProcessed(): number {
+    return this.bytesProcessed;
+  }
+}
+
+// ============================================================================
 // Public API
 // ============================================================================
 
@@ -175,6 +269,7 @@ export async function streamWithThinkingExtraction(
 
   // Stream and accumulate via SAM unified AI provider
   const extractor = new ThinkingExtractor(onThinkingChunk ?? (() => {}));
+  const jsonValidator = new StreamingJsonValidator();
   let fullContent = '';
 
   try {
@@ -191,6 +286,7 @@ export async function streamWithThinkingExtraction(
       if (chunk.content) {
         fullContent += chunk.content;
         extractor.feed(chunk.content);
+        jsonValidator.feed(chunk.content);
       }
 
       if (chunk.done) break;
@@ -211,6 +307,8 @@ export async function streamWithThinkingExtraction(
         return {
           fullContent: response,
           thinkingExtracted: '',
+          structureComplete: true,
+          bytesReceived: response.length,
         };
       } catch (fallbackError) {
         logger.warn('[STREAMING] Fallback also failed', fallbackError);
@@ -220,8 +318,21 @@ export async function streamWithThinkingExtraction(
     }
   }
 
+  const structureComplete = jsonValidator.isStructureComplete();
+  const bytesReceived = jsonValidator.getBytesProcessed();
+
+  if (!structureComplete && fullContent.length > 0) {
+    logger.warn('[STREAMING] JSON structure appears incomplete (possible truncation)', {
+      bytesReceived,
+      contentLength: fullContent.length,
+      structureComplete,
+    });
+  }
+
   return {
     fullContent,
     thinkingExtracted: extractor.getExtracted(),
+    structureComplete,
+    bytesReceived,
   };
 }
