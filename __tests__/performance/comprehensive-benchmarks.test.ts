@@ -512,8 +512,8 @@ describe('Comprehensive Performance Benchmarks', () => {
 
     it('should benchmark concurrent request handling', async () => {
       const handleRequest = async () => {
-        // Simulate request processing
-        await Async.waitForAsync(() => true, Math.random() * 10);
+        // Simulate request processing with a small delay
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 5));
         return { status: 200, data: 'OK' };
       };
 
@@ -688,7 +688,7 @@ describe('Comprehensive Performance Benchmarks', () => {
         // Simulate unoptimized system
         const queries = 10;
         for (let i = 0; i < queries; i++) {
-          await Async.waitForAsync(() => true, 20); // Unoptimized query
+          await new Promise(resolve => setTimeout(resolve, 20)); // Unoptimized query
         }
 
         const data = MockData.generateLargeDataset(1000);
@@ -702,10 +702,10 @@ describe('Comprehensive Performance Benchmarks', () => {
         // Simulate optimized system with all improvements
 
         // 1. Connection pooling (faster connection)
-        await Async.waitForAsync(() => true, 1);
+        await new Promise(resolve => setTimeout(resolve, 1));
 
         // 2. Query optimization (single optimized query)
-        await Async.waitForAsync(() => true, 15);
+        await new Promise(resolve => setTimeout(resolve, 15));
 
         // 3. Result caching (cache hit)
         const cached = true;
