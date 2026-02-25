@@ -20,6 +20,7 @@
 import { type AIMessage, type AIAdapter as CoreAIAdapter, type AIChatStreamChunk } from '@sam-ai/core';
 import { aiClient } from '@/lib/ai/enterprise-client';
 import { logger } from '@/lib/logger';
+import { traceAICall } from '@/lib/sam/course-creation/pipeline-tracing';
 
 // Re-export the standalone error handler so routes only need one import
 export { handleAIAccessError } from '@/lib/ai/route-helper';
@@ -110,7 +111,7 @@ export async function runSAMChatWithPreference(options: SAMChatOptions): Promise
  * Use this when the route needs to send provider info back to the client.
  */
 export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<SAMChatMetadataResult> {
-  const result = await aiClient.chat({
+  const chatFn = async () => aiClient.chat({
     userId: options.userId,
     capability: options.capability,
     messages: options.messages,
@@ -120,6 +121,12 @@ export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<S
     extended: options.extended,
     responseFormat: options.responseFormat,
   });
+
+  // Wrap with OTel span (no-op when ENABLE_OTEL is false)
+  const result = await traceAICall(
+    { model: 'pending', provider: 'pending', capability: options.capability },
+    chatFn,
+  );
 
   logger.debug('[SAM Chat] Response with metadata', {
     provider: result.provider,
@@ -147,7 +154,7 @@ export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<S
  * simply preserves it instead of discarding it like runSAMChatWithPreference.
  */
 export async function runSAMChatWithUsage(options: SAMChatOptions): Promise<SAMChatUsageResult> {
-  const result = await aiClient.chat({
+  const chatFn = async () => aiClient.chat({
     userId: options.userId,
     capability: options.capability,
     messages: options.messages,
@@ -157,6 +164,12 @@ export async function runSAMChatWithUsage(options: SAMChatOptions): Promise<SAMC
     extended: options.extended,
     responseFormat: options.responseFormat,
   });
+
+  // Wrap with OTel span (no-op when ENABLE_OTEL is false)
+  const result = await traceAICall(
+    { model: 'pending', provider: 'pending', capability: options.capability },
+    chatFn,
+  );
 
   logger.debug('[SAM Chat] Response with usage', {
     provider: result.provider,

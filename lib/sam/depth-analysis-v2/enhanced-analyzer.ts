@@ -394,7 +394,7 @@ export class EnhancedCourseAnalyzerV2 {
         qualityScore
       );
 
-      // Build chapter analysis summary
+      // Build chapter analysis summary with real per-chapter scores
       const chapterAnalysis = this.course.chapters.map((ch, index) => {
         const chapterBlooms = bloomsResult.chapters.find(
           (c) => c.chapterId === ch.id
@@ -405,6 +405,56 @@ export class EnhancedCourseAnalyzerV2 {
         const chapterIssues = issuesWithFixes.filter(
           (i) => i.location.chapterId === ch.id
         );
+
+        // --- Per-chapter FLOW score ---
+        // Start at 100, deduct for cognitive jumps and progression issues in this chapter
+        let chapterFlowScore = 100;
+        const chapterCognitiveJumps = flowResult.cognitiveJumps.filter(
+          (j) => j.location.chapterId === ch.id
+        );
+        for (const jump of chapterCognitiveJumps) {
+          chapterFlowScore -= jump.gap * 3;
+        }
+        // Deduct for progression issues FROM or TO this chapter
+        const chapterProgressionIssues = flowResult.progressionIssues.filter(
+          (p) => p.fromChapter.id === ch.id || p.toChapter.id === ch.id
+        );
+        for (const prog of chapterProgressionIssues) {
+          switch (prog.severity) {
+            case 'HIGH': chapterFlowScore -= 15; break;
+            case 'MEDIUM': chapterFlowScore -= 10; break;
+            case 'LOW': chapterFlowScore -= 5; break;
+          }
+        }
+        chapterFlowScore = Math.max(0, Math.min(100, chapterFlowScore));
+
+        // --- Per-chapter QUALITY score ---
+        // Start at 100, deduct for thin sections, duplicates, and content issues
+        let chapterQualityScore = 100;
+        const chapterThinSections = contentResult.thinSections.filter(
+          (t) => t.chapterId === ch.id
+        );
+        const chapterDuplicates = contentResult.duplicates.filter(
+          (d) => d.sourceA.chapterId === ch.id || d.sourceB.chapterId === ch.id
+        );
+        // Deduct for thin sections
+        const chapterTotalSections = ch.sections.length;
+        if (chapterTotalSections > 0) {
+          const thinRatio = chapterThinSections.length / chapterTotalSections;
+          chapterQualityScore -= Math.round(thinRatio * 30);
+        }
+        // Deduct for duplicates
+        const highSimilarityDups = chapterDuplicates.filter((d) => d.similarityScore >= 60);
+        chapterQualityScore -= highSimilarityDups.length * 10;
+        chapterQualityScore -= (chapterDuplicates.length - highSimilarityDups.length) * 5;
+        // Bonus for objectives coverage
+        const sectionsWithObjectives = ch.sections.filter(
+          (s) => s.objectives && s.objectives.length > 0
+        ).length;
+        if (chapterTotalSections > 0 && sectionsWithObjectives / chapterTotalSections >= 0.8) {
+          chapterQualityScore += 10;
+        }
+        chapterQualityScore = Math.max(0, Math.min(100, chapterQualityScore));
 
         return {
           chapterId: ch.id,
@@ -419,10 +469,10 @@ export class EnhancedCourseAnalyzerV2 {
                     100) *
                     100
                 )
-              : 50,
-            consistency: chapterConsistency?.consistencyScore ?? 70,
-            flow: 70, // Will be calculated per-chapter in enhanced version
-            quality: 70, // Will be calculated per-chapter in enhanced version
+              : 0,
+            consistency: chapterConsistency?.consistencyScore ?? 0,
+            flow: chapterFlowScore,
+            quality: chapterQualityScore,
           },
           issueCount: chapterIssues.length,
           primaryBloomsLevel: chapterBlooms?.primaryLevel ?? 'UNDERSTAND',

@@ -14,6 +14,7 @@ import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import type { CheckpointData } from '@/lib/sam/course-creation/types';
+import { progressKey, type CourseCreationProgress } from '@/lib/queue/course-creation-types';
 
 // =============================================================================
 // TYPES
@@ -51,6 +52,58 @@ export async function GET(req: NextRequest) {
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // 1b. Queue-based progress: if runId is provided, check Redis first
+    const runId = req.nextUrl.searchParams.get('runId');
+    if (runId && process.env.ENABLE_QUEUE_PROCESSING === 'true') {
+      try {
+        const IORedis = (await import('ioredis')).default;
+        const redis = new IORedis({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          password: process.env.REDIS_PASSWORD,
+          db: parseInt(process.env.REDIS_DB || '0', 10),
+          maxRetriesPerRequest: 1,
+          connectTimeout: 3000,
+          lazyConnect: true,
+        });
+
+        try {
+          await redis.connect();
+          const raw = await redis.get(progressKey(runId));
+          await redis.disconnect();
+
+          if (raw) {
+            const queueProgress: CourseCreationProgress = JSON.parse(raw);
+            return NextResponse.json({
+              success: true,
+              mode: 'queue',
+              hasActiveCreation: queueProgress.status === 'running' || queueProgress.status === 'queued',
+              queueProgress: {
+                status: queueProgress.status,
+                courseId: queueProgress.courseId,
+                currentChapter: queueProgress.currentChapter,
+                totalChapters: queueProgress.totalChapters,
+                percentage: queueProgress.percentage,
+                chaptersCreated: queueProgress.chaptersCreated,
+                sectionsCreated: queueProgress.sectionsCreated,
+                error: queueProgress.error,
+                canRetry: queueProgress.canRetry,
+                stats: queueProgress.stats,
+                updatedAt: queueProgress.updatedAt,
+              },
+            });
+          }
+        } catch (redisError) {
+          // Redis unavailable — fall through to DB-based progress
+          logger.warn('[PROGRESS_API] Redis unavailable for queue progress', {
+            runId, error: redisError instanceof Error ? redisError.message : String(redisError),
+          });
+        }
+      } catch {
+        // IORedis import failed — queue not available
+      }
     }
 
     // 2. Find most recent resumable plan with checkpoint data

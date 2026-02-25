@@ -5,13 +5,14 @@
  * Uses AI when enabled, falls back to keyword-based classification.
  */
 
-import type {
-  CourseInput,
-  BloomsAnalysisResult,
-  ChapterBloomsResult,
-  SectionBloomsResult,
-  BloomsDistribution,
-  BloomsLevel,
+import {
+  BLOOMS_DEPTH_WEIGHTS,
+  type CourseInput,
+  type BloomsAnalysisResult,
+  type ChapterBloomsResult,
+  type SectionBloomsResult,
+  type BloomsDistribution,
+  type BloomsLevel,
 } from '../types';
 
 /** Ordered Bloom's levels for gap calculation */
@@ -139,20 +140,16 @@ function createEmptyDistribution(): BloomsDistribution {
 }
 
 /**
- * Normalize distribution to percentages (must sum to 100)
+ * Normalize distribution to percentages (must sum to 100).
+ *
+ * When no Bloom's keywords are found (total === 0), returns all zeros
+ * instead of a fake balanced distribution. This honestly signals
+ * "no classifiable educational content" rather than masking empty content.
  */
 function normalizeDistribution(distribution: BloomsDistribution): BloomsDistribution {
   const total = Object.values(distribution).reduce((sum, val) => sum + val, 0);
   if (total === 0) {
-    // Default to balanced distribution if no content
-    return {
-      REMEMBER: 17,
-      UNDERSTAND: 17,
-      APPLY: 17,
-      ANALYZE: 17,
-      EVALUATE: 16,
-      CREATE: 16,
-    };
+    return createEmptyDistribution();
   }
 
   const normalized = { ...distribution };
@@ -206,15 +203,17 @@ function classifyTextByKeywords(text: string): {
     }
   }
 
-  // Calculate confidence based on how clearly one level dominates
+  // Calculate confidence based on how clearly one level dominates.
+  // When no keywords are found (totalScore === 0), confidence is 0 to
+  // honestly signal "no classifiable content."
   const totalScore = Object.values(scores).reduce((sum, val) => sum + val, 0);
   const confidence =
-    totalScore > 0 ? Math.min(Math.round((maxScore / totalScore) * 100), 95) : 30;
+    totalScore > 0 ? Math.min(Math.round((maxScore / totalScore) * 100), 95) : 0;
 
   return {
     level: dominantLevel,
     confidence,
-    evidence: evidence.slice(0, 5), // Limit evidence to top 5
+    evidence: totalScore > 0 ? evidence.slice(0, 5) : ['No Bloom\'s taxonomy keywords found in content'],
   };
 }
 
@@ -295,24 +294,25 @@ function determineBalance(
 }
 
 /**
- * Calculate cognitive depth score (0-100)
+ * Calculate cognitive depth score (0-100) using the unified BLOOMS_DEPTH_WEIGHTS.
+ *
+ * The weighted sum of a percentage-based distribution (summing to 100) produces
+ * values in the 5-20 range. We scale ×4 and clamp to [0, 100].
  */
 function calculateDepthScore(distribution: BloomsDistribution): number {
-  // Weight higher-order thinking more heavily
-  const weightedSum =
-    distribution.REMEMBER * 0.1 +
-    distribution.UNDERSTAND * 0.15 +
-    distribution.APPLY * 0.2 +
-    distribution.ANALYZE * 0.25 +
-    distribution.EVALUATE * 0.15 +
-    distribution.CREATE * 0.15;
+  let weightedSum = 0;
+  for (const level of Object.keys(BLOOMS_DEPTH_WEIGHTS) as BloomsLevel[]) {
+    weightedSum += (distribution[level] || 0) * BLOOMS_DEPTH_WEIGHTS[level];
+  }
 
-  // Scale to 0-100
-  return Math.min(Math.round(weightedSum), 100);
+  return Math.round(Math.min(100, Math.max(0, weightedSum * 4)));
 }
 
 /**
- * Aggregate distributions from multiple sections
+ * Aggregate distributions from multiple sections.
+ *
+ * If ALL input distributions are zero (no classifiable content),
+ * returns all zeros rather than injecting a fake balanced distribution.
  */
 function aggregateDistributions(
   distributions: BloomsDistribution[]
@@ -326,6 +326,12 @@ function aggregateDistributions(
     for (const level of Object.keys(total) as BloomsLevel[]) {
       total[level] += dist[level];
     }
+  }
+
+  // If all distributions were zero, the total is still zero — return honestly
+  const grandTotal = Object.values(total).reduce((sum, val) => sum + val, 0);
+  if (grandTotal === 0) {
+    return createEmptyDistribution();
   }
 
   // Average and normalize

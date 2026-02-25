@@ -20,6 +20,7 @@ import { runSAMChatWithPreference, runSAMChatWithUsage } from '@/lib/sam/ai-prov
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
 import { buildStage1Prompt, buildStage2Prompt, buildStage3Prompt } from './prompts';
+import { retrieveRelevantContext, buildRAGQuery } from './rag-retriever';
 import { composeTemplatePromptBlocks, selectTemplateSections } from './chapter-templates';
 import { streamWithThinkingExtraction } from './streaming-accumulator';
 import { composeCategoryPrompt } from './category-prompts';
@@ -761,6 +762,16 @@ export async function generateSingleChapter(
       buildFallback: () => ({ details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext, s3TemplateDef), thinking: '', qualityScore: buildDefaultQualityScore(50) }),
       executeAttempt: async (attempt, feedback) => {
         throwIfAborted(abortSignal);
+        // RAG: retrieve domain knowledge context for this section
+        const ragQuery = buildRAGQuery(sectionPlain.title, sectionPlain.topicFocus, sectionPlain.conceptsIntroduced);
+        const ragBlock = await retrieveRelevantContext(ragQuery, {
+          excludeCourseId: courseId,
+          courseCategory: courseContext.courseCategory || undefined,
+          topK: 4,
+          minScore: 0.75,
+          maxContextChars: 2500,
+        });
+
         const blueprintSec3 = teacherBlueprintChapter?.sections.find(s => s.position === section.position);
         const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt({
           courseContext, chapter: chapterPlain, section: sectionPlain,
@@ -771,6 +782,7 @@ export async function generateSingleChapter(
           bridgeContent: secIdx === 0 ? context.bridgeContent : undefined,
           onPromptBudgetAlert: (alert) => emitPromptBudgetAlert(alert, 3, section.position),
           blueprintKeyTopics: blueprintSec3?.keyTopics,
+          ragContext: ragBlock?.formattedContext,
         });
         const augmentedS3User = feedback ? `${s3User}\n\n${buildQualityFeedbackBlock(feedback)}` : s3User;
 

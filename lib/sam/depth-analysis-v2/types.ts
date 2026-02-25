@@ -49,6 +49,25 @@ export type BloomsLevel =
   | 'EVALUATE'
   | 'CREATE';
 
+/**
+ * Unified Bloom's depth weights for scoring.
+ *
+ * Higher-order thinking levels contribute more to the depth score.
+ * These weights are the SINGLE SOURCE OF TRUTH — used by both the
+ * rule-based classifier and the AI route's chapter depth calculation.
+ *
+ * A perfectly balanced distribution yields ~16.5; a CREATE-heavy one ~20.
+ * Raw weighted sums are normalized to 0-100 by consumers.
+ */
+export const BLOOMS_DEPTH_WEIGHTS: Record<BloomsLevel, number> = {
+  REMEMBER: 0.05,
+  UNDERSTAND: 0.10,
+  APPLY: 0.20,
+  ANALYZE: 0.25,
+  EVALUATE: 0.20,
+  CREATE: 0.20,
+} as const;
+
 export type FixAction =
   | 'add'
   | 'modify'

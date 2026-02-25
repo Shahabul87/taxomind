@@ -206,6 +206,24 @@ export async function POST(request: NextRequest) {
     const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
     if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
+    // 2b. Queue routing: when ENABLE_QUEUE_PROCESSING is enabled,
+    // redirect new course creations to the async queue-based route.
+    // Resume requests stay inline (they need the existing checkpoint flow).
+    if (process.env.ENABLE_QUEUE_PROCESSING === 'true') {
+      const queueBody = await request.clone().json();
+      if (!queueBody.resumeCourseId) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Queue processing is enabled. Use /api/sam/course-creation/orchestrate-async instead.',
+            code: 'USE_ASYNC_ROUTE',
+            asyncUrl: '/api/sam/course-creation/orchestrate-async',
+          }),
+          { status: 307, headers: { 'Content-Type': 'application/json', 'Location': '/api/sam/course-creation/orchestrate-async' } },
+        );
+      }
+    }
+
     // 3. Validate body
     const body = await request.json();
     const parseResult = OrchestrateRequestSchema.safeParse(body);

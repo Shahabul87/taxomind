@@ -463,6 +463,7 @@ export async function runParallelPipeline(
   let sectionsCreated = completedChapters.reduce((sum, ch) => sum + ch.sections.length, 0);
   const allFailedPositions: number[] = [];
   let batchIndex = 0;
+  let totalBatchesCompleted = 0;
 
   while (remainingPositions.length > 0) {
     if (abortSignal?.aborted) break;
@@ -471,6 +472,7 @@ export async function runParallelPipeline(
     const batch = remainingPositions.splice(0, currentBatchSize);
     const batchNumber = batchIndex + 1;
     const totalBatches = batchNumber + Math.ceil(remainingPositions.length / currentBatchSize);
+    totalBatchesCompleted = totalBatches;
 
     logger.info('[PARALLEL_PIPELINE] Starting batch', {
       courseId, batchNumber, totalBatches, chapters: batch, currentBatchSize, runId,
@@ -803,7 +805,7 @@ export async function runParallelPipeline(
       sectionsCreated,
       failedChapters: allFailedPositions.length,
       totalChapters,
-      totalBatches,
+      totalBatches: totalBatchesCompleted,
     },
   });
 
@@ -812,7 +814,7 @@ export async function runParallelPipeline(
     chaptersCreated,
     sectionsCreated,
     failedChapters: allFailedPositions.length,
-    totalBatches,
+    totalBatches: totalBatchesCompleted,
     runId,
   });
 

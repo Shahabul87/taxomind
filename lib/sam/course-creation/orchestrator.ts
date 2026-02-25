@@ -17,6 +17,7 @@
 
 import { logger } from '@/lib/logger';
 import { resolveAIModelInfo } from '@/lib/sam/ai-provider';
+import { startPipelineTrace, type PipelineTrace } from './pipeline-tracing';
 import {
   getTemplateForDifficulty,
   getMinimumSectionsForDifficulty,
@@ -96,6 +97,8 @@ export interface OrchestrateOptions {
   requestId?: string;
   /** Server-generated deterministic fingerprint of the creation payload */
   requestFingerprint?: string;
+  /** OTel pipeline trace handle (created by route, passed through to phases) */
+  pipelineTrace?: PipelineTrace;
 }
 
 export async function orchestrateCourseCreation(
@@ -104,6 +107,14 @@ export async function orchestrateCourseCreation(
   const { userId, config, onProgress, onSSEEvent, abortSignal, enableStreamingThinking, resumeState, useAgenticStateMachine, runId, requestId, requestFingerprint } = options;
   const startTime = Date.now();
   const isResume = !!resumeState;
+
+  // Start OTel root span for the full pipeline (no-op when ENABLE_OTEL=false)
+  const pipelineTrace = options.pipelineTrace ?? startPipelineTrace({
+    userId,
+    runId,
+    requestId,
+    chapterCount: config.totalChapters,
+  });
 
   // Pre-resolve model info for responseFormat decisions (JSON mode for non-reasoning models)
   const { isReasoningModel } = await resolveAIModelInfo({ userId, capability: 'course' });
@@ -432,6 +443,7 @@ export async function orchestrateCourseCreation(
       createdCourseId = courseId;
       progress.goalId = goalId;
 
+      pipelineTrace.setAttribute('course.id', courseId);
       logger.info('[ORCHESTRATOR] Resuming course creation', {
         courseId,
         completedChapters: resumeState.completedChapterCount,
@@ -488,6 +500,7 @@ export async function orchestrateCourseCreation(
       progress.goalId = goalId;
 
       logger.info('[ORCHESTRATOR] Course created', { courseId, title: config.courseTitle });
+      pipelineTrace.setAttribute('course.id', courseId);
       trackingOnSSEEvent?.({
         type: 'item_complete',
         data: { stage: 0, message: 'Course record created', courseId },
@@ -669,6 +682,7 @@ export async function orchestrateCourseCreation(
         effectiveSectionsPerChapter,
         resumeState,
         isReasoningModel,
+        pipelineTrace,
       });
     }
     chaptersCreated = pipelineResult.chaptersCreated;
@@ -676,6 +690,8 @@ export async function orchestrateCourseCreation(
 
     // Handle abort: return early with partial result
     if (abortSignal?.aborted) {
+      pipelineTrace.addEvent('pipeline.aborted', { chaptersCreated, sectionsCreated });
+      pipelineTrace.end();
       const totalTime = Date.now() - startTime;
       const averageQualityScore = qualityScores.length > 0
         ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
@@ -731,6 +747,11 @@ export async function orchestrateCourseCreation(
 
     const totalTime = Date.now() - startTime;
 
+    pipelineTrace.setAttribute('pipeline.chapters_created', chaptersCreated);
+    pipelineTrace.setAttribute('pipeline.sections_created', sectionsCreated);
+    pipelineTrace.setAttribute('pipeline.total_time_ms', totalTime);
+    pipelineTrace.end();
+
     return await finalizeAndEmit(
       {
         courseId,
@@ -760,6 +781,7 @@ export async function orchestrateCourseCreation(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Course creation failed', { runId, error: errorMessage });
+    pipelineTrace.endWithError(error instanceof Error ? error : new Error(errorMessage));
 
     // Phase 3: Mark course creation as failed
     await failCourseCreation(goalId, planId, errorMessage);
@@ -835,6 +857,10 @@ export { runPostProcessing } from './post-processor';
 export type { PostProcessOptions, PostProcessResult } from './post-processor';
 export { finalizeAndEmit } from './completion-handler';
 export type { CompletionOptions, CompletionStats } from './completion-handler';
+
+// Pipeline tracing re-exports
+export { startPipelineTrace, traceAICall } from './pipeline-tracing';
+export type { PipelineTrace, ChapterTrace, PhaseTrace, AICallTrace } from './pipeline-tracing';
 
 // Helpers re-export for external consumers
 export {

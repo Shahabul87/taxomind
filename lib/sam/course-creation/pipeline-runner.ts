@@ -30,6 +30,7 @@ import type {
   ResumeState,
 } from './types';
 import type { CategoryPromptEnhancer } from './category-prompts';
+import type { PipelineTrace } from './pipeline-tracing';
 
 // Re-export the GeneratedSection type (used for allSections map)
 import type { GeneratedSection } from './types';
@@ -88,6 +89,8 @@ export interface PipelineRunnerOptions {
   resumeState?: ResumeState;
   /** Whether the resolved AI model is a reasoning model (affects responseFormat) */
   isReasoningModel?: boolean;
+  /** OTel pipeline trace for creating chapter/phase spans */
+  pipelineTrace?: PipelineTrace;
 }
 
 export interface PipelineRunnerResult {
@@ -151,6 +154,7 @@ export async function runPipeline(
     abortSignal,
     startChapterOffset: startChapter - 1,
     runId,
+    pipelineTrace: options.pipelineTrace,
     sharedState: {
       completedChapters,
       generatedChapters,

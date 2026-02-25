@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { registerEnrollmentWorker } from './enrollment-worker';
 import { registerWebhookWorker } from './webhook-worker';
 import { registerAgenticWorker } from './agentic-worker';
+import { registerCourseCreationWorker } from './course-creation-worker';
 
 /**
  * Initialize all workers
@@ -23,6 +24,9 @@ export function initializeWorkers(): void {
 
     // Register agentic worker
     registerAgenticWorker();
+
+    // Register course creation worker (gated by ENABLE_QUEUE_PROCESSING)
+    registerCourseCreationWorker();
 
     logger.info('[WORKERS] All workers initialized successfully');
   } catch (error) {

@@ -227,6 +227,27 @@ export class QueueManager {
         priority: 'high',
       },
 
+      // Course creation queue — real pipeline worker (gated by ENABLE_QUEUE_PROCESSING)
+      {
+        name: 'course-creation',
+        concurrency: 2,
+        rateLimiter: {
+          max: 4,
+          duration: 60000, // Max 4 course creations per minute
+        },
+        defaultJobOptions: {
+          attempts: 1,
+          backoff: {
+            type: 'exponential',
+            delay: 30000,
+          },
+          removeOnComplete: 50,
+          removeOnFail: 20,
+        },
+        priority: 'medium',
+        processorTimeout: 1200000, // 20 min hard limit per course
+      },
+
       // Enrollment queue - for course enrollment processing
       {
         name: 'enrollment',

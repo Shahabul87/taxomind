@@ -59,6 +59,9 @@ export type JobType =
   | 'sam-memory-ingestion'
   | 'sam-analytics-rollup'
 
+  // Course creation pipeline job
+  | 'generate-course-pipeline'
+
   // Payment & Enrollment jobs (Phase 3)
   | 'process-enrollment'
   | 'process-webhook'

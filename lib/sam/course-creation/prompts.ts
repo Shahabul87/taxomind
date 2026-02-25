@@ -1595,6 +1595,8 @@ export interface Stage3PromptOptions {
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void;
   /** Teacher blueprint key topics for this section (enables prompt simplification) */
   blueprintKeyTopics?: string[];
+  /** RAG-retrieved domain knowledge context (from existing courses) */
+  ragContext?: string;
 }
 
 /**
@@ -1913,6 +1915,11 @@ ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}`,
       label: 'cumulativeKnowledge',
       priority: PromptPriority.HIGH,
       content: cumulativeKnowledgeSection,
+    },
+    {
+      label: 'ragContext',
+      priority: PromptPriority.MEDIUM,
+      content: options.ragContext ?? '',
     },
     {
       label: 'memoryRecall',

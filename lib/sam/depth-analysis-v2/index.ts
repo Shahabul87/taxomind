@@ -63,6 +63,9 @@ export { detectFallbacks } from './analyzers/fallback-detector';
 export { analyzeFactualClaims } from './analyzers/factual-analyzer';
 export { simulateLearner } from './analyzers/learner-simulator';
 
+// Constants
+export { BLOOMS_DEPTH_WEIGHTS } from './types';
+
 // Types
 export type {
   // Enums

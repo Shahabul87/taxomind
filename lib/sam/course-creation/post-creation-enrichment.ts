@@ -19,6 +19,7 @@ import { createKnowledgeGraphEngine, createBloomsAnalysisEngine } from '@sam-ai/
 import { db } from '@/lib/db';
 import { EnhancedCourseAnalyzerV2, generateContentHash } from '@/lib/sam/depth-analysis-v2/enhanced-analyzer';
 import type { CourseInput } from '@/lib/sam/depth-analysis-v2/types';
+import { indexCourseForRAG } from './rag-indexer';
 
 // ============================================================================
 // Types
@@ -33,6 +34,8 @@ interface EnrichmentInput {
 interface EnrichmentResult {
   knowledgeGraphCompleted: boolean;
   bloomsAnalysisCompleted: boolean;
+  ragIndexCompleted: boolean;
+  ragChunksIndexed: number;
   errors: string[];
 }
 
@@ -53,6 +56,8 @@ export async function runPostCreationEnrichment(
   const result: EnrichmentResult = {
     knowledgeGraphCompleted: false,
     bloomsAnalysisCompleted: false,
+    ragIndexCompleted: false,
+    ragChunksIndexed: 0,
     errors: [],
   };
 
@@ -72,10 +77,11 @@ export async function runPostCreationEnrichment(
     // Get SAM config for AI-powered analysis
     const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
 
-    // Run enrichment tasks concurrently
-    const [kgResult, bloomsResult] = await Promise.allSettled([
+    // Run enrichment tasks concurrently (including RAG indexing)
+    const [kgResult, bloomsResult, ragResult] = await Promise.allSettled([
       enrichKnowledgeGraph(samConfig, courseData, courseId),
       enrichBloomsAnalysis(samConfig, courseData, courseId, courseTitle),
+      indexCourseForRAG(courseId),
     ]);
 
     if (kgResult.status === 'fulfilled') {
@@ -90,10 +96,19 @@ export async function runPostCreationEnrichment(
       result.errors.push(`BloomsAnalysis: ${bloomsResult.reason}`);
     }
 
+    if (ragResult.status === 'fulfilled') {
+      result.ragChunksIndexed = ragResult.value;
+      result.ragIndexCompleted = ragResult.value > 0;
+    } else {
+      result.errors.push(`RAGIndex: ${ragResult.reason}`);
+    }
+
     logger.info('[POST_ENRICHMENT] Enrichment complete', {
       courseId,
       knowledgeGraph: result.knowledgeGraphCompleted,
       bloomsAnalysis: result.bloomsAnalysisCompleted,
+      ragIndex: result.ragIndexCompleted,
+      ragChunks: result.ragChunksIndexed,
       errorCount: result.errors.length,
     });
   } catch (error) {

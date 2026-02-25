@@ -1,0 +1,66 @@
+# Observability Stack for Taxomind
+#
+# Provides distributed tracing (Jaeger) and metrics (Prometheus) for local development.
+#
+# Usage:
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# UIs:
+#   Jaeger:     http://localhost:16686
+#   Prometheus: http://localhost:9090
+#
+# Requires .env.development:
+#   ENABLE_OTEL=true
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+#
+
+version: "3.8"
+
+services:
+  # ─────────────────────────────────────────────────────────────────
+  # Jaeger — All-in-one: collector + query + UI
+  # Accepts OTLP over HTTP (4318) and gRPC (4317)
+  # ─────────────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      # OTLP gRPC receiver
+      - "4317:4317"
+      # OTLP HTTP receiver (matches OTEL_EXPORTER_OTLP_ENDPOINT)
+      - "4318:4318"
+      # Jaeger UI
+      - "16686:16686"
+      # Jaeger Thrift (legacy, optional)
+      - "14268:14268"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:14269/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────────────
+  # Prometheus — Metrics collection & alerting
+  # Scrapes the Next.js app on localhost:3000/api/health (if exposed)
+  # ─────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  prometheus-data:

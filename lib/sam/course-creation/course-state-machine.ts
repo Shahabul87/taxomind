@@ -60,6 +60,7 @@ import type { AdaptiveStrategyMonitor } from './adaptive-strategy';
 import type { ChapterTemplate } from './chapter-templates';
 import type { ComposedCategoryPrompt } from './category-prompts';
 import type { PipelineBudgetTracker } from './pipeline-budget';
+import type { PipelineTrace } from './pipeline-tracing';
 
 // ============================================================================
 // Types
@@ -81,6 +82,8 @@ export interface CourseStateMachineConfig {
   startChapterOffset?: number;
   /** Correlation ID for end-to-end tracing */
   runId?: string;
+  /** OTel pipeline trace for creating chapter/phase spans */
+  pipelineTrace?: PipelineTrace;
 }
 
 /** Mutable pipeline state shared by reference between orchestrator and state machine */
@@ -161,6 +164,10 @@ export class CourseCreationStateMachine {
     const chapterOffset = this.config.startChapterOffset ?? 0;
     this.machine.setStepExecutor(async (_step: PlanStep, _context: ExecutionContext) => {
       const chapterNumber = _step.order + 1 + chapterOffset;
+      const chapterTrace = this.config.pipelineTrace?.startChapterSpan({
+        chapterIndex: chapterNumber,
+        chapterTitle: _step.title,
+      });
 
       const ctx: StepExecutorContext = {
         config: this.config,
@@ -170,59 +177,93 @@ export class CourseCreationStateMachine {
         buildContext,
       };
 
-      // Phase 0: Skip check
-      const skipResult = phaseSkipCheck(ctx);
-      if (skipResult) return skipResult;
-
-      // Phase 1: Lifecycle setup (SubGoal init, context build)
-      const { chapterSubGoalId, chapterContext } = await phaseLifecycleSetup(ctx);
-
-      // Phase 2: Generate chapter (all 3 stages) with timeout
-      const generateResult = await phaseGenerate(ctx, chapterContext);
-      if ('earlyReturn' in generateResult) return generateResult.earlyReturn;
-      const { chapterResult } = generateResult;
-
-      // Phase 2b: Fallback rate gate — halt if too many parse failures
-      if (state.fallbackTracker) {
-        const chaptersCount = state.completedChapters.length + 1;
-        const sectionsCount = state.completedChapters.reduce((s, ch) => s + ch.sections.length, 0)
-          + chapterResult.sectionsCreated;
-        const totalParsedItems = chaptersCount + sectionsCount * 2;
-        const haltOnExcessiveFallbacks = state.config.fallbackPolicy?.haltOnExcessiveFallbacks ?? true;
-        if (haltOnExcessiveFallbacks && state.fallbackTracker.shouldHalt(totalParsedItems)) {
-          const summary = state.fallbackTracker.getSummary(totalParsedItems);
-          const thresholdPct = Math.round(state.fallbackTracker.thresholdRate * 100);
-          logger.error('[CourseStateMachine] Fallback rate exceeded threshold — halting', {
-            chapter: chapterNumber, fallbackCount: summary.count,
-            fallbackRate: summary.rate, totalParsedItems,
-          });
-          this.config.onSSEEvent?.({
-            type: 'error',
-            data: {
-              message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
-                `The AI provider may be experiencing issues.`,
-              code: PipelineErrorCode.FALLBACK_RATE_EXCEEDED,
-              fallbackSummary: { count: summary.count, rate: summary.rate },
-            },
-          });
-          throw new Error(`Fallback rate ${Math.round(summary.rate * 100)}% exceeds ${thresholdPct}% threshold — pipeline halted`);
+      try {
+        // Phase 0: Skip check
+        const skipResult = phaseSkipCheck(ctx);
+        if (skipResult) {
+          chapterTrace?.addEvent('chapter.skipped');
+          chapterTrace?.end();
+          return skipResult;
         }
+
+        // Phase 1: Lifecycle setup (SubGoal init, context build)
+        let phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'lifecycleSetup', chapterIndex: chapterNumber });
+        const { chapterSubGoalId, chapterContext } = await phaseLifecycleSetup(ctx);
+        phaseSpan?.end();
+
+        // Phase 2: Generate chapter (all 3 stages) with timeout
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'generate', chapterIndex: chapterNumber });
+        const generateStartMs = Date.now();
+        const generateResult = await phaseGenerate(ctx, chapterContext);
+        if ('earlyReturn' in generateResult) {
+          phaseSpan?.end();
+          chapterTrace?.end();
+          return generateResult.earlyReturn;
+        }
+        const { chapterResult } = generateResult;
+        phaseSpan?.setAttribute('phase.duration_ms', Date.now() - generateStartMs);
+        phaseSpan?.setAttribute('sections.created', chapterResult.sectionsCreated);
+        phaseSpan?.end();
+
+        // Phase 2b: Fallback rate gate — halt if too many parse failures
+        if (state.fallbackTracker) {
+          const chaptersCount = state.completedChapters.length + 1;
+          const sectionsCount = state.completedChapters.reduce((s, ch) => s + ch.sections.length, 0)
+            + chapterResult.sectionsCreated;
+          const totalParsedItems = chaptersCount + sectionsCount * 2;
+          const haltOnExcessiveFallbacks = state.config.fallbackPolicy?.haltOnExcessiveFallbacks ?? true;
+          if (haltOnExcessiveFallbacks && state.fallbackTracker.shouldHalt(totalParsedItems)) {
+            const summary = state.fallbackTracker.getSummary(totalParsedItems);
+            const thresholdPct = Math.round(state.fallbackTracker.thresholdRate * 100);
+            logger.error('[CourseStateMachine] Fallback rate exceeded threshold — halting', {
+              chapter: chapterNumber, fallbackCount: summary.count,
+              fallbackRate: summary.rate, totalParsedItems,
+            });
+            this.config.onSSEEvent?.({
+              type: 'error',
+              data: {
+                message: `Course creation halted: ${Math.round(summary.rate * 100)}% of content used fallback generation (threshold: ${thresholdPct}%). ` +
+                  `The AI provider may be experiencing issues.`,
+                code: PipelineErrorCode.FALLBACK_RATE_EXCEEDED,
+                fallbackSummary: { count: summary.count, rate: summary.rate },
+              },
+            });
+            chapterTrace?.endWithError(new Error(`Fallback rate exceeded: ${Math.round(summary.rate * 100)}%`));
+            throw new Error(`Fallback rate ${Math.round(summary.rate * 100)}% exceeds ${thresholdPct}% threshold — pipeline halted`);
+          }
+        }
+
+        // Phase 3: Lifecycle complete (clear bridge, complete SubGoal)
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'lifecycleComplete', chapterIndex: chapterNumber });
+        await phaseLifecycleComplete(ctx, chapterSubGoalId, chapterResult);
+        phaseSpan?.end();
+
+        // Phase 4: Memory (persist concepts, between-chapter recall)
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'memory', chapterIndex: chapterNumber });
+        await phaseMemory(ctx, chapterResult);
+        phaseSpan?.end();
+
+        // Phase 5: Decision making (evaluate, apply, quality flag, bridge, replan, skip)
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'decisionMaking', chapterIndex: chapterNumber });
+        await phaseDecisionMaking(ctx, chapterResult);
+        phaseSpan?.end();
+
+        // Phase 6: Inline healing (process up to 2 chapters from healing queue)
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'inlineHealing', chapterIndex: chapterNumber });
+        await phaseInlineHealing(ctx);
+        phaseSpan?.end();
+
+        // Phase 7: Checkpoint and return StepResult
+        phaseSpan = chapterTrace?.startPhaseSpan({ phaseName: 'checkpoint', chapterIndex: chapterNumber });
+        const stepResult = phaseCheckpoint(ctx, chapterResult);
+        phaseSpan?.end();
+
+        chapterTrace?.end();
+        return stepResult;
+      } catch (error) {
+        chapterTrace?.endWithError(error instanceof Error ? error : new Error(String(error)));
+        throw error;
       }
-
-      // Phase 3: Lifecycle complete (clear bridge, complete SubGoal)
-      await phaseLifecycleComplete(ctx, chapterSubGoalId, chapterResult);
-
-      // Phase 4: Memory (persist concepts, between-chapter recall)
-      await phaseMemory(ctx, chapterResult);
-
-      // Phase 5: Decision making (evaluate, apply, quality flag, bridge, replan, skip)
-      await phaseDecisionMaking(ctx, chapterResult);
-
-      // Phase 6: Inline healing (process up to 2 chapters from healing queue)
-      await phaseInlineHealing(ctx);
-
-      // Phase 7: Checkpoint and return StepResult
-      return phaseCheckpoint(ctx, chapterResult);
     });
 
     await this.machine.start(plan);

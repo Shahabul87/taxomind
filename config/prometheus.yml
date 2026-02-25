@@ -1,0 +1,27 @@
+# Prometheus configuration for Taxomind observability stack
+#
+# Scrapes:
+#   - Prometheus self-metrics
+#   - Taxomind app health endpoint (host.docker.internal:3000)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Taxomind Next.js app (health endpoint)
+  # Uses host.docker.internal to reach the app running on the host
+  - job_name: "taxomind-app"
+    metrics_path: "/api/health"
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+        labels:
+          app: "taxomind"
+          env: "development"

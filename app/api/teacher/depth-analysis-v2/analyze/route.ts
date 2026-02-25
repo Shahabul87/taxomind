@@ -17,7 +17,9 @@ import {
   generateContentHash,
   runAIAnalysis,
   determineAnalysisMode,
+  BLOOMS_DEPTH_WEIGHTS,
   type CourseInput,
+  type BloomsLevel,
   type AnalysisProgress,
   type AIAnalysisProgress,
   type AIAnalysisResult,
@@ -63,26 +65,18 @@ function sanitizeIssueSeverity(severity: string): IssueSeverity {
 }
 
 /**
- * Calculate chapter depth score using weighted Bloom's distribution.
- * Uses the same approach as the overall depthScore but normalized to 0-100.
+ * Calculate chapter depth score using the unified BLOOMS_DEPTH_WEIGHTS.
  *
- * Weighting: Higher-order thinking levels contribute more.
- * A course appropriately matched to its difficulty level should score 70+.
+ * Uses the same constant as the rule-based classifier so both analysis
+ * modes produce identical depth scores for the same Bloom's distribution.
  */
 function calculateChapterDepthScore(bloomsDist: Record<string, number>): number {
-  const weighted =
-    (bloomsDist.REMEMBER || 0) * 0.05 +
-    (bloomsDist.UNDERSTAND || 0) * 0.10 +
-    (bloomsDist.APPLY || 0) * 0.20 +
-    (bloomsDist.ANALYZE || 0) * 0.25 +
-    (bloomsDist.EVALUATE || 0) * 0.20 +
-    (bloomsDist.CREATE || 0) * 0.20;
+  let weighted = 0;
+  for (const level of Object.keys(BLOOMS_DEPTH_WEIGHTS) as BloomsLevel[]) {
+    weighted += (bloomsDist[level] || 0) * BLOOMS_DEPTH_WEIGHTS[level];
+  }
 
-  // The weighted sum produces values roughly in the 5-25 range for typical distributions.
-  // Normalize: a perfect Create-heavy distribution scores ~20, a beginner one ~8-12.
-  // Scale to 0-100 using min 0, max ~20 as anchors, then clamp.
-  const normalized = Math.round(Math.min(100, Math.max(0, weighted * 4)));
-  return normalized;
+  return Math.round(Math.min(100, Math.max(0, weighted * 4)));
 }
 
 // ============================================================================
