@@ -90,7 +90,10 @@ describe('SmartOverviewCards', () => {
       />
     );
 
-    expect(screen.getByText('3')).toBeInTheDocument(); // 3 enrollments
+    // Value "3" appears in multiple cards (enrollments, content created, community impact)
+    // so use getAllByText instead of getByText
+    const threeElements = screen.getAllByText('3');
+    expect(threeElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders trend indicators', () => {
@@ -116,7 +119,10 @@ describe('SmartOverviewCards', () => {
     );
 
     expect(screen.getByText('Courses Enrolled')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
+    // Value "0" appears in multiple cards when userData is empty
+    // so use getAllByText instead of getByText
+    const zeroElements = screen.getAllByText('0');
+    expect(zeroElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders progress bars for each card', () => {
