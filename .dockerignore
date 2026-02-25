@@ -83,6 +83,13 @@ tmp/
 temp/
 *.tmp
 
+# Screenshots and analysis artifacts (root-level only)
+/*.png
+/*.jpg
+/*.jpeg
+/ai-creator-analysis/
+/console-output.txt
+
 # OS files
 Thumbs.db
 
