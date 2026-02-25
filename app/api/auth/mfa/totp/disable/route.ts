@@ -219,7 +219,6 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     logger.error("[TOTP_DISABLE_ERROR]", {
       error: error.message,
-      stack: error.stack,
       timestamp: new Date().toISOString(),
     });
     

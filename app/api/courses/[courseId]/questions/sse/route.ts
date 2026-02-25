@@ -1,9 +1,15 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { qaEventBus } from '@/lib/realtime/event-bus';
+import { currentUser } from '@/lib/auth';
 
 interface RouteParams { params: Promise<{ courseId: string }>; }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const user = await currentUser();
+  if (!user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   const { courseId } = await params;
 
   let keepAlive: any;

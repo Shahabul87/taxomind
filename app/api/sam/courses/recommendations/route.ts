@@ -457,11 +457,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
 
     logger.error('Error generating course recommendations:', {
       message: errorMessage,
-      stack: errorStack,
       error,
     });
 

@@ -145,7 +145,6 @@ export const POST = withAuth(async (
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: context.user.id,
       duration,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return createErrorResponse(ApiError.internal('Failed to create comment'));
   }
@@ -350,7 +349,6 @@ export const GET = withAuth(async (
     logger.error('[COMMENTS_GET] Error fetching comments', {
       error: error instanceof Error ? error.message : 'Unknown error',
       duration,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return createErrorResponse(ApiError.internal('Failed to fetch comments'));
   }

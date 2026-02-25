@@ -625,7 +625,6 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
           message: errorMessage,
           details: process.env.NODE_ENV === "development" ? {
             error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined
           } : undefined
         },
         metadata: {

@@ -182,7 +182,6 @@ export const POST = withAuth(async (
       error: error instanceof Error ? error.message : 'Unknown error',
       userId: context.user.id,
       duration,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return createErrorResponse(ApiError.internal('Failed to create reply'));
   }
@@ -269,7 +268,6 @@ export const GET = withAuth(async (
     logger.error('[REPLIES_GET] Error fetching replies', {
       error: error instanceof Error ? error.message : 'Unknown error',
       duration,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return createErrorResponse(ApiError.internal('Failed to fetch replies'));
   }

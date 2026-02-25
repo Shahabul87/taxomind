@@ -237,7 +237,6 @@ export async function GET(req: NextRequest) {
     console.error("[ACTIVITIES_GET] Error details:", {
       error,
       message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : undefined,
     });
 

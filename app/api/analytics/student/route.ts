@@ -215,7 +215,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
     logger.error('[ANALYTICS_API] Error fetching student data', {
       requestId,
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       duration: `${duration.toFixed(2)}ms`,
     });
 
@@ -256,7 +255,7 @@ export async function OPTIONS(): Promise<NextResponse> {
     {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': allowedOrigins[0] || '*',
+        'Access-Control-Allow-Origin': allowedOrigins[0] || process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400', // 24 hours

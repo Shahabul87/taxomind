@@ -228,7 +228,6 @@ export async function POST(req: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[BEHAVIOR_TRACK] Error tracking behavior:', {
       error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return NextResponse.json(
       {

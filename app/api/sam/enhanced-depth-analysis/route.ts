@@ -378,7 +378,6 @@ export async function GET(req: NextRequest) {
 
     logger.error('[EnhancedDepthAnalysis] Error details:', {
       message: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
     });
 
     return NextResponse.json(

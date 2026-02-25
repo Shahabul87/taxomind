@@ -101,6 +101,153 @@ const URLFetchInputSchema = z.object({
 });
 
 // ============================================================================
+// SAFE MATH EVALUATOR (replaces new Function() to prevent code injection)
+// ============================================================================
+
+/**
+ * Recursive descent parser for safe math expression evaluation.
+ * Supports: +, -, *, /, %, ^, sqrt(), parentheses, decimals, negation.
+ * Does NOT use eval() or new Function().
+ */
+function safeMathEval(expression: string): number {
+  const tokens = tokenize(expression);
+  let pos = 0;
+
+  function peek(): string | undefined {
+    return tokens[pos];
+  }
+
+  function consume(expected?: string): string {
+    const token = tokens[pos];
+    if (expected && token !== expected) {
+      throw new Error(`Expected '${expected}' but got '${token ?? 'end of expression'}'`);
+    }
+    pos++;
+    return token;
+  }
+
+  // Grammar: expr = term (('+' | '-') term)*
+  function parseExpr(): number {
+    let result = parseTerm();
+    while (peek() === '+' || peek() === '-') {
+      const op = consume();
+      const right = parseTerm();
+      result = op === '+' ? result + right : result - right;
+    }
+    return result;
+  }
+
+  // term = power (('*' | '/' | '%') power)*
+  function parseTerm(): number {
+    let result = parsePower();
+    while (peek() === '*' || peek() === '/' || peek() === '%') {
+      const op = consume();
+      const right = parsePower();
+      if (op === '*') result *= right;
+      else if (op === '/') {
+        if (right === 0) throw new Error('Division by zero');
+        result /= right;
+      } else {
+        if (right === 0) throw new Error('Modulo by zero');
+        result %= right;
+      }
+    }
+    return result;
+  }
+
+  // power = unary ('^' unary)*  (right-associative)
+  function parsePower(): number {
+    const base = parseUnary();
+    if (peek() === '^') {
+      consume();
+      const exp = parsePower(); // right-associative recursion
+      return Math.pow(base, exp);
+    }
+    return base;
+  }
+
+  // unary = '-' unary | primary
+  function parseUnary(): number {
+    if (peek() === '-') {
+      consume();
+      return -parseUnary();
+    }
+    return parsePrimary();
+  }
+
+  // primary = number | '(' expr ')' | 'sqrt(' expr ')'
+  function parsePrimary(): number {
+    const token = peek();
+
+    if (token === 'sqrt') {
+      consume('sqrt');
+      consume('(');
+      const val = parseExpr();
+      consume(')');
+      if (val < 0) throw new Error('Cannot take square root of negative number');
+      return Math.sqrt(val);
+    }
+
+    if (token === '(') {
+      consume('(');
+      const val = parseExpr();
+      consume(')');
+      return val;
+    }
+
+    // Must be a number
+    if (token !== undefined && /^\d+(\.\d+)?$/.test(token)) {
+      consume();
+      return parseFloat(token);
+    }
+
+    throw new Error(`Unexpected token: '${token ?? 'end of expression'}'`);
+  }
+
+  const result = parseExpr();
+  if (pos < tokens.length) {
+    throw new Error(`Unexpected token after expression: '${tokens[pos]}'`);
+  }
+  return result;
+}
+
+/** Tokenize a math expression into numbers, operators, and function names */
+function tokenize(expr: string): string[] {
+  const tokens: string[] = [];
+  let i = 0;
+  const str = expr.replace(/\s+/g, '');
+
+  while (i < str.length) {
+    // Numbers (including decimals)
+    if (/\d/.test(str[i]) || (str[i] === '.' && i + 1 < str.length && /\d/.test(str[i + 1]))) {
+      let num = '';
+      while (i < str.length && (/\d/.test(str[i]) || str[i] === '.')) {
+        num += str[i++];
+      }
+      tokens.push(num);
+      continue;
+    }
+
+    // sqrt function
+    if (str.slice(i, i + 4).toLowerCase() === 'sqrt') {
+      tokens.push('sqrt');
+      i += 4;
+      continue;
+    }
+
+    // Operators and parentheses
+    if ('+-*/%^()'.includes(str[i])) {
+      tokens.push(str[i++]);
+      continue;
+    }
+
+    throw new Error(`Invalid character in expression: '${str[i]}'`);
+  }
+
+  return tokens;
+}
+
+// ============================================================================
 // TOOL HANDLERS
 // ============================================================================
 
@@ -444,27 +591,8 @@ function createCalculatorHandler(
     log.info('[ExternalAPI] Calculate', { expression });
 
     try {
-      // Sanitize expression - only allow safe mathematical operations
-      const sanitized = expression
-        .replace(/[^0-9+\-*/().%^sqrt\s]/gi, '')
-        .replace(/sqrt/gi, 'Math.sqrt')
-        .replace(/\^/g, '**');
-
-      // Validate it&apos;s a safe expression
-      if (!/^[\d+\-*/().%\s*Math.sqrt()]+$/.test(sanitized)) {
-        return {
-          success: false,
-          error: {
-            code: 'INVALID_EXPRESSION',
-            message: 'Invalid mathematical expression. Only numbers and basic operators (+, -, *, /, %, ^, sqrt) are allowed.',
-            recoverable: true,
-          },
-        };
-      }
-
-      // Evaluate using Function constructor (safer than eval)
-      const calculate = new Function(`return ${sanitized}`);
-      const rawResult = calculate();
+      // Safe math expression evaluator (no eval/Function constructor)
+      const rawResult = safeMathEval(expression);
 
       if (typeof rawResult !== 'number' || !isFinite(rawResult)) {
         return {
@@ -484,7 +612,7 @@ function createCalculatorHandler(
         output: {
           expression,
           result,
-          sanitizedExpression: sanitized,
+          sanitizedExpression: expression,
         } as CalculationResult,
       };
     } catch (error) {

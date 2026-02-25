@@ -161,7 +161,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Bulk course deletion failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
     });
 
     return NextResponse.json<APIResponse>(

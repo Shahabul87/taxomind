@@ -362,7 +362,6 @@ export async function GET(request: NextRequest) {
 
     logger.error('[COGNITIVE_PROFILE_GET] Unexpected error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       userId: session?.user?.id,
     });
 
@@ -675,7 +674,6 @@ export async function POST(request: NextRequest) {
 
     logger.error('[COGNITIVE_PROFILE_POST] Unexpected error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       userId: session?.user?.id,
     });
 

@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     logger.error("[TOTP_SETUP_ERROR]", {
       error: error.message,
-      stack: error.stack,
     });
     
     return NextResponse.json(

@@ -387,7 +387,6 @@ export async function GET(
 
     logger.error('[COGNITIVE_GROWTH_GET] Unexpected error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       userId: session?.user?.id,
     });
 
