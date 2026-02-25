@@ -18,6 +18,23 @@ const optimizeImports = process.env.DISABLE_OPTIMIZE_IMPORTS === 'true'
       'recharts',
       '@headlessui/react',
       'react-hot-toast',
+      'react-syntax-highlighter',
+      'react-youtube',
+      'canvas-confetti',
+      'react-confetti',
+      'katex',
+      // 'framer-motion', is in transpilePackages — see above comment
+      '@tiptap/extension-link',
+      '@tiptap/extension-image',
+      '@tiptap/extension-underline',
+      '@tiptap/extension-placeholder',
+      '@tiptap/extension-text-align',
+      '@tiptap/extension-text-style',
+      '@tiptap/extension-color',
+      '@tiptap/extension-highlight',
+      '@tiptap/extension-bullet-list',
+      '@tiptap/extension-ordered-list',
+      '@tiptap/extension-list-item',
     ];
 
 const nextConfig = {

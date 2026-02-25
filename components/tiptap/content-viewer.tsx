@@ -10,34 +10,10 @@ import OrderedList from '@tiptap/extension-ordered-list';
 import ListItem from '@tiptap/extension-list-item';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-
-// Import additional extensions conditionally to avoid runtime errors
-let TextAlign: any, Table: any, TableRow: any, TableCell: any, TableHeader: any, Highlight: any, TextStyle: any, Color: any;
-
-try {
-  // Try to dynamically import extensions if available
-  TextAlign = require('@tiptap/extension-text-align').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  TextStyle = require('@tiptap/extension-text-style').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  Color = require('@tiptap/extension-color').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  Highlight = require('@tiptap/extension-highlight').default;
-} catch (e) {
-  // Extension not available
-}
+import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 
 interface ContentViewerProps {
   content: string;

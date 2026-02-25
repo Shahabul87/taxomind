@@ -13,7 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { throttle } from 'lodash';
+import throttle from 'lodash/throttle';
 
 import { CourseSocialMediaShare } from '../course-social-media-sharing';
 

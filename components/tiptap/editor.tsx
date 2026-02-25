@@ -33,36 +33,10 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// Optional extensions that we'll try to load
-let TextAlign: any;
-let Highlight: any;
-let TextStyle: any;
-let Color: any;
-
-// Try to dynamically import extensions if available
-try {
-  TextAlign = require('@tiptap/extension-text-align').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  Highlight = require('@tiptap/extension-highlight').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  TextStyle = require('@tiptap/extension-text-style').default;
-} catch (e) {
-  // Extension not available
-}
-
-try {
-  Color = require('@tiptap/extension-color').default;
-} catch (e) {
-  // Extension not available
-}
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
 
 // Array of colors for the color picker
 const COLORS = [

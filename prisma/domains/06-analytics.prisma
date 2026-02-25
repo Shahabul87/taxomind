@@ -31,6 +31,7 @@ model Activity {
   @@index([status])
   @@index([type])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model ExamAnalytics {
@@ -263,6 +264,7 @@ model user_progress {
 
   @@unique([userId, courseId, chapterId, sectionId])
   @@index([courseId])
+  @@index([chapterId])
   @@index([isCompleted])
   @@index([userId])
   @@index([userId, isCompleted])   // For progress tracking queries

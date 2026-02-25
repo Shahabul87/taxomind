@@ -34,7 +34,7 @@ import {
   Layers3,
   Cpu,
 } from 'lucide-react';
-import { throttle } from 'lodash';
+import throttle from 'lodash/throttle';
 import { cn } from '@/lib/utils';
 
 import { CourseSocialMediaShare } from '../course-social-media-sharing';

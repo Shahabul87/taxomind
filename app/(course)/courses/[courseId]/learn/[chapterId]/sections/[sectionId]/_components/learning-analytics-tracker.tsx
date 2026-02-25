@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useLearningMode } from "../../../../_components/learning-mode-context";
 import { usePathname } from "next/navigation";
-import { debounce } from "lodash";
+import debounce from "lodash/debounce";
 
 interface AnalyticsEvent {
   eventType: string;

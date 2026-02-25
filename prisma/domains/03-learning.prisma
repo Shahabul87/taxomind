@@ -173,6 +173,9 @@ model Course {
 
   @@index([categoryId])
   @@index([organizationId])
+  @@index([userId])
+  @@index([isPublished])
+  @@index([createdAt])
 }
 
 // Course-Skill Mapping (Phase 3 SAM Fixes - January 2026)
@@ -265,6 +268,7 @@ model Chapter {
   dashboardTodos         DashboardTodo[]         @relation("ChapterTodos")
 
   @@index([courseId])
+  @@index([position])
 }
 
 model Section {

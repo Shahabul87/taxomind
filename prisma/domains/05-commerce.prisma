@@ -19,6 +19,7 @@ model Purchase {
 
   @@unique([userId, courseId])
   @@index([courseId])
+  @@index([userId])
 }
 
 model StripeCustomer {

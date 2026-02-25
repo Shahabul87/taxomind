@@ -10,8 +10,80 @@
  * - Goal setting and progress tracking
  */
 
-// Types
-export * from './types';
+// Types (explicit exports for tree-shaking)
+export type {
+  // Core types used by PracticeClient
+  CreateSessionData,
+  CreateGoalData,
+  PracticeGoal,
+  SkillMastery,
+  EndSessionInputs,
+  EndSessionResult,
+  // Session/mastery types used by hooks
+  PracticeSession,
+  PracticeSessionStatus,
+  PracticeSessionType,
+  PracticeFocusLevel,
+  BloomsLevel,
+  ProficiencyLevel,
+  GoalType,
+  MilestoneType,
+  // Response types
+  MasteryOverviewResponse,
+  HeatmapResponse,
+  SessionsResponse,
+  MilestonesResponse,
+  GoalsResponse,
+  // Component prop types
+  SessionStartDialogProps,
+  ActiveSessionTrackerProps,
+  MilestoneTimelineProps,
+  PracticeGoalFormProps,
+  PracticeGoalsListProps,
+  PracticeJourneyOverviewProps,
+  SkillMasteryGridProps,
+  PracticeHeatmapProps,
+  PracticeStreakWidgetProps,
+  ProficiencyBadgeProps,
+  QuickStatCardProps,
+  SkillMasteryCardProps,
+  // Sub-types
+  SessionTypeInfo,
+  BloomsLevelInfo,
+  MultiplierInfo,
+  SessionStats,
+  HeatmapDay,
+  YearlyStats,
+  WeeklyTrend,
+  MonthlyTrend,
+  Milestone,
+  MilestoneStats,
+  GoalStats,
+  MasteryOverview,
+  StreakInfo,
+  SkillInfo,
+  QualityScoreResult,
+  ValidationResult,
+  FocusDriftResult,
+  DecayResult,
+  QualityBreakdown,
+  FatigueIndicator,
+  // Enum-like types
+  EvidenceType,
+  ProjectOutcome,
+  QualityLevel,
+  ValidationFlag,
+  DriftDirection,
+  DriftSeverity,
+  ReviewUrgency,
+  ProficiencyDistribution,
+  RecentActivity,
+  MilestoneProgress,
+  HeatmapMetadata,
+} from './types';
+
+// Config constants
+export { PROFICIENCY_CONFIG, HEATMAP_INTENSITY_LEVELS, MILESTONE_CONFIG } from './types';
 
 // Basic Components
 export { QuickStatCard } from './QuickStatCard';
