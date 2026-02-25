@@ -30,7 +30,8 @@ export async function getUserPublishedPosts() {
       },
       orderBy: {
         updatedAt: "desc"
-      }
+      },
+      take: 200,
     });
 
     // Get view counts - since there's no direct views relation in the schema
@@ -97,7 +98,8 @@ export async function getUserDraftPosts() {
       },
       orderBy: {
         updatedAt: "desc"
-      }
+      },
+      take: 200,
     });
 
     // Transform posts to include additional info
@@ -151,7 +153,8 @@ export async function getUserPostsAnalytics() {
       include: {
         Tag: true,
         comments: true
-      }
+      },
+      take: 200,
     });
     
     // If no posts, return early

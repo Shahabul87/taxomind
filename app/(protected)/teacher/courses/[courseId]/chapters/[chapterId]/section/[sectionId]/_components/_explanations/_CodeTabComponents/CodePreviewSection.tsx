@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from 'rehype-sanitize';
+import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { CodeBlock } from "./types";
 
 interface CodePreviewSectionProps {
@@ -85,7 +87,7 @@ export const CodePreviewSection = ({
                     <div className="prose prose-xs prose-gray dark:prose-invert max-w-none bg-gradient-to-br from-white to-purple-50 dark:from-gray-900 dark:to-purple-900/20 p-3 rounded border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 shadow-sm">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
+                        rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
                       >
                         {block.explanation}
                       </ReactMarkdown>

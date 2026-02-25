@@ -1,16 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { successResponse, apiErrors } from "@/lib/utils/api-response";
+
+const BecomeInstructorSchema = z.object({
+  expertise: z.string().min(1, "Expertise is required").max(500),
+  experience: z.string().min(1, "Experience is required").max(2000),
+  bio: z.string().max(2000).optional(),
+  linkedIn: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
+  website: z.string().url("Invalid website URL").optional().or(z.literal("")),
+  teachingGoals: z.string().max(2000).optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
 
     if (!user || !user.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return apiErrors.unauthorized();
     }
 
     // Check if already a teacher
@@ -20,14 +28,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser?.isTeacher) {
-      return NextResponse.json(
-        { error: "User is already an instructor" },
-        { status: 400 }
-      );
+      return apiErrors.badRequest("User is already an instructor");
     }
 
     const body = await request.json();
-    const { expertise, experience, bio, linkedIn, website, teachingGoals } = body;
+    const result = BecomeInstructorSchema.safeParse(body);
+
+    if (!result.success) {
+      return apiErrors.validationError({ errors: result.error.flatten().fieldErrors });
+    }
+
+    const { expertise, experience, bio, linkedIn, website, teachingGoals } = result.data;
 
     // Update user to become a teacher
     const updatedUser = await db.user.update({
@@ -59,8 +70,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       message: "Successfully became an instructor",
       user: {
         id: updatedUser.id,
@@ -69,9 +79,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in become-instructor API:", error);
-    return NextResponse.json(
-      { error: "Failed to process instructor application" },
-      { status: 500 }
-    );
+    return apiErrors.internal("Failed to process instructor application");
   }
 }

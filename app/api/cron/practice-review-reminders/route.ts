@@ -44,46 +44,75 @@ export async function GET(request: NextRequest) {
     let interventionsCreated = 0;
     let notificationsCreated = 0;
 
+    const pendingUserIds = usersWithPendingReviews
+      .filter(u => u._count.id > 0)
+      .map(u => u.userId);
+
+    // Batch-fetch overdue counts per user (eliminates N+1)
+    const overdueByUser = pendingUserIds.length > 0
+      ? await db.spacedRepetitionSchedule.groupBy({
+          by: ['userId'],
+          where: {
+            userId: { in: pendingUserIds },
+            nextReviewDate: { lt: startOfDay },
+          },
+          _count: { id: true },
+        })
+      : [];
+    const overdueMap = new Map(overdueByUser.map(g => [g.userId, g._count.id]));
+
+    // Batch-fetch dueToday counts per user (eliminates N+1)
+    const dueTodayByUser = pendingUserIds.length > 0
+      ? await db.spacedRepetitionSchedule.groupBy({
+          by: ['userId'],
+          where: {
+            userId: { in: pendingUserIds },
+            nextReviewDate: { gte: startOfDay, lte: endOfDay },
+          },
+          _count: { id: true },
+        })
+      : [];
+    const dueTodayMap = new Map(dueTodayByUser.map(g => [g.userId, g._count.id]));
+
+    // Batch-fetch existing reminders sent today (eliminates N+1)
+    const existingReminders = pendingUserIds.length > 0
+      ? await db.sAMIntervention.findMany({
+          where: {
+            userId: { in: pendingUserIds },
+            type: 'STREAK_REMINDER',
+            createdAt: { gte: startOfDay },
+          },
+          select: { userId: true },
+          distinct: ['userId'],
+          take: 1000,
+        })
+      : [];
+    const alreadyRemindedSet = new Set(existingReminders.map(r => r.userId));
+
+    // Batch-fetch notification preferences for all pending users (eliminates N+1)
+    const allUserPrefs = pendingUserIds.length > 0
+      ? await db.userNotificationPreferences.findMany({
+          where: { userId: { in: pendingUserIds } },
+          select: { userId: true, pushNotifications: true, pushCourseReminders: true },
+        })
+      : [];
+    const prefsMap = new Map(allUserPrefs.map(p => [p.userId, p]));
+
     for (const userGroup of usersWithPendingReviews) {
       const userId = userGroup.userId;
       const totalPending = userGroup._count.id;
 
-      // Get detailed breakdown
-      const overdueCount = await db.spacedRepetitionSchedule.count({
-        where: {
-          userId,
-          nextReviewDate: { lt: startOfDay },
-        },
-      });
-
-      const dueTodayCount = await db.spacedRepetitionSchedule.count({
-        where: {
-          userId,
-          nextReviewDate: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        },
-      });
-
       // Only create reminders if there are actually pending reviews
       if (totalPending === 0) continue;
 
-      // Check if we already sent a reminder today
-      const existingReminder = await db.sAMIntervention.findFirst({
-        where: {
-          userId,
-          type: 'STREAK_REMINDER',
-          createdAt: {
-            gte: startOfDay,
-          },
-        },
-      });
-
-      if (existingReminder) {
+      // Check if we already sent a reminder today (from batch-fetched set)
+      if (alreadyRemindedSet.has(userId)) {
         logger.info(`[CRON] Skipping user ${userId} - already reminded today`);
         continue;
       }
+
+      const overdueCount = overdueMap.get(userId) ?? 0;
+      const dueTodayCount = dueTodayMap.get(userId) ?? 0;
 
       // Create intervention message
       const message = buildReminderMessage(overdueCount, dueTodayCount);
@@ -112,13 +141,9 @@ export async function GET(request: NextRequest) {
         logger.warn(`[CRON] Failed to create intervention for user ${userId}: ${errMsg}`);
       }
 
-      // Create in-app notification if user has notifications enabled
+      // Create in-app notification if user has notifications enabled (from batch-fetched prefs)
       try {
-        const userPrefs = await db.userNotificationPreferences.findUnique({
-          where: { userId },
-          select: { pushNotifications: true, pushCourseReminders: true },
-        });
-
+        const userPrefs = prefsMap.get(userId);
         const pushEnabled = userPrefs?.pushNotifications ?? false;
         const remindersEnabled = userPrefs?.pushCourseReminders ?? false;
 
@@ -224,9 +249,11 @@ async function updateAllRetentionEstimates(): Promise<{ updated: number }> {
       easeFactor: true,
       retentionEstimate: true,
     },
+    take: 2000,
   });
 
-  let updated = 0;
+  // Calculate new retention values and collect updates for batch processing
+  const updates: Array<{ id: string; retentionEstimate: number }> = [];
 
   for (const schedule of schedules) {
     const daysSinceReview = Math.floor(
@@ -240,13 +267,32 @@ async function updateAllRetentionEstimates(): Promise<{ updated: number }> {
 
     // Only update if changed significantly (> 1% difference)
     if (Math.abs(newRetention - schedule.retentionEstimate) > 1) {
-      await db.spacedRepetitionSchedule.update({
-        where: { id: schedule.id },
-        data: { retentionEstimate: Math.max(0, Math.min(100, newRetention)) },
+      updates.push({
+        id: schedule.id,
+        retentionEstimate: Math.max(0, Math.min(100, newRetention)),
       });
-      updated++;
     }
   }
 
-  return { updated };
+  // Batch updates using $transaction to reduce round-trips (eliminates N+1)
+  if (updates.length > 0) {
+    // Group by retention value to use updateMany where possible
+    const byRetention = new Map<number, string[]>();
+    for (const u of updates) {
+      const ids = byRetention.get(u.retentionEstimate) ?? [];
+      ids.push(u.id);
+      byRetention.set(u.retentionEstimate, ids);
+    }
+
+    await db.$transaction(
+      Array.from(byRetention.entries()).map(([retentionEstimate, ids]) =>
+        db.spacedRepetitionSchedule.updateMany({
+          where: { id: { in: ids } },
+          data: { retentionEstimate },
+        })
+      )
+    );
+  }
+
+  return { updated: updates.length };
 }

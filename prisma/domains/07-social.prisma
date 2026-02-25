@@ -274,6 +274,7 @@ model Notification {
   User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, read, createdAt])
 }
 
 model SocialMediaAccount {

@@ -128,15 +128,14 @@ export function NotificationInbox({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    notifications = [],
-    unreadCount = 0,
-    isLoading,
-    markAsRead,
-    dismiss,
-    clearRead,
-    refresh,
-  } = useNotifications();
+  const storeNotifications = useNotifications(s => s.notifications);
+  const notifications = useMemo(() => storeNotifications ?? [], [storeNotifications]);
+  const unreadCount = useNotifications(s => s.unreadCount) ?? 0;
+  const isLoading = useNotifications(s => s.isLoading);
+  const markAsRead = useNotifications(s => s.markAsRead);
+  const dismiss = useNotifications(s => s.dismiss);
+  const clearRead = useNotifications(s => s.clearRead);
+  const refresh = useNotifications(s => s.refresh);
 
   // Memoized filtered notifications
   const filteredNotifications = useMemo(() => {

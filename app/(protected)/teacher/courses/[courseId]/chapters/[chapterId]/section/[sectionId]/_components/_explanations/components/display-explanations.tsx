@@ -10,6 +10,8 @@ import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
@@ -245,7 +247,7 @@ export const DisplayExplanations = ({
                         {/* Fallback to ReactMarkdown for legacy content if needed */}
                         {/* <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeRaw]}
+                          rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
                           components={{
                             img: ({ node, ...props }) => (
                               <div className="my-2 flex justify-center">

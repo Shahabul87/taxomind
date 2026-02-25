@@ -21,6 +21,8 @@ import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from 'rehype-sanitize';
+import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { CodeBlock, languageOptions } from "./types";
 import { CodeExplanationEditor } from "./CodeExplanationEditor";
 
@@ -241,7 +243,7 @@ export const CodeBlockTabs = ({
                   <div className="p-4 prose prose-sm prose-gray dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
+                      rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
                       components={{
                         img: ({ node, ...props }) => (
                           <div className="my-2 flex justify-center">

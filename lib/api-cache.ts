@@ -57,9 +57,12 @@ export function cacheWrapper<T extends (...args: any[]) => Promise<any>>(
         tags: options.tags || [CACHE_TAGS.COURSES],
       }
     ) as T;
-  } catch (error: any) {
-    // Fallback to direct function call if unstable_cache not available
-    logger.warn('unstable_cache not available, using direct call', error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(`cacheWrapper failed for keys [${keyParts.join(',')}]: ${message}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('cacheWrapper error - returning uncached function:', message);
+    }
     return fn;
   }
 }

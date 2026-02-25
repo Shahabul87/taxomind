@@ -1,6 +1,9 @@
 /**
  * SAM AI Assistant Library
  * Central export for all SAM utilities
+ *
+ * @deprecated Prefer importing from specific sub-modules (e.g. '@/lib/sam/ai-provider')
+ * to improve tree-shaking and reduce bundle size. This barrel file will be removed in a future release.
  */
 
 // Engine Presets

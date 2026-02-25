@@ -1,5 +1,6 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+// Dynamic imports to reduce initial bundle size (~800KB savings)
+const loadJsPDF = () => import('jspdf').then(m => m.jsPDF);
+const loadHtml2Canvas = () => import('html2canvas').then(m => m.default);
 
 // Define certificate types locally since they don't exist in Prisma schema yet
 export enum CertificateType {
@@ -110,6 +111,9 @@ export class CertificateGenerator {
     // Create HTML content based on template
     const htmlContent = this.generateHTMLContent(data, activeTemplate);
     
+    // Dynamically load heavy libraries
+    const [html2canvas, JsPDF] = await Promise.all([loadHtml2Canvas(), loadJsPDF()]);
+
     // Convert HTML to canvas
     const canvas = await html2canvas(htmlContent, {
       width: activeTemplate.designData.dimensions.width * 3.78, // Convert mm to px
@@ -120,7 +124,7 @@ export class CertificateGenerator {
     });
 
     // Create PDF
-    const pdf = new jsPDF({
+    const pdf = new JsPDF({
       orientation: activeTemplate.designData.layout === 'landscape' ? 'l' : 'p',
       unit: 'mm',
       format: [

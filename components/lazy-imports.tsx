@@ -98,6 +98,27 @@ export const Html2Canvas = dynamic(
 );
 
 // ============================================
+// SYNTAX HIGHLIGHTING
+// ============================================
+
+// React Syntax Highlighter - Heavy library, load on demand
+export const LazySyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter').then(mod => mod.Prism),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const LazySyntaxHighlighterLight = dynamic(
+  () => import('react-syntax-highlighter').then(mod => mod.Light),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+// ============================================
 // COLLABORATION COMPONENTS
 // ============================================
 

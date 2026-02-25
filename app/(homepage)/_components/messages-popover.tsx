@@ -11,7 +11,10 @@ import { IconButton } from "@/components/ui/icon-button"
 
 export const MessagesPopover = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, unreadCount, fetchMessages, markAsRead } = useMessages();
+  const messages = useMessages(s => s.messages);
+  const unreadCount = useMessages(s => s.unreadCount);
+  const fetchMessages = useMessages(s => s.fetchMessages);
+  const markAsRead = useMessages(s => s.markAsRead);
 
   useEffect(() => {
     if (isOpen) {

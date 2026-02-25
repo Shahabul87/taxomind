@@ -1,19 +1,16 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from "zod";
+import { successResponse, apiErrors } from "@/lib/utils/api-response";
 
 export async function GET(req: Request) {
   try {
 
     const session = await auth();
-    
-    if (!session?.user?.id) {
 
-      return NextResponse.json(
-        { success: false, error: "Please sign in to access the calendar" },
-        { status: 401 }
-      );
+    if (!session?.user?.id) {
+      return apiErrors.unauthorized("Please sign in to access the calendar");
     }
 
     const { searchParams } = new URL(req.url);
@@ -21,19 +18,11 @@ export async function GET(req: Request) {
 
     // Validate userId
     if (!userId) {
-
-      return NextResponse.json(
-        { success: false, error: "userId parameter is required" },
-        { status: 400 }
-      );
+      return apiErrors.badRequest("userId parameter is required");
     }
-    
-    if (userId !== session.user.id) {
 
-      return NextResponse.json(
-        { success: false, error: "Unauthorized access" },
-        { status: 403 }
-      );
+    if (userId !== session.user.id) {
+      return apiErrors.forbidden("Unauthorized access");
     }
 
     // Fetch events using Prisma
@@ -66,46 +55,50 @@ export async function GET(req: Request) {
       take: 200,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: events.map(event => ({
-        ...event,
-        startDate: event.startDate.toISOString(),
-        endDate: event.endDate.toISOString(),
-        recurringEndDate: event.recurringEndDate ? event.recurringEndDate.toISOString() : null,
-      }))
-    });
+    return successResponse(events.map(event => ({
+      ...event,
+      startDate: event.startDate.toISOString(),
+      endDate: event.endDate.toISOString(),
+      recurringEndDate: event.recurringEndDate ? event.recurringEndDate.toISOString() : null,
+    })));
 
   } catch (error) {
     logger.error("[CALENDAR_EVENTS_GET] Error:", error);
-    return NextResponse.json(
-      { 
-        success: false,
-        error: "Failed to load calendar events",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
-      { status: 500 }
-    );
+    return apiErrors.internal("Failed to load calendar events");
   }
 }
+
+const CreateCalendarEventSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, "Title is required").max(500),
+  description: z.string().max(5000).optional().nullable(),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  isAllDay: z.boolean().optional(),
+  allDay: z.boolean().optional(),
+  location: z.string().max(500).optional().nullable(),
+  color: z.string().max(50).optional().nullable(),
+  recurringType: z.string().max(50).optional().nullable(),
+  recurringEndDate: z.string().optional().nullable(),
+  taskId: z.string().optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
+});
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" }, 
-        { status: 401 }
-      );
+      return apiErrors.unauthorized();
     }
 
     const body = await req.json();
-    
-    // Create a sanitized copy without invalid fields
-    const {
-      category, // Remove this as it's not in the schema
-      ...validData
-    } = body;
+    const result = CreateCalendarEventSchema.safeParse(body);
+
+    if (!result.success) {
+      return apiErrors.validationError({ errors: result.error.flatten().fieldErrors });
+    }
+
+    const validData = result.data;
 
     // Create event using Prisma
     const event = await db.calendarEvent.create({
@@ -127,15 +120,9 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      data: event 
-    });
+    return successResponse(event);
   } catch (error) {
     logger.error("[CALENDAR_EVENT_POST]", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" }, 
-      { status: 500 }
-    );
+    return apiErrors.internal();
   }
-} 
+}

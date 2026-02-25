@@ -20,7 +20,7 @@ interface MessageData {
   recipientId: string;
   conversationId: string;
   createdAt: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 interface MessageReadData {
@@ -33,6 +33,27 @@ interface UserStatus {
   userId: string;
   socketId: string;
   conversationIds: Set<string>;
+}
+
+interface JWTPayload {
+  sub?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Shared JWT verification for both raw WebSocket and Socket.IO paths.
+ * Returns decoded payload or null if verification fails.
+ */
+function verifySocketJWT(token: string | null | undefined): JWTPayload | null {
+  if (!token) return null;
+  const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
+  if (!secret) return null;
+  try {
+    return jwt.verify(token, secret) as JWTPayload;
+  } catch {
+    return null;
+  }
 }
 
 // Track online users
@@ -98,12 +119,15 @@ httpServer.on("upgrade", (req, socket, head) => {
 samWss.on("connection", (ws, req) => {
   const host = req.headers.host ?? "localhost";
   const url = req.url ? new URL(req.url, `http://${host}`) : null;
-  const userId = url?.searchParams.get("userId");
+  const token = url?.searchParams.get("token");
+  const decoded = verifySocketJWT(token);
 
-  if (!userId) {
-    ws.close(1008, "userId required");
+  if (!decoded?.sub) {
+    ws.close(1008, "Valid JWT token required");
     return;
   }
+
+  const userId = decoded.sub;
 
   const connectionId = uuidv4();
   const metadata = buildPresenceMetadata(req);
@@ -125,37 +149,17 @@ samWss.on("connection", (ws, req) => {
   });
 });
 
-// Authentication middleware - verify JWT token
+// Authentication middleware - verify JWT token (no anonymous fallback)
 io.use((socket, next) => {
   const token = socket.handshake.auth.token;
-  const userId = socket.handshake.auth.userId;
-  const userName = socket.handshake.auth.userName;
 
-  // If JWT_SECRET is configured, require and verify token
-  const jwtSecret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
-
-  if (jwtSecret && token) {
-    try {
-      const decoded = jwt.verify(token, jwtSecret) as {
-        sub?: string;
-        name?: string;
-        [key: string]: unknown;
-      };
-      socket.data.userId = decoded.sub || userId;
-      socket.data.userName = decoded.name || userName || "Unknown User";
-      return next();
-    } catch {
-      console.warn("Socket.IO: Invalid JWT token, falling back to userId");
-    }
+  const decoded = verifySocketJWT(token);
+  if (!decoded?.sub) {
+    return next(new Error("Authentication error: valid JWT token required"));
   }
 
-  // Fallback: require userId (backward compatible during migration)
-  if (!userId) {
-    return next(new Error("Authentication error: token or userId is required"));
-  }
-
-  socket.data.userId = userId;
-  socket.data.userName = userName || "Unknown User";
+  socket.data.userId = decoded.sub;
+  socket.data.userName = decoded.name || "Unknown User";
   next();
 });
 

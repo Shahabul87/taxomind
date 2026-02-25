@@ -6,6 +6,8 @@ import { parseExplanationBlocks } from '../utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -65,7 +67,7 @@ export const CodeExplanationContent = ({ item }: CodeExplanationContentProps) =>
               "prose-pre:text-sm prose-pre:leading-relaxed"
             )}
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
           >
             {item.explanation || 'No explanation provided.'}
           </ReactMarkdown>

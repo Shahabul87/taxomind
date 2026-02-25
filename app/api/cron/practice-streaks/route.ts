@@ -92,11 +92,21 @@ export async function GET(request: NextRequest) {
         data: { currentStreak: 0 },
       });
 
+      // Batch-fetch all skill names needed for broken streak notifications (eliminates N+1)
+      const brokenSkillIds = [...new Set(brokenNotifications.map(n => n.skillId))];
+      const brokenSkills = await db.skillBuildDefinition.findMany({
+        where: { id: { in: brokenSkillIds } },
+        select: { id: true, name: true },
+      });
+      const brokenSkillMap = new Map(brokenSkills.map(s => [s.id, s.name]));
+
       // Send notifications in parallel batches of 10
       for (let i = 0; i < brokenNotifications.length; i += 10) {
         const batch = brokenNotifications.slice(i, i + 10);
         await Promise.allSettled(
-          batch.map(n => createStreakBrokenNotification(n.userId, n.skillId, n.streak))
+          batch.map(n => createStreakBrokenNotification(
+            n.userId, n.skillId, n.streak, brokenSkillMap.get(n.skillId)
+          ))
         );
       }
     }
@@ -120,13 +130,24 @@ export async function GET(request: NextRequest) {
 
     let streakMilestonesAwarded = 0;
 
-    for (const mastery of milestoneMasteries) {
-      await awardStreakMilestone(
-        mastery.userId,
-        mastery.skillId,
-        mastery.currentStreak
-      );
-      streakMilestonesAwarded++;
+    // Batch-fetch all skill names needed for milestone notifications
+    if (milestoneMasteries.length > 0) {
+      const milestoneSkillIds = [...new Set(milestoneMasteries.map(m => m.skillId))];
+      const milestoneSkills = await db.skillBuildDefinition.findMany({
+        where: { id: { in: milestoneSkillIds } },
+        select: { id: true, name: true },
+      });
+      const milestoneSkillMap = new Map(milestoneSkills.map(s => [s.id, s.name]));
+
+      for (const mastery of milestoneMasteries) {
+        await awardStreakMilestone(
+          mastery.userId,
+          mastery.skillId,
+          mastery.currentStreak,
+          milestoneSkillMap.get(mastery.skillId)
+        );
+        streakMilestonesAwarded++;
+      }
     }
 
     // =========================================================================
@@ -151,16 +172,21 @@ export async function GET(request: NextRequest) {
     let streakGoalsUpdated = 0;
     let streakGoalsCompleted = 0;
 
-    for (const { userId } of usersWithStreakGoals) {
-      // Get the user's best current streak across all skills
-      const userStreaks = await db.skillMastery10K.findMany({
-        where: { userId },
-        select: { currentStreak: true },
-        orderBy: { currentStreak: 'desc' },
-        take: 1,
-      });
+    // Batch-fetch best streaks for all users with streak goals (eliminates N+1)
+    const streakGoalUserIds = usersWithStreakGoals.map(u => u.userId);
+    const allUserBestStreaks = streakGoalUserIds.length > 0
+      ? await db.skillMastery10K.groupBy({
+          by: ['userId'],
+          where: { userId: { in: streakGoalUserIds } },
+          _max: { currentStreak: true },
+        })
+      : [];
+    const bestStreakMap = new Map(
+      allUserBestStreaks.map(s => [s.userId, s._max.currentStreak ?? 0])
+    );
 
-      const bestStreak = userStreaks[0]?.currentStreak ?? 0;
+    for (const { userId } of usersWithStreakGoals) {
+      const bestStreak = bestStreakMap.get(userId) ?? 0;
 
       // Update all streak goals for this user
       const goalResults = await practiceGoalStore.updateStreakGoals(userId, bestStreak);
@@ -213,14 +239,11 @@ export async function GET(request: NextRequest) {
 async function createStreakBrokenNotification(
   userId: string,
   skillId: string,
-  previousStreak: number
+  previousStreak: number,
+  skillName?: string
 ): Promise<void> {
   try {
-    // Get skill name for the notification
-    const skill = await db.skillBuildDefinition.findUnique({
-      where: { id: skillId },
-      select: { name: true },
-    });
+    const name = skillName ?? 'Skill';
 
     // Create a SAM intervention to remind the user
     await db.sAMIntervention.create({
@@ -228,7 +251,7 @@ async function createStreakBrokenNotification(
         userId,
         type: 'STREAK_REMINDER',
         priority: 'MEDIUM',
-        message: `${skill?.name ?? 'Skill'} Streak Broken: Your ${previousStreak}-day practice streak has ended. Start a new streak today!`,
+        message: `${name} Streak Broken: Your ${previousStreak}-day practice streak has ended. Start a new streak today!`,
         suggestedActions: {
           skillId,
           previousStreak,
@@ -245,7 +268,8 @@ async function createStreakBrokenNotification(
 async function awardStreakMilestone(
   userId: string,
   skillId: string,
-  streakDays: number
+  streakDays: number,
+  skillName?: string
 ): Promise<void> {
   try {
     // Determine XP reward based on streak length
@@ -265,18 +289,14 @@ async function awardStreakMilestone(
 
     // Try to create a SAM intervention to celebrate streak milestone
     try {
-      // Get skill name
-      const skill = await db.skillBuildDefinition.findUnique({
-        where: { id: skillId },
-        select: { name: true },
-      });
+      const name = skillName ?? 'a skill';
 
       await db.sAMIntervention.create({
         data: {
           userId,
           type: 'PROGRESS_CELEBRATION',
           priority: 'HIGH',
-          message: `🎉 ${streakDays}-Day Streak! ${getStreakBadgeName(streakDays)} - Congratulations! You've maintained a ${streakDays}-day practice streak in ${skill?.name ?? 'a skill'}!`,
+          message: `🎉 ${streakDays}-Day Streak! ${getStreakBadgeName(streakDays)} - Congratulations! You've maintained a ${streakDays}-day practice streak in ${name}!`,
           suggestedActions: {
             skillId,
             streakDays,

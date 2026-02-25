@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-25T05:47:55.049Z
+// Generated: 2026-02-25T07:00:55.225Z
 // Source: 27 domain files
 // ==========================================
 
@@ -4074,6 +4074,7 @@ model Post {
   Tag                Tag[]                @relation("PostToTag")
 
   @@index([userId])
+  @@index([published, createdAt])
 }
 
 model Comment {
@@ -4849,6 +4850,10 @@ model study_streaks {
   updatedAt           DateTime
   Course              Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   User                User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([lastStudyDate])
 }
 
 model user_achievements {
@@ -5457,6 +5462,7 @@ model Notification {
   User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, read, createdAt])
 }
 
 model SocialMediaAccount {

@@ -154,16 +154,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<MetricsRespon
         where: {
           predictedAt: { gte: start, lte: end },
         },
+        take: 200,
       }),
       db.sAMMemoryRetrieval.findMany({
         where: {
           timestamp: { gte: start, lte: end },
         },
+        take: 200,
       }),
       db.sAMPlanLifecycleEvent.findMany({
         where: {
           timestamp: { gte: start, lte: end },
         },
+        take: 200,
       }),
     ]);
 

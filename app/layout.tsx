@@ -105,7 +105,7 @@ const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-display',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['400', '600', '700'],
 });
 
 // Body font for reading - optimized for long-form content
@@ -113,7 +113,7 @@ const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-body',
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '700'],
 });
 
 // UI font for interface elements - clean and modern
@@ -130,8 +130,6 @@ import { Providers } from "@/components/providers";
 import ClientToaster from '@/components/client-toaster';
 // SAM AI Assistant - Client wrapper to prevent server-only module bundling issues
 import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
-// SAM AI Intervention Provider - Enables proactive interventions globally
-import { InterventionProvider } from '@/components/sam/interventions/InterventionProvider';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 import { ServiceWorkerManager } from '@/components/service-worker-manager';
@@ -275,12 +273,6 @@ export default async function RootLayout({
             </a>
             <ConfettiProvider />
           <ClientToaster />
-          {/* SAM AI Intervention Provider - Enables proactive interventions globally */}
-          <InterventionProvider
-            maxVisible={3}
-            defaultAutoDismiss={true}
-            defaultAutoDismissDelay={8000}
-          >
             {/* Suspense boundary for consistent server/client structure during streaming */}
             <Suspense fallback={null}>
               <div className="min-h-screen" suppressHydrationWarning>
@@ -290,7 +282,6 @@ export default async function RootLayout({
 
             {/* SAM AI Assistant - Context-aware floating assistant */}
             <SAMAssistantWrapper />
-          </InterventionProvider>
 
           {/* CSS Error Monitor - Only in development */}
           <CSSErrorMonitorClient />

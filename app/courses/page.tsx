@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5-minute ISR
 
 async function getInitialData() {
   try {

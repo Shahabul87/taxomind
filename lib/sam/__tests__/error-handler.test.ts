@@ -282,7 +282,8 @@ describe('Error Handler', () => {
     });
 
     it('opens after threshold failures', async () => {
-      const breaker = new CircuitBreaker({ failureThreshold: 2 });
+      // Set coldStartThreshold equal to failureThreshold to bypass cold-start grace period
+      const breaker = new CircuitBreaker({ failureThreshold: 2, coldStartThreshold: 2 });
 
       // Fail twice
       for (let i = 0; i < 2; i++) {
@@ -299,7 +300,7 @@ describe('Error Handler', () => {
     });
 
     it('rejects requests when open', async () => {
-      const breaker = new CircuitBreaker({ failureThreshold: 1 });
+      const breaker = new CircuitBreaker({ failureThreshold: 1, coldStartThreshold: 1 });
 
       // Trigger open
       try {
@@ -316,7 +317,7 @@ describe('Error Handler', () => {
     });
 
     it('can be reset', async () => {
-      const breaker = new CircuitBreaker({ failureThreshold: 1 });
+      const breaker = new CircuitBreaker({ failureThreshold: 1, coldStartThreshold: 1 });
 
       // Trigger open
       try {

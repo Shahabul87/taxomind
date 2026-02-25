@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
     });
     
     const results = [];
-    
+    const successfulTaskIds: string[] = [];
+
     // Process each reminder
     for (const task of tasksWithDueReminders) {
       try {
@@ -58,13 +59,10 @@ export async function GET(req: NextRequest) {
             `
           });
         }
-        
-        // Update the task to mark the reminder as sent
-        await db.task.update({
-          where: { id: task.id },
-          data: { updatedAt: new Date() }
-        });
-        
+
+        // Collect successfully sent task IDs for batch update
+        successfulTaskIds.push(task.id);
+
         // Record successful processing
         results.push({
           taskId: task.id,
@@ -83,7 +81,15 @@ export async function GET(req: NextRequest) {
         });
       }
     }
-    
+
+    // Batch update all successfully sent tasks in a single query (eliminates N+1)
+    if (successfulTaskIds.length > 0) {
+      await db.task.updateMany({
+        where: { id: { in: successfulTaskIds } },
+        data: { updatedAt: new Date() }
+      });
+    }
+
     return NextResponse.json({
       processed: tasksWithDueReminders.length,
       results

@@ -9,7 +9,10 @@ import { IconButton } from "@/components/ui/icon-button"
 
 export const NotificationsPopover = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, fetchNotifications, markAsRead } = useNotifications();
+  const notifications = useNotifications(s => s.notifications);
+  const unreadCount = useNotifications(s => s.unreadCount);
+  const fetchNotifications = useNotifications(s => s.fetchNotifications);
+  const markAsRead = useNotifications(s => s.markAsRead);
 
   useEffect(() => {
     if (isOpen) {

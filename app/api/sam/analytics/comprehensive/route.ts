@@ -62,6 +62,7 @@ function createAnalyticsDatabaseAdapter() {
           } : undefined,
         },
         orderBy: { recordedAt: 'desc' },
+        take: 200,
       });
 
       // Transform to expected format, using context for additional data
@@ -131,6 +132,7 @@ function createAnalyticsDatabaseAdapter() {
           createdAt: true,
           updatedAt: true,
         },
+        take: 200,
       });
 
       return courses.map(c => ({
@@ -159,6 +161,7 @@ function createAnalyticsDatabaseAdapter() {
           awardedAt: true,
           courseId: true,
         },
+        take: 200,
       });
 
       return points.map(p => ({

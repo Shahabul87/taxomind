@@ -1,13 +1,34 @@
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { performanceMonitoring } from '@/lib/performance-monitoring'
+import { successResponse, apiErrors } from '@/lib/utils/api-response';
+
+const PageLoadSchema = z.object({
+  dns: z.number().optional(),
+  tcp: z.number().optional(),
+  ssl: z.number().optional(),
+  ttfb: z.number({ required_error: "TTFB is required" }),
+  download: z.number().optional(),
+  domInteractive: z.number().optional(),
+  domComplete: z.number().optional(),
+  loadComplete: z.number({ required_error: "loadComplete is required" }),
+  url: z.string().optional(),
+  timestamp: z.union([z.string(), z.number()]).optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    
+
+    const parseResult = PageLoadSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return apiErrors.validationError({ errors: parseResult.error.flatten().fieldErrors });
+    }
+
     const {
       dns,
       tcp,
@@ -19,15 +40,7 @@ export async function POST(req: NextRequest) {
       loadComplete,
       url,
       timestamp,
-    } = body
-
-    // Validate required fields
-    if (typeof ttfb !== 'number' || typeof loadComplete !== 'number') {
-      return NextResponse.json(
-        { error: 'Missing required performance timing fields' },
-        { status: 400 }
-      )
-    }
+    } = parseResult.data;
 
     // Store page load performance data (currently disabled for build compatibility)
     await performanceMonitoring.traceDatabaseQuery(
@@ -81,13 +94,10 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    return NextResponse.json({ success: true, alerts: alerts.length })
+    return successResponse({ alerts: alerts.length })
   } catch (error) {
     logger.error('Error storing page load data:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiErrors.internal()
   }
 }
 
@@ -171,7 +181,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return successResponse({
       timeframe,
       startDate,
       endDate: now,
@@ -181,9 +191,6 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     logger.error('Error fetching page load data:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiErrors.internal()
   }
 }

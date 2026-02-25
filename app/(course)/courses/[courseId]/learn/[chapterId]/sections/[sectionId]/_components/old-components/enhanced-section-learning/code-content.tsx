@@ -14,6 +14,8 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
+import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { motion, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
 
@@ -256,7 +258,7 @@ export const CodeContent = ({ codeExplanations }: CodeContentProps) => {
                         <div className="prose prose-sm prose-gray dark:prose-invert max-w-none">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
+                            rehypePlugins={[rehypeRaw, [rehypeSanitize, rehypeSanitizeSchema]]}
                             components={{
                               img: ({ node, ...props }) => (
                                 <div className="my-3 flex justify-center">

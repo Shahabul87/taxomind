@@ -11,39 +11,49 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { apiErrors } from '@/lib/utils/api-response';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-interface AiTutorContext {
-  pageData?: Record<string, unknown>;
-  learningContext?: Record<string, unknown>;
-  gamificationState?: Record<string, unknown>;
-  tutorPersonality?: {
-    tone?: string;
-    teachingMethod?: string;
-    responseStyle?: string;
-  };
-  emotion?: string;
-}
-
-interface AiTutorRequestBody {
-  message: string;
-  context?: AiTutorContext;
-  conversationHistory?: Array<{ type: string; content: string }>;
-  sessionId?: string;
-}
+const AiTutorChatSchema = z.object({
+  message: z.string().min(1, "Message is required").max(10000),
+  context: z.object({
+    pageData: z.record(z.unknown()).optional(),
+    learningContext: z.record(z.unknown()).optional(),
+    gamificationState: z.record(z.unknown()).optional(),
+    tutorPersonality: z.object({
+      tone: z.string().optional(),
+      teachingMethod: z.string().optional(),
+      responseStyle: z.string().optional(),
+    }).optional(),
+    emotion: z.string().optional(),
+  }).optional(),
+  conversationHistory: z.array(z.object({
+    type: z.string(),
+    content: z.string(),
+  })).optional(),
+  sessionId: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   const user = await currentUser();
   if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return apiErrors.unauthorized();
   }
 
   try {
-    const body: AiTutorRequestBody = await request.json();
+    const rawBody = await request.json();
+    const parseResult = AiTutorChatSchema.safeParse(rawBody);
+
+    if (!parseResult.success) {
+      return apiErrors.validationError({ errors: parseResult.error.flatten().fieldErrors });
+    }
+
+    const body = parseResult.data;
     const { message, context, conversationHistory, sessionId } = body;
 
     const pageData = context?.pageData ?? {};
@@ -90,10 +100,10 @@ export async function POST(request: NextRequest) {
         status: unifiedResponse.status,
         error: errorData,
       });
-      return NextResponse.json(
-        { error: (errorData as Record<string, unknown>).error ?? 'Failed to process request' },
-        { status: unifiedResponse.status }
-      );
+      const errorMsg = (errorData as Record<string, unknown>).error as string ?? 'Failed to process request';
+      if (unifiedResponse.status === 401) return apiErrors.unauthorized(errorMsg);
+      if (unifiedResponse.status === 429) return apiErrors.rateLimited(errorMsg);
+      return apiErrors.internal(errorMsg);
     }
 
     const unified = await unifiedResponse.json();
@@ -147,10 +157,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error('[AI_TUTOR_PROXY] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process request' },
-      { status: 500 }
-    );
+    return apiErrors.internal('Failed to process request');
   }
 }
 

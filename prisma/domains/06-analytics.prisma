@@ -219,6 +219,10 @@ model study_streaks {
   updatedAt           DateTime
   Course              Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   User                User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([lastStudyDate])
 }
 
 model user_achievements {

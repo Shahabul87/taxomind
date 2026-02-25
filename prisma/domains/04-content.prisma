@@ -146,6 +146,7 @@ model Post {
   Tag                Tag[]                @relation("PostToTag")
 
   @@index([userId])
+  @@index([published, createdAt])
 }
 
 model Comment {

@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode } from 'react';
 
 // SAM Context Tracker - Automatically syncs page context with SAM

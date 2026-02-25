@@ -286,20 +286,23 @@ async function handleRevenueAnalysis(
     },
   });
 
-  const courseRevenue = await Promise.all(
-    revenueStreams.map(async (stream) => {
-      const course = await db.course.findUnique({
-        where: { id: stream.courseId! },
-        select: { title: true, price: true },
-      });
-      return {
-        courseId: stream.courseId,
-        courseName: course?.title || "Unknown",
-        revenue: (course?.price || 0) * (stream._count.courseId || 0),
-        purchases: stream._count.courseId || 0,
-      };
-    })
-  );
+  // Batch fetch all courses at once to avoid N+1
+  const courseIds = revenueStreams.map(s => s.courseId).filter(Boolean) as string[];
+  const courses = await db.course.findMany({
+    where: { id: { in: courseIds } },
+    select: { id: true, title: true, price: true },
+  });
+  const courseMap = new Map(courses.map(c => [c.id, c]));
+
+  const courseRevenue = revenueStreams.map((stream) => {
+    const course = stream.courseId ? courseMap.get(stream.courseId) : null;
+    return {
+      courseId: stream.courseId,
+      courseName: course?.title || "Unknown",
+      revenue: (course?.price || 0) * (stream._count.courseId || 0),
+      purchases: stream._count.courseId || 0,
+    };
+  });
 
   return {
     revenue: financials.revenue,
@@ -480,43 +483,43 @@ async function handlePricingOptimization(
   );
 
   if (courseIds && courseIds.length > 0) {
-    // Get pricing recommendations for specific courses
-    const courseRecommendations = await Promise.all(
-      courseIds.map(async (courseId) => {
-        const course = await db.course.findUnique({
-          where: { id: courseId },
-          include: {
-            Purchase: {
-              where: {
-                createdAt: {
-                  gte: dateRange.start,
-                  lte: dateRange.end,
-                },
-              },
-            },
-          },
-        });
+    // Batch fetch courses and purchase counts to avoid N+1
+    const [batchCourses, purchaseCounts] = await Promise.all([
+      db.course.findMany({
+        where: { id: { in: courseIds } },
+        select: { id: true, title: true, price: true },
+      }),
+      db.purchase.groupBy({
+        by: ['courseId'],
+        where: { courseId: { in: courseIds } },
+        _count: { courseId: true },
+      }),
+    ]);
+    const batchCourseMap = new Map(batchCourses.map(c => [c.id, c]));
+    const purchaseCountMap = new Map(purchaseCounts.map(p => [p.courseId, p._count.courseId]));
 
-        if (!course) return null;
+    const courseRecommendations = courseIds.map((courseId) => {
+      const course = batchCourseMap.get(courseId);
+      if (!course) return null;
 
-        const purchases = await db.purchase.count({ where: { courseId } });
-        const conversionRate = purchases / 100; // Mock view count
-        const optimalPrice = calculateOptimalPrice(
-          course.price || 0,
-          conversionRate,
-          financials.pricing.priceElasticity
-        );
+      const purchases = purchaseCountMap.get(courseId) || 0;
+      const conversionRate = purchases / 100; // Mock view count
+      const optimalPrice = calculateOptimalPrice(
+        course.price || 0,
+        conversionRate,
+        financials.pricing.priceElasticity
+      );
 
-        return {
-          courseId,
-          courseName: course.title,
-          currentPrice: course.price || 0,
-          optimalPrice,
-          expectedRevenueIncrease: (optimalPrice - (course.price || 0)) * 
-            purchases * 0.8, // 80% retention assumption
-          confidence: 0.75,
-        };
-      })
+      return {
+        courseId,
+        courseName: course.title,
+        currentPrice: course.price || 0,
+        optimalPrice,
+        expectedRevenueIncrease: (optimalPrice - (course.price || 0)) *
+          purchases * 0.8, // 80% retention assumption
+        confidence: 0.75,
+      };
+    }
     );
 
     return {

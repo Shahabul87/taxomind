@@ -132,6 +132,11 @@ function shouldSkipMiddleware(pathname: string): boolean {
 const { auth: userAuth } = NextAuth(userAuthConfig);
 const { auth: adminAuth } = NextAuth(adminAuthConfig);
 
+const isDev = process.env.NODE_ENV === 'development';
+function debugLog(prefix: string, data: Record<string, unknown>) {
+  if (isDev) console.log(prefix, data);
+}
+
 /**
  * ADMIN AUTH MIDDLEWARE - Handles ONLY admin routes
  */
@@ -145,7 +150,7 @@ async function handleAdminRoute(req: NextRequest) {
     // Admin sessions have role from AdminAccount table
     const userRole = adminSession?.user?.role as string | undefined;
 
-    console.log('[Admin Proxy]', {
+    debugLog('[Admin Proxy]', {
       pathname,
       isLoggedIn,
       userRole,
@@ -168,7 +173,7 @@ async function handleAdminRoute(req: NextRequest) {
 
     // Protected admin routes - require authentication
     if (!isLoggedIn) {
-      console.log('[Admin Proxy] No admin session, redirecting to login');
+      debugLog('[Admin Proxy]', { action: 'No admin session, redirecting to login' });
 
       let callbackUrl = pathname;
       if (nextUrl.search) {
@@ -184,7 +189,7 @@ async function handleAdminRoute(req: NextRequest) {
 
     // Verify ADMIN role
     if (userRole !== "ADMIN") {
-      console.log('[Admin Proxy] Non-admin attempting to access admin route');
+      debugLog('[Admin Proxy]', { action: 'Non-admin attempting to access admin route' });
 
       const response = NextResponse.redirect(
         new URL('/dashboard/user?error=admin_access_denied', nextUrl)
@@ -230,7 +235,7 @@ async function handleUserRoute(req: NextRequest) {
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) {
       const isDevelopment = process.env.NODE_ENV === 'development';
 
-      console.log('[User Proxy]', {
+      debugLog('[User Proxy]', {
         pathname,
         isLoggedIn,
         hasAuth: !!userSession,
@@ -251,7 +256,8 @@ async function handleUserRoute(req: NextRequest) {
                            nextUrl.searchParams.has('state') ||
                            pathname.includes('callback');
 
-        console.log('[User Proxy] Already logged in on auth route', {
+        debugLog('[User Proxy]', {
+          action: 'Already logged in on auth route',
           isFromOAuth,
           pathname,
           userRole
@@ -295,7 +301,7 @@ async function handleUserRoute(req: NextRequest) {
 
     // Protected routes require authentication
     if (isProtected && !isLoggedIn) {
-      console.log('[User Proxy] Not authenticated for protected route');
+      debugLog('[User Proxy]', { action: 'Not authenticated for protected route' });
 
       let callbackUrl = pathname;
       if (nextUrl.search) {
@@ -318,7 +324,7 @@ async function handleUserRoute(req: NextRequest) {
     if (isLoggedIn && userRole) {
       // Block users from accessing admin routes
       if (ADMIN_ONLY_ROUTES.some(route => pathname.startsWith(route))) {
-        console.log('[User Proxy] User attempting to access admin route');
+        debugLog('[User Proxy]', { action: 'User attempting to access admin route' });
 
         const response = NextResponse.redirect(
           new URL('/dashboard/user?error=admin_access_denied', nextUrl)
@@ -338,7 +344,7 @@ async function handleUserRoute(req: NextRequest) {
           ? userSession?.user?.email
           : userSession?.user?.id?.slice(0, 8) + '...';
 
-        console.log(`[ACCESS_DENIED] User ${userIdentifier} denied access to ${pathname}`);
+        debugLog('[ACCESS_DENIED]', { user: userIdentifier, pathname });
 
         const response = NextResponse.redirect(
           new URL('/dashboard/user?error=unauthorized', nextUrl)
@@ -385,7 +391,7 @@ async function handleUserRoute(req: NextRequest) {
 
     // Handle non-public routes that aren't explicitly protected
     if (!isPublic && !isProtected && !isLoggedIn) {
-      console.log('[User Proxy] Not authenticated for non-public route');
+      debugLog('[User Proxy]', { action: 'Not authenticated for non-public route' });
 
       let callbackUrl = pathname;
       if (nextUrl.search) {

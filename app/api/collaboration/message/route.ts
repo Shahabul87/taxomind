@@ -1,24 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { successResponse, apiErrors } from "@/lib/utils/api-response";
+
+const CollaborationMessageSchema = z.object({
+  sessionId: z.string().min(1, "Session ID is required"),
+  message: z.object({
+    content: z.string().min(1, "Message content is required").max(10000),
+    type: z.string().optional().default("text"),
+    isPrivate: z.boolean().optional().default(false),
+    replyTo: z.string().optional().nullable(),
+  }),
+});
+
+interface CollaborationParticipant {
+  userId?: string;
+  id?: string;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiErrors.unauthorized();
     }
 
     const body = await req.json();
-    const { sessionId, message } = body;
+    const result = CollaborationMessageSchema.safeParse(body);
 
-    if (!sessionId || !message) {
-      return NextResponse.json(
-        { error: "Missing required parameters" },
-        { status: 400 }
-      );
+    if (!result.success) {
+      return apiErrors.validationError({ errors: result.error.flatten().fieldErrors });
     }
+
+    const { sessionId, message } = result.data;
 
     // Verify user is participant in the session
     const collaborationSession = await db.collaborationSession.findUnique({
@@ -26,23 +42,17 @@ export async function POST(req: NextRequest) {
     });
 
     if (!collaborationSession) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return apiErrors.notFound("Session");
     }
 
     // Check if user is in participants JSON array
-    const participants = collaborationSession.participants as any[];
+    const participants = collaborationSession.participants as CollaborationParticipant[];
     const isParticipant = participants?.some(
-      (p: any) => p.userId === session.user.id || p.id === session.user.id
+      (p: CollaborationParticipant) => p.userId === session.user.id || p.id === session.user.id
     );
 
     if (!isParticipant) {
-      return NextResponse.json(
-        { error: "Not a participant in this session" },
-        { status: 403 }
-      );
+      return apiErrors.forbidden("Not a participant in this session");
     }
 
     // Create chat message (mock implementation - table doesn't exist)
@@ -62,13 +72,13 @@ export async function POST(req: NextRequest) {
       },
       replyTo: null,
     };
-    
+
     // TODO: Store in collaboration session metadata or create message table
 
     // TODO: Update participant activity in collaboration session
     // Need to update the participants JSON in collaborationSession
 
-    return NextResponse.json({
+    return successResponse({
       id: chatMessage.id,
       userId: chatMessage.user.id,
       userName: chatMessage.user.name,
@@ -81,10 +91,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error("Error sending collaboration message:", error);
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    );
+    return apiErrors.internal("Failed to send message");
   }
 }
 
@@ -92,7 +99,7 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiErrors.unauthorized();
     }
 
     const searchParams = req.nextUrl.searchParams;
@@ -101,10 +108,7 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     if (!sessionId) {
-      return NextResponse.json(
-        { error: "Missing session ID" },
-        { status: 400 }
-      );
+      return apiErrors.badRequest("Missing session ID");
     }
 
     // Verify user is participant in the session
@@ -113,28 +117,22 @@ export async function GET(req: NextRequest) {
     });
 
     if (!collaborationSession) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return apiErrors.notFound("Session");
     }
 
     // Check if user is in participants JSON array
-    const participants = collaborationSession.participants as any[];
+    const participants = collaborationSession.participants as CollaborationParticipant[];
     const isParticipant = participants?.some(
-      (p: any) => p.userId === session.user.id || p.id === session.user.id
+      (p: CollaborationParticipant) => p.userId === session.user.id || p.id === session.user.id
     );
 
     if (!isParticipant) {
-      return NextResponse.json(
-        { error: "Not a participant in this session" },
-        { status: 403 }
-      );
+      return apiErrors.forbidden("Not a participant in this session");
     }
 
     // Get chat messages (mock implementation - table doesn't exist)
-    const messages: any[] = [];
-    
+    const messages: Record<string, unknown>[] = [];
+
     // TODO: Implement message retrieval
     /* await db.collaborationMessage.findMany({
       where: {
@@ -182,12 +180,9 @@ export async function GET(req: NextRequest) {
 
     const formattedMessages = messages; // Return empty array for now
 
-    return NextResponse.json(formattedMessages);
+    return successResponse(formattedMessages);
   } catch (error) {
     logger.error("Error fetching collaboration messages:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch messages" },
-      { status: 500 }
-    );
+    return apiErrors.internal("Failed to fetch messages");
   }
 }

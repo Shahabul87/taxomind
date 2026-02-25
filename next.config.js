@@ -7,6 +7,7 @@ const optimizeImports = process.env.DISABLE_OPTIMIZE_IMPORTS === 'true'
   ? []
   : [
       'lucide-react',
+      '@tabler/icons-react',
       '@radix-ui/react-*',
       // 'framer-motion', // Disabled due to Turbopack HMR issues
       'date-fns',

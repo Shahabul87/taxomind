@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { successResponse, apiErrors } from "@/lib/utils/api-response";
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -12,7 +13,8 @@ cloudinary.config({
 
 interface CloudinaryUploadResult {
   public_id: string;
-  [key: string]: any;
+  secure_url?: string;
+  [key: string]: unknown;
 }
 
 // Define maximum file size (10MB)
@@ -22,19 +24,17 @@ export async function POST(req: NextRequest) {
   const user = await currentUser();
 
   if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return apiErrors.unauthorized();
   }
-
-  const userId = user?.id;
 
   try {
     const formData = await req.formData();
 
     // Handle both single and multiple files
     const files = formData.getAll("file"); // Gets single or multiple files from the key "file"
-  
+
     if (!files || files.length === 0) {
-      return NextResponse.json({ error: "No files uploaded" }, { status: 400 });
+      return apiErrors.badRequest("No files uploaded");
     }
 
     const uploadedResults: CloudinaryUploadResult[] = [];
@@ -42,14 +42,13 @@ export async function POST(req: NextRequest) {
     // Iterate over each file and upload to Cloudinary
     for (const file of files) {
       if (!(file instanceof File)) {
-        return NextResponse.json({ error: "Invalid file format" }, { status: 400 });
+        return apiErrors.badRequest("Invalid file format");
       }
 
       // Check file size
       if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json(
-          { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
-          { status: 400 }
+        return apiErrors.badRequest(
+          `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
         );
       }
 
@@ -59,28 +58,21 @@ export async function POST(req: NextRequest) {
         uploadedResults.push(result);
       } catch (uploadError) {
         logger.error("Failed to upload file:", uploadError);
-        return NextResponse.json(
-          { error: "Failed to upload file. Please try again." },
-          { status: 500 }
-        );
+        return apiErrors.internal("Failed to upload file. Please try again.");
       }
     }
 
     // Return all uploaded files
-    return NextResponse.json(
-      {
-        message: "Files uploaded successfully",
-        uploadedFiles: uploadedResults.map(file => ({
-          publicId: file.public_id,
-          url: file.secure_url,
-        })),
-      },
-      { status: 200 }
-    );
+    return successResponse({
+      message: "Files uploaded successfully",
+      uploadedFiles: uploadedResults.map(file => ({
+        publicId: file.public_id,
+        url: file.secure_url,
+      })),
+    });
 
   } catch (error) {
-
-    return NextResponse.json({ error: "Upload image failed" }, { status: 500 });
+    return apiErrors.internal("Upload image failed");
   }
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -14,6 +14,7 @@ interface BeforeInstallPromptEvent extends Event {
 export function ServiceWorkerRegistration() {
   const [, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [, setIsInstalled] = useState(false);
+  const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     // Check if already installed
@@ -33,7 +34,6 @@ export function ServiceWorkerRegistration() {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           for (const registration of registrations) {
             registration.unregister();
-            console.log('SW unregistered in dev mode:', registration.scope);
           }
         });
         return; // Don't register in development
@@ -43,10 +43,8 @@ export function ServiceWorkerRegistration() {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((registration) => {
-          console.log('SW registered:', registration.scope);
-
           // Check for updates periodically
-          setInterval(() => {
+          updateIntervalRef.current = setInterval(() => {
             registration.update();
           }, 60 * 60 * 1000); // Check every hour
         })
@@ -73,6 +71,9 @@ export function ServiceWorkerRegistration() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
     };
   }, []);
 
