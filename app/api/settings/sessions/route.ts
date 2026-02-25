@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       orderBy: {
         lastActive: 'desc',
       },
+      take: 20,
     });
 
     // Transform sessions into frontend-friendly format

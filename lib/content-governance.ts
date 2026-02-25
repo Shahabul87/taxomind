@@ -288,7 +288,8 @@ export class ContentGovernanceService {
           lte: dateRange.end
         }
       },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'asc' },
+      take: 100,
     });
 
     return {
@@ -337,7 +338,8 @@ export class ContentGovernanceService {
     }
 
     const approvals = await db.contentVersionApproval.findMany({
-      where: whereClause
+      where: whereClause,
+      take: 100,
     });
 
     await db.bulkApprovalOperation.update({
@@ -438,7 +440,8 @@ export class ContentGovernanceService {
           approverId: targetUserId,
           status: ApprovalStatus.PENDING
         },
-        orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'asc' },
+        take: 100,
       }),
 
       db.contentVersionApproval.groupBy({
@@ -497,7 +500,7 @@ export class ContentGovernanceService {
   }
 
   private static async checkStageCompletion(workflowId: string) {
-    const approvals = await db.contentVersionApproval.findMany({ where: { workflowId } });
+    const approvals = await db.contentVersionApproval.findMany({ where: { workflowId }, take: 100 });
     const hasReject = approvals.some(a => a.status === ApprovalStatus.REJECTED);
     const allApproved = approvals.length > 0 && approvals.every(a => a.status === ApprovalStatus.APPROVED);
     if (hasReject) {

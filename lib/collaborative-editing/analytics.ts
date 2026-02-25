@@ -323,6 +323,7 @@ export class CollaborativeAnalytics {
           userId,
         },
         orderBy: { timestamp: 'asc' },
+        take: 100,
       });
 
       if (activities.length === 0) return null;
@@ -374,6 +375,7 @@ export class CollaborativeAnalytics {
       const activities = await db.collaborativeActivity.findMany({
         where: whereClause,
         orderBy: { timestamp: 'asc' },
+        take: 100,
       });
 
       if (activities.length === 0) {
@@ -543,6 +545,7 @@ export class CollaborativeAnalytics {
       // In a real implementation, you'd track concurrent users over time
       const participants = await db.sessionParticipant.findMany({
         where: { sessionId },
+        take: 100,
       });
 
       return participants.length;

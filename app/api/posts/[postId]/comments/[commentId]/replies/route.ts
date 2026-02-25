@@ -252,6 +252,7 @@ export const GET = withAuth(async (
       orderBy: {
         createdAt: 'asc',
       },
+      take: 30,
     });
 
     const duration = Date.now() - startTime;

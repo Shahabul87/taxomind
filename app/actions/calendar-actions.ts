@@ -79,6 +79,7 @@ export async function getCalendarEvents(
           orderBy: {
             startDate: "asc",
           },
+          take: 100,
         });
         lastError = null;
         break; // Success, break out of retry loop
@@ -263,6 +264,7 @@ export async function getEventsByTaskId(taskId: string): Promise<CalendarEvent[]
       taskId,
       userId: session.user.id,
     } as any, // Type assertion to handle potential schema mismatch
+    take: 100,
   });
 
   return events as unknown as CalendarEvent[];

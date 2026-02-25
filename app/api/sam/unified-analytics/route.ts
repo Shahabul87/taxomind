@@ -348,6 +348,7 @@ export async function GET(req: NextRequest) {
         where: { userId },
         include: { Course: { select: { id: true, title: true } } },
         orderBy: { updatedAt: 'desc' },
+        take: 200,
       }).catch(() => []),
 
       // Enrollments for progress

@@ -16,6 +16,7 @@
 
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/utils/api-error';
 
 import {
   type PipelineContext,
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
           logger.error('[SAM_STREAM] Stream error:', errorMessage);
 
           controller.enqueue(
-            sseEvent('error', { error: errorMessage, recoverable: true }),
+            sseEvent('error', { error: safeErrorMessage(error), recoverable: true }),
           );
           controller.close();
         }

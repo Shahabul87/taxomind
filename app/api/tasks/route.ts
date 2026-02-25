@@ -19,9 +19,10 @@ export async function GET(): Promise<NextResponse> {
       },
       orderBy: {
         dueDate: 'asc'
-      }
+      },
+      take: 100,
     });
-    
+
     return NextResponse.json(tasks);
   } catch (error) {
     logger.error("[TASKS_GET]", error);

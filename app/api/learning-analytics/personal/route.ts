@@ -187,7 +187,8 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
           }
         }
       }
-    }
+    },
+    take: 100,
   });
 
   // Calculate overview metrics

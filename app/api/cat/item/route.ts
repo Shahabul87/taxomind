@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
         isActive: true,
         id: { notIn: administeredItemIds },
       },
+      take: 50,
     });
 
     if (availableItems.length === 0) {

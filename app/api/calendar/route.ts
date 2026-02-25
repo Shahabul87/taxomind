@@ -164,8 +164,9 @@ export async function GET(request: NextRequest) {
           taskId,
           userId: session.user.id,
         },
+        take: 200,
       });
-      
+
       return NextResponse.json(events);
     }
     
@@ -209,6 +210,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         startDate: 'asc',
       },
+      take: 200,
     });
     
     // Handle recurring events

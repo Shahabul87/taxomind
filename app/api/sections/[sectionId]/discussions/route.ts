@@ -189,6 +189,7 @@ export async function GET(
         { isPinned: 'desc' }, // Pinned first
         { createdAt: 'desc' }, // Then newest
       ],
+      take: 50,
     });
 
     // Calculate vote scores for each discussion

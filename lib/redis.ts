@@ -1,3 +1,5 @@
+import 'server-only';
+
 // Redis Configuration - Fallback implementation for development and production
 
 import { Redis } from 'ioredis';

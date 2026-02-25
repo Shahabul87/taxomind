@@ -60,6 +60,7 @@ export async function GET(req: Request) {
       orderBy: {
         title: "asc",
       },
+      take: 50,
     });
 
     // Get courses where user is the instructor
@@ -96,6 +97,7 @@ export async function GET(req: Request) {
       orderBy: {
         title: "asc",
       },
+      take: 50,
     });
 
     // Format the response

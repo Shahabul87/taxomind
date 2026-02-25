@@ -194,7 +194,6 @@ async function buildLearningBehavior(userId: string): Promise<LearningBehavior> 
     }),
     db.user_achievements.findMany({
       where: { userId },
-      // orderBy: { earnedAt: "desc" }, // Field not in schema
       take: 50,
     }),
   ]);
@@ -268,6 +267,7 @@ async function buildLearningHistory(userId: string) {
     }),
     db.user_achievements.findMany({
       where: { userId },
+      take: 100,
     }),
     db.user_progress.findMany({
       where: { userId },

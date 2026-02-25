@@ -239,7 +239,8 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
     },
     orderBy: {
       startedAt: 'desc'
-    }
+    },
+    take: 100,
   });
 
   // Get all exam attempts for the course (for comparative analysis)
@@ -260,7 +261,8 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
       userId: true,
       scorePercentage: true,
       startedAt: true
-    }
+    },
+    take: 100,
   });
 
   // Calculate performance metrics

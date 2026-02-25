@@ -180,6 +180,7 @@ export class ConflictResolver {
         orderBy: {
           createdAt: 'desc',
         },
+        take: 100,
       });
 
       return conflicts.map(conflict => this.mapDbConflictToConflictData(conflict));

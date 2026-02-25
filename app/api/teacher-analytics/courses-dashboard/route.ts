@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 100,
     });
 
     // Calculate REAL revenue
@@ -187,6 +188,7 @@ async function calculateRevenueChart(userId: string) {
     orderBy: {
       createdAt: 'asc',
     },
+    take: 100,
   });
 
   // Group by date

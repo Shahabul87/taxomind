@@ -40,6 +40,7 @@ export async function GET(req: Request) {
       orderBy: {
         startDate: 'asc',
       },
+      take: 30,
     });
 
     return NextResponse.json(events);

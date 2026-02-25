@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * Stripe SDK Singleton - Enterprise Implementation
  *

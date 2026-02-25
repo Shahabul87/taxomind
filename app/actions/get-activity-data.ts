@@ -59,7 +59,8 @@ const fetchRealActivities = async (userId: string): Promise<ActivityItem[]> => {
   try {
     const activities = await db.activity.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 100,
     });
     
     return activities.map(activity => ({

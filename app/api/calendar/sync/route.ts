@@ -42,9 +42,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, message: "No events to sync" });
       }
 
-      // Sync events to database
-      for (const event of externalEvents) {
-        await db.calendarEvent.upsert({
+      // Sync events to database in a single transaction
+      const upsertOperations = externalEvents.map((event) =>
+        db.calendarEvent.upsert({
           where: {
             externalId_source: {
               externalId: event.externalId || '',
@@ -77,8 +77,10 @@ export async function POST(req: Request) {
             updatedAt: new Date(),
             lastSync: new Date(),
           },
-        });
-      }
+        })
+      );
+
+      await db.$transaction(upsertOperations);
 
       return NextResponse.json({ success: true, message: "Events imported from Google Calendar" });
     } 

@@ -62,7 +62,8 @@ export async function GET(req: Request) {
         externalId: true,
         source: true,
         lastSync: true,
-      }
+      },
+      take: 200,
     });
 
     return NextResponse.json({

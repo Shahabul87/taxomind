@@ -202,6 +202,7 @@ export class CursorManager {
             },
           },
         },
+        take: 100,
       });
 
       const cursors: CursorPosition[] = dbCursors.map(cursor => ({

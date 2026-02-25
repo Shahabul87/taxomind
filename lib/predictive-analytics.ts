@@ -130,7 +130,8 @@ export class PredictiveAnalytics {
             gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) // Last 14 days
           }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 200,
       });
 
       // Mock study sessions based on activities
@@ -204,7 +205,7 @@ export class PredictiveAnalytics {
                 }
               },
               learning_sessions: {
-                where: { 
+                where: {
                   courseId,
                   startTime: {
                     gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
@@ -218,7 +219,8 @@ export class PredictiveAnalytics {
               }
             }
           }
-        }
+        },
+        take: 200,
       });
 
       const atRiskStudents = [];

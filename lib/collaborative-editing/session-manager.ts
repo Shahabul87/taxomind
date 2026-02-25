@@ -52,6 +52,7 @@ export class CollaborativeSessionManager {
             },
           },
         },
+        take: 100,
       });
 
       for (const session of activeSessions) {
@@ -502,6 +503,7 @@ export class CollaborativeSessionManager {
             lt: cutoffTime,
           },
         },
+        take: 100,
       });
 
       for (const session of inactiveSessions) {

@@ -24,7 +24,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
-import { currentUser } from '@/lib/auth'
 import { ReplyModal } from "./reply-modal";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentHeader } from "./comments/comment-header";

@@ -384,7 +384,8 @@ export async function getDashboardData() {
             orderBy: { recordedAt: 'desc' },
             take: 1
           }
-        }
+        },
+        take: 20,
       }),
       
       // Content statistics
@@ -409,7 +410,8 @@ export async function getDashboardData() {
         where: { userId: session.user.id },
         include: {
           Milestone: true
-        }
+        },
+        take: 20,
       }),
       
       // Recent analytics

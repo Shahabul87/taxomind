@@ -194,6 +194,7 @@ export class OperationalTransformEngine {
         orderBy: {
           timestamp: 'asc',
         },
+        take: 100,
       });
 
       return concurrentOps.map(op => ({
@@ -258,6 +259,7 @@ export class OperationalTransformEngine {
         orderBy: {
           revision: 'asc',
         },
+        take: 100,
       });
 
       return operations.map(op => ({

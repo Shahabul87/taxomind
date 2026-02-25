@@ -46,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         createdAt: true,
       },
       orderBy: { updatedAt: 'desc' },
+      take: 1000,
     })
 
     for (const course of courses) {

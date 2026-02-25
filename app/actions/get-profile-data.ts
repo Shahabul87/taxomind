@@ -55,7 +55,8 @@ export async function getProfileData() {
 
     try {
       const socialAccounts = await db.socialMediaAccount.findMany({
-        where: { userId: session.user.id }
+        where: { userId: session.user.id },
+        take: 50,
       });
       enhancedData.socialMediaAccounts = socialAccounts;
     } catch (error: any) {
@@ -69,9 +70,11 @@ export async function getProfileData() {
           ContentItem: {
             orderBy: {
               createdAt: 'desc'
-            }
+            },
+            take: 50,
           }
-        }
+        },
+        take: 50,
       });
       enhancedData.contentCollections = contentCollections;
     } catch (error: any) {
@@ -99,7 +102,8 @@ export async function getProfileData() {
         where: {
           userId: session.user.id,
           isActive: true
-        }
+        },
+        take: 50,
       });
       enhancedData.userSubscriptions = userSubscriptions;
     } catch (error: any) {
@@ -111,7 +115,8 @@ export async function getProfileData() {
         where: { userId: session.user.id },
         orderBy: {
           createdAt: 'desc'
-        }
+        },
+        take: 50,
       });
       enhancedData.goals = goals;
     } catch (error: any) {

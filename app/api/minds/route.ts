@@ -66,6 +66,7 @@ export async function GET(req: Request) {
       orderBy: {
         createdAt: "desc",
       },
+      take: 50,
     });
 
     return NextResponse.json(minds);

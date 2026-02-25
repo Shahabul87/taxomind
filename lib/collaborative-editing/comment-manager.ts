@@ -326,6 +326,7 @@ export class CommentManager {
 
       const dbComments = await db.sessionComment.findMany({
         where: whereClause,
+        take: 100,
         include: {
           author: {
             select: {

@@ -330,6 +330,7 @@ export class YjsDocumentManager {
           },
         },
         select: { id: true },
+        take: 100,
       });
 
       const activeSessionIds = new Set(activeSessions.map(s => s.id));

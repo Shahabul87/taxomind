@@ -1,3 +1,7 @@
+// NOTE: Cannot use 'server-only' here because lib/db.ts is transitively
+// imported by client components (ChatWindow → preset-tracker → db.ts).
+// The import chain needs refactoring before this guard can be added.
+
 /**
  * Database Client Export
  *

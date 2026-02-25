@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +40,7 @@ export function ServiceWorkerManager({
   const [isInstalling, setIsInstalling] = useState(false);
   const [cacheSize, setCacheSize] = useState<number>(0);
   const [offlineReady, setOfflineReady] = useState(false);
+  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
   // Calculate cache size
   const calculateCacheSize = useCallback(async () => {
@@ -57,9 +58,11 @@ export function ServiceWorkerManager({
       swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
 
       // Listen for controlling service worker to change
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const handleControllerChange = () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
         window.location.reload();
-      });
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
     }
   }, [swRegistration]);
 
@@ -116,11 +119,15 @@ export function ServiceWorkerManager({
         });
 
         // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
+        const handleSwMessage = (event: MessageEvent) => {
           if (event.data.type === 'SYNC_COMPLETE') {
             toast.success(event.data.message);
           }
-        });
+        };
+        navigator.serviceWorker.addEventListener('message', handleSwMessage);
+
+        // Store reference for cleanup
+        messageHandlerRef.current = handleSwMessage;
 
         setIsInstalling(false);
       } catch (error) {
@@ -134,6 +141,9 @@ export function ServiceWorkerManager({
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (messageHandlerRef.current && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', messageHandlerRef.current);
+      }
     };
   }, [calculateCacheSize, updateServiceWorker]);
 

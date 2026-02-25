@@ -268,6 +268,7 @@ export class PermissionManager {
           contentId,
           isActive: true,
         },
+        take: 100,
         include: {
           user: {
             select: {
@@ -506,6 +507,7 @@ export class PermissionManager {
             contentId,
             isActive: true,
           },
+          take: 100,
         });
 
         rules = dbRules.map(rule => ({

@@ -333,18 +333,25 @@ async function syncStudySessions(
     },
   });
 
+  // Batch-load all existing mappings to avoid N+1 queries
+  const sessionIds = sessions.map((s) => s.id);
+  const existingMappings = sessionIds.length > 0
+    ? await db.calendarEventMapping.findMany({
+        where: {
+          userId,
+          entityId: { in: sessionIds },
+          entityType: 'STUDY_SESSION',
+        },
+      })
+    : [];
+  const mappingsByEntityId = new Map(existingMappings.map((m) => [m.entityId, m]));
+
   for (const session of sessions) {
     try {
       const eventData = buildStudySessionEvent(session, settings);
 
-      // Check if event already exists
-      const existingMapping = await db.calendarEventMapping.findFirst({
-        where: {
-          userId,
-          entityId: session.id,
-          entityType: 'STUDY_SESSION',
-        },
-      });
+      // Look up pre-fetched mapping
+      const existingMapping = mappingsByEntityId.get(session.id) || null;
 
       if (existingMapping) {
         // Check if Google event still exists
@@ -456,20 +463,27 @@ async function syncTodos(
     },
   });
 
+  // Batch-load all existing mappings to avoid N+1 queries
+  const todoIds = todos.map((t) => t.id);
+  const existingTodoMappings = todoIds.length > 0
+    ? await db.calendarEventMapping.findMany({
+        where: {
+          userId,
+          entityId: { in: todoIds },
+          entityType: 'DAILY_TODO',
+        },
+      })
+    : [];
+  const todoMappingsByEntityId = new Map(existingTodoMappings.map((m) => [m.entityId, m]));
+
   for (const todo of todos) {
     if (!todo.dueDate) continue;
 
     try {
       const eventData = buildTodoEvent(todo, settings);
 
-      // Check if event already exists
-      const existingMapping = await db.calendarEventMapping.findFirst({
-        where: {
-          userId,
-          entityId: todo.id,
-          entityType: 'DAILY_TODO',
-        },
-      });
+      // Look up pre-fetched mapping
+      const existingMapping = todoMappingsByEntityId.get(todo.id) || null;
 
       if (existingMapping) {
         // Update existing event
@@ -566,18 +580,25 @@ async function syncGoalMilestones(
     },
   });
 
+  // Batch-load all existing mappings to avoid N+1 queries
+  const milestoneIds = milestones.map((m) => m.id);
+  const existingMilestoneMappings = milestoneIds.length > 0
+    ? await db.calendarEventMapping.findMany({
+        where: {
+          userId,
+          entityId: { in: milestoneIds },
+          entityType: 'GOAL_MILESTONE',
+        },
+      })
+    : [];
+  const milestoneMappingsByEntityId = new Map(existingMilestoneMappings.map((m) => [m.entityId, m]));
+
   for (const milestone of milestones) {
     try {
       const eventData = buildMilestoneEvent(milestone, settings);
 
-      // Check if event already exists
-      const existingMapping = await db.calendarEventMapping.findFirst({
-        where: {
-          userId,
-          entityId: milestone.id,
-          entityType: 'GOAL_MILESTONE',
-        },
-      });
+      // Look up pre-fetched mapping
+      const existingMapping = milestoneMappingsByEntityId.get(milestone.id) || null;
 
       if (existingMapping) {
         const existingEvent = await getEvent(
@@ -683,20 +704,27 @@ async function syncActivities(
     },
   });
 
+  // Batch-load all existing mappings to avoid N+1 queries
+  const activityIds = activities.map((a) => a.id);
+  const existingActivityMappings = activityIds.length > 0
+    ? await db.calendarEventMapping.findMany({
+        where: {
+          userId,
+          entityId: { in: activityIds },
+          entityType: { in: ['QUIZ_EXAM', 'ASSIGNMENT'] },
+        },
+      })
+    : [];
+  const activityMappingsByEntityId = new Map(existingActivityMappings.map((m) => [m.entityId, m]));
+
   for (const activity of activities) {
     if (!activity.dueDate) continue;
 
     try {
       const eventData = buildActivityEvent(activity, settings);
 
-      // Check if event already exists
-      const existingMapping = await db.calendarEventMapping.findFirst({
-        where: {
-          userId,
-          entityId: activity.id,
-          entityType: activity.type === 'QUIZ' || activity.type === 'EXAM' ? 'QUIZ_EXAM' : 'ASSIGNMENT',
-        },
-      });
+      // Look up pre-fetched mapping
+      const existingMapping = activityMappingsByEntityId.get(activity.id) || null;
 
       if (existingMapping) {
         const existingEvent = await getEvent(

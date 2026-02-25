@@ -141,7 +141,8 @@ export class AdaptiveContentService {
       orderBy: { position: 'asc' },
       include: {
         chapter: true
-      }
+      },
+      take: 100,
     });
 
     // Convert to ContentItem format

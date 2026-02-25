@@ -358,6 +358,7 @@ export async function POST(req: NextRequest) {
                 },
               },
             },
+            take: 200,
           }),
 
           // Points
@@ -399,6 +400,7 @@ export async function POST(req: NextRequest) {
               recordedAt: { gte: startDate, lte: endDate },
             },
             orderBy: { recordedAt: 'desc' },
+            take: 200,
           }),
 
           // Learning goals (if scope includes goals)
@@ -406,6 +408,7 @@ export async function POST(req: NextRequest) {
             ? db.sAMLearningGoal.findMany({
                 where: { userId: user.id },
                 include: { subGoals: true },
+                take: 200,
               })
             : Promise.resolve([]),
 
@@ -414,6 +417,7 @@ export async function POST(req: NextRequest) {
             ? db.skillMastery10K.findMany({
                 where: { userId: user.id },
                 include: { skill: true },
+                take: 200,
               })
             : Promise.resolve([]),
         ]);

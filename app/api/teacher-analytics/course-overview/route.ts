@@ -276,7 +276,8 @@ async function generateOptimizedCourseAnalytics(
       id: true,
       title: true,
       sectionId: true
-    }
+    },
+    take: 200,
   });
 
   const examIds = exams.map(e => e.id);
@@ -313,7 +314,8 @@ async function generateOptimizedCourseAnalytics(
           }
         }
       },
-      distinct: ['userId']
+      distinct: ['userId'],
+      take: 200,
     }),
     // QUERY 5: Get active students (last 7 days)
     db.userExamAttempt.findMany({
@@ -324,7 +326,8 @@ async function generateOptimizedCourseAnalytics(
       select: {
         userId: true
       },
-      distinct: ['userId']
+      distinct: ['userId'],
+      take: 200,
     }),
   ]);
 
