@@ -591,11 +591,13 @@ async function getAdapter(options: {
     setCachedAdapter(cacheKey, adapter);
     return adapter;
   } catch (error) {
-    // Record adapter creation failure on the provider's circuit breaker
-    // so repeated creation failures trigger the breaker open state
-    const breaker = getProviderCircuitBreaker(provider);
-    breaker.recordFailure(error instanceof Error ? error : new Error(String(error)));
-    logger.error('[Enterprise AI] Adapter creation failed', {
+    // NOTE: Adapter creation failures are NOT recorded on the circuit breaker.
+    // These are initialization errors (missing env var, SDK import failure, etc.)
+    // and should not penalize the provider. The circuit breaker only tracks
+    // runtime API call failures that happen inside `execute()`.
+    // Recording init errors here was causing false circuit breaker trips on
+    // Railway cold starts where transient init failures would accumulate.
+    logger.error('[Enterprise AI] Adapter creation failed (not recorded on circuit breaker)', {
       provider,
       model: modelOverride,
       error: error instanceof Error ? error.message : String(error),

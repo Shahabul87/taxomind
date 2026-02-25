@@ -4,10 +4,15 @@ import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/sam
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AIErrorHandler } from "@/lib/error-handler";
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
+
+// Increase max duration for serverless — blueprint generation makes
+// multiple sequential AI calls and can take 60-120s on cold starts.
+export const maxDuration = 180;
 
 interface CourseBlueprint {
   id: string;
@@ -216,13 +221,15 @@ export async function POST(req: Request) {
 
     // Get current user
     const user = await currentUser();
-    
+
     if (!user?.id) {
 
       return new NextResponse("Unauthorized", { status: 401 });
     }
-    
+
     // Check if user is admin - admins are now in AdminAccount table
+    // This also serves as a DB connection warm-up on cold starts, so the
+    // Prisma connection pool is primed before the AI generation begins.
     const adminAccount = await db.adminAccount.findUnique({
       where: { id: user.id },
       select: { id: true, email: true, role: true }
@@ -231,7 +238,7 @@ export async function POST(req: Request) {
     if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
       return new NextResponse("Forbidden - Admin access required", { status: 403 });
     }
-    
+
     // Parse request body
     const body = await req.json();
     const courseRequirements: CourseGenerationRequest = body;
@@ -240,35 +247,54 @@ export async function POST(req: Request) {
     if (!courseRequirements.courseTitle || !courseRequirements.courseShortOverview) {
       return new NextResponse("Course title and overview are required", { status: 400 });
     }
-    
+
     if (!courseRequirements.targetAudience) {
       return new NextResponse("Target audience is required", { status: 400 });
     }
-    
+
     if (courseRequirements.chapterCount < 1 || courseRequirements.sectionsPerChapter < 1) {
       return new NextResponse("Invalid chapter or section count", { status: 400 });
     }
 
-    // Generate course blueprint using enhanced error handling
-    const blueprint = await transformToLegacyBlueprint(courseRequirements, user.id);
-    
+    // Warm up user AI preferences cache before generation starts.
+    // On cold starts, this DB query would otherwise add latency to the
+    // first AI call inside generateCourseBlueprint, risking a timeout.
+    try {
+      await db.userAIPreferences.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+    } catch {
+      // Non-critical — preferences will be fetched lazily if this fails
+    }
+
+    // Generate course blueprint with route-level timeout protection.
+    // The timeout (180s) covers the full multi-step generation pipeline.
+    // withRetryableTimeout retries once on transient errors (network, 503).
+    const blueprint = await withRetryableTimeout(
+      () => transformToLegacyBlueprint(courseRequirements, user.id),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'blueprint_generation',
+      1, // 1 retry at route level (inner AIErrorHandler adds 2 more)
+    );
+
     // TODO: Store blueprint in database for future reference (requires CourseBlueprint model)
     // For now, we'll just return the generated blueprint without storing it
 
     return NextResponse.json(blueprint);
-    
+
   } catch (error) {
     logger.error("[BLUEPRINT] Error generating course blueprint:", error);
-    
+
     const errorMessage = AIErrorHandler.getUserFriendlyMessage(
-      error as Error, 
+      error as Error,
       'blueprint_generation'
     );
-    
+
     if (error instanceof Error) {
       logger.error("[BLUEPRINT] Error message:", error.message);
       logger.error("[BLUEPRINT] Error stack:", error.stack);
-      
+
       // Return appropriate HTTP status based on error type
       if (error.message.includes('Rate limit') || error.message.includes('429')) {
         return new NextResponse(errorMessage, { status: 429 });
@@ -280,7 +306,7 @@ export async function POST(req: Request) {
         return new NextResponse(errorMessage, { status: 503 });
       }
     }
-    
+
     return new NextResponse(errorMessage, { status: 500 });
   }
 }

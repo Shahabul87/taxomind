@@ -362,6 +362,13 @@ export interface CircuitBreakerOptions {
   resetTimeoutMs?: number;
   /** Component name for logging */
   component?: string;
+  /**
+   * Failure threshold used during the cold-start grace period (before the
+   * first successful call). Defaults to `failureThreshold * 2` so transient
+   * initialization errors don't prematurely trip the breaker on Railway
+   * cold starts.
+   */
+  coldStartThreshold?: number;
 }
 
 export enum CircuitState {
@@ -377,14 +384,27 @@ export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
   private failures = 0;
   private lastFailureTime = 0;
+  /** Whether the breaker has ever seen a successful call (cold-start detection). */
+  private hasSucceeded = false;
   private readonly failureThreshold: number;
+  private readonly coldStartThreshold: number;
   private readonly resetTimeoutMs: number;
   private readonly component: string;
 
   constructor(options: CircuitBreakerOptions = {}) {
     this.failureThreshold = options.failureThreshold ?? 5;
+    this.coldStartThreshold = options.coldStartThreshold ?? (this.failureThreshold * 2);
     this.resetTimeoutMs = options.resetTimeoutMs ?? 30000;
     this.component = options.component ?? 'CircuitBreaker';
+  }
+
+  /**
+   * Returns the effective threshold — higher during cold-start (before any
+   * successful call) to tolerate transient initialization failures on
+   * serverless cold starts.
+   */
+  private get effectiveThreshold(): number {
+    return this.hasSucceeded ? this.failureThreshold : this.coldStartThreshold;
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
@@ -403,6 +423,9 @@ export class CircuitBreaker {
     try {
       const result = await fn();
 
+      // Mark that the provider is reachable (exit cold-start grace period)
+      this.hasSucceeded = true;
+
       if (this.state === CircuitState.HALF_OPEN) {
         this.state = CircuitState.CLOSED;
         this.failures = 0;
@@ -414,9 +437,11 @@ export class CircuitBreaker {
       this.failures++;
       this.lastFailureTime = Date.now();
 
-      if (this.failures >= this.failureThreshold) {
+      if (this.failures >= this.effectiveThreshold) {
         this.state = CircuitState.OPEN;
-        logger.warn(`[${this.component}] Circuit breaker opened after ${this.failures} failures`);
+        logger.warn(`[${this.component}] Circuit breaker opened after ${this.failures} failures` +
+          `${!this.hasSucceeded ? ' (cold-start period)' : ''}`,
+        );
       }
 
       throw error;
@@ -432,7 +457,7 @@ export class CircuitBreaker {
     this.failures++;
     this.lastFailureTime = Date.now();
 
-    if (this.failures >= this.failureThreshold) {
+    if (this.failures >= this.effectiveThreshold) {
       this.state = CircuitState.OPEN;
       logger.warn(`[${this.component}] Circuit breaker opened after ${this.failures} failures (external)`, {
         error: error.message,
@@ -448,6 +473,8 @@ export class CircuitBreaker {
     this.state = CircuitState.CLOSED;
     this.failures = 0;
     this.lastFailureTime = 0;
+    // Intentionally do NOT reset hasSucceeded — once a provider is known
+    // to be reachable, cold-start grace should not re-apply.
   }
 }
 

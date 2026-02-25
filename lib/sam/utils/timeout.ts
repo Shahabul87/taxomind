@@ -112,7 +112,9 @@ function isTransientError(error: Error): boolean {
     msg.includes('rate limit') ||
     msg.includes('429') ||
     msg.includes('503') ||
-    msg.includes('502')
+    msg.includes('502') ||
+    msg.includes('circuit breaker') ||
+    msg.includes('service unavailable')
   );
 }
 

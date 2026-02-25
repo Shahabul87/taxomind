@@ -288,8 +288,21 @@ export class AIErrorHandler {
       generationCall,
       fullContext,
       {
-        maxRetries: 1, // Fewer retries for expensive operations
-        initialDelay: 2000
+        maxRetries: 2, // 2 retries to survive cold-start transient failures
+        initialDelay: 3000, // 3s initial delay gives cold connections time to warm
+        backoffMultiplier: 2, // 3s → 6s exponential backoff
+        retryableErrors: [
+          'NetworkError',
+          'TimeoutError',
+          'RateLimitError',
+          'ServiceUnavailable',
+          'BadGateway',
+          'ECONNRESET',
+          'ETIMEDOUT',
+          'ECONNREFUSED',
+          'socket hang up',
+          'Circuit breaker is open',
+        ],
       },
       fallbackStrategies
     );
