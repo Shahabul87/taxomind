@@ -254,20 +254,61 @@ function findContentGaps(
   const goalTopics = new Set<string>();
   const contentTopics = new Set<string>();
 
+  // Stopwords to filter from n-grams
+  const NGRAM_STOPWORDS = new Set([
+    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+    'her', 'was', 'one', 'our', 'out', 'has', 'his', 'how', 'its', 'may',
+    'new', 'now', 'old', 'see', 'way', 'who', 'did', 'get', 'let', 'say',
+    'she', 'too', 'use', 'will', 'with', 'this', 'that', 'from', 'have',
+    'been', 'some', 'them', 'than', 'what', 'when', 'each', 'which', 'their',
+    'about', 'would', 'there', 'could', 'other', 'into', 'more', 'also',
+    'after', 'before', 'should', 'these', 'those', 'being', 'using', 'very',
+  ]);
+
+  /**
+   * Extract single-word topics (6+ chars) and multi-word n-gram topics.
+   * N-grams capture concepts like "machine learning", "React hooks", etc.
+   */
+  const extractTopics = (text: string): Set<string> => {
+    const words = text.toLowerCase().split(/\W+/).filter((w) => w.length > 0);
+    const topics = new Set<string>();
+
+    // Single words (6+ chars)
+    for (const w of words) {
+      if (w.length >= 6 && !NGRAM_STOPWORDS.has(w)) {
+        topics.add(w);
+      }
+    }
+
+    // 2-grams (combined 8+ chars, most valuable for concept detection)
+    for (let i = 0; i < words.length - 1; i++) {
+      const w1 = words[i];
+      const w2 = words[i + 1];
+      if (!NGRAM_STOPWORDS.has(w1) && !NGRAM_STOPWORDS.has(w2) && w1.length + w2.length >= 8) {
+        topics.add(`${w1} ${w2}`);
+      }
+    }
+
+    // 3-grams (combined 12+ chars, catches "object oriented programming")
+    for (let i = 0; i < words.length - 2; i++) {
+      const w1 = words[i];
+      const w2 = words[i + 1];
+      const w3 = words[i + 2];
+      // Allow middle word to be a stopword (e.g. "model view controller")
+      if (!NGRAM_STOPWORDS.has(w1) && !NGRAM_STOPWORDS.has(w3) && w1.length + w2.length + w3.length >= 12) {
+        topics.add(`${w1} ${w2} ${w3}`);
+      }
+    }
+
+    return topics;
+  };
+
   // Extract from goals
   const goalText = [
     course.courseGoals || '',
     course.description || '',
     ...course.whatYouWillLearn,
   ].join(' ');
-
-  const extractTopics = (text: string) => {
-    const words = text
-      .toLowerCase()
-      .split(/\W+/)
-      .filter((w) => w.length > 5);
-    return new Set(words);
-  };
 
   const goalWords = extractTopics(goalText);
   goalWords.forEach((w) => goalTopics.add(w));
@@ -288,12 +329,24 @@ function findContentGaps(
   }
 
   // Find topics in goals but not in content
+  // For multi-word topics, use substring containment as fallback
   const missingTopics: string[] = [];
+  const contentText = [...contentTopics].join(' ');
   for (const topic of goalTopics) {
     if (!contentTopics.has(topic)) {
-      missingTopics.push(topic);
+      // For multi-word topics, check if the content contains them as substrings
+      if (topic.includes(' ')) {
+        if (!contentText.includes(topic)) {
+          missingTopics.push(topic);
+        }
+      } else {
+        missingTopics.push(topic);
+      }
     }
   }
+
+  // Sort by length descending — multi-word concepts are more specific and valuable
+  missingTopics.sort((a, b) => b.length - a.length);
 
   // Create gap entries for significant missing topics
   for (const topic of missingTopics.slice(0, 5)) {

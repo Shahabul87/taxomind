@@ -15,6 +15,7 @@
 
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { AIAccessDeniedError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 import { nanoid } from 'nanoid';
 import type {
@@ -52,6 +53,42 @@ import {
 } from './token-estimator';
 
 // =============================================================================
+// AI RESPONSE CACHE
+// =============================================================================
+
+interface CachedResponse {
+  response: string;
+  cachedAt: number;
+}
+
+const aiResponseCache = new Map<string, CachedResponse>();
+const AI_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const AI_CACHE_MAX_ENTRIES = 50;
+
+function getCacheKey(contentHash: string, stage: string, index?: number): string {
+  return `${contentHash}:${stage}${index !== undefined ? `:${index}` : ''}`;
+}
+
+function getCachedResponse(key: string): string | null {
+  const entry = aiResponseCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > AI_CACHE_TTL_MS) {
+    aiResponseCache.delete(key);
+    return null;
+  }
+  return entry.response;
+}
+
+function setCachedResponse(key: string, response: string): void {
+  // Evict oldest entries if at capacity
+  if (aiResponseCache.size >= AI_CACHE_MAX_ENTRIES) {
+    const oldestKey = aiResponseCache.keys().next().value;
+    if (oldestKey) aiResponseCache.delete(oldestKey);
+  }
+  aiResponseCache.set(key, { response, cachedAt: Date.now() });
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -73,6 +110,8 @@ export interface AIAnalyzerOptions {
   course: CourseInput;
   userId: string;
   onProgress?: (event: AIAnalysisProgress) => void;
+  /** Content hash for AI response caching. If provided, enables cache lookups. */
+  contentHash?: string;
 }
 
 export interface AIAnalysisResult {
@@ -180,7 +219,7 @@ interface OverallAssessment {
 export async function runAIAnalysis(
   options: AIAnalyzerOptions
 ): Promise<AIAnalysisResult> {
-  const { course, userId, onProgress } = options;
+  const { course, userId, onProgress, contentHash } = options;
 
   // Determine analysis mode
   const { mode, estimatedApiCalls, estimatedTime, totalTokens } =
@@ -276,15 +315,30 @@ export async function runAIAnalysis(
     const overviewPrompt = buildCourseOverviewPrompt(overviewContext);
     const systemPrompt = getCourseOverviewSystemPrompt();
 
-    const overviewResponse = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      maxTokens: TOKEN_LIMITS.MAX_RESPONSE,
-      temperature: 0.3,
-      systemPrompt,
-      messages: [{ role: 'user', content: overviewPrompt }],
-      extended: true, // Use extended timeout for complex analysis
-    });
+    const overviewCacheKey = contentHash ? getCacheKey(contentHash, 'overview') : null;
+    const cachedOverview = overviewCacheKey ? getCachedResponse(overviewCacheKey) : null;
+
+    let overviewResponse: string;
+    if (cachedOverview) {
+      overviewResponse = cachedOverview;
+      logger.info('[AIAnalyzer] Cache hit for overview analysis');
+    } else {
+      overviewResponse = await withRetryableTimeout(
+        () => runSAMChatWithPreference({
+          userId,
+          capability: 'analysis',
+          maxTokens: TOKEN_LIMITS.MAX_RESPONSE,
+          temperature: 0.3,
+          systemPrompt,
+          messages: [{ role: 'user', content: overviewPrompt }],
+          extended: true,
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'depth-analysis-overview',
+        1
+      );
+      if (overviewCacheKey) setCachedResponse(overviewCacheKey, overviewResponse);
+    }
 
     result.overview = parseCourseOverviewResponse(overviewResponse);
 
@@ -550,15 +604,30 @@ export async function runAIAnalysis(
       const chapterPrompt = buildChapterAnalysisPrompt(chapterContext);
       const systemPrompt = getChapterAnalysisSystemPrompt();
 
-      const chapterResponse = await runSAMChatWithPreference({
-        userId,
-        capability: 'analysis',
-        maxTokens: TOKEN_LIMITS.MAX_RESPONSE + 2000, // Extra for detailed chapter analysis
-        temperature: 0.3,
-        systemPrompt,
-        messages: [{ role: 'user', content: chapterPrompt }],
-        extended: true, // Use extended timeout for complex analysis
-      });
+      const chapterCacheKey = contentHash ? getCacheKey(contentHash, 'chapter', i) : null;
+      const cachedChapter = chapterCacheKey ? getCachedResponse(chapterCacheKey) : null;
+
+      let chapterResponse: string;
+      if (cachedChapter) {
+        chapterResponse = cachedChapter;
+        logger.info(`[AIAnalyzer] Cache hit for chapter ${i} analysis`);
+      } else {
+        chapterResponse = await withRetryableTimeout(
+          () => runSAMChatWithPreference({
+            userId,
+            capability: 'analysis',
+            maxTokens: TOKEN_LIMITS.MAX_RESPONSE + 2000,
+            temperature: 0.3,
+            systemPrompt,
+            messages: [{ role: 'user', content: chapterPrompt }],
+            extended: true,
+          }),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          `depth-analysis-chapter-${i}`,
+          1
+        );
+        if (chapterCacheKey) setCachedResponse(chapterCacheKey, chapterResponse);
+      }
 
       const chapterResult = parseChapterAnalysisResponse(
         chapterResponse,
@@ -842,15 +911,30 @@ export async function runAIAnalysis(
     const crossChapterPrompt = buildCrossChapterPrompt(crossChapterContext);
     const systemPrompt = getCrossChapterSystemPrompt();
 
-    const crossChapterResponse = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      maxTokens: TOKEN_LIMITS.MAX_RESPONSE + 2000,
-      temperature: 0.3,
-      systemPrompt,
-      messages: [{ role: 'user', content: crossChapterPrompt }],
-      extended: true, // Use extended timeout for complex analysis
-    });
+    const crossCacheKey = contentHash ? getCacheKey(contentHash, 'cross-chapter') : null;
+    const cachedCross = crossCacheKey ? getCachedResponse(crossCacheKey) : null;
+
+    let crossChapterResponse: string;
+    if (cachedCross) {
+      crossChapterResponse = cachedCross;
+      logger.info('[AIAnalyzer] Cache hit for cross-chapter analysis');
+    } else {
+      crossChapterResponse = await withRetryableTimeout(
+        () => runSAMChatWithPreference({
+          userId,
+          capability: 'analysis',
+          maxTokens: TOKEN_LIMITS.MAX_RESPONSE + 2000,
+          temperature: 0.3,
+          systemPrompt,
+          messages: [{ role: 'user', content: crossChapterPrompt }],
+          extended: true,
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'depth-analysis-cross-chapter',
+        1
+      );
+      if (crossCacheKey) setCachedResponse(crossCacheKey, crossChapterResponse);
+    }
 
     result.crossChapter = parseCrossChapterResponse(crossChapterResponse);
 

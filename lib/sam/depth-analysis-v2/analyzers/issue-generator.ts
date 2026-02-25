@@ -5,6 +5,7 @@
  * Each issue includes exact location and impact assessment.
  */
 
+import { nanoid } from 'nanoid';
 import type {
   CourseInput,
   StructureAnalysisResult,
@@ -14,6 +15,7 @@ import type {
   ContentAnalysisResult,
   OutcomesAnalysisResult,
   AnalysisIssue,
+  IssueSeverity,
 } from '../types';
 
 interface IssueGeneratorInput {
@@ -24,15 +26,6 @@ interface IssueGeneratorInput {
   consistencyResult: ConsistencyAnalysisResult;
   contentResult: ContentAnalysisResult;
   outcomesResult: OutcomesAnalysisResult;
-}
-
-let issueCounter = 0;
-
-/**
- * Generate unique issue ID
- */
-function generateIssueId(): string {
-  return `issue-${Date.now()}-${++issueCounter}`;
 }
 
 /**
@@ -48,7 +41,7 @@ function generateStructureIssues(
   for (const emptyChapter of structureResult.emptyChapters) {
     const chapter = course.chapters.find((c) => c.id === emptyChapter.id);
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'STRUCTURE',
       severity: 'CRITICAL',
       status: 'OPEN',
@@ -83,7 +76,7 @@ function generateStructureIssues(
     const section = chapter?.sections.find((s) => s.id === emptySection.id);
 
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'CONTENT',
       severity: 'HIGH',
       status: 'OPEN',
@@ -119,7 +112,7 @@ function generateStructureIssues(
   for (const unpubChapter of structureResult.unpublishedChapters) {
     const chapter = course.chapters.find((c) => c.id === unpubChapter.id);
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'STRUCTURE',
       severity: 'MEDIUM',
       status: 'OPEN',
@@ -148,7 +141,7 @@ function generateStructureIssues(
   // Low objective coverage
   if (structureResult.contentDepth.hasObjectives < 50) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'OBJECTIVE',
       severity: 'HIGH',
       status: 'OPEN',
@@ -176,7 +169,7 @@ function generateStructureIssues(
   // Low assessment coverage
   if (structureResult.contentDepth.hasAssessment < 30) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'ASSESSMENT',
       severity: 'MEDIUM',
       status: 'OPEN',
@@ -215,7 +208,7 @@ function generateBloomsIssues(
   // Course balance issues
   if (bloomsResult.courseBalance === 'bottom-heavy') {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'DEPTH',
       severity: 'HIGH',
       status: 'OPEN',
@@ -258,7 +251,7 @@ function generateBloomsIssues(
 
       if (lowerOrder > 70) {
         issues.push({
-          id: generateIssueId(),
+          id: nanoid(),
           type: 'DEPTH',
           severity: 'MEDIUM',
           status: 'OPEN',
@@ -302,7 +295,7 @@ function generateFlowIssues(flowResult: FlowAnalysisResult): AnalysisIssue[] {
   // Progression issues
   for (const progression of flowResult.progressionIssues) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'FLOW',
       severity: progression.severity,
       status: 'OPEN',
@@ -334,7 +327,7 @@ function generateFlowIssues(flowResult: FlowAnalysisResult): AnalysisIssue[] {
   // Cognitive jumps
   for (const jump of flowResult.cognitiveJumps) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'FLOW',
       severity: jump.gap >= 3 ? 'HIGH' : 'MEDIUM',
       status: 'OPEN',
@@ -380,7 +373,7 @@ function generateConsistencyIssues(
   for (const chapter of consistencyResult.chapterGoalAlignment) {
     if (chapter.alignmentScore < 30) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'CONSISTENCY',
         severity: 'MEDIUM',
         status: 'OPEN',
@@ -413,7 +406,7 @@ function generateConsistencyIssues(
   for (const section of consistencyResult.sectionConsistency) {
     if (section.consistencyScore < 50 && section.issues.length > 0) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'CONSISTENCY',
         severity: 'MEDIUM',
         status: 'OPEN',
@@ -442,7 +435,7 @@ function generateConsistencyIssues(
   // Cross-chapter issues
   for (const issue of consistencyResult.crossChapterConsistency.issues) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'CONSISTENCY',
       severity: 'LOW',
       status: 'OPEN',
@@ -483,7 +476,7 @@ function generateContentIssues(
   for (const duplicate of contentResult.duplicates) {
     if (duplicate.similarityScore >= 50) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'DUPLICATE',
         severity: duplicate.similarityScore >= 70 ? 'HIGH' : 'MEDIUM',
         status: 'OPEN',
@@ -530,7 +523,7 @@ function generateContentIssues(
   // Thin sections
   for (const thin of contentResult.thinSections) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'CONTENT',
       severity: thin.currentWordCount < 50 ? 'HIGH' : 'MEDIUM',
       status: 'OPEN',
@@ -564,7 +557,7 @@ function generateContentIssues(
   // Content gaps
   for (const gap of contentResult.contentGaps) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'CONTENT',
       severity: 'MEDIUM',
       status: 'OPEN',
@@ -600,7 +593,7 @@ function generateOutcomesIssues(
   // Knowledge gaps
   for (const gap of outcomesResult.knowledgeGaps) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'OBJECTIVE',
       severity: 'MEDIUM',
       status: 'OPEN',
@@ -624,7 +617,7 @@ function generateOutcomesIssues(
   // Low skill coverage
   if (outcomesResult.skillsGained.length < 3) {
     issues.push({
-      id: generateIssueId(),
+      id: nanoid(),
       type: 'OBJECTIVE',
       severity: 'MEDIUM',
       status: 'OPEN',
@@ -663,7 +656,7 @@ function generateBloomsAlignmentIssues(
   for (const alignment of bloomsResult.bloomsAlignment) {
     if (!alignment.isAligned && alignment.gap >= 2) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'DEPTH',
         severity: alignment.gap >= 3 ? 'HIGH' : 'MEDIUM',
         status: 'OPEN',
@@ -709,7 +702,7 @@ function generatePrerequisiteIssues(
   for (const prereq of flowResult.prerequisiteMap) {
     if (prereq.isMissing) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'PREREQUISITE',
         severity: 'HIGH',
         status: 'OPEN',
@@ -752,7 +745,7 @@ function generateDiversityIssues(
   for (const chapter of consistencyResult.contentDiversityPerChapter) {
     if (chapter.score < 40) {
       issues.push({
-        id: generateIssueId(),
+        id: nanoid(),
         type: 'CONSISTENCY',
         severity: 'MEDIUM',
         status: 'OPEN',
@@ -810,9 +803,6 @@ function sortIssues(issues: AnalysisIssue[]): AnalysisIssue[] {
 export async function generateIssues(
   input: IssueGeneratorInput
 ): Promise<AnalysisIssue[]> {
-  // Reset counter for new analysis
-  issueCounter = 0;
-
   const allIssues: AnalysisIssue[] = [];
 
   // Generate issues from each analysis step

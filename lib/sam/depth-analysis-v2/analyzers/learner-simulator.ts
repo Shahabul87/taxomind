@@ -14,6 +14,7 @@
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import type { CourseInput, AnalysisIssue } from '../types';
 
 function buildSimulatorPrompt(course: CourseInput): string {
@@ -107,14 +108,19 @@ export async function simulateLearner(
     const systemPrompt = buildSimulatorPrompt(course);
     const courseSummary = buildCourseSummary(course);
 
-    const response = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      messages: [{ role: 'user', content: courseSummary }],
-      systemPrompt,
-      maxTokens: 2000,
-      temperature: 0.5,
-    });
+    const response = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'analysis',
+        messages: [{ role: 'user', content: courseSummary }],
+        systemPrompt,
+        maxTokens: 2000,
+        temperature: 0.5,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'depth-analysis-learner-sim',
+      1
+    );
 
     const parsed: LearnerIssue[] = JSON.parse(response.trim());
     if (!Array.isArray(parsed)) return [];

@@ -1478,6 +1478,7 @@ enum IssueType {
   FALLBACK         // Detected fallback/template content
   FACTUAL          // Unverified factual claims
   LEARNER_EXPERIENCE // Learner simulation issues
+  ACCESSIBILITY    // WCAG/accessibility compliance issues
 }
 
 enum IssueStatus {

@@ -12,6 +12,7 @@
 
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import type { CourseInput, AnalysisIssue } from '../types';
 
 const FACTUAL_SYSTEM_PROMPT = `You are a factual accuracy reviewer for educational course content.
@@ -87,14 +88,19 @@ export async function analyzeFactualClaims(
   try {
     const contentSummary = buildContentSummary(course);
 
-    const response = await runSAMChatWithPreference({
-      userId,
-      capability: 'analysis',
-      messages: [{ role: 'user', content: contentSummary }],
-      systemPrompt: FACTUAL_SYSTEM_PROMPT,
-      maxTokens: 2000,
-      temperature: 0.3,
-    });
+    const response = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'analysis',
+        messages: [{ role: 'user', content: contentSummary }],
+        systemPrompt: FACTUAL_SYSTEM_PROMPT,
+        maxTokens: 2000,
+        temperature: 0.3,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'depth-analysis-factual',
+      1
+    );
 
     const parsed: FactualConcern[] = JSON.parse(response.trim());
     if (!Array.isArray(parsed)) return [];

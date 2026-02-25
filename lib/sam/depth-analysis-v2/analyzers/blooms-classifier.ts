@@ -43,14 +43,11 @@ const BLOOMS_KEYWORDS: Record<BloomsLevel, string[]> = {
     'summarize',
     'interpret',
     'classify',
-    'compare',
-    'contrast',
     'discuss',
     'distinguish',
     'paraphrase',
     'predict',
     'translate',
-    'illustrate',
     'infer',
   ],
   APPLY: [
@@ -167,6 +164,26 @@ function normalizeDistribution(distribution: BloomsDistribution): BloomsDistribu
 }
 
 /**
+ * Context-aware disambiguation rules for keywords that could belong
+ * to multiple Bloom's levels. Applied before the standard keyword scan
+ * to ensure ambiguous terms are only credited to the correct level.
+ */
+const DISAMBIGUATION_RULES: Array<{
+  pattern: RegExp;
+  level: BloomsLevel;
+  keywords: string[];
+}> = [
+  // "compare and contrast" → ANALYZE (analytical activity)
+  { pattern: /\bcompare\s+and\s+contrast\b/gi, level: 'ANALYZE', keywords: ['compare', 'contrast'] },
+  // "compare with/to" → UNDERSTAND (simple comparison for comprehension)
+  { pattern: /\bcompar(?:e|ed|ing)\s+(?:with|to)\b/gi, level: 'UNDERSTAND', keywords: ['compare'] },
+  // "illustrate how/by/using" → APPLY (demonstrating application)
+  { pattern: /\billustrate\s+(?:how|by|using)\b/gi, level: 'APPLY', keywords: ['illustrate'] },
+  // "illustrate the/a/an/with" → UNDERSTAND (visual explanation for comprehension)
+  { pattern: /\billustrate\s+(?:the|a|an|with)\b/gi, level: 'UNDERSTAND', keywords: ['illustrate'] },
+];
+
+/**
  * Classify text content by Bloom's level using keyword matching
  */
 function classifyTextByKeywords(text: string): {
@@ -178,17 +195,42 @@ function classifyTextByKeywords(text: string): {
   const scores: Record<BloomsLevel, number> = createEmptyDistribution();
   const evidence: string[] = [];
 
-  // Count keyword matches for each level
+  // Phase 1: Apply disambiguation rules first to handle ambiguous keywords
+  // Track which character ranges have been claimed by disambiguation
+  const claimedRanges: Array<{ start: number; end: number }> = [];
+
+  for (const rule of DISAMBIGUATION_RULES) {
+    let match: RegExpExecArray | null;
+    const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
+    while ((match = regex.exec(lowerText)) !== null) {
+      scores[rule.level] += LEVEL_WEIGHTS[rule.level];
+      evidence.push(`Found "${match[0]}" (${rule.level}, disambiguated)`);
+      claimedRanges.push({ start: match.index, end: match.index + match[0].length });
+    }
+  }
+
+  // Helper to check if a match position overlaps with any claimed range
+  const isPositionClaimed = (matchIndex: number, matchLength: number): boolean => {
+    for (const range of claimedRanges) {
+      if (matchIndex >= range.start && matchIndex < range.end) return true;
+      if (matchIndex + matchLength > range.start && matchIndex < range.end) return true;
+    }
+    return false;
+  };
+
+  // Phase 2: Standard keyword scan, skipping already-disambiguated instances
   for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS) as [
     BloomsLevel,
     string[],
   ][]) {
     for (const keyword of keywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-      const matches = lowerText.match(regex);
-      if (matches) {
-        scores[level] += matches.length * LEVEL_WEIGHTS[level];
-        evidence.push(`Found "${keyword}" (${level})`);
+      let kwMatch: RegExpExecArray | null;
+      while ((kwMatch = regex.exec(lowerText)) !== null) {
+        if (!isPositionClaimed(kwMatch.index, kwMatch[0].length)) {
+          scores[level] += LEVEL_WEIGHTS[level];
+          evidence.push(`Found "${keyword}" (${level})`);
+        }
       }
     }
   }
@@ -218,22 +260,44 @@ function classifyTextByKeywords(text: string): {
 }
 
 /**
- * Build distribution from text content
+ * Build distribution from text content (uses disambiguation rules)
  */
 function buildDistributionFromText(text: string): BloomsDistribution {
   const distribution = createEmptyDistribution();
   const lowerText = text.toLowerCase();
 
-  // Count keyword matches weighted by level importance
+  // Phase 1: Apply disambiguation rules first
+  const claimedRanges: Array<{ start: number; end: number }> = [];
+
+  for (const rule of DISAMBIGUATION_RULES) {
+    let match: RegExpExecArray | null;
+    const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
+    while ((match = regex.exec(lowerText)) !== null) {
+      distribution[rule.level]++;
+      claimedRanges.push({ start: match.index, end: match.index + match[0].length });
+    }
+  }
+
+  const isPositionClaimed = (matchIndex: number, matchLength: number): boolean => {
+    for (const range of claimedRanges) {
+      if (matchIndex >= range.start && matchIndex < range.end) return true;
+      if (matchIndex + matchLength > range.start && matchIndex < range.end) return true;
+    }
+    return false;
+  };
+
+  // Phase 2: Standard keyword scan, skip disambiguated positions
   for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS) as [
     BloomsLevel,
     string[],
   ][]) {
     for (const keyword of keywords) {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-      const matches = lowerText.match(regex);
-      if (matches) {
-        distribution[level] += matches.length;
+      let kwMatch: RegExpExecArray | null;
+      while ((kwMatch = regex.exec(lowerText)) !== null) {
+        if (!isPositionClaimed(kwMatch.index, kwMatch[0].length)) {
+          distribution[level]++;
+        }
       }
     }
   }
@@ -381,6 +445,11 @@ export async function classifyBlooms(
       }
     }
 
+    // Compute chapter confidence as average of section confidences
+    const chapterConfidence = sectionResults.length > 0
+      ? Math.round(sectionResults.reduce((sum, s) => sum + s.confidence, 0) / sectionResults.length)
+      : 0;
+
     chapterResults.push({
       chapterId: chapter.id,
       chapterTitle: chapter.title,
@@ -389,6 +458,7 @@ export async function classifyBlooms(
       distribution: chapterDistribution,
       sectionResults,
       balance: determineBalance(chapterDistribution),
+      confidence: chapterConfidence,
     });
   }
 
@@ -436,11 +506,17 @@ export async function classifyBlooms(
     }
   }
 
+  // Compute course-level confidence from chapter averages
+  const courseConfidence = chapterResults.length > 0
+    ? Math.round(chapterResults.reduce((sum, c) => sum + (c.confidence ?? 0), 0) / chapterResults.length)
+    : 0;
+
   return {
     courseDistribution,
     courseBalance: determineBalance(courseDistribution),
     chapters: chapterResults,
     cognitiveDepthScore: calculateDepthScore(courseDistribution),
+    confidence: courseConfidence,
     bloomsAlignment: bloomsAlignment.length > 0 ? bloomsAlignment : undefined,
   };
 }

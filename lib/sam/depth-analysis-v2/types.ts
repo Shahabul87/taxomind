@@ -32,7 +32,8 @@ export type IssueType =
   | 'READABILITY'
   | 'FALLBACK'
   | 'FACTUAL'
-  | 'LEARNER_EXPERIENCE';
+  | 'LEARNER_EXPERIENCE'
+  | 'ACCESSIBILITY';
 
 export type IssueStatus =
   | 'OPEN'
@@ -193,6 +194,8 @@ export interface ChapterBloomsResult {
   distribution: BloomsDistribution;
   sectionResults: SectionBloomsResult[];
   balance: 'well-balanced' | 'bottom-heavy' | 'top-heavy';
+  /** Average confidence across sections (0-100) */
+  confidence?: number;
 }
 
 export interface BloomsAnalysisResult {
@@ -200,6 +203,8 @@ export interface BloomsAnalysisResult {
   courseBalance: 'well-balanced' | 'bottom-heavy' | 'top-heavy';
   chapters: ChapterBloomsResult[];
   cognitiveDepthScore: number;
+  /** Average confidence across all sections (0-100) */
+  confidence?: number;
   /** Assigned vs actual Bloom's level alignment per section */
   bloomsAlignment?: Array<{
     sectionId: string;
@@ -390,6 +395,30 @@ export interface AnalysisIssue {
 }
 
 // =============================================================================
+// ACCESSIBILITY ANALYSIS
+// =============================================================================
+
+export interface AccessibilityAnalysisResult {
+  overallReadabilityScore: number;
+  wcagIssues: Array<{
+    sectionId: string;
+    sectionTitle: string;
+    chapterId: string;
+    chapterTitle: string;
+    issueType: 'MISSING_ALT_TEXT' | 'MISSING_CAPTIONS' | 'READABILITY' | 'COLOR_CONTRAST' | 'HEADING_STRUCTURE';
+    description: string;
+    severity: IssueSeverity;
+  }>;
+  sectionReadability: Array<{
+    sectionId: string;
+    sectionTitle: string;
+    chapterId: string;
+    fkGrade: number;
+    wordCount: number;
+  }>;
+}
+
+// =============================================================================
 // FINAL ANALYSIS RESULT
 // =============================================================================
 
@@ -445,6 +474,20 @@ export interface CourseDepthAnalysisV2Result {
     primaryBloomsLevel: BloomsLevel;
   }>;
 
+  // Confidence metrics
+  confidenceMetrics?: {
+    overallConfidence: number;
+    lowConfidenceSections: Array<{
+      sectionId: string;
+      sectionTitle: string;
+      chapterId: string;
+      confidence: number;
+    }>;
+  };
+
+  // Accessibility analysis
+  accessibilityAnalysis?: AccessibilityAnalysisResult;
+
   // Comparison (if re-analysis)
   comparison?: {
     previousVersionId: string;
@@ -473,6 +516,20 @@ export interface AnalysisProgress {
 export type ProgressCallback = (progress: AnalysisProgress) => void;
 
 // =============================================================================
+// SCORING WEIGHTS
+// =============================================================================
+
+export interface ScoringWeights {
+  overall: { depth: number; consistency: number; flow: number; quality: number };
+  consistency: { goalAlignment: number; sectionConsistency: number; crossChapter: number };
+}
+
+export const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
+  overall: { depth: 0.3, consistency: 0.2, flow: 0.3, quality: 0.2 },
+  consistency: { goalAlignment: 0.3, sectionConsistency: 0.4, crossChapter: 0.3 },
+};
+
+// =============================================================================
 // ANALYZER OPTIONS
 // =============================================================================
 
@@ -484,4 +541,6 @@ export interface AnalyzerOptions {
   aiEnabled?: boolean;
   /** User ID for AI-powered analyzers that need provider resolution */
   userId?: string;
+  /** Custom scoring weights (merged with defaults) */
+  scoringWeights?: Partial<ScoringWeights>;
 }

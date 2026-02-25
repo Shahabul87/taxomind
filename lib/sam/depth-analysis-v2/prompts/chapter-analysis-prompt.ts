@@ -8,6 +8,7 @@
  * Enhanced to send full content and include expert reviewer context.
  */
 
+import { z } from 'zod';
 import type { CourseInput, BloomsLevel } from '../types';
 import { getStageSystemPrompt } from './system-prompt';
 
@@ -449,6 +450,86 @@ export interface ChapterAnalysisResult {
 /**
  * Parse AI response for chapter analysis
  */
+// Zod schema for chapter analysis AI response validation
+const ChapterAnalysisResponseSchema = z.object({
+  primaryBloomsLevel: z.string().default('UNDERSTAND'),
+  bloomsDistribution: z.object({
+    REMEMBER: z.coerce.number().default(20),
+    UNDERSTAND: z.coerce.number().default(30),
+    APPLY: z.coerce.number().default(20),
+    ANALYZE: z.coerce.number().default(15),
+    EVALUATE: z.coerce.number().default(10),
+    CREATE: z.coerce.number().default(5),
+  }).default({}),
+  sectionBloomsLevels: z.array(z.object({
+    sectionIndex: z.coerce.number().default(0),
+    sectionTitle: z.string().default(''),
+    primaryLevel: z.string().default('UNDERSTAND'),
+    reasoning: z.string().default(''),
+  })).default([]),
+  consistencyScore: z.coerce.number().min(0).max(100).default(70),
+  flowScore: z.coerce.number().min(0).max(100).default(70),
+  qualityScore: z.coerce.number().min(0).max(100).default(70),
+  keyTopics: z.array(z.string()).default([]),
+  prerequisiteConcepts: z.array(z.object({
+    concept: z.string().default(''),
+    introducedIn: z.string().default('NOT FOUND'),
+    status: z.enum(['SATISFIED', 'MISSING', 'ASSUMED']).default('ASSUMED'),
+  })).default([]),
+  assessmentAlignment: z.object({
+    alignmentScore: z.coerce.number().default(50),
+    misalignments: z.array(z.object({
+      sectionIndex: z.coerce.number().default(0),
+      sectionTitle: z.string().default(''),
+      sectionBloomsLevel: z.string().default('UNDERSTAND'),
+      questionIndex: z.coerce.number().default(0),
+      questionBloomsLevel: z.string().default('REMEMBER'),
+      issue: z.string().default(''),
+    })).default([]),
+    uncoveredObjectives: z.array(z.string()).default([]),
+  }).default({}),
+  timeValidation: z.object({
+    totalEstimatedTime: z.coerce.number().default(0),
+    isRealistic: z.boolean().default(true),
+    issues: z.array(z.object({
+      sectionIndex: z.coerce.number().default(0),
+      sectionTitle: z.string().default(''),
+      estimatedTime: z.coerce.number().default(0),
+      issue: z.string().default(''),
+      recommendation: z.string().default(''),
+    })).default([]),
+  }).default({}),
+  issues: z.array(z.object({
+    sectionIndex: z.coerce.number().nullable().default(null),
+    sectionTitle: z.string().nullable().default(null),
+    type: z.string().default('CONTENT'),
+    severity: z.string().default('MEDIUM'),
+    title: z.string().default('Unknown issue'),
+    description: z.string().default(''),
+    evidence: z.array(z.string()).default([]),
+    fix: z.object({
+      action: z.string().default('modify'),
+      what: z.string().default(''),
+      why: z.string().default(''),
+      how: z.string().default(''),
+      suggestedContent: z.string().optional(),
+    }).default({}),
+  })).default([]),
+  gagneEventsCheck: z.object({
+    gainAttention: z.boolean().default(false),
+    informObjectives: z.boolean().default(false),
+    stimulateRecall: z.boolean().default(false),
+    presentContent: z.boolean().default(true),
+    provideGuidance: z.boolean().default(false),
+    elicitPerformance: z.boolean().default(false),
+    provideFeedback: z.boolean().default(false),
+    assessPerformance: z.boolean().default(false),
+    enhanceRetention: z.boolean().default(false),
+    missingEvents: z.array(z.string()).default([]),
+  }).default({}),
+  thinking: z.string().default(''),
+});
+
 export function parseChapterAnalysisResponse(
   responseText: string,
   chapterIndex: number,
@@ -467,103 +548,35 @@ export function parseChapterAnalysisResponse(
       jsonStr = jsonStr.slice(0, -3);
     }
 
-    const parsed = JSON.parse(jsonStr.trim());
-
-    const defaultDistribution: Record<BloomsLevel, number> = {
-      REMEMBER: 20,
-      UNDERSTAND: 30,
-      APPLY: 20,
-      ANALYZE: 15,
-      EVALUATE: 10,
-      CREATE: 5,
-    };
+    const rawParsed = JSON.parse(jsonStr.trim());
+    const parsed = ChapterAnalysisResponseSchema.parse(rawParsed);
 
     return {
       chapterIndex,
       chapterTitle,
-      primaryBloomsLevel: parsed.primaryBloomsLevel ?? 'UNDERSTAND',
-      bloomsDistribution: {
-        REMEMBER: parsed.bloomsDistribution?.REMEMBER ?? defaultDistribution.REMEMBER,
-        UNDERSTAND: parsed.bloomsDistribution?.UNDERSTAND ?? defaultDistribution.UNDERSTAND,
-        APPLY: parsed.bloomsDistribution?.APPLY ?? defaultDistribution.APPLY,
-        ANALYZE: parsed.bloomsDistribution?.ANALYZE ?? defaultDistribution.ANALYZE,
-        EVALUATE: parsed.bloomsDistribution?.EVALUATE ?? defaultDistribution.EVALUATE,
-        CREATE: parsed.bloomsDistribution?.CREATE ?? defaultDistribution.CREATE,
-      },
-      sectionBloomsLevels: (parsed.sectionBloomsLevels ?? []).map(
-        (s: Record<string, unknown>) => ({
-          sectionIndex: (s.sectionIndex as number) ?? 0,
-          sectionTitle: (s.sectionTitle as string) ?? '',
-          primaryLevel: (s.primaryLevel as BloomsLevel) ?? 'UNDERSTAND',
-          reasoning: (s.reasoning as string) ?? '',
-        })
-      ),
-      consistencyScore: Math.min(100, Math.max(0, parsed.consistencyScore ?? 70)),
-      flowScore: Math.min(100, Math.max(0, parsed.flowScore ?? 70)),
-      qualityScore: Math.min(100, Math.max(0, parsed.qualityScore ?? 70)),
-      keyTopics: parsed.keyTopics ?? [],
-      prerequisiteConcepts: (parsed.prerequisiteConcepts ?? []).map(
-        (p: Record<string, unknown>) => ({
-          concept: (p.concept as string) ?? '',
-          introducedIn: (p.introducedIn as string) ?? 'NOT FOUND',
-          status: (p.status as 'SATISFIED' | 'MISSING' | 'ASSUMED') ?? 'ASSUMED',
-        })
-      ),
+      primaryBloomsLevel: parsed.primaryBloomsLevel as BloomsLevel,
+      bloomsDistribution: parsed.bloomsDistribution as Record<BloomsLevel, number>,
+      sectionBloomsLevels: parsed.sectionBloomsLevels.map((s) => ({
+        ...s,
+        primaryLevel: s.primaryLevel as BloomsLevel,
+      })),
+      consistencyScore: parsed.consistencyScore,
+      flowScore: parsed.flowScore,
+      qualityScore: parsed.qualityScore,
+      keyTopics: parsed.keyTopics,
+      prerequisiteConcepts: parsed.prerequisiteConcepts,
       assessmentAlignment: {
-        alignmentScore: parsed.assessmentAlignment?.alignmentScore ?? 50,
-        misalignments: (parsed.assessmentAlignment?.misalignments ?? []).map(
-          (m: Record<string, unknown>) => ({
-            sectionIndex: (m.sectionIndex as number) ?? 0,
-            sectionTitle: (m.sectionTitle as string) ?? '',
-            sectionBloomsLevel: (m.sectionBloomsLevel as BloomsLevel) ?? 'UNDERSTAND',
-            questionIndex: (m.questionIndex as number) ?? 0,
-            questionBloomsLevel: (m.questionBloomsLevel as BloomsLevel) ?? 'REMEMBER',
-            issue: (m.issue as string) ?? '',
-          })
-        ),
-        uncoveredObjectives: parsed.assessmentAlignment?.uncoveredObjectives ?? [],
-      },
-      timeValidation: {
-        totalEstimatedTime: parsed.timeValidation?.totalEstimatedTime ?? 0,
-        isRealistic: parsed.timeValidation?.isRealistic ?? true,
-        issues: (parsed.timeValidation?.issues ?? []).map((t: Record<string, unknown>) => ({
-          sectionIndex: (t.sectionIndex as number) ?? 0,
-          sectionTitle: (t.sectionTitle as string) ?? '',
-          estimatedTime: (t.estimatedTime as number) ?? 0,
-          issue: (t.issue as string) ?? '',
-          recommendation: (t.recommendation as string) ?? '',
+        ...parsed.assessmentAlignment,
+        misalignments: parsed.assessmentAlignment.misalignments.map((m) => ({
+          ...m,
+          sectionBloomsLevel: m.sectionBloomsLevel as BloomsLevel,
+          questionBloomsLevel: m.questionBloomsLevel as BloomsLevel,
         })),
       },
-      issues: (parsed.issues ?? []).map((issue: Record<string, unknown>) => ({
-        sectionIndex: issue.sectionIndex as number | null,
-        sectionTitle: issue.sectionTitle as string | null,
-        type: (issue.type as string) ?? 'CONTENT',
-        severity: (issue.severity as string) ?? 'MEDIUM',
-        title: (issue.title as string) ?? 'Unknown issue',
-        description: (issue.description as string) ?? '',
-        evidence: (issue.evidence as string[]) ?? [],
-        fix: {
-          action: ((issue.fix as Record<string, unknown>)?.action as string) ?? 'modify',
-          what: ((issue.fix as Record<string, unknown>)?.what as string) ?? '',
-          why: ((issue.fix as Record<string, unknown>)?.why as string) ?? '',
-          how: ((issue.fix as Record<string, unknown>)?.how as string) ?? '',
-          suggestedContent:
-            ((issue.fix as Record<string, unknown>)?.suggestedContent as string) ?? undefined,
-        },
-      })),
-      gagneEventsCheck: {
-        gainAttention: parsed.gagneEventsCheck?.gainAttention ?? false,
-        informObjectives: parsed.gagneEventsCheck?.informObjectives ?? false,
-        stimulateRecall: parsed.gagneEventsCheck?.stimulateRecall ?? false,
-        presentContent: parsed.gagneEventsCheck?.presentContent ?? true,
-        provideGuidance: parsed.gagneEventsCheck?.provideGuidance ?? false,
-        elicitPerformance: parsed.gagneEventsCheck?.elicitPerformance ?? false,
-        provideFeedback: parsed.gagneEventsCheck?.provideFeedback ?? false,
-        assessPerformance: parsed.gagneEventsCheck?.assessPerformance ?? false,
-        enhanceRetention: parsed.gagneEventsCheck?.enhanceRetention ?? false,
-        missingEvents: parsed.gagneEventsCheck?.missingEvents ?? [],
-      },
-      thinking: parsed.thinking ?? '',
+      timeValidation: parsed.timeValidation,
+      issues: parsed.issues,
+      gagneEventsCheck: parsed.gagneEventsCheck,
+      thinking: parsed.thinking,
     };
   } catch {
     // On parse failure, return ERROR state scores (not fake 50s)

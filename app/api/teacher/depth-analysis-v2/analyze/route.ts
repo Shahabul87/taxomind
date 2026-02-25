@@ -42,7 +42,7 @@ const AnalyzeSchema = z.object({
 const VALID_ISSUE_TYPES: readonly IssueType[] = [
   'STRUCTURE', 'CONTENT', 'FLOW', 'DUPLICATE', 'CONSISTENCY',
   'DEPTH', 'OBJECTIVE', 'ASSESSMENT', 'TIME', 'PREREQUISITE', 'GAP',
-  'READABILITY', 'FALLBACK', 'FACTUAL', 'LEARNER_EXPERIENCE',
+  'READABILITY', 'FALLBACK', 'FACTUAL', 'LEARNER_EXPERIENCE', 'ACCESSIBILITY',
 ] as const;
 
 function isValidIssueType(value: string): value is IssueType {

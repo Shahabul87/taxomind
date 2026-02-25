@@ -8,6 +8,7 @@
  * Enhanced with full context and expert reviewer guidelines.
  */
 
+import { z } from 'zod';
 import type { BloomsLevel } from '../types';
 import type { ChapterSummary } from './chapter-analysis-prompt';
 import { getStageSystemPrompt } from './system-prompt';
@@ -397,6 +398,77 @@ export interface CrossChapterAnalysisResult {
 /**
  * Parse AI response for cross-chapter analysis
  */
+// Zod schema for cross-chapter AI response validation
+const CrossChapterResponseSchema = z.object({
+  bloomsProgression: z.string().default('inconsistent'),
+  bloomsProgressionReasoning: z.string().default(''),
+  progressionIssues: z.array(z.object({
+    fromChapter: z.coerce.number().default(0),
+    toChapter: z.coerce.number().default(0),
+    issue: z.string().default(''),
+    severity: z.string().default('MEDIUM'),
+    suggestion: z.string().default(''),
+  })).default([]),
+  flowScore: z.coerce.number().min(0).max(100).default(50),
+  styleConsistency: z.coerce.number().min(0).max(100).default(50),
+  goalCoverage: z.coerce.number().min(0).max(100).default(50),
+  coveredGoals: z.array(z.string()).default([]),
+  uncoveredGoals: z.array(z.string()).default([]),
+  goalToChapterMapping: z.array(z.object({
+    goal: z.string().default(''),
+    coveredByChapters: z.array(z.coerce.number()).default([]),
+    coverageLevel: z.enum(['FULL', 'PARTIAL', 'NONE']).default('NONE'),
+  })).default([]),
+  knowledgeFlowIssues: z.array(z.object({
+    type: z.enum(['ORPHAN_CONCEPT', 'CIRCULAR_DEPENDENCY', 'LATE_INTRODUCTION', 'MISSING_PREREQUISITE']).default('MISSING_PREREQUISITE'),
+    concept: z.string().default(''),
+    usedInChapter: z.coerce.number().default(0),
+    shouldBeIntroducedBy: z.coerce.number().default(0),
+    severity: z.string().default('MEDIUM'),
+    fix: z.string().default(''),
+  })).default([]),
+  duplicateContent: z.array(z.object({
+    topic: z.string().default(''),
+    chapters: z.array(z.coerce.number()).default([]),
+    recommendation: z.enum(['CONSOLIDATE', 'KEEP_AS_SPIRAL', 'REMOVE_DUPLICATE']).default('CONSOLIDATE'),
+    rationale: z.string().default(''),
+  })).default([]),
+  timeDistribution: z.object({
+    totalEstimatedTime: z.coerce.number().default(0),
+    averageChapterTime: z.coerce.number().default(0),
+    imbalancedChapters: z.array(z.object({
+      chapterIndex: z.coerce.number().default(0),
+      estimatedTime: z.coerce.number().default(0),
+      issue: z.string().default(''),
+      recommendation: z.string().default(''),
+    })).default([]),
+    matchesStatedDuration: z.boolean().default(true),
+  }).default({}),
+  issues: z.array(z.object({
+    type: z.string().default('FLOW'),
+    severity: z.string().default('MEDIUM'),
+    affectedChapterIndices: z.array(z.coerce.number()).default([]),
+    affectedChapterTitles: z.array(z.string()).default([]),
+    title: z.string().default('Unknown issue'),
+    description: z.string().default(''),
+    evidence: z.array(z.string()).default([]),
+    fix: z.object({
+      action: z.string().default('modify'),
+      what: z.string().default(''),
+      why: z.string().default(''),
+      how: z.string().default(''),
+    }).default({}),
+  })).default([]),
+  recommendedChapterOrder: z.array(z.coerce.number()).nullable().default(null),
+  overallAssessment: z.object({
+    readyForPublication: z.boolean().default(false),
+    criticalIssuesCount: z.coerce.number().default(0),
+    highPriorityIssuesCount: z.coerce.number().default(0),
+    topImprovements: z.array(z.string()).default([]),
+  }).default({}),
+  thinking: z.string().default(''),
+});
+
 export function parseCrossChapterResponse(responseText: string): CrossChapterAnalysisResult {
   try {
     let jsonStr = responseText.trim();
@@ -411,90 +483,10 @@ export function parseCrossChapterResponse(responseText: string): CrossChapterAna
       jsonStr = jsonStr.slice(0, -3);
     }
 
-    const parsed = JSON.parse(jsonStr.trim());
+    const rawParsed = JSON.parse(jsonStr.trim());
+    const parsed = CrossChapterResponseSchema.parse(rawParsed);
 
-    return {
-      bloomsProgression: parsed.bloomsProgression ?? 'inconsistent',
-      bloomsProgressionReasoning: parsed.bloomsProgressionReasoning ?? '',
-      progressionIssues: (parsed.progressionIssues ?? []).map((p: Record<string, unknown>) => ({
-        fromChapter: (p.fromChapter as number) ?? 0,
-        toChapter: (p.toChapter as number) ?? 0,
-        issue: (p.issue as string) ?? '',
-        severity: (p.severity as string) ?? 'MEDIUM',
-        suggestion: (p.suggestion as string) ?? '',
-      })),
-      flowScore: Math.min(100, Math.max(0, parsed.flowScore ?? 50)),
-      styleConsistency: Math.min(100, Math.max(0, parsed.styleConsistency ?? 50)),
-      goalCoverage: Math.min(100, Math.max(0, parsed.goalCoverage ?? 50)),
-      coveredGoals: parsed.coveredGoals ?? [],
-      uncoveredGoals: parsed.uncoveredGoals ?? [],
-      goalToChapterMapping: (parsed.goalToChapterMapping ?? []).map(
-        (g: Record<string, unknown>) => ({
-          goal: (g.goal as string) ?? '',
-          coveredByChapters: (g.coveredByChapters as number[]) ?? [],
-          coverageLevel: (g.coverageLevel as 'FULL' | 'PARTIAL' | 'NONE') ?? 'NONE',
-        })
-      ),
-      knowledgeFlowIssues: (parsed.knowledgeFlowIssues ?? []).map(
-        (k: Record<string, unknown>) => ({
-          type: (k.type as
-            | 'ORPHAN_CONCEPT'
-            | 'CIRCULAR_DEPENDENCY'
-            | 'LATE_INTRODUCTION'
-            | 'MISSING_PREREQUISITE') ?? 'MISSING_PREREQUISITE',
-          concept: (k.concept as string) ?? '',
-          usedInChapter: (k.usedInChapter as number) ?? 0,
-          shouldBeIntroducedBy: (k.shouldBeIntroducedBy as number) ?? 0,
-          severity: (k.severity as string) ?? 'MEDIUM',
-          fix: (k.fix as string) ?? '',
-        })
-      ),
-      duplicateContent: (parsed.duplicateContent ?? []).map((d: Record<string, unknown>) => ({
-        topic: (d.topic as string) ?? '',
-        chapters: (d.chapters as number[]) ?? [],
-        recommendation: (d.recommendation as
-          | 'CONSOLIDATE'
-          | 'KEEP_AS_SPIRAL'
-          | 'REMOVE_DUPLICATE') ?? 'CONSOLIDATE',
-        rationale: (d.rationale as string) ?? '',
-      })),
-      timeDistribution: {
-        totalEstimatedTime: parsed.timeDistribution?.totalEstimatedTime ?? 0,
-        averageChapterTime: parsed.timeDistribution?.averageChapterTime ?? 0,
-        imbalancedChapters: (parsed.timeDistribution?.imbalancedChapters ?? []).map(
-          (c: Record<string, unknown>) => ({
-            chapterIndex: (c.chapterIndex as number) ?? 0,
-            estimatedTime: (c.estimatedTime as number) ?? 0,
-            issue: (c.issue as string) ?? '',
-            recommendation: (c.recommendation as string) ?? '',
-          })
-        ),
-        matchesStatedDuration: parsed.timeDistribution?.matchesStatedDuration ?? true,
-      },
-      issues: (parsed.issues ?? []).map((issue: Record<string, unknown>) => ({
-        type: (issue.type as string) ?? 'FLOW',
-        severity: (issue.severity as string) ?? 'MEDIUM',
-        affectedChapterIndices: (issue.affectedChapterIndices as number[]) ?? [],
-        affectedChapterTitles: (issue.affectedChapterTitles as string[]) ?? [],
-        title: (issue.title as string) ?? 'Unknown issue',
-        description: (issue.description as string) ?? '',
-        evidence: (issue.evidence as string[]) ?? [],
-        fix: {
-          action: ((issue.fix as Record<string, unknown>)?.action as string) ?? 'modify',
-          what: ((issue.fix as Record<string, unknown>)?.what as string) ?? '',
-          why: ((issue.fix as Record<string, unknown>)?.why as string) ?? '',
-          how: ((issue.fix as Record<string, unknown>)?.how as string) ?? '',
-        },
-      })),
-      recommendedChapterOrder: parsed.recommendedChapterOrder ?? null,
-      overallAssessment: {
-        readyForPublication: parsed.overallAssessment?.readyForPublication ?? false,
-        criticalIssuesCount: parsed.overallAssessment?.criticalIssuesCount ?? 0,
-        highPriorityIssuesCount: parsed.overallAssessment?.highPriorityIssuesCount ?? 0,
-        topImprovements: parsed.overallAssessment?.topImprovements ?? [],
-      },
-      thinking: parsed.thinking ?? '',
-    };
+    return parsed;
   } catch {
     // On parse failure, return ERROR state (not fake 50s)
     return {

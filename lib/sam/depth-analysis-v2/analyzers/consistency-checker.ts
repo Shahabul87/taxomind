@@ -9,7 +9,9 @@ import type {
   CourseInput,
   BloomsAnalysisResult,
   ConsistencyAnalysisResult,
+  ScoringWeights,
 } from '../types';
+import { DEFAULT_SCORING_WEIGHTS } from '../types';
 
 /**
  * Extract key terms from text for comparison
@@ -368,8 +370,10 @@ function analyzeCrossChapterConsistency(
  */
 export async function checkConsistency(
   course: CourseInput,
-  bloomsResult: BloomsAnalysisResult
+  bloomsResult: BloomsAnalysisResult,
+  consistencyWeights?: ScoringWeights['consistency']
 ): Promise<ConsistencyAnalysisResult> {
+  const cw = consistencyWeights ?? DEFAULT_SCORING_WEIGHTS.consistency;
   // Analyze goal alignment
   const chapterGoalAlignment = analyzeGoalAlignment(course);
 
@@ -402,7 +406,9 @@ export async function checkConsistency(
     3;
 
   const overallConsistencyScore = Math.round(
-    (goalAlignmentAvg * 0.3 + sectionConsistencyAvg * 0.4 + crossChapterAvg * 0.3)
+    goalAlignmentAvg * cw.goalAlignment +
+    sectionConsistencyAvg * cw.sectionConsistency +
+    crossChapterAvg * cw.crossChapter
   );
 
   // Content diversity analysis: detect types present per chapter

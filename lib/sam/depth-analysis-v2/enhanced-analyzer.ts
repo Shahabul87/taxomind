@@ -1,7 +1,7 @@
 /**
  * Enhanced Course Depth Analyzer V2
  *
- * 8-step AI-powered analysis pipeline that provides specific, actionable
+ * 11-step analysis pipeline that provides specific, actionable
  * guidance on course improvements.
  *
  * Steps:
@@ -15,10 +15,12 @@
  * 8. Fix Generation - Generate fix instructions
  * 9. Factual Analysis (AI-only) - Check factual claims
  * 10. Learner Simulation (AI-only) - Simulate target learner
+ * 11. Accessibility Analysis (rule-based) - WCAG compliance & readability
  */
 
 import { createHash } from 'crypto';
 import { logger } from '@/lib/logger';
+import { db } from '@/lib/db';
 import type {
   AnalyzerOptions,
   CourseInput,
@@ -33,7 +35,9 @@ import type {
   OutcomesAnalysisResult,
   AnalysisIssue,
   BloomsDistribution,
+  ScoringWeights,
 } from './types';
+import { DEFAULT_SCORING_WEIGHTS } from './types';
 
 import { analyzeStructure } from './analyzers/structure-analyzer';
 import { classifyBlooms } from './analyzers/blooms-classifier';
@@ -47,6 +51,7 @@ import { detectFallbacks } from './analyzers/fallback-detector';
 import { analyzeReadability, type ReadabilityResult } from './analyzers/content-analyzer';
 import { analyzeFactualClaims } from './analyzers/factual-analyzer';
 import { simulateLearner } from './analyzers/learner-simulator';
+import { analyzeAccessibility, convertAccessibilityToIssues } from './analyzers/accessibility-analyzer';
 
 // =============================================================================
 // CONSTANTS
@@ -63,6 +68,7 @@ const ANALYSIS_STEPS = [
   { id: 8, name: 'fixes', label: 'Creating fix instructions' },
   { id: 9, name: 'factual', label: 'Checking factual accuracy' },
   { id: 10, name: 'learner', label: 'Simulating learner experience' },
+  { id: 11, name: 'accessibility', label: 'Analyzing accessibility compliance' },
 ];
 
 // =============================================================================
@@ -100,10 +106,9 @@ function calculateOverallScore(
   depthScore: number,
   consistencyScore: number,
   flowScore: number,
-  qualityScore: number
+  qualityScore: number,
+  weights: ScoringWeights['overall'] = DEFAULT_SCORING_WEIGHTS.overall
 ): number {
-  // Weighted average with depth and flow being more important
-  const weights = { depth: 0.3, consistency: 0.2, flow: 0.3, quality: 0.2 };
   return Math.round(
     depthScore * weights.depth +
       consistencyScore * weights.consistency +
@@ -159,6 +164,7 @@ export class EnhancedCourseAnalyzerV2 {
   private aiEnabled: boolean;
   private previousAnalysisId?: string;
   private userId?: string;
+  private weights: ScoringWeights;
 
   constructor(options: AnalyzerOptions) {
     this.course = options.course;
@@ -167,6 +173,10 @@ export class EnhancedCourseAnalyzerV2 {
     this.aiEnabled = options.aiEnabled ?? true;
     this.previousAnalysisId = options.previousAnalysisId;
     this.userId = options.userId;
+    this.weights = {
+      overall: { ...DEFAULT_SCORING_WEIGHTS.overall, ...options.scoringWeights?.overall },
+      consistency: { ...DEFAULT_SCORING_WEIGHTS.consistency, ...options.scoringWeights?.consistency },
+    };
   }
 
   /**
@@ -190,6 +200,67 @@ export class EnhancedCourseAnalyzerV2 {
     };
 
     this.onProgress(progress);
+  }
+
+  /**
+   * Compare current results with a previous analysis to compute deltas.
+   * Returns undefined if the previous analysis cannot be loaded.
+   */
+  private async compareWithPrevious(
+    current: CourseDepthAnalysisV2Result
+  ): Promise<CourseDepthAnalysisV2Result['comparison'] | undefined> {
+    if (!this.previousAnalysisId) return undefined;
+
+    try {
+      const previous = await db.courseDepthAnalysisV2.findUnique({
+        where: { id: this.previousAnalysisId },
+        include: { issues: { select: { type: true, title: true, chapterId: true, sectionId: true } } },
+      });
+
+      if (!previous) return undefined;
+
+      // Score improvement
+      const scoreImprovement = current.overallScore - previous.overallScore;
+
+      // Issue fingerprinting: normalize title for comparison
+      const fingerprint = (type: string, chapterId: string | null, sectionId: string | null, title: string) =>
+        `${type}:${chapterId ?? ''}:${sectionId ?? ''}:${title.toLowerCase().trim().substring(0, 80)}`;
+
+      const previousFingerprints = new Set(
+        previous.issues.map((i) => fingerprint(i.type, i.chapterId, i.sectionId, i.title))
+      );
+
+      const currentFingerprints = new Set(
+        current.issues.map((i) =>
+          fingerprint(i.type, i.location.chapterId ?? '', i.location.sectionId ?? '', i.title)
+        )
+      );
+
+      // Issues in previous but not in current = resolved
+      let issuesResolved = 0;
+      for (const fp of previousFingerprints) {
+        if (!currentFingerprints.has(fp)) issuesResolved++;
+      }
+
+      // Issues in current but not in previous = new
+      let newIssues = 0;
+      for (const fp of currentFingerprints) {
+        if (!previousFingerprints.has(fp)) newIssues++;
+      }
+
+      return {
+        previousVersionId: this.previousAnalysisId,
+        scoreImprovement,
+        issuesResolved,
+        newIssues,
+      };
+    } catch (error) {
+      logger.warn('[DepthAnalyzerV2] Failed to compare with previous analysis', {
+        previousAnalysisId: this.previousAnalysisId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return undefined;
+    }
   }
 
   /**
@@ -222,7 +293,8 @@ export class EnhancedCourseAnalyzerV2 {
       this.reportProgress(4, 'Checking chapter and section consistency...');
       const consistencyResult = await checkConsistency(
         this.course,
-        bloomsResult
+        bloomsResult,
+        this.weights.consistency
       );
       logger.info('[DepthAnalyzerV2] Step 4 complete: Consistency check');
 
@@ -382,6 +454,19 @@ export class EnhancedCourseAnalyzerV2 {
         logger.info('[DepthAnalyzerV2] Step 10 skipped: Learner simulation (rule-based mode)');
       }
 
+      // Step 11: Accessibility Analysis (rule-based, zero AI cost — runs always)
+      this.reportProgress(11, 'Analyzing accessibility compliance...');
+      const accessibilityResult = analyzeAccessibility(this.course);
+      const accessibilityIssues = convertAccessibilityToIssues(accessibilityResult);
+      if (accessibilityIssues.length > 0) {
+        issuesWithFixes.push(...accessibilityIssues);
+      }
+      logger.info('[DepthAnalyzerV2] Step 11 complete: Accessibility analysis', {
+        wcagIssues: accessibilityResult.wcagIssues.length,
+        readabilitySections: accessibilityResult.sectionReadability.length,
+        overallReadabilityScore: accessibilityResult.overallReadabilityScore,
+      });
+
       // Calculate scores
       const depthScore = bloomsResult.cognitiveDepthScore;
       const consistencyScore = consistencyResult.overallConsistencyScore;
@@ -391,7 +476,8 @@ export class EnhancedCourseAnalyzerV2 {
         depthScore,
         consistencyScore,
         flowScore,
-        qualityScore
+        qualityScore,
+        this.weights.overall
       );
 
       // Build chapter analysis summary with real per-chapter scores
@@ -480,6 +566,23 @@ export class EnhancedCourseAnalyzerV2 {
       });
 
       // Build final result
+      // Build confidence metrics from Bloom's analysis
+      const lowConfidenceSections: Array<{
+        sectionId: string; sectionTitle: string; chapterId: string; confidence: number;
+      }> = [];
+      for (const chapter of bloomsResult.chapters) {
+        for (const section of chapter.sectionResults) {
+          if (section.confidence < 50) {
+            lowConfidenceSections.push({
+              sectionId: section.sectionId,
+              sectionTitle: section.sectionTitle,
+              chapterId: section.chapterId,
+              confidence: section.confidence,
+            });
+          }
+        }
+      }
+
       const result: CourseDepthAnalysisV2Result = {
         // Metadata
         courseId: this.courseId,
@@ -514,9 +617,23 @@ export class EnhancedCourseAnalyzerV2 {
         // Chapter Summary
         chapterAnalysis,
 
+        // Confidence metrics
+        confidenceMetrics: {
+          overallConfidence: bloomsResult.confidence ?? 0,
+          lowConfidenceSections,
+        },
+
+        // Accessibility
+        accessibilityAnalysis: accessibilityResult,
+
         // Timestamps
         analyzedAt: new Date(),
       };
+
+      // Version comparison with previous analysis
+      if (this.previousAnalysisId) {
+        result.comparison = await this.compareWithPrevious(result);
+      }
 
       const duration = Date.now() - startTime;
       logger.info('[DepthAnalyzerV2] Analysis complete', {
@@ -524,6 +641,7 @@ export class EnhancedCourseAnalyzerV2 {
         overallScore,
         issueCount: result.issueCount.total,
         durationMs: duration,
+        comparison: result.comparison ?? null,
       });
 
       return result;

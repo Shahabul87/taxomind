@@ -7,6 +7,7 @@
  * Enhanced with full course data and expert reviewer context.
  */
 
+import { z } from 'zod';
 import type { CourseInput, BloomsLevel } from '../types';
 import { getStageSystemPrompt } from './system-prompt';
 
@@ -301,6 +302,55 @@ export interface CourseOverviewResult {
   thinking: string;
 }
 
+// Zod schema for AI response validation with coercion and defaults
+const CourseOverviewResponseSchema = z.object({
+  overallScore: z.coerce.number().min(0).max(100).default(50),
+  bloomsAssessment: z.string().default('bottom-heavy'),
+  bloomsReasoning: z.string().default(''),
+  bloomsDistribution: z.object({
+    REMEMBER: z.coerce.number().default(20),
+    UNDERSTAND: z.coerce.number().default(30),
+    APPLY: z.coerce.number().default(20),
+    ANALYZE: z.coerce.number().default(15),
+    EVALUATE: z.coerce.number().default(10),
+    CREATE: z.coerce.number().default(5),
+  }).default({}),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
+  missingTopics: z.array(z.object({
+    topic: z.string().default(''),
+    importance: z.string().default('MEDIUM'),
+    reason: z.string().default(''),
+    suggestedPlacement: z.string().default(''),
+  })).default([]),
+  goalCoverage: z.object({
+    coveredGoals: z.array(z.string()).default([]),
+    uncoveredGoals: z.array(z.string()).default([]),
+    coverageScore: z.coerce.number().default(50),
+  }).default({}),
+  structureIssues: z.array(z.object({
+    type: z.string().default('STRUCTURE'),
+    severity: z.string().default('MEDIUM'),
+    title: z.string().default(''),
+    description: z.string().default(''),
+    affectedChapters: z.array(z.coerce.number()).default([]),
+    evidence: z.array(z.string()).default([]),
+    fix: z.object({
+      action: z.string().default('modify'),
+      what: z.string().default(''),
+      why: z.string().default(''),
+      how: z.string().default(''),
+    }).default({}),
+  })).default([]),
+  recommendedImprovements: z.array(z.object({
+    priority: z.coerce.number().default(3),
+    improvement: z.string().default(''),
+    impact: z.string().default(''),
+    effort: z.string().default('MEDIUM'),
+  })).default([]),
+  thinking: z.string().default(''),
+});
+
 export function parseCourseOverviewResponse(responseText: string): CourseOverviewResult {
   try {
     // Try to extract JSON from the response
@@ -316,65 +366,21 @@ export function parseCourseOverviewResponse(responseText: string): CourseOvervie
       jsonStr = jsonStr.slice(0, -3);
     }
 
-    const parsed = JSON.parse(jsonStr.trim());
-
-    const defaultDistribution: Record<BloomsLevel, number> = {
-      REMEMBER: 20,
-      UNDERSTAND: 30,
-      APPLY: 20,
-      ANALYZE: 15,
-      EVALUATE: 10,
-      CREATE: 5,
-    };
+    const rawParsed = JSON.parse(jsonStr.trim());
+    const parsed = CourseOverviewResponseSchema.parse(rawParsed);
 
     return {
-      overallScore: Math.min(100, Math.max(0, parsed.overallScore ?? 50)),
-      bloomsAssessment: parsed.bloomsAssessment ?? 'bottom-heavy',
-      bloomsReasoning: parsed.bloomsReasoning ?? '',
-      bloomsDistribution: {
-        REMEMBER: parsed.bloomsDistribution?.REMEMBER ?? defaultDistribution.REMEMBER,
-        UNDERSTAND: parsed.bloomsDistribution?.UNDERSTAND ?? defaultDistribution.UNDERSTAND,
-        APPLY: parsed.bloomsDistribution?.APPLY ?? defaultDistribution.APPLY,
-        ANALYZE: parsed.bloomsDistribution?.ANALYZE ?? defaultDistribution.ANALYZE,
-        EVALUATE: parsed.bloomsDistribution?.EVALUATE ?? defaultDistribution.EVALUATE,
-        CREATE: parsed.bloomsDistribution?.CREATE ?? defaultDistribution.CREATE,
-      },
-      strengths: parsed.strengths ?? [],
-      weaknesses: parsed.weaknesses ?? [],
-      missingTopics: (parsed.missingTopics ?? []).map((t: Record<string, unknown>) => ({
-        topic: (t.topic as string) ?? '',
-        importance: (t.importance as string) ?? 'MEDIUM',
-        reason: (t.reason as string) ?? '',
-        suggestedPlacement: (t.suggestedPlacement as string) ?? '',
-      })),
-      goalCoverage: {
-        coveredGoals: parsed.goalCoverage?.coveredGoals ?? [],
-        uncoveredGoals: parsed.goalCoverage?.uncoveredGoals ?? [],
-        coverageScore: parsed.goalCoverage?.coverageScore ?? 50,
-      },
-      structureIssues: (parsed.structureIssues ?? []).map((issue: Record<string, unknown>) => ({
-        type: (issue.type as string) ?? 'STRUCTURE',
-        severity: (issue.severity as string) ?? 'MEDIUM',
-        title: (issue.title as string) ?? '',
-        description: (issue.description as string) ?? '',
-        affectedChapters: (issue.affectedChapters as number[]) ?? [],
-        evidence: (issue.evidence as string[]) ?? [],
-        fix: {
-          action: ((issue.fix as Record<string, unknown>)?.action as string) ?? 'modify',
-          what: ((issue.fix as Record<string, unknown>)?.what as string) ?? '',
-          why: ((issue.fix as Record<string, unknown>)?.why as string) ?? '',
-          how: ((issue.fix as Record<string, unknown>)?.how as string) ?? '',
-        },
-      })),
-      recommendedImprovements: (parsed.recommendedImprovements ?? []).map(
-        (imp: Record<string, unknown>) => ({
-          priority: (imp.priority as number) ?? 3,
-          improvement: (imp.improvement as string) ?? '',
-          impact: (imp.impact as string) ?? '',
-          effort: (imp.effort as string) ?? 'MEDIUM',
-        })
-      ),
-      thinking: parsed.thinking ?? '',
+      overallScore: Math.min(100, Math.max(0, parsed.overallScore)),
+      bloomsAssessment: parsed.bloomsAssessment,
+      bloomsReasoning: parsed.bloomsReasoning,
+      bloomsDistribution: parsed.bloomsDistribution as Record<BloomsLevel, number>,
+      strengths: parsed.strengths,
+      weaknesses: parsed.weaknesses,
+      missingTopics: parsed.missingTopics,
+      goalCoverage: parsed.goalCoverage,
+      structureIssues: parsed.structureIssues,
+      recommendedImprovements: parsed.recommendedImprovements,
+      thinking: parsed.thinking,
     };
   } catch {
     // On parse failure, return ERROR state (not fake 50s)

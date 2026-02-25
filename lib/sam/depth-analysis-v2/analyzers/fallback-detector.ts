@@ -11,6 +11,7 @@
  * - Repetitive boilerplate across sections
  */
 
+import { nanoid } from 'nanoid';
 import type { CourseInput, AnalysisIssue } from '../types';
 
 // Known fallback/template text markers (case-insensitive)
@@ -41,12 +42,6 @@ const GENERIC_TITLE_PATTERNS = [
   /^module\s+\d+$/i,
 ];
 
-let fallbackIssueCounter = 0;
-
-function generateFallbackIssueId(): string {
-  return `fallback-${Date.now()}-${++fallbackIssueCounter}`;
-}
-
 /**
  * Count how many fallback markers are present in a text
  */
@@ -75,7 +70,6 @@ function isGenericTitle(title: string): boolean {
  * Returns FALLBACK issues for sections with >= 2 markers.
  */
 export function detectFallbacks(course: CourseInput): AnalysisIssue[] {
-  fallbackIssueCounter = 0;
   const issues: AnalysisIssue[] = [];
 
   for (const chapter of course.chapters) {
@@ -120,7 +114,7 @@ export function detectFallbacks(course: CourseInput): AnalysisIssue[] {
       // Flag as fallback if >= 2 signals detected
       if (signals >= 2) {
         issues.push({
-          id: generateFallbackIssueId(),
+          id: nanoid(),
           type: 'FALLBACK',
           severity: signals >= 3 ? 'HIGH' : 'MEDIUM',
           status: 'OPEN',
