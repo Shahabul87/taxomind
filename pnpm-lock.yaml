@@ -1196,6 +1196,9 @@ importers:
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@22.19.3)(jsdom@27.4.0)(msw@2.12.7(@types/node@22.19.3)(typescript@5.9.3))(terser@5.46.0)
 
 packages:
 
