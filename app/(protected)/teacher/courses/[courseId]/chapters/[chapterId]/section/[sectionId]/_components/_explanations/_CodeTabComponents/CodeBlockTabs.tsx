@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { RotateCcw, Eye } from "lucide-react";
 const SyntaxHighlighter: any = dynamic(() =>
-  import('react-syntax-highlighter').then((m: any) => m.Prism),
+  import('react-syntax-highlighter/dist/esm/prism-async-light').then((m: any) => m.default),
   { ssr: false }
 );
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';

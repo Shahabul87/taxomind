@@ -6,7 +6,7 @@ import { parseExplanationBlocks } from '../utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface CodeExplanationContentProps {

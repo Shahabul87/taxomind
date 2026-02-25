@@ -6,6 +6,7 @@ import { AlertCircle, Copy, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logger } from '@/lib/logger';
 import "katex/dist/katex.min.css";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Custom CSS to ensure equations are always visible
 const katexStyles = `
@@ -258,7 +259,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({
   try {
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: katexStyles }} />
+        <style dangerouslySetInnerHTML={createRichSanitizedMarkup(katexStyles)} />
         <div className={cn("bg-white rounded-lg border shadow-sm overflow-hidden", className)}>
           {/* Controls */}
           {(enableCopy || showSourceToggle || showModeToggle) && (

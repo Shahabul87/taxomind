@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Code2, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -13,6 +13,7 @@ import rehypeRaw from 'rehype-raw';
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface CodeBlock {
   code: string;
@@ -239,7 +240,7 @@ export const DisplayExplanations = ({
                       <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-blue-900 dark:prose-headings:text-blue-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:marker:text-blue-500 dark:prose-li:marker:text-blue-400 prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-code:text-pink-600 dark:prose-code:text-pink-400 prose-code:bg-pink-50 dark:prose-code:bg-pink-900/20 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
                         {/* Render HTML from TipTap editor */}
                         <div
-                          dangerouslySetInnerHTML={{ __html: currentBlock.explanation || '<p class="text-gray-500 dark:text-gray-400">No explanation available</p>' }}
+                          dangerouslySetInnerHTML={createRichSanitizedMarkup(currentBlock.explanation || '<p class="text-gray-500 dark:text-gray-400">No explanation available</p>')}
                         />
                         {/* Fallback to ReactMarkdown for legacy content if needed */}
                         {/* <ReactMarkdown

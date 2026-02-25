@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import ContentViewer from '@/components/tiptap/content-viewer';
 import { cn } from '@/lib/utils';
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface MathEquationsListProps {
   courseId: string;
@@ -260,7 +261,7 @@ export const MathEquationsList = ({ courseId, chapterId, sectionId, refreshTrigg
 
                 {equation.explanation && (
                   <div className="prose prose-purple dark:prose-invert max-w-none">
-                    <div dangerouslySetInnerHTML={{ __html: equation.explanation }} />
+                    <div dangerouslySetInnerHTML={createRichSanitizedMarkup(equation.explanation)} />
                   </div>
                 )}
 

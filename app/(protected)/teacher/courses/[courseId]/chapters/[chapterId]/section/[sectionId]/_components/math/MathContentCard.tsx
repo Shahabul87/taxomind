@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, Loader2 } from 'lucide-react';
 import MathRenderer from '@/components/MathRenderer';
 import { formatDistanceToNow } from 'date-fns';
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface MathExplanation {
   id: string;
@@ -94,7 +95,7 @@ export const MathContentCard = ({ item, onEdit, onDelete, isDeleting }: MathCont
           <div className="bg-muted/30 rounded-lg border p-6">
             <div
               className="prose prose-sm max-w-none dark:prose-invert overflow-y-auto max-h-[200px]"
-              dangerouslySetInnerHTML={{ __html: item.explanation }}
+              dangerouslySetInnerHTML={createRichSanitizedMarkup(item.explanation)}
             />
           </div>
         </div>

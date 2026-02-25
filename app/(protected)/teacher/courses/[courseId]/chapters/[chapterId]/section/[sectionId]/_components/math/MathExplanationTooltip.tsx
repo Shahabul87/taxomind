@@ -7,6 +7,7 @@ import { X, Calculator, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KaTeXRenderer } from "./KaTeXRenderer";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Helper function to clean LaTeX delimiters
 const cleanLatex = (latex: string): string => {
@@ -245,7 +246,7 @@ export const MathExplanationTooltip = ({
                   </div>
                 )}
                 {content && (
-                  <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: content }} />
+                  <div className={getProseClass()} dangerouslySetInnerHTML={createRichSanitizedMarkup(content)} />
                 )}
               </div>
             ) : (
@@ -263,7 +264,7 @@ export const MathExplanationTooltip = ({
 
             {/* Explanation */}
             {explanation && (
-              <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: explanation }} />
+              <div className={getProseClass()} dangerouslySetInnerHTML={createRichSanitizedMarkup(explanation)} />
             )}
           </ScrollArea>
 
@@ -369,7 +370,7 @@ export const MathExplanationTooltip = ({
                 </div>
               )}
               {content && (
-                <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: content }} />
+                <div className={getProseClass()} dangerouslySetInnerHTML={createRichSanitizedMarkup(content)} />
               )}
             </div>
           ) : (
@@ -387,7 +388,7 @@ export const MathExplanationTooltip = ({
 
           {/* Explanation */}
           {explanation && (
-            <div className={getProseClass()} dangerouslySetInnerHTML={{ __html: explanation }} />
+            <div className={getProseClass()} dangerouslySetInnerHTML={createRichSanitizedMarkup(explanation)} />
           )}
         </ScrollArea>
 

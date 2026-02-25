@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,11 @@ export const ShareCalendarDialog = ({
 }: ShareCalendarDialogProps) => {
   const [isPublic, setIsPublic] = useState(false);
   const [copied, setCopied] = useState(false);
-  const shareUrl = `${window.location.origin}/calendar/shared/${userId}`;
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    setShareUrl(`${window.location.origin}/calendar/shared/${userId}`);
+  }, [userId]);
 
   const handleCopy = async () => {
     try {

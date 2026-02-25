@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { createSanitizedMarkup } from "@/lib/utils/sanitize-html";
 
 interface SearchFilters {
   dateFrom?: string;
@@ -324,7 +325,7 @@ export const SearchDialog = ({ open, onClose, onMessageSelect }: SearchDialogPro
 
                         <div
                           className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-2"
-                          dangerouslySetInnerHTML={{ __html: result.highlightedContent }}
+                          dangerouslySetInnerHTML={createSanitizedMarkup(result.highlightedContent)}
                         />
 
                         <div className="flex items-center gap-2 flex-wrap">

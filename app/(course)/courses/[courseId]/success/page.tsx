@@ -35,7 +35,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import Confetti from "react-confetti";
+import dynamic from "next/dynamic";
+
+const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
 
 interface CourseData {
   id: string;

@@ -50,8 +50,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+// html2canvas and jspdf are dynamically imported where used to reduce bundle size
 import QRCode from "qrcode";
 
 interface CertificateData {
@@ -168,6 +167,10 @@ export function CompletionCertificate({
 
     setIsGenerating(true);
     try {
+      // Dynamically import heavy libraries to reduce initial bundle size
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+
       // Capture certificate as image
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
@@ -204,6 +207,7 @@ export function CompletionCertificate({
     if (!certificateRef.current) return;
 
     try {
+      const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         backgroundColor: null,

@@ -1,8 +1,11 @@
 'use client';
 
-import { useMemo, memo } from 'react';
-import katex from 'katex';
+import { useState, useEffect, useRef, memo } from 'react';
 import 'katex/dist/katex.min.css';
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
+
+// katex is dynamically imported to reduce initial bundle size
+type KaTeXModule = typeof import('katex');
 
 interface KaTeXRendererProps {
   math: string;
@@ -19,30 +22,54 @@ interface KaTeXRendererProps {
  * - dangerouslySetInnerHTML tells React to not manage the HTML content
  * - katex.renderToString() is the recommended approach for React
  * - Memoization prevents unnecessary re-renders
+ * - katex is dynamically imported to reduce initial bundle size
  */
 const KaTeXRendererComponent = ({
   math,
   displayMode = true,
   className = ''
 }: KaTeXRendererProps) => {
-  // Memoize the rendered HTML to avoid re-rendering on every parent update
-  const html = useMemo(() => {
-    if (!math) return '';
+  const [html, setHtml] = useState<string>('');
+  const katexRef = useRef<KaTeXModule | null>(null);
 
-    try {
-      return katex.renderToString(math, {
-        displayMode,
-        throwOnError: false,
-        errorColor: '#cc0000',
-        strict: false,
-        trust: false,
-        macros: {},
-        output: 'html', // Explicitly use HTML output (not MathML)
-      });
-    } catch (error) {
-      console.error('KaTeX rendering error:', error);
-      return '<span class="text-red-500 text-sm">Error rendering equation</span>';
-    }
+  // Dynamically load katex module
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadKatex = async () => {
+      if (!katexRef.current) {
+        const katexModule = await import('katex');
+        if (!cancelled) {
+          katexRef.current = katexModule;
+        }
+      }
+      if (cancelled) return;
+
+      if (!math) {
+        setHtml('');
+        return;
+      }
+
+      try {
+        const katex = katexRef.current!.default;
+        const rendered = katex.renderToString(math, {
+          displayMode,
+          throwOnError: false,
+          errorColor: '#cc0000',
+          strict: false,
+          trust: false,
+          macros: {},
+          output: 'html', // Explicitly use HTML output (not MathML)
+        });
+        setHtml(rendered);
+      } catch (error) {
+        console.error('KaTeX rendering error:', error);
+        setHtml('<span class="text-red-500 text-sm">Error rendering equation</span>');
+      }
+    };
+
+    loadKatex();
+    return () => { cancelled = true; };
   }, [math, displayMode]);
 
   // Use dangerouslySetInnerHTML to let React know it shouldn't touch this HTML
@@ -50,7 +77,7 @@ const KaTeXRendererComponent = ({
   return (
     <div
       className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={createRichSanitizedMarkup(html)}
       suppressHydrationWarning
     />
   );

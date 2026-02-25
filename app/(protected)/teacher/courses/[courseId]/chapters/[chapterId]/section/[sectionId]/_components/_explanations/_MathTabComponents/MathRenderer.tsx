@@ -4,6 +4,7 @@ import React from "react";
 import { BlockMath, InlineMath } from "react-katex";
 import { logger } from '@/lib/logger';
 import "katex/dist/katex.min.css";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Custom CSS to ensure equations are always visible
 const katexStyles = `
@@ -52,7 +53,7 @@ export const MathRenderer = ({
   try {
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: katexStyles }} />
+        <style dangerouslySetInnerHTML={createRichSanitizedMarkup(katexStyles)} />
         <div className={`bg-white p-6 rounded-lg border shadow-sm ${className}`}>
           <div className="text-center">
             <div 
@@ -137,7 +138,7 @@ export const AdvancedMathRenderer = ({
   try {
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: katexStyles }} />
+        <style dangerouslySetInnerHTML={createRichSanitizedMarkup(katexStyles)} />
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           {/* Header */}
           {(title || allowToggleMode) && (

@@ -15,8 +15,10 @@ import {
   SkipBack,
   SkipForward
 } from "lucide-react";
-import YouTube from "react-youtube";
+import dynamic from "next/dynamic";
 import type { YouTubeEvent } from 'react-youtube';
+
+const YouTube = dynamic(() => import("react-youtube").then(m => m.default), { ssr: false });
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";

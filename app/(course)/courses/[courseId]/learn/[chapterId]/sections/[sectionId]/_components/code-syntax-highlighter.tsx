@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Note: Install Prism.js for syntax highlighting
 // npm install prismjs @types/prismjs
@@ -253,9 +254,7 @@ export function CodeSyntaxHighlighter({
               >
                 <pre className="p-4 text-sm text-gray-100 font-mono">
                   <code
-                    dangerouslySetInnerHTML={{
-                      __html: highlightCode(code.code),
-                    }}
+                    dangerouslySetInnerHTML={createRichSanitizedMarkup(highlightCode(code.code))}
                   />
                 </pre>
               </ScrollArea>

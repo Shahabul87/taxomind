@@ -16,6 +16,7 @@ import type {
   UpdateExplanationFormData,
 } from "./code-explanation.types";
 import { formatLineRange, getExplanationColor, getExplanationBorderColor } from "./code-explanation.types";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Lazy-load TipTap editor
 const Editor = dynamic(() => import("@/components/editor").then((mod) => mod.Editor), {
@@ -243,9 +244,7 @@ export function ExplanationPane({
                             {exp.explanation && (
                               <div
                                 className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose-sm"
-                                dangerouslySetInnerHTML={{
-                                  __html: exp.explanation,
-                                }}
+                                dangerouslySetInnerHTML={createRichSanitizedMarkup(exp.explanation)}
                               />
                             )}
                           </div>

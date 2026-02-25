@@ -9,6 +9,7 @@ import { useFormTracking, useQuizTracking } from '@/hooks/use-form-tracking';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import { createSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Example 1: Basic Click Tracking
 export function TrackedButton({ courseId }: { courseId?: string }) {
@@ -71,7 +72,7 @@ export function ArticleContent({ articleId, content }: { articleId: string; cont
       <div className="mb-2 text-sm text-muted-foreground">
         Reading Progress: {metrics.scrollPercentage}%
       </div>
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={createSanitizedMarkup(content)} />
     </div>
   );
 }

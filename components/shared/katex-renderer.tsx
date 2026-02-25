@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect, memo } from 'react';
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface KaTeXRendererProps {
   math: string;
@@ -69,7 +70,7 @@ const KaTeXRendererComponent = ({
   return (
     <div
       className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={createRichSanitizedMarkup(html)}
       suppressHydrationWarning
     />
   );

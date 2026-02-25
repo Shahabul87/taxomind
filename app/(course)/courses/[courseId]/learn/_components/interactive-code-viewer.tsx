@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { createRichSanitizedMarkup } from "@/lib/utils/sanitize-html";
 import dynamic from "next/dynamic";
 
 // Lazy-load syntax highlighter with proper typing
@@ -307,7 +308,7 @@ export function InteractiveCodeViewer({ codeBlock }: InteractiveCodeViewerProps)
                         prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
                         prose-blockquote:border-l-purple-500 prose-blockquote:bg-purple-50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1
                         prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md prose-img:my-4"
-                      dangerouslySetInnerHTML={{ __html: activeExplanation.explanation }}
+                      dangerouslySetInnerHTML={createRichSanitizedMarkup(activeExplanation.explanation)}
                     />
                   </div>
                 </div>

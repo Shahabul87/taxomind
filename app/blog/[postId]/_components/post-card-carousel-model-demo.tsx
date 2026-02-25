@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Carousel, Card } from "./post-card-carousel-model";
 import { cn } from "@/lib/utils";
+import { createSanitizedMarkup } from "@/lib/utils/sanitize-html";
 import { X } from "lucide-react";
 
 interface ChapterData {
@@ -131,9 +132,7 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                   "prose-p:my-2 prose-headings:my-2"
                 )}>
                   <div
-                    dangerouslySetInnerHTML={{
-                      __html: selectedChapter.description || "No description available",
-                    }}
+                    dangerouslySetInnerHTML={createSanitizedMarkup(selectedChapter.description || "No description available")}
                   />
                 </div>
               </div>
@@ -202,9 +201,7 @@ export const PostCardCarouselDemo: React.FC<PostCardModelTwoProps> = ({ postchap
                     "leading-relaxed"
                   )}>
                     <div
-                      dangerouslySetInnerHTML={{
-                        __html: selectedChapter.description || "No description available",
-                      }}
+                      dangerouslySetInnerHTML={createSanitizedMarkup(selectedChapter.description || "No description available")}
                     />
                   </div>
 

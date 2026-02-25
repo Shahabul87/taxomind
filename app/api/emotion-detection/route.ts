@@ -3,19 +3,29 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 
 export async function GET() {
-  const user = await currentUser();
-  if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  try {
+    const user = await currentUser();
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-  return NextResponse.json({ success: true, emotion: 'neutral' });
+    return NextResponse.json({ success: true, emotion: 'neutral' });
+  } catch (error) {
+    console.error('[EMOTION_DETECTION] GET Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function POST() {
-  const user = await currentUser();
-  if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  try {
+    const user = await currentUser();
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-  return NextResponse.json({ success: true, message: 'Emotion analyzed' });
+    return NextResponse.json({ success: true, message: 'Emotion analyzed' });
+  } catch (error) {
+    console.error('[EMOTION_DETECTION] POST Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

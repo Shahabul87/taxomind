@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Search, X, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { createSanitizedMarkup } from '@/lib/utils/sanitize-html';
 import { SearchOverlayProps } from '../types/header-types';
 
 export const SearchOverlay: React.FC<SearchOverlayProps> = ({
@@ -165,11 +166,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center mb-1">
-                        <h4 
+                        <h4
                           className="text-sm font-medium text-slate-900 dark:text-gray-100 truncate"
-                          dangerouslySetInnerHTML={{
-                            __html: highlightMatches(result.title, searchQuery)
-                          }}
+                          dangerouslySetInnerHTML={createSanitizedMarkup(highlightMatches(result.title, searchQuery))}
                         />
                         <Badge 
                           className={`ml-2 ${
@@ -181,11 +180,9 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                           {result.type}
                         </Badge>
                       </div>
-                      <div 
+                      <div
                         className="text-xs text-slate-500 dark:text-gray-400 line-clamp-3 prose-sm"
-                        dangerouslySetInnerHTML={{
-                          __html: highlightMatches(result.snippet, searchQuery)
-                        }}
+                        dangerouslySetInnerHTML={createSanitizedMarkup(highlightMatches(result.snippet, searchQuery))}
                       />
                     </div>
                   </div>

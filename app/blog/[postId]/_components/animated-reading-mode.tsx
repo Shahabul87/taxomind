@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/animated-modal";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { createRichSanitizedMarkup } from "@/lib/utils/sanitize-html";
 import { BookOpen, Clock, CheckCircle2 } from "lucide-react";
 
 interface ChapterData {
@@ -144,9 +145,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number; fontSize?: nu
               {chapter.description && (
                 <div
                   className="text-sm text-blog-text-muted dark:text-slate-400 line-clamp-2 mb-3 font-blog-body"
-                  dangerouslySetInnerHTML={{
-                    __html: chapter.description.substring(0, 120) + "...",
-                  }}
+                  dangerouslySetInnerHTML={createRichSanitizedMarkup(chapter.description.substring(0, 120) + "...")}
                 />
               )}
 
@@ -232,9 +231,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number; fontSize?: nu
             style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
           >
             <div
-              dangerouslySetInnerHTML={{
-                __html: chapter.description || "No content available for this chapter.",
-              }}
+              dangerouslySetInnerHTML={createRichSanitizedMarkup(chapter.description || "No content available for this chapter.")}
             />
           </div>
         </ModalContent>

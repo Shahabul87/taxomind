@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +62,8 @@ export function SuccessPageClient({ sessionId, userId }: SuccessPageClientProps)
     verifySession();
   }, [sessionId]);
 
-  const triggerConfetti = () => {
+  const triggerConfetti = async () => {
+    const confetti = (await import("canvas-confetti")).default;
     const duration = 3000;
     const animationEnd = Date.now() + duration;
 

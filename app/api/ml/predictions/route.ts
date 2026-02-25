@@ -3,19 +3,29 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 
 export async function GET() {
-  const user = await currentUser();
-  if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  try {
+    const user = await currentUser();
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-  return NextResponse.json({ success: true, predictions: [] });
+    return NextResponse.json({ success: true, predictions: [] });
+  } catch (error) {
+    console.error('[ML_PREDICTIONS] GET Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function POST() {
-  const user = await currentUser();
-  if (!user?.id) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  try {
+    const user = await currentUser();
+    if (!user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-  return NextResponse.json({ success: true, message: 'Prediction generated' });
+    return NextResponse.json({ success: true, message: 'Prediction generated' });
+  } catch (error) {
+    console.error('[ML_PREDICTIONS] POST Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

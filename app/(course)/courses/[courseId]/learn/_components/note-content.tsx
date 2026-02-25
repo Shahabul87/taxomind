@@ -6,6 +6,7 @@ import { Loader2, FileText, Clock, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { createSanitizedMarkup } from "@/lib/utils/sanitize-html";
 
 interface Note {
   id: string;
@@ -64,9 +65,7 @@ export const NoteContent = ({
                 <div className="space-y-3">
                   <div 
                     className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 line-clamp-3"
-                    dangerouslySetInnerHTML={{ 
-                      __html: note.content.substring(0, 150) + (note.content.length > 150 ? '...' : '') 
-                    }}
+                    dangerouslySetInnerHTML={createSanitizedMarkup(note.content.substring(0, 150) + (note.content.length > 150 ? '...' : ''))}
                   />
                   
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">

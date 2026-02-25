@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { ExplanationItem } from "../types";
 import MathRenderer from "@/components/MathRenderer";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface MathExplanationContentProps {
   item: ExplanationItem;
@@ -83,7 +84,7 @@ export const MathExplanationContent = ({ item }: MathExplanationContentProps) =>
             {item.explanation && item.explanation.trim() ? (
               <div 
                 className="prose prose-lg max-w-none text-gray-800 dark:text-gray-200 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:text-purple-600 dark:prose-code:text-purple-400"
-                dangerouslySetInnerHTML={{ __html: item.explanation }} 
+                dangerouslySetInnerHTML={createRichSanitizedMarkup(item.explanation)}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">

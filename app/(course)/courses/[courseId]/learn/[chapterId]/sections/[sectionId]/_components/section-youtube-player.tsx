@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
-import YouTube, { type YouTubeProps, type YouTubeEvent } from "react-youtube";
+import dynamic from "next/dynamic";
+import { type YouTubeProps, type YouTubeEvent } from "react-youtube";
+
+const YouTube = dynamic(() => import("react-youtube").then(m => m.default), { ssr: false });
 import { useLearningMode } from "../../../../_components/learning-mode-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

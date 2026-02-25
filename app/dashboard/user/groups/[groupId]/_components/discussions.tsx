@@ -8,6 +8,7 @@ import { NewDiscussionDialog } from "./new-discussion-dialog";
 import { DiscussionCard } from "./discussion-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { createSanitizedMarkup } from "@/lib/utils/sanitize-html";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -202,7 +203,7 @@ export const Discussions = ({ group, currentUser, isGroupMember }: DiscussionsPr
                   </div>
                   
                   <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 mb-4">
-                    <div dangerouslySetInnerHTML={{ __html: discussion.content }} />
+                    <div dangerouslySetInnerHTML={createSanitizedMarkup(discussion.content)} />
                   </div>
                   
                   <div className="flex items-center gap-6 pt-4 border-t border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400">

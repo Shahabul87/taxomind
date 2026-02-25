@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { useCodeExplanations } from "./hooks/useCodeExplanations";
 import type { CodeExplanationGroup, LineExplanation } from "./code-explanation.types";
 import { getExplanationColor, getExplanationBorderColor } from "./code-explanation.types";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 // Lazy-load syntax highlighter
 const SyntaxHighlighter = dynamic(
@@ -398,7 +399,7 @@ export function CodeExplanationDisplay({
                   prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
                   prose-blockquote:border-l-purple-500 prose-blockquote:bg-purple-50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1
                   prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md prose-img:my-4"
-                dangerouslySetInnerHTML={{ __html: activeExplanation?.explanation || "" }}
+                dangerouslySetInnerHTML={createRichSanitizedMarkup(activeExplanation?.explanation || "")}
               />
             </div>
           </ScrollArea>
@@ -527,7 +528,7 @@ function SideBySideView({
                       prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
                       prose-blockquote:border-l-purple-500 prose-blockquote:bg-purple-50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1
                       prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md prose-img:my-4"
-                    dangerouslySetInnerHTML={{ __html: activeExplanation.explanation }}
+                    dangerouslySetInnerHTML={createRichSanitizedMarkup(activeExplanation.explanation)}
                   />
                 </div>
               </div>

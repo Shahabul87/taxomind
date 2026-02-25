@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface WhatYouWillLearnFormProps {
   initialData: {
@@ -512,7 +513,7 @@ export const WhatYouWillLearnForm = ({
                               <div className="p-4 bg-white dark:bg-gray-800">
                                 <p 
                                   className="text-gray-800 dark:text-gray-100 text-base"
-                                  dangerouslySetInnerHTML={{ __html: field.value }}
+                                  dangerouslySetInnerHTML={createRichSanitizedMarkup(field.value)}
                                 />
                               </div>
                             )}

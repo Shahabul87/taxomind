@@ -6,16 +6,26 @@ import { NextResponse } from 'next/server';
  * Use for Railway/Kubernetes healthchecks during startup
  */
 export async function GET() {
-  return NextResponse.json(
-    {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    },
-    { status: 200 }
-  );
+  try {
+    return NextResponse.json(
+      {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('[HEALTHZ] GET Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 export async function HEAD() {
-  return new NextResponse(null, { status: 200 });
+  try {
+    return new NextResponse(null, { status: 200 });
+  } catch (error) {
+    console.error('[HEALTHZ] HEAD Error:', error);
+    return new NextResponse(null, { status: 500 });
+  }
 }

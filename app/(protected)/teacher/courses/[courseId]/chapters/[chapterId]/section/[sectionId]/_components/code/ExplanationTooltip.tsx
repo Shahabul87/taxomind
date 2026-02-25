@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { X, BookOpen, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface ExplanationTooltipProps {
   explanation: string;
@@ -194,7 +195,7 @@ export const ExplanationTooltip = ({
           >
             <div
               className={getProseClass()}
-              dangerouslySetInnerHTML={{ __html: explanation }}
+              dangerouslySetInnerHTML={createRichSanitizedMarkup(explanation)}
             />
           </ScrollArea>
 
@@ -282,7 +283,7 @@ export const ExplanationTooltip = ({
         >
           <div
             className={getProseClass()}
-            dangerouslySetInnerHTML={{ __html: explanation }}
+            dangerouslySetInnerHTML={createRichSanitizedMarkup(explanation)}
           />
         </ScrollArea>
 

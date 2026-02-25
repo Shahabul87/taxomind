@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import TipTapEditor from "@/components/tiptap/editor";
 import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 interface CourseContext {
   title: string;
@@ -167,7 +168,7 @@ export const SectionCreatorGuidelinesForm = ({
                       "[&_a]:text-xs sm:[&_a]:text-sm [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline",
                       "[&>*:last-child]:mb-0"
                     )}
-                    dangerouslySetInnerHTML={{ __html: truncatedContent || initialData.creatorGuidelines }}
+                    dangerouslySetInnerHTML={createRichSanitizedMarkup(truncatedContent || initialData.creatorGuidelines)}
                   />
                   {initialData.creatorGuidelines && initialData.creatorGuidelines.length > 400 && (
                     <Button

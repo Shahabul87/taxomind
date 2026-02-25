@@ -39,6 +39,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { createRichSanitizedMarkup } from '@/lib/utils/sanitize-html';
 
 const languageOptions = [
   { value: 'typescript', label: 'TypeScript' },
@@ -618,7 +619,7 @@ export const ExplanationFormFields = ({ form, isSubmitting }: ExplanationFormFie
                         {block.explanation ? (
                           <div 
                             className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-code:text-blue-600 dark:prose-code:text-blue-400 prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800"
-                            dangerouslySetInnerHTML={{ __html: block.explanation }}
+                            dangerouslySetInnerHTML={createRichSanitizedMarkup(block.explanation)}
                           />
                         ) : (
                           <div className="text-gray-400 dark:text-gray-500 italic">

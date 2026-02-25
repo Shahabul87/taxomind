@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { TimeAgo } from "@/app/components/ui/time-ago";
+import { createSanitizedMarkup } from "@/lib/utils/sanitize-html";
 
 interface DiscussionCardProps {
   discussion: any;
@@ -56,7 +57,7 @@ export const DiscussionCard = ({ discussion, currentUser, groupId }: DiscussionC
       </div>
 
       <div className="mt-4 prose dark:prose-invert max-w-none">
-        <div dangerouslySetInnerHTML={{ __html: discussion.content }} />
+        <div dangerouslySetInnerHTML={createSanitizedMarkup(discussion.content)} />
       </div>
 
       <div className="mt-6 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">

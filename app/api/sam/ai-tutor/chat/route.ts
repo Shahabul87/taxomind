@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -36,6 +37,11 @@ interface AiTutorRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  const user = await currentUser();
+  if (!user?.id) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
     const body: AiTutorRequestBody = await request.json();
     const { message, context, conversationHistory, sessionId } = body;
