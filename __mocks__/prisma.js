@@ -160,7 +160,63 @@ const mockPrismaClient = () => {
 // Create the mock instance
 const mockClient = mockPrismaClient();
 
-// Export both PrismaClient constructor and instance
+// Enum values (must be in the initial exports for Jest module resolution)
+const UserRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+};
+
+const CourseStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED',
+};
+
+const PaymentStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+};
+
+const BillCategory = {
+  UTILITY: 'UTILITY',
+  INTERNET: 'INTERNET',
+  INSURANCE: 'INSURANCE',
+  RENT: 'RENT',
+  MORTGAGE: 'MORTGAGE',
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  TAX: 'TAX',
+  CREDIT_CARD: 'CREDIT_CARD',
+  OTHER: 'OTHER',
+};
+
+const BillStatus = {
+  PAID: 'PAID',
+  UNPAID: 'UNPAID',
+  OVERDUE: 'OVERDUE',
+  UPCOMING: 'UPCOMING',
+  CANCELLED: 'CANCELLED',
+};
+
+const RecurringType = {
+  DAILY: 'DAILY',
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  YEARLY: 'YEARLY',
+  CUSTOM: 'CUSTOM',
+};
+
+const SubscriptionTier = {
+  FREE: 'FREE',
+  STARTER: 'STARTER',
+  PROFESSIONAL: 'PROFESSIONAL',
+  ENTERPRISE: 'ENTERPRISE',
+  CUSTOM: 'CUSTOM',
+};
+
+// Export both PrismaClient constructor and instance along with enums
 module.exports = {
   PrismaClient: jest.fn(() => mockClient),
   prisma: mockClient,
@@ -185,26 +241,14 @@ module.exports = {
     JsonNull: Symbol('JsonNull'),
     AnyNull: Symbol('AnyNull'),
   },
-};
-
-// Add UserRole enum
-module.exports.UserRole = {
-  USER: 'USER',
-  ADMIN: 'ADMIN',
-};
-
-// Add other common enums
-module.exports.CourseStatus = {
-  DRAFT: 'DRAFT',
-  PUBLISHED: 'PUBLISHED',
-  ARCHIVED: 'ARCHIVED',
-};
-
-module.exports.PaymentStatus = {
-  PENDING: 'PENDING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED',
+  // Enums
+  UserRole,
+  CourseStatus,
+  PaymentStatus,
+  BillCategory,
+  BillStatus,
+  RecurringType,
+  SubscriptionTier,
 };
 
 // Also export default for different import styles
