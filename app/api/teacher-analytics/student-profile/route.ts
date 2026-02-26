@@ -3,14 +3,74 @@ import { withAuth, type APIAuthContext, createSuccessResponse, ApiError } from "
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
-import type { 
-  StudentAnalytics, 
-  BloomsAnalysis, 
+import type {
+  StudentAnalytics,
+  BloomsAnalysis,
   DifficultyBreakdown,
   ExamAttemptWithRelations,
   ExamAnswerWithRelations
 } from '@/types/api';
 import type { User } from '@prisma/client';
+
+// Type matching the actual Prisma query result shape from generateStudentProfile
+interface ExamAttemptQueryResult {
+  id: string;
+  attemptNumber: number;
+  status: string;
+  startedAt: Date;
+  submittedAt: Date | null;
+  timeSpent: number | null;
+  totalQuestions: number;
+  correctAnswers: number;
+  scorePercentage: number | null;
+  isPassed: boolean | null;
+  userId: string;
+  examId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  Exam: {
+    id: string;
+    title: string;
+    ExamQuestion: Array<{
+      id: string;
+      bloomsLevel: string | null;
+      difficulty: string | null;
+      points: number | null;
+    }>;
+  };
+  UserAnswer: Array<{
+    id: string;
+    answer: unknown;
+    isCorrect: boolean | null;
+    pointsEarned: number;
+    timeSpent: number | null;
+    attemptId: string;
+    questionId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    ExamQuestion: {
+      id: string;
+      bloomsLevel: string | null;
+      difficulty: string | null;
+      points: number | null;
+    };
+  }>;
+}
+
+// Type for allCourseAttempts query result (uses select, not include)
+interface CourseAttemptSummary {
+  userId: string;
+  scorePercentage: number | null;
+  startedAt: Date;
+}
+
+// Return type of analyzeBloomsPerformance
+interface BloomsPerformanceResult {
+  bloomsLevels: Record<string, BloomsAnalysis>;
+  strongestAreas: string[];
+  weakestAreas: string[];
+  cognitiveGrowth: number;
+}
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -155,7 +215,7 @@ export const POST = withAuth(async (
     // Generate student profile
     const profile = await generateStudentProfile(courseId, studentId, timeFilter, student);
 
-    return createSuccessResponse({
+    const response = createSuccessResponse({
       success: true,
       profile,
       metadata: {
@@ -165,6 +225,8 @@ export const POST = withAuth(async (
         generatedAt: new Date().toISOString()
       }
     });
+    response.headers.set('Cache-Control', 'private, max-age=300');
+    return response;
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -284,28 +346,28 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   const consistency = Math.max(0, 100 - Math.sqrt(variance));
 
   // Analyze Bloom's taxonomy performance
-  const bloomsAnalysis = analyzeBloomsPerformance(examAttempts as any);
-  
+  const bloomsAnalysis = analyzeBloomsPerformance(examAttempts);
+
   // Generate exam history
   const examHistory = examAttempts.map(attempt => ({
     examId: attempt.examId,
-    examTitle: (attempt as any).Exam.title,
+    examTitle: attempt.Exam.title,
     attemptNumber: attempt.attemptNumber,
     score: attempt.scorePercentage || 0,
     timeSpent: attempt.timeSpent || 0,
     date: attempt.startedAt.toISOString(),
-    bloomsBreakdown: calculateBloomsBreakdown(attempt as any),
-    difficultyBreakdown: calculateDifficultyBreakdown(attempt as any)
+    bloomsBreakdown: calculateBloomsBreakdown(attempt),
+    difficultyBreakdown: calculateDifficultyBreakdown(attempt)
   }));
 
   // Calculate learning patterns
-  const learningPatterns = calculateLearningPatterns(examAttempts as any);
+  const learningPatterns = calculateLearningPatterns(examAttempts);
 
   // Generate intervention plan
-  const interventionPlan = generateInterventionPlan(overallScore, improvementTrend, bloomsAnalysis as any, consistency);
+  const interventionPlan = generateInterventionPlan(overallScore, improvementTrend, bloomsAnalysis, consistency);
 
   // Calculate comparative analysis
-  const comparativeAnalysis = calculateComparativeAnalysis(studentId, overallScore, allCourseAttempts as any);
+  const comparativeAnalysis = calculateComparativeAnalysis(studentId, overallScore, allCourseAttempts);
 
   // Calculate rank
   const studentScores = Array.from(new Set(allCourseAttempts.map(a => a.userId)))
@@ -338,7 +400,7 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
       rank,
       totalStudents: studentScores.length
     },
-    cognitiveAnalysis: bloomsAnalysis as any,
+    cognitiveAnalysis: bloomsAnalysis,
     examHistory,
     learningPatterns,
     interventionPlan,
@@ -346,7 +408,7 @@ async function generateStudentProfile(courseId: string, studentId: string, timeF
   };
 }
 
-function analyzeBloomsPerformance(attempts: ExamAttemptWithRelations[]) {
+function analyzeBloomsPerformance(attempts: ExamAttemptQueryResult[]): BloomsPerformanceResult {
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
   const bloomsData: Record<string, BloomsAnalysis> = {};
 
@@ -354,9 +416,9 @@ function analyzeBloomsPerformance(attempts: ExamAttemptWithRelations[]) {
     let correct = 0;
     let total = 0;
 
-    attempts.forEach((attempt: any) => {
-      attempt.answers?.forEach((answer: ExamAnswerWithRelations) => {
-        if (answer.question?.bloomsLevel === level) {
+    attempts.forEach((attempt) => {
+      attempt.UserAnswer?.forEach((answer) => {
+        if (answer.ExamQuestion?.bloomsLevel === level) {
           total++;
           if (answer.isCorrect) correct++;
         }
@@ -375,8 +437,8 @@ function analyzeBloomsPerformance(attempts: ExamAttemptWithRelations[]) {
 
   // Identify strongest and weakest areas
   const sortedLevels = Object.entries(bloomsData)
-    .sort(([,a], [,b]) => (b as any).score - (a as any).score);
-  
+    .sort(([, a], [, b]) => b.score - a.score);
+
   const strongestAreas = sortedLevels.slice(0, 2).map(([level]) => level);
   const weakestAreas = sortedLevels.slice(-2).map(([level]) => level);
 
@@ -391,26 +453,26 @@ function analyzeBloomsPerformance(attempts: ExamAttemptWithRelations[]) {
   };
 }
 
-function calculateBloomsBreakdown(attempt: ExamAttemptWithRelations) {
+function calculateBloomsBreakdown(attempt: ExamAttemptQueryResult) {
   const breakdown: Record<string, number> = {};
   const bloomsLevels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
 
   bloomsLevels.forEach(level => {
-    const levelAnswers = attempt.answers?.filter((a: ExamAnswerWithRelations) => a.question?.bloomsLevel === level) || [];
-    const correct = levelAnswers.filter((a: ExamAnswerWithRelations) => a.isCorrect).length;
+    const levelAnswers = attempt.UserAnswer?.filter((a) => a.ExamQuestion?.bloomsLevel === level) || [];
+    const correct = levelAnswers.filter((a) => a.isCorrect).length;
     breakdown[level.toLowerCase()] = levelAnswers.length > 0 ? (correct / levelAnswers.length) * 100 : 0;
   });
 
   return breakdown;
 }
 
-function calculateDifficultyBreakdown(attempt: ExamAttemptWithRelations): DifficultyBreakdown {
+function calculateDifficultyBreakdown(attempt: ExamAttemptQueryResult): DifficultyBreakdown {
   const breakdown: DifficultyBreakdown = { easy: 0, medium: 0, hard: 0 };
   const difficulties = ['EASY', 'MEDIUM', 'HARD'];
 
   difficulties.forEach(difficulty => {
-    const difficultyAnswers = attempt.answers?.filter((a: ExamAnswerWithRelations) => a.question?.difficulty === difficulty) || [];
-    const correct = difficultyAnswers.filter((a: ExamAnswerWithRelations) => a.isCorrect).length;
+    const difficultyAnswers = attempt.UserAnswer?.filter((a) => a.ExamQuestion?.difficulty === difficulty) || [];
+    const correct = difficultyAnswers.filter((a) => a.isCorrect).length;
     const key = difficulty.toLowerCase() as keyof DifficultyBreakdown;
     breakdown[key] = difficultyAnswers.length > 0 ? (correct / difficultyAnswers.length) * 100 : 0;
   });
@@ -418,7 +480,7 @@ function calculateDifficultyBreakdown(attempt: ExamAttemptWithRelations): Diffic
   return breakdown;
 }
 
-function calculateLearningPatterns(attempts: ExamAttemptWithRelations[]) {
+function calculateLearningPatterns(attempts: ExamAttemptQueryResult[]) {
   // Analyze study times
   const studyHours = attempts.map(attempt => new Date(attempt.startedAt).getHours());
   const hourCounts: Record<number, number> = {};
@@ -464,7 +526,7 @@ function calculateLearningPatterns(attempts: ExamAttemptWithRelations[]) {
   };
 }
 
-function generateInterventionPlan(overallScore: number, improvementTrend: number, bloomsAnalysis: Record<string, BloomsAnalysis>, consistency: number) {
+function generateInterventionPlan(overallScore: number, improvementTrend: number, bloomsAnalysis: BloomsPerformanceResult, consistency: number) {
   let riskLevel: 'low' | 'medium' | 'high' = 'low';
   const recommendations: Array<{
     type: 'study' | 'content' | 'engagement' | 'support';
@@ -502,11 +564,11 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   }
 
   // Bloom's level recommendations
-  (bloomsAnalysis as any).weakestAreas?.forEach((area: string) => {
-    if ((bloomsAnalysis as any).bloomsLevels?.[area]?.score < 60) {
+  bloomsAnalysis.weakestAreas?.forEach((area: string) => {
+    if (bloomsAnalysis.bloomsLevels?.[area]?.score < 60) {
       recommendations.push({
         type: 'content',
-        priority: (bloomsAnalysis as any).bloomsLevels?.[area]?.score < 40 ? 'high' : 'medium',
+        priority: bloomsAnalysis.bloomsLevels?.[area]?.score < 40 ? 'high' : 'medium',
         description: `Strengthen ${area} level thinking skills`,
         actionItems: [
           `Focus on ${area} level practice questions`,
@@ -533,8 +595,8 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   }
 
   // Progress goals
-  (bloomsAnalysis as any).weakestAreas?.forEach((area: string) => {
-    const currentLevel = (bloomsAnalysis as any).bloomsLevels?.[area]?.score || 0;
+  bloomsAnalysis.weakestAreas?.forEach((area: string) => {
+    const currentLevel = bloomsAnalysis.bloomsLevels?.[area]?.score || 0;
     progressGoals.push({
       area: `${area} thinking skills`,
       currentLevel,
@@ -550,7 +612,7 @@ function generateInterventionPlan(overallScore: number, improvementTrend: number
   };
 }
 
-function calculateComparativeAnalysis(studentId: string, studentScore: number, allAttempts: ExamAttemptWithRelations[]) {
+function calculateComparativeAnalysis(studentId: string, studentScore: number, allAttempts: CourseAttemptSummary[]) {
   // Calculate class average
   const studentAverages = Array.from(new Set(allAttempts.map(a => a.userId)))
     .map(userId => {

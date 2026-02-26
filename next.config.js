@@ -468,6 +468,21 @@ const nextConfig = {
       });
     }
 
+    // Content Security Policy (Report-Only mode to avoid breaking functionality)
+    securityHeaders.push({
+      key: 'Content-Security-Policy-Report-Only',
+      value: [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https: blob:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https: wss:",
+        "frame-src 'self' https://www.youtube.com",
+        "report-uri /api/security/csp-report",
+      ].join('; '),
+    });
+
     return [
       // Apply security headers to all routes
       {

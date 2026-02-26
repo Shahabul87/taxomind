@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to create deletion request",
+        error: "Account deletion request failed",
       },
       { status: 500 }
     );
@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch deletion request",
+        error: "Account deletion request failed",
       },
       { status: 500 }
     );
@@ -209,7 +209,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to cancel deletion request",
+        error: "Account deletion request failed",
       },
       { status: 500 }
     );

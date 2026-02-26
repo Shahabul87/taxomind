@@ -8,6 +8,7 @@
  */
 
 import { getDb } from './db-provider';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import type {
   VectorEmbedding,
@@ -30,9 +31,9 @@ export async function isPgvectorAvailable(): Promise<boolean> {
   if (pgvectorAvailable !== null) return pgvectorAvailable;
 
   try {
-    const result = await getDb().$queryRawUnsafe<Array<{ installed: boolean }>>(
-      `SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS installed`
-    );
+    const result = await getDb().$queryRaw<Array<{ installed: boolean }>>`
+      SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS installed
+    `;
     pgvectorAvailable = result[0]?.installed ?? false;
 
     if (pgvectorAvailable) {
@@ -101,65 +102,48 @@ export async function pgvectorSearch(
   const topK = options.topK ?? 10;
   const minScore = options.minScore ?? 0;
 
-  // Build WHERE clause from filters
-  const conditions: string[] = [];
-  const params: unknown[] = [vectorStr, topK];
-  let paramIndex = 3;
+  // Build WHERE conditions using Prisma.sql for safe composition
+  const conditions: Prisma.Sql[] = [Prisma.sql`embedding_vector IS NOT NULL`];
 
   if (options.filter?.userIds?.length) {
-    conditions.push(`user_id = ANY($${paramIndex}::text[])`);
-    params.push(options.filter.userIds);
-    paramIndex++;
+    conditions.push(Prisma.sql`user_id = ANY(${options.filter.userIds}::text[])`);
   }
   if (options.filter?.courseIds?.length) {
-    conditions.push(`course_id = ANY($${paramIndex}::text[])`);
-    params.push(options.filter.courseIds);
-    paramIndex++;
+    conditions.push(Prisma.sql`course_id = ANY(${options.filter.courseIds}::text[])`);
   }
   if (options.filter?.sourceTypes?.length) {
-    conditions.push(`source_type = ANY($${paramIndex}::text[])`);
-    params.push(options.filter.sourceTypes);
-    paramIndex++;
+    conditions.push(Prisma.sql`source_type = ANY(${options.filter.sourceTypes}::text[])`);
   }
   if (options.filter?.tags?.length) {
-    conditions.push(`tags && $${paramIndex}::text[]`);
-    params.push(options.filter.tags);
-    paramIndex++;
+    conditions.push(Prisma.sql`tags && ${options.filter.tags}::text[]`);
   }
 
-  // Always filter: embedding_vector must not be null
-  conditions.push('embedding_vector IS NOT NULL');
-
-  const whereClause = conditions.length > 0
-    ? `WHERE ${conditions.join(' AND ')}`
-    : 'WHERE embedding_vector IS NOT NULL';
-
-  const query = `
-    SELECT
-      id,
-      embedding,
-      dimensions,
-      source_id,
-      source_type,
-      user_id,
-      course_id,
-      chapter_id,
-      section_id,
-      content_hash,
-      tags,
-      language,
-      custom_metadata,
-      created_at,
-      updated_at,
-      1 - (embedding_vector <=> $1::vector) AS score
-    FROM sam_vector_embeddings
-    ${whereClause}
-    ORDER BY embedding_vector <=> $1::vector
-    LIMIT $2
-  `;
+  const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
 
   try {
-    const rows = await getDb().$queryRawUnsafe<PgvectorSearchRow[]>(query, ...params);
+    const rows = await getDb().$queryRaw<PgvectorSearchRow[]>`
+      SELECT
+        id,
+        embedding,
+        dimensions,
+        source_id,
+        source_type,
+        user_id,
+        course_id,
+        chapter_id,
+        section_id,
+        content_hash,
+        tags,
+        language,
+        custom_metadata,
+        created_at,
+        updated_at,
+        1 - (embedding_vector <=> ${vectorStr}::vector) AS score
+      FROM sam_vector_embeddings
+      ${whereClause}
+      ORDER BY embedding_vector <=> ${vectorStr}::vector
+      LIMIT ${topK}
+    `;
 
     return rows
       .filter((row) => row.score >= minScore)
@@ -212,11 +196,8 @@ export async function writeEmbeddingVector(
   const vectorStr = toPgvectorString(vector);
 
   try {
-    await getDb().$executeRawUnsafe(
-      `UPDATE "${table}" SET embedding_vector = $1::vector WHERE id = $2`,
-      vectorStr,
-      id
-    );
+    const tableSql = Prisma.raw(`"${table}"`);
+    await getDb().$executeRaw`UPDATE ${tableSql} SET embedding_vector = ${vectorStr}::vector WHERE id = ${id}`;
   } catch (error) {
     // Non-fatal: JSON embedding is still the source of truth
     logger.warn('[PgvectorAdapter] Failed to write embedding_vector', { table, id, error });
@@ -241,14 +222,12 @@ export async function batchWriteEmbeddingVectors(
 
     try {
       // Use a single transaction for the batch
+      const tableSql = Prisma.raw(`"${table}"`);
       await getDb().$transaction(
-        batch.map((record) =>
-          getDb().$executeRawUnsafe(
-            `UPDATE "${table}" SET embedding_vector = $1::vector WHERE id = $2`,
-            toPgvectorString(record.vector),
-            record.id
-          )
-        )
+        batch.map((record) => {
+          const vecStr = toPgvectorString(record.vector);
+          return getDb().$executeRaw`UPDATE ${tableSql} SET embedding_vector = ${vecStr}::vector WHERE id = ${record.id}`;
+        })
       );
       written += batch.length;
     } catch (error) {

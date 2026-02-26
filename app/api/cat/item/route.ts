@@ -95,6 +95,8 @@ export async function GET(req: NextRequest) {
           currentTheta: session.currentTheta,
           currentSE: session.currentSE,
         },
+      }, {
+        headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' },
       });
     }
 
@@ -135,6 +137,8 @@ export async function GET(req: NextRequest) {
         currentSE: session.currentSE,
         expectedInformation: maxInformation,
       },
+    }, {
+      headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' },
     });
   } catch (error) {
     console.error('[CAT_ITEM_GET]', error);

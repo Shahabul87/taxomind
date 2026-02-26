@@ -232,6 +232,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 100,
     });
 
     // Calculate aggregated score

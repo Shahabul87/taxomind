@@ -9,6 +9,12 @@ jest.mock('@/auth.admin', () => ({
   adminAuth: jest.fn(),
 }));
 
+jest.mock('@prisma/client', () => ({
+  Prisma: {
+    raw: jest.fn((value: string) => value),
+  },
+}));
+
 // @/lib/db, @/lib/logger are globally mocked in jest.setup.js
 
 import { GET, POST } from '@/app/api/admin/database/indexes/route';
@@ -43,6 +49,9 @@ const adminSession = {
 // Add $executeRawUnsafe mock since it is not in the global mock setup
 if (!(db as Record<string, unknown>).$executeRawUnsafe) {
   (db as Record<string, unknown>).$executeRawUnsafe = jest.fn(() => Promise.resolve(0));
+}
+if (!(db as Record<string, unknown>).$executeRaw) {
+  (db as Record<string, unknown>).$executeRaw = jest.fn(() => Promise.resolve(0));
 }
 
 // =========================================================================
@@ -115,6 +124,7 @@ describe('GET /api/admin/database/indexes', () => {
 describe('POST /api/admin/database/indexes', () => {
   beforeEach(() => {
     mockAdminAuth.mockResolvedValue(adminSession);
+    (db.$executeRaw as jest.Mock).mockResolvedValue(0);
     (db.$executeRawUnsafe as jest.Mock).mockResolvedValue(0);
   });
 

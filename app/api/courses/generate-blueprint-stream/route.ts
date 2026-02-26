@@ -1,14 +1,16 @@
 import { type EnhancedContentRequest } from "@/lib/ai-content-generator";
 import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/sam/ai-provider";
+import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { NextRequest } from "next/server";
 
 export const runtime = 'nodejs';
 
 interface StreamMessage {
   type: 'progress' | 'stage' | 'chapter' | 'section' | 'complete' | 'error';
-  data: any;
+  data: unknown;
   progress: number;
   message: string;
 }
@@ -23,8 +25,12 @@ interface StreamingGenerationContext {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit AI blueprint generation
+    const rateLimitResponse = await withRateLimit(req as NextRequest, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user?.id) {
       return new Response("Unauthorized", { status: 401 });
     }

@@ -102,7 +102,7 @@ export const POST = withAuth(async (
     // Generate personal analytics
     const analytics = await generatePersonalAnalytics(context.user.id, timeFilter);
 
-    return createSuccessResponse({
+    const response = createSuccessResponse({
       success: true,
       analytics,
       metadata: {
@@ -111,6 +111,8 @@ export const POST = withAuth(async (
         generatedAt: new Date().toISOString()
       }
     });
+    response.headers.set('Cache-Control', 'private, no-cache');
+    return response;
 
   } catch (error: any) {
     logger.error('Personal analytics error:', error);

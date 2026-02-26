@@ -4,15 +4,27 @@
  */
 
 import { headers } from "next/headers";
+import type { Prisma as PrismaTypes } from "@prisma/client";
 import Stripe from "stripe";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { stripe } from "@/lib/stripe";
 import { queueManager } from "@/lib/queue/queue-manager";
+import type { WebhookJobData } from "@/lib/queue/queue-config";
 
 export async function POST(req: Request): Promise<Response> {
+  // Pre-check: Ensure webhook secret is configured
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    logger.error("[WEBHOOK] STRIPE_WEBHOOK_SECRET is not configured");
+    return new Response('Webhook Error: Configuration error', { status: 500 });
+  }
+
   const body = await req.text();
-  const signature = (await headers()).get("Stripe-Signature") as string;
+  const signature = (await headers()).get("Stripe-Signature");
+
+  if (!signature) {
+    return new Response('Webhook Error: Missing signature', { status: 400 });
+  }
 
   let event: Stripe.Event;
 
@@ -21,9 +33,14 @@ export async function POST(req: Request): Promise<Response> {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string
+      process.env.STRIPE_WEBHOOK_SECRET
     );
+  } catch (error) {
+    logger.error("[WEBHOOK] Signature verification failed:", error);
+    return new Response('Webhook Error: Invalid signature', { status: 400 });
+  }
 
+  try {
     logger.info(`[WEBHOOK] Received Stripe event: ${event.type}`);
 
     // Log webhook event to database (idempotency)
@@ -39,7 +56,7 @@ export async function POST(req: Request): Promise<Response> {
         provider: 'stripe',
         eventType: event.type,
         eventId: event.id,
-        payload: event as any,
+        payload: event as unknown as PrismaTypes.InputJsonValue,
         processed: false,
         retryCount: 0,
         createdAt: new Date(),
@@ -57,17 +74,17 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     // Queue webhook for processing (async, reliable)
+    const jobData: WebhookJobData = {
+      webhookEventId: webhookEvent.id,
+      provider: 'stripe',
+      eventType: event.type,
+      payload: event as unknown as Record<string, unknown>,
+      retryCount: 0,
+    };
     await queueManager.addJob(
       'webhook',
       'process-webhook',
-      {
-        id: webhookEvent.id,
-        webhookEventId: webhookEvent.id,
-        provider: 'stripe',
-        eventType: event.type,
-        payload: event as any,
-        retryCount: 0,
-      } as any,
+      jobData,
       { priority: 100 } // Critical priority
     );
 
@@ -75,19 +92,7 @@ export async function POST(req: Request): Promise<Response> {
 
     return new Response(null, { status: 200 });
   } catch (error) {
-    logger.error("[WEBHOOK] Error:", error);
-
-    // Signature verification failed
-    if (error instanceof Error && error.message.includes('signature')) {
-      return new Response(
-        `Webhook Error: Invalid signature`,
-        { status: 400 }
-      );
-    }
-
-    return new Response(
-      'Webhook Error: An unexpected error occurred',
-      { status: 400 }
-    );
+    logger.error("[WEBHOOK] Processing error:", error);
+    return new Response('Webhook Error: An unexpected error occurred', { status: 500 });
   }
 }

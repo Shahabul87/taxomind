@@ -7,6 +7,73 @@ import { runSAMChatWithPreference, handleAIAccessError, withSubscriptionGate } f
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
+// Student performance data used for study guide generation
+interface StudentPerformanceData {
+  bloomsProgress: Record<string, number> | null;
+  examPerformance: ExamPerformanceAnalysis | null;
+  weakAreas: string[];
+  strongAreas: string[];
+  recentActivity: Array<{
+    id: string;
+    userId: string;
+    courseId: string | null;
+    bloomsLevel: BloomsLevel;
+    recordedAt: Date;
+  }>;
+}
+
+// Result of exam performance analysis
+interface ExamPerformanceAnalysis {
+  avgScore: number;
+  improvement: number;
+  weakTopics: string[];
+  strongTopics: string[];
+  bloomsPerformance: Record<BloomsLevel, number>;
+}
+
+// A single topic item that can be a string or structured object
+interface PriorityTopic {
+  topic: string;
+  priority: string;
+  reason: string;
+}
+
+// A resource item
+interface StudyResource {
+  type: string;
+  title: string;
+  description: string;
+}
+
+// The structured study guide content
+interface StudyGuideContent {
+  overview: string;
+  priorityTopics: Array<string | PriorityTopic>;
+  learningActivities: Record<string, string[]>;
+  practiceQuestions: string[];
+  resources: StudyResource[];
+  studySchedule: Record<string, string[]>;
+  improvementTips: string[];
+  estimatedTime: number;
+}
+
+// Exam attempt with UserAnswer relation included
+interface ExamAttemptWithAnswers {
+  id: string;
+  attemptNumber: number;
+  status: string;
+  scorePercentage: number | null;
+  submittedAt: Date | null;
+  UserAnswer: Array<{
+    id: string;
+    isCorrect: boolean | null;
+    ExamQuestion: {
+      bloomsLevel: BloomsLevel | null;
+      difficulty: string | null;
+    };
+  }>;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const rateLimitResponse = await withRateLimit(request, 'ai');
@@ -94,7 +161,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
 
     // Get user's study guides
-    const where: any = { userId: user.id };
+    const where: { userId: string; examId?: string } = { userId: user.id };
     if (examId) where.examId = examId;
 
     const studyGuides = await db.studyGuide.findMany({
@@ -114,7 +181,7 @@ export async function GET(request: NextRequest) {
       : studyGuides;
 
     const parsedGuides = filteredGuides.map((guide) => {
-      let structuredContent: any = null;
+      let structuredContent: StudyGuideContent | null = null;
       if (guide.content) {
         try {
           structuredContent = JSON.parse(guide.content);
@@ -146,8 +213,8 @@ async function getStudentPerformanceData(
   userId: string,
   courseId: string | null,
   examId: string | null
-): Promise<any> {
-  const data: any = {
+): Promise<StudentPerformanceData> {
+  const data: StudentPerformanceData = {
     bloomsProgress: null,
     examPerformance: null,
     weakAreas: [],
@@ -159,14 +226,14 @@ async function getStudentPerformanceData(
   if (courseId) {
     const progress = await db.studentBloomsProgress.findUnique({
       where: {
-        userId_courseId: { userId, courseId } as any,
+        userId_courseId: { userId, courseId },
       },
     });
 
     if (progress) {
-      data.bloomsProgress = progress.bloomsScores;
-      data.weakAreas = progress.weaknessAreas;
-      data.strongAreas = progress.strengthAreas;
+      data.bloomsProgress = progress.bloomsScores as Record<string, number>;
+      data.weakAreas = progress.weaknessAreas as string[];
+      data.strongAreas = progress.strengthAreas as string[];
     }
   }
 
@@ -214,12 +281,12 @@ async function getStudentPerformanceData(
   return data;
 }
 
-function analyzeExamPerformance(attempts: any[]): any {
-  const performance = {
+function analyzeExamPerformance(attempts: ExamAttemptWithAnswers[]): ExamPerformanceAnalysis {
+  const performance: ExamPerformanceAnalysis = {
     avgScore: 0,
     improvement: 0,
-    weakTopics: [] as string[],
-    strongTopics: [] as string[],
+    weakTopics: [],
+    strongTopics: [],
     bloomsPerformance: {} as Record<BloomsLevel, number>,
   };
 
@@ -241,7 +308,7 @@ function analyzeExamPerformance(attempts: any[]): any {
   const topicPerformance: Record<string, { correct: number; total: number }> = {};
 
   attempts.forEach(attempt => {
-    attempt.UserAnswer.forEach((aq: any) => {
+    attempt.UserAnswer.forEach((aq) => {
       const level = aq.ExamQuestion.bloomsLevel as BloomsLevel;
       if (level && bloomsLevels.includes(level)) {
         if (!performance.bloomsPerformance[level]) {
@@ -278,10 +345,10 @@ function analyzeExamPerformance(attempts: any[]): any {
 
 async function generatePersonalizedStudyGuide(
   userId: string,
-  studentData: any,
+  studentData: StudentPerformanceData,
   focusAreas: string[] | null,
   includeWeakAreas: boolean
-): Promise<any> {
+): Promise<StudyGuideContent> {
   const systemPrompt = `You are SAM, an expert educational tutor specializing in personalized study guidance. Create a comprehensive study guide based on the student's performance data.
 
 **Student Performance Data:**
@@ -318,16 +385,16 @@ ${focusAreas?.join(', ') || 'General improvement'}
   return parseStudyGuide(guideText, studentData);
 }
 
-function parseStudyGuide(guideText: string, studentData: any): any {
+function parseStudyGuide(guideText: string, studentData: StudentPerformanceData): StudyGuideContent {
   // Parse the AI response into structured format
-  const guide = {
+  const guide: StudyGuideContent = {
     overview: '',
-    priorityTopics: [] as any[],
-    learningActivities: {} as Record<BloomsLevel, any[]>,
-    practiceQuestions: [] as any[],
-    resources: [] as any[],
-    studySchedule: {} as any,
-    improvementTips: [] as string[],
+    priorityTopics: [],
+    learningActivities: {},
+    practiceQuestions: [],
+    resources: [],
+    studySchedule: {},
+    improvementTips: [],
     estimatedTime: 0,
   };
 
@@ -374,14 +441,14 @@ function parseStudyGuide(guideText: string, studentData: any): any {
   return guide;
 }
 
-function extractListItems(lines: string[]): any[] {
+function extractListItems(lines: string[]): string[] {
   return lines
     .filter(line => line.match(/^[-*•]\s+/) || line.match(/^\d+\.\s+/))
     .map(line => line.replace(/^[-*•]\s+/, '').replace(/^\d+\.\s+/, '').trim());
 }
 
-function extractActivitiesByLevel(lines: string[]): Record<BloomsLevel, any[]> {
-  const activities: Record<BloomsLevel, any[]> = {} as any;
+function extractActivitiesByLevel(lines: string[]): Record<string, string[]> {
+  const activities: Record<string, string[]> = {};
   let currentLevel: BloomsLevel | null = null;
 
   lines.forEach(line => {
@@ -402,7 +469,7 @@ function extractActivitiesByLevel(lines: string[]): Record<BloomsLevel, any[]> {
   return activities;
 }
 
-function extractResources(lines: string[]): any[] {
+function extractResources(lines: string[]): StudyResource[] {
   return lines.map(line => {
     const parts = line.split(':');
     return {
@@ -413,8 +480,8 @@ function extractResources(lines: string[]): any[] {
   });
 }
 
-function extractSchedule(lines: string[]): any {
-  const schedule: any = {};
+function extractSchedule(lines: string[]): Record<string, string[]> {
+  const schedule: Record<string, string[]> = {};
   let currentDay = '';
 
   lines.forEach(line => {
@@ -429,14 +496,14 @@ function extractSchedule(lines: string[]): any {
   return schedule;
 }
 
-function calculateEstimatedTime(guide: any): number {
+function calculateEstimatedTime(guide: StudyGuideContent): number {
   let totalMinutes = 0;
 
   // Estimate time for priority topics (30 min each)
   totalMinutes += guide.priorityTopics.length * 30;
 
   // Estimate time for activities (20 min each)
-  Object.values(guide.learningActivities).forEach((activities: any) => {
+  Object.values(guide.learningActivities).forEach((activities: string[]) => {
     totalMinutes += activities.length * 20;
   });
 
@@ -450,11 +517,14 @@ async function saveStudyGuide(
   userId: string,
   courseId: string | null,
   examId: string | null,
-  guide: any
+  guide: StudyGuideContent
 ): Promise<void> {
   try {
     const focusAreas = Array.isArray(guide.priorityTopics)
-      ? guide.priorityTopics.map((item: any) => item?.topic ?? item).filter(Boolean)
+      ? guide.priorityTopics.map((item: string | PriorityTopic) => {
+          if (typeof item === 'string') return item;
+          return item?.topic ?? '';
+        }).filter(Boolean)
       : [];
 
     const targetBloomsLevels = guide.learningActivities

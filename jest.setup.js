@@ -430,8 +430,14 @@ const createMockPrismaClient = () => {
     'chapterBloomsAnalysis', 'samInteraction',
     // Platform AI settings & usage tracking
     'platformAISettings', 'userAIPreferences', 'aIUsageMetrics', 'platformAIUsageSummary',
+    // Exam-related models
+    'userExamAttempt', 'enhancedQuestion', 'enhancedAnswer', 'examBloomsProfile',
+    // Self-assessment models
+    'selfAssessmentExam', 'selfAssessmentQuestion', 'selfAssessmentAttempt',
+    // AI Evaluation
+    'aIEvaluationRecord',
   ];
-  
+
   const mockClient = {};
   
   models.forEach(model => {

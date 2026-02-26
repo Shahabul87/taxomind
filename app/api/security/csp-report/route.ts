@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
+import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
 /**
@@ -256,13 +257,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // TODO: Add admin authentication check
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user || session.user.role !== 'ADMIN') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-    
-    // Return CSP configuration and stats
+    // Require admin authentication
+    const user = await currentUser();
+    if (!user?.id || user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Return CSP configuration and stats (no sensitive values exposed)
     return NextResponse.json({
       message: 'CSP Reporting Endpoint Active',
       configuration: {
@@ -276,7 +277,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         config: 'GET /api/security/csp-report',
         violations: 'GET /api/security/csp-violations',
       },
-      documentation: 'https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP',
     });
     
   } catch (error) {
@@ -294,10 +294,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Handles CORS preflight requests
  */
 export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+  const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
   return NextResponse.json(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowedOrigin,
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Content-Security-Policy',
       'Access-Control-Max-Age': '86400',

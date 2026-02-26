@@ -1,11 +1,19 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 
 // TODO: Implement content governance workflows when models are ready
 export const GET = withAuth(async (request: NextRequest) => {
-  return Response.json({ error: "Content governance workflows not yet implemented" }, { status: 501 });
+  try {
+    return NextResponse.json({ error: "Content governance workflows not yet implemented" }, { status: 501 });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 });
 
 export const POST = withAuth(async (request: NextRequest) => {
-  return Response.json({ error: "Content governance workflows not yet implemented" }, { status: 501 });
+  try {
+    return NextResponse.json({ error: "Content governance workflows not yet implemented" }, { status: 501 });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 });

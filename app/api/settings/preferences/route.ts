@@ -104,6 +104,8 @@ export async function GET(req: NextRequest) {
       metadata: {
         timestamp: new Date().toISOString(),
       },
+    }, {
+      headers: { 'Cache-Control': 'private, no-cache' },
     });
 
   } catch (error) {
@@ -111,7 +113,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch preferences",
+        error: "Failed to update preferences",
       },
       { status: 500 }
     );
@@ -184,7 +186,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to update preferences",
+        error: "Failed to update preferences",
       },
       { status: 500 }
     );

@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
 import { logger } from '@/lib/logger';
@@ -12,16 +12,16 @@ export const GET = withAuth(async (
     const version = await ContentVersioningService.getVersion(versionId);
     
     if (!version) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Version not found" },
         { status: 404 }
       );
     }
 
-    return Response.json({ version });
+    return NextResponse.json({ version });
   } catch (error) {
     logger.error("[CONTENT_VERSION_GET]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Failed to fetch version" },
       { status: 500 }
     );
@@ -40,12 +40,12 @@ export const PATCH = withAuth(async (
     switch (action) {
       case "publish":
         const publishedVersion = await ContentVersioningService.publishVersion(versionId);
-        return Response.json({ version: publishedVersion });
+        return NextResponse.json({ version: publishedVersion });
 
       case "submit_for_review":
         const { reviewerIds } = body;
         if (!reviewerIds || !Array.isArray(reviewerIds)) {
-          return Response.json(
+          return NextResponse.json(
             { error: "Reviewer IDs are required" },
             { status: 400 }
           );
@@ -54,12 +54,12 @@ export const PATCH = withAuth(async (
           versionId,
           reviewerIds
         );
-        return Response.json({ approvals });
+        return NextResponse.json({ approvals });
 
       case "review":
         const { approved, comments } = body;
         if (typeof approved !== "boolean") {
-          return Response.json(
+          return NextResponse.json(
             { error: "Approved status is required" },
             { status: 400 }
           );
@@ -69,17 +69,17 @@ export const PATCH = withAuth(async (
           approved,
           comments
         );
-        return Response.json({ approval });
+        return NextResponse.json({ approval });
 
       default:
-        return Response.json(
+        return NextResponse.json(
           { error: "Invalid action" },
           { status: 400 }
         );
     }
   } catch (error) {
     logger.error("[CONTENT_VERSION_PATCH]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Failed to update version" },
       { status: 500 }
     );

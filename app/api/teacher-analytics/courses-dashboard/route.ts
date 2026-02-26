@@ -147,6 +147,8 @@ export async function GET(req: NextRequest) {
         insights,
         performanceIndicators,
       },
+    }, {
+      headers: { 'Cache-Control': 'private, max-age=300' },
     });
   } catch (error) {
     console.error('[Teacher Analytics API] Error:', error);

@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
         timestamp: new Date().toISOString(),
         count: formattedSessions.length,
       },
+    }, {
+      headers: { 'Cache-Control': 'private, no-cache' },
     });
 
   } catch (error) {
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch sessions",
+        error: "Session operation failed",
       },
       { status: 500 }
     );
@@ -111,7 +113,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to delete sessions",
+        error: "Session operation failed",
       },
       { status: 500 }
     );

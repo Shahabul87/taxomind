@@ -139,7 +139,7 @@ export const POST = withAuth(async (
     const cacheKey = `${courseId}-${timeframe}-${includeDetailed}-${page}-${pageSize}-${context.user.id}`;
     const cached = analyticsCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return createSuccessResponse({
+      const cachedResponse = createSuccessResponse({
         success: true,
         analytics: cached.data,
         metadata: {
@@ -149,6 +149,8 @@ export const POST = withAuth(async (
           cached: true
         }
       });
+      cachedResponse.headers.set('Cache-Control', 'private, max-age=300');
+      return cachedResponse;
     }
 
     // OPTIMIZED: Lightweight query to verify ownership
@@ -193,7 +195,7 @@ export const POST = withAuth(async (
       }
     }
 
-    return createSuccessResponse({
+    const response = createSuccessResponse({
       success: true,
       analytics,
       metadata: {
@@ -206,6 +208,8 @@ export const POST = withAuth(async (
         cached: false
       }
     });
+    response.headers.set('Cache-Control', 'private, max-age=300');
+    return response;
 
   } catch (error: any) {
     logger.error('Teacher analytics error:', error);

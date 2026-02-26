@@ -289,7 +289,7 @@ export async function POST(req: NextRequest) {
         success: false,
         error: {
           code: 'SYNC_FAILED',
-          message: 'Failed to sync calendar',
+          message: 'Calendar sync failed',
         },
       },
       { status: 500 }

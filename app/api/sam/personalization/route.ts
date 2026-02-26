@@ -9,6 +9,16 @@ import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
+// Expected shape of activity metadata JSON field
+interface ActivityMetadata {
+  completionRate?: number;
+  repeatViews?: number;
+  engagementScore?: number;
+  responseTime?: number;
+  device?: string;
+  [key: string]: unknown;
+}
+
 // Create a user-scoped personalization engine instance
 async function createPersonalizationEngineForUser(userId: string) {
   const samConfig = await getUserScopedSAMConfig(userId, 'course');
@@ -202,16 +212,19 @@ async function buildLearningBehavior(userId: string): Promise<LearningBehavior> 
   const sessionPatterns = extractSessionPatterns(activities);
   
   // Process content interactions
-  const contentInteractions = activities.map((activity) => ({
-    contentId: activity.courseId || activity.chapterId || "",
-    contentType: activity.activityType || "",
-    interactionType: activity.activityType,
-    timestamp: activity.timestamp,
-    duration: activity.duration || 0,
-    completionRate: (activity.metadata as any)?.completionRate || 0,
-    repeatViews: (activity.metadata as any)?.repeatViews || 0,
-    engagementScore: (activity.metadata as any)?.engagementScore || 0.5,
-  }));
+  const contentInteractions = activities.map((activity) => {
+    const meta = activity.metadata as ActivityMetadata | null;
+    return {
+      contentId: activity.courseId || activity.chapterId || "",
+      contentType: activity.activityType || "",
+      interactionType: activity.activityType,
+      timestamp: activity.timestamp,
+      duration: activity.duration || 0,
+      completionRate: meta?.completionRate || 0,
+      repeatViews: meta?.repeatViews || 0,
+      engagementScore: meta?.engagementScore || 0.5,
+    };
+  });
 
   // Process assessment history
   const assessmentHistory = progress
@@ -248,14 +261,17 @@ async function getRecentInteractions(userId: string) {
     take: 100,
   });
 
-  return activities.map((activity) => ({
-    userId,
-    type: activity.activityType,
-    timestamp: activity.timestamp,
-    responseTime: (activity.metadata as any)?.responseTime || 0,
-    isError: activity.activityType === "ERROR",
-    metadata: activity.metadata,
-  }));
+  return activities.map((activity) => {
+    const meta = activity.metadata as ActivityMetadata | null;
+    return {
+      userId,
+      type: activity.activityType,
+      timestamp: activity.timestamp,
+      responseTime: meta?.responseTime || 0,
+      isError: activity.activityType === "ERROR",
+      metadata: activity.metadata,
+    };
+  });
 }
 
 async function buildLearningHistory(userId: string) {

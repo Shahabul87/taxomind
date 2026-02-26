@@ -125,6 +125,7 @@ export async function POST(
       const chapterSections = await db.section.findMany({
         where: { chapterId: section.chapterId },
         select: { id: true },
+        take: 200,
       });
 
       const completedSections = await db.userSectionCompletion.findMany({
@@ -132,6 +133,7 @@ export async function POST(
           userId: user.id,
           sectionId: { in: chapterSections.map((s) => s.id) },
         },
+        take: 500,
       });
 
       if (completedSections.length === chapterSections.length) {
@@ -203,6 +205,8 @@ export async function GET(
         timeSpent: 0,
         isCompleted: false,
       },
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error("Error fetching progress:", error);

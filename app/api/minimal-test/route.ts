@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    return Response.json({
+    return NextResponse.json({
       status: "working",
       timestamp: new Date().toISOString()
     });

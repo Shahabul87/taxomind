@@ -2,7 +2,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel, QuestionDifficulty } from '@prisma/client';
+import type { Prisma, UserAnswer } from '@prisma/client';
 import { logger } from '@/lib/logger';
+
+// Performance data passed between adaptive question selection
+interface AdaptivePerformanceData {
+  isCorrect: boolean;
+  responseTime: number;
+  confidence: number;
+  bloomsLevel: BloomsLevel;
+  difficulty: QuestionDifficulty;
+}
+
+// Bloom's level score map stored as JSON
+type BloomsScoreMap = Record<string, number>;
+
+// UserAnswer with included ExamQuestion relation
+interface UserAnswerWithQuestion extends UserAnswer {
+  ExamQuestion: {
+    bloomsLevel: BloomsLevel | null;
+    difficulty: QuestionDifficulty | null;
+  };
+}
+
+// Adaptive metrics returned by getAdaptiveMetrics
+interface AdaptiveMetrics {
+  totalQuestions: number;
+  correctAnswers: number;
+  accuracy: number;
+  avgResponseTime: number;
+  difficultyProgression: Array<{
+    questionNumber: number;
+    from: QuestionDifficulty | null;
+    to: QuestionDifficulty | null;
+  }>;
+  bloomsProgression: Array<{
+    questionNumber: number;
+    bloomsLevel: BloomsLevel | null;
+    isCorrect: boolean | null;
+  }>;
+  performanceByLevel: Record<string, {
+    attempted: number;
+    correct: number;
+    accuracy: number;
+  }>;
+  adaptiveAdjustments: number;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -184,9 +229,9 @@ export async function GET(request: NextRequest) {
 async function getAdaptiveNextQuestion(
   examId: string,
   attemptId: string,
-  performance: any,
+  performance: AdaptivePerformanceData,
   userId: string
-): Promise<any> {
+) {
   // Get attempt history
   const attemptQuestions = await db.userAnswer.findMany({
     where: { attemptId },
@@ -195,7 +240,7 @@ async function getAdaptiveNextQuestion(
   });
 
   // Calculate performance metrics
-  const recentPerformance = attemptQuestions.map((q: any) => q.isCorrect).filter(Boolean).length / attemptQuestions.length;
+  const recentPerformance = attemptQuestions.map((q) => q.isCorrect).filter(Boolean).length / attemptQuestions.length;
   const consecutiveCorrect = countConsecutive(attemptQuestions, true);
   const consecutiveIncorrect = countConsecutive(attemptQuestions, false);
 
@@ -235,7 +280,7 @@ async function getAdaptiveNextQuestion(
   }
 
   // Get next question
-  const answeredQuestionIds = attemptQuestions.map((q: any) => q.questionId);
+  const answeredQuestionIds = attemptQuestions.map((q) => q.questionId);
   
   const nextQuestion = await db.examQuestion.findFirst({
     where: {
@@ -259,7 +304,7 @@ async function getAdaptiveNextQuestion(
   return nextQuestion;
 }
 
-function countConsecutive(questions: any[], isCorrect: boolean): number {
+function countConsecutive(questions: Array<{ isCorrect: boolean | null }>, isCorrect: boolean): number {
   let count = 0;
   for (const q of questions) {
     if (q.isCorrect === isCorrect) {
@@ -320,22 +365,23 @@ async function checkMastery(userId: string, examId: string): Promise<number> {
       userId_courseId: {
         userId,
         courseId: exam.section.chapter.courseId,
-      } as any,
+      },
     },
   });
 
   if (!progress) return 0;
 
-  const scores = progress.bloomsScores as any;
-  const avgScore = Object.values(scores).reduce((sum: number, score: any) => sum + score, 0) / 6;
-  
+  const scores = progress.bloomsScores as BloomsScoreMap;
+  const scoreValues = Object.values(scores);
+  const avgScore = scoreValues.reduce((sum: number, score: number) => sum + score, 0) / 6;
+
   return avgScore / 100;
 }
 
 async function updateStudentProgress(
   userId: string,
   sectionId: string,
-  performance: any
+  performance: AdaptivePerformanceData
 ): Promise<void> {
   // Get course from section
   const section = await db.section.findUnique({
@@ -359,11 +405,11 @@ async function updateStudentProgress(
 
   const existingProgress = await db.studentBloomsProgress.findUnique({
     where: {
-      userId_courseId: progressData as any,
+      userId_courseId: progressData,
     },
   });
 
-  const bloomsScores = existingProgress?.bloomsScores as any || {
+  const bloomsScores: BloomsScoreMap = (existingProgress?.bloomsScores as BloomsScoreMap) || {
     REMEMBER: 0,
     UNDERSTAND: 0,
     APPLY: 0,
@@ -380,7 +426,7 @@ async function updateStudentProgress(
 
   await db.studentBloomsProgress.upsert({
     where: {
-      userId_courseId: progressData as any,
+      userId_courseId: progressData,
     },
     update: {
       bloomsScores,
@@ -440,7 +486,7 @@ async function calculatePerformanceTrend(attemptId: string): Promise<'improving'
   }
 }
 
-async function getAdaptiveMetrics(attemptId: string): Promise<any> {
+async function getAdaptiveMetrics(attemptId: string): Promise<AdaptiveMetrics> {
   const questions = await db.userAnswer.findMany({
     where: { attemptId },
     include: {
@@ -454,23 +500,23 @@ async function getAdaptiveMetrics(attemptId: string): Promise<any> {
     orderBy: { createdAt: 'asc' },
   });
 
-  const metrics = {
+  const metrics: AdaptiveMetrics = {
     totalQuestions: questions.length,
     correctAnswers: questions.filter(q => q.isCorrect).length,
     accuracy: 0,
     avgResponseTime: 0,
-    difficultyProgression: [] as any[],
-    bloomsProgression: [] as any[],
-    performanceByLevel: {} as any,
+    difficultyProgression: [],
+    bloomsProgression: [],
+    performanceByLevel: {},
     adaptiveAdjustments: 0,
   };
 
   if (questions.length > 0) {
     metrics.accuracy = (metrics.correctAnswers / metrics.totalQuestions) * 100;
-    metrics.avgResponseTime = questions.reduce((sum: number, q: any) => sum + (q.timeSpent || 0), 0) / questions.length;
+    metrics.avgResponseTime = questions.reduce((sum, q) => sum + (q.timeSpent || 0), 0) / questions.length;
 
     // Track difficulty progression
-    questions.forEach((q: any, index: number) => {
+    questions.forEach((q, index) => {
       if (index > 0) {
         const prevDiff = questions[index - 1].ExamQuestion.difficulty;
         const currDiff = q.ExamQuestion.difficulty;
@@ -486,7 +532,7 @@ async function getAdaptiveMetrics(attemptId: string): Promise<any> {
     });
 
     // Track Bloom's progression
-    questions.forEach((q: any, index: number) => {
+    questions.forEach((q, index) => {
       metrics.bloomsProgression.push({
         questionNumber: index + 1,
         bloomsLevel: q.ExamQuestion.bloomsLevel,
@@ -497,12 +543,12 @@ async function getAdaptiveMetrics(attemptId: string): Promise<any> {
     // Performance by level
     const bloomsLevels: BloomsLevel[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
     bloomsLevels.forEach(level => {
-      const levelQuestions = questions.filter((q: any) => q.ExamQuestion.bloomsLevel === level);
+      const levelQuestions = questions.filter((q) => q.ExamQuestion.bloomsLevel === level);
       if (levelQuestions.length > 0) {
         metrics.performanceByLevel[level] = {
           attempted: levelQuestions.length,
-          correct: levelQuestions.filter((q: any) => q.isCorrect).length,
-          accuracy: (levelQuestions.filter((q: any) => q.isCorrect).length / levelQuestions.length) * 100,
+          correct: levelQuestions.filter((q) => q.isCorrect).length,
+          accuracy: (levelQuestions.filter((q) => q.isCorrect).length / levelQuestions.length) * 100,
         };
       }
     });

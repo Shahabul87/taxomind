@@ -1,0 +1,1 @@
+import './[commentId]/detail.test';

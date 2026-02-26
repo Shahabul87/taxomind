@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { adminAuth } from "@/auth.admin";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
@@ -96,29 +97,31 @@ export async function GET(request: NextRequest) {
 }
 
 async function createPerformanceIndexes() {
-  const indexes = [
+  // Each index uses $executeRaw with Prisma.raw for hardcoded DDL statements
+  // These are static SQL strings (no user input), safe to use with Prisma.raw
+  const indexStatements = [
     // Critical performance indexes
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_progress_user_chapter ON "user_progress"("userId", "chapterId")`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_enrollment_user_course ON "UserCourseEnrollment"("userId", "courseId")`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_published ON "Course"("isPublished")`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chapter_course_position ON "Chapter"("courseId", "position")`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_section_chapter_position ON "Section"("chapterId", "position")`,
-    
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_progress_user_chapter ON "user_progress"("userId", "chapterId")`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_enrollment_user_course ON "UserCourseEnrollment"("userId", "courseId")`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_published ON "Course"("isPublished")`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chapter_course_position ON "Chapter"("courseId", "position")`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_section_chapter_position ON "Section"("chapterId", "position")`),
+
     // Analytics indexes
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_student_interaction_user_timestamp ON "StudentInteraction"("studentId", "timestamp")`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_exam_attempt_user_exam ON "ExamAttempt"("userId", "examId")`,
-    
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_student_interaction_user_timestamp ON "StudentInteraction"("studentId", "timestamp")`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_exam_attempt_user_exam ON "ExamAttempt"("userId", "examId")`),
+
     // Search indexes
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_title_search ON "Course" USING gin(to_tsvector('english', title))`,
-    `CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_description_search ON "Course" USING gin(to_tsvector('english', description))`,
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_title_search ON "Course" USING gin(to_tsvector('english', title))`),
+    Prisma.raw(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_course_description_search ON "Course" USING gin(to_tsvector('english', description))`),
   ];
 
-  for (const indexSQL of indexes) {
+  for (const indexSql of indexStatements) {
     try {
-      await db.$executeRawUnsafe(indexSQL);
-      console.log(`Created index: ${indexSQL.slice(0, 50)}...`);
+      await db.$executeRaw`${indexSql}`;
+      logger.info(`Created index successfully`);
     } catch (error) {
-      logger.error(`Failed to create index: ${indexSQL}`, error);
+      logger.error(`Failed to create index`, error);
     }
   }
 }

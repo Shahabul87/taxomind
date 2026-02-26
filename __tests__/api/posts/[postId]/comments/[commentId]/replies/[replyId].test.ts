@@ -1,0 +1,1 @@
+import './[replyId]/detail.test';

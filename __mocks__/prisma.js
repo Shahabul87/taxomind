@@ -32,7 +32,13 @@ const mockPrismaClient = () => {
     // SAM Execution models
     'sAMExecutionPlan', 'sAMExecutionStep',
     // Platform settings
-    'platformAISettings', 'userAIPreferences', 'aIUsageMetrics', 'platformAIUsageSummary'
+    'platformAISettings', 'userAIPreferences', 'aIUsageMetrics', 'platformAIUsageSummary',
+    // Exam-related models
+    'userExamAttempt', 'enhancedQuestion', 'enhancedAnswer', 'examBloomsProfile',
+    // Self-assessment models
+    'selfAssessmentExam', 'selfAssessmentQuestion', 'selfAssessmentAttempt',
+    // AI Evaluation
+    'aIEvaluationRecord'
   ];
   
   const client = {};
@@ -216,6 +222,95 @@ const SubscriptionTier = {
   CUSTOM: 'CUSTOM',
 };
 
+const BloomsLevel = {
+  REMEMBER: 'REMEMBER',
+  UNDERSTAND: 'UNDERSTAND',
+  APPLY: 'APPLY',
+  ANALYZE: 'ANALYZE',
+  EVALUATE: 'EVALUATE',
+  CREATE: 'CREATE',
+};
+
+const QuestionType = {
+  MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+  SHORT_ANSWER: 'SHORT_ANSWER',
+  ESSAY: 'ESSAY',
+  TRUE_FALSE: 'TRUE_FALSE',
+  FILL_IN_BLANK: 'FILL_IN_BLANK',
+  MATCHING: 'MATCHING',
+  ORDERING: 'ORDERING',
+};
+
+const QuestionDifficulty = {
+  EASY: 'EASY',
+  MEDIUM: 'MEDIUM',
+  HARD: 'HARD',
+};
+
+const QuestionGenerationMode = {
+  AI_QUICK: 'AI_QUICK',
+  AI_GUIDED: 'AI_GUIDED',
+  AI_ADAPTIVE: 'AI_ADAPTIVE',
+  AI_GAP_FILLING: 'AI_GAP_FILLING',
+};
+
+const EvaluationType = {
+  AUTO_GRADED: 'AUTO_GRADED',
+  AI_EVALUATED: 'AI_EVALUATED',
+  MANUAL: 'MANUAL',
+};
+
+const AttemptStatus = {
+  NOT_STARTED: 'NOT_STARTED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  SUBMITTED: 'SUBMITTED',
+  GRADED: 'GRADED',
+};
+
+const SessionStatus = {
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+};
+
+const LearningAlertType = {
+  REMINDER: 'REMINDER',
+  DEADLINE: 'DEADLINE',
+  STREAK_WARNING: 'STREAK_WARNING',
+  STREAK_ACHIEVEMENT: 'STREAK_ACHIEVEMENT',
+  GOAL_PROGRESS: 'GOAL_PROGRESS',
+  GOAL_COMPLETED: 'GOAL_COMPLETED',
+  WEEKLY_SUMMARY: 'WEEKLY_SUMMARY',
+  STUDY_SUGGESTION: 'STUDY_SUGGESTION',
+  BREAK_REMINDER: 'BREAK_REMINDER',
+};
+
+const AlertChannel = {
+  IN_APP: 'IN_APP',
+  EMAIL: 'EMAIL',
+  PUSH: 'PUSH',
+  SMS: 'SMS',
+};
+
+const AchievementType = {
+  CHAPTER_COMPLETION: 'CHAPTER_COMPLETION',
+  STUDY_STREAK: 'STUDY_STREAK',
+  PERFECT_QUIZ: 'PERFECT_QUIZ',
+  SKILL_MASTERY: 'SKILL_MASTERY',
+  THOROUGH_LEARNER: 'THOROUGH_LEARNER',
+  COURSE_COMPLETION: 'COURSE_COMPLETION',
+  CONSISTENT_LEARNER: 'CONSISTENT_LEARNER',
+  TIME_MILESTONE: 'TIME_MILESTONE',
+  FAST_LEARNER: 'FAST_LEARNER',
+};
+
+const BadgeLevel = {
+  BRONZE: 'BRONZE',
+  SILVER: 'SILVER',
+  GOLD: 'GOLD',
+  PLATINUM: 'PLATINUM',
+};
+
 // Export both PrismaClient constructor and instance along with enums
 module.exports = {
   PrismaClient: jest.fn(() => mockClient),
@@ -249,6 +344,17 @@ module.exports = {
   BillStatus,
   RecurringType,
   SubscriptionTier,
+  BloomsLevel,
+  QuestionType,
+  QuestionDifficulty,
+  QuestionGenerationMode,
+  EvaluationType,
+  AttemptStatus,
+  SessionStatus,
+  LearningAlertType,
+  AlertChannel,
+  AchievementType,
+  BadgeLevel,
 };
 
 // Also export default for different import styles

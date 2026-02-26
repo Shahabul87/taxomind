@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
 
@@ -206,74 +207,72 @@ class EnterpriseDataAPI {
 
         // Use raw query for safety when schema might be inconsistent
         if (bodyExists && publishedExists && isArchivedExists && authorIdExists) {
-          // Full query with all expected columns
-          const whereClause = [];
-          const params: any[] = [];
-          let paramIndex = 1;
+          // Full query with all expected columns - build conditions with Prisma.sql
+          const conditions: Prisma.Sql[] = [];
 
           if (validatedFilters.published !== undefined) {
-            whereClause.push(`published = $${paramIndex}`);
-            params.push(validatedFilters.published);
-            paramIndex++;
+            conditions.push(Prisma.sql`published = ${validatedFilters.published}`);
           }
 
           if (validatedFilters.isArchived !== undefined) {
-            whereClause.push(`"isArchived" = $${paramIndex}`);
-            params.push(validatedFilters.isArchived);
-            paramIndex++;
+            conditions.push(Prisma.sql`"isArchived" = ${validatedFilters.isArchived}`);
           }
 
           if (validatedFilters.authorId) {
-            whereClause.push(`"authorId" = $${paramIndex}`);
-            params.push(validatedFilters.authorId);
-            paramIndex++;
+            conditions.push(Prisma.sql`"authorId" = ${validatedFilters.authorId}`);
           }
 
-          const whereCondition = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
-          
+          const whereCondition = conditions.length > 0
+            ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+            : Prisma.empty;
+
           // Count query
-          const countQuery = `SELECT COUNT(*) as count FROM "Post" ${whereCondition}`;
-          const countResult = await db.$queryRawUnsafe(countQuery, ...params) as [{ count: bigint }];
+          const countResult = await db.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(*) as count FROM "Post" ${whereCondition}
+          `;
           totalCount = Number(countResult[0].count);
 
-          // Data query
-          const dataQuery = `
-            SELECT 
+          // Data query - use Prisma.raw for static column selections
+          const titleCol = titleExists ? Prisma.raw('title') : Prisma.raw('NULL as title');
+          const bodyCol = bodyExists ? Prisma.raw('body') : Prisma.raw('NULL as body');
+          const authorCol = authorIdExists ? Prisma.raw('"authorId"') : Prisma.raw('NULL as "authorId"');
+
+          posts = await db.$queryRaw`
+            SELECT
               id,
-              ${titleExists ? 'title' : 'NULL as title'},
-              ${bodyExists ? 'body' : 'NULL as body'},
+              ${titleCol},
+              ${bodyCol},
               published,
               "isArchived",
-              ${authorIdExists ? '"authorId"' : 'NULL as "authorId"'},
+              ${authorCol},
               "createdAt",
               "updatedAt"
-            FROM "Post" 
+            FROM "Post"
             ${whereCondition}
             ORDER BY "createdAt" DESC
-            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+            LIMIT ${validatedPagination.pageSize} OFFSET ${skip}
           `;
-          
-          posts = await db.$queryRawUnsafe(dataQuery, ...params, validatedPagination.pageSize, skip) as any[];
         } else {
           // Fallback query with basic columns only
+          const titleCol = titleExists ? Prisma.raw('title') : Prisma.raw('NULL as title');
+          const publishedCol = publishedExists ? Prisma.raw('published') : Prisma.raw('TRUE as published');
 
-          const basicQuery = `
-            SELECT 
+          posts = await db.$queryRaw`
+            SELECT
               id,
-              ${titleExists ? 'title' : 'NULL as title'},
-              ${publishedExists ? 'published' : 'TRUE as published'},
+              ${titleCol},
+              ${publishedCol},
               "createdAt",
               "updatedAt"
             FROM "Post"
             ORDER BY "createdAt" DESC
-            LIMIT $1 OFFSET $2
+            LIMIT ${validatedPagination.pageSize} OFFSET ${skip}
           `;
-          
-          posts = await db.$queryRawUnsafe(basicQuery, validatedPagination.pageSize, skip) as any[];
-          
+
           // Get total count
-          const countQuery = `SELECT COUNT(*) as count FROM "Post"`;
-          const countResult = await db.$queryRawUnsafe(countQuery) as [{ count: bigint }];
+          const countResult = await db.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(*) as count FROM "Post"
+          `;
           totalCount = Number(countResult[0].count);
         }
 
@@ -373,53 +372,50 @@ class EnterpriseDataAPI {
       return await this.withRetry(async () => {
         const skip = (validatedPagination.page - 1) * validatedPagination.pageSize;
 
-        // Use raw query for safety when schema might be inconsistent
-        const whereClause = ['\"isPublished\" = true'];
-        const params: any[] = [];
-        let paramIndex = 1;
+        // Use Prisma.sql for safe dynamic query composition
+        const conditions: Prisma.Sql[] = [Prisma.sql`"isPublished" = true`];
 
         if (filters.categoryId && categoryIdExists) {
-          whereClause.push(`\"categoryId\" = $${paramIndex}`);
-          params.push(filters.categoryId);
-          paramIndex++;
+          conditions.push(Prisma.sql`"categoryId" = ${filters.categoryId}`);
         }
 
         if (filters.userId) {
-          whereClause.push(`\"userId\" = $${paramIndex}`);
-          params.push(filters.userId);
-          paramIndex++;
+          conditions.push(Prisma.sql`"userId" = ${filters.userId}`);
         }
 
-        const whereCondition = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
+        const whereCondition = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
 
         // Count query
-        const countQuery = `SELECT COUNT(*) as count FROM "Course" ${whereCondition}`;
-        const countResult = await db.$queryRawUnsafe(countQuery, ...params) as [{ count: bigint }];
+        const countResult = await db.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(*) as count FROM "Course" ${whereCondition}
+        `;
         const totalCount = Number(countResult[0].count);
 
         // Data query with dynamic columns
-        const dataQuery = `
-          SELECT 
+        const subtitleCol = subtitleExists ? Prisma.raw('subtitle') : Prisma.raw('NULL as subtitle');
+        const isFeaturedCol = isFeaturedExists ? Prisma.raw('"isFeatured"') : Prisma.raw('false as "isFeatured"');
+        const categoryIdCol = categoryIdExists ? Prisma.raw('"categoryId"') : Prisma.raw('NULL as "categoryId"');
+
+        const courses = await db.$queryRaw`
+          SELECT
             id,
             title,
             description,
-            ${subtitleExists ? 'subtitle' : 'NULL as subtitle'},
-            \"imageUrl\",
+            ${subtitleCol},
+            "imageUrl",
             price,
-            \"isPublished\",
-            ${isFeaturedExists ? '\"isFeatured\"' : 'false as \"isFeatured\"'},
-            ${categoryIdExists ? '\"categoryId\"' : 'NULL as \"categoryId\"'},
-            \"userId\",
-            \"createdAt\",
-            \"updatedAt\",
-            \"whatYouWillLearn\"
-          FROM "Course" 
+            "isPublished",
+            ${isFeaturedCol},
+            ${categoryIdCol},
+            "userId",
+            "createdAt",
+            "updatedAt",
+            "whatYouWillLearn"
+          FROM "Course"
           ${whereCondition}
-          ORDER BY \"createdAt\" DESC
-          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+          ORDER BY "createdAt" DESC
+          LIMIT ${validatedPagination.pageSize} OFFSET ${skip}
         `;
-
-        const courses = await db.$queryRawUnsafe(dataQuery, ...params, validatedPagination.pageSize, skip) as any[];
 
         // Format courses with safe defaults
         const formattedCourses = courses.map(course => ({
@@ -488,19 +484,23 @@ class EnterpriseDataAPI {
       const updatedAtExists = await this.checkColumnExists("Category", "updatedAt");
 
       return await this.withRetry(async () => {
-        // Use raw query for safety when schema might be inconsistent
-        const dataQuery = `
-          SELECT 
-            id,
-            ${nameExists ? 'name' : 'NULL as name'},
-            ${slugExists ? 'slug' : 'NULL as slug'}
-            ${createdAtExists ? ', "createdAt"' : ', NULL as "createdAt"'}
-            ${updatedAtExists ? ', "updatedAt"' : ', NULL as "updatedAt"'}
-          FROM "Category"
-          ORDER BY ${nameExists ? 'name' : 'id'} ASC
-        `;
+        // Use Prisma.raw for safe static column selections
+        const nameCol = nameExists ? Prisma.raw('name') : Prisma.raw('NULL as name');
+        const slugCol = slugExists ? Prisma.raw('slug') : Prisma.raw('NULL as slug');
+        const createdAtCol = createdAtExists ? Prisma.raw(', "createdAt"') : Prisma.raw(', NULL as "createdAt"');
+        const updatedAtCol = updatedAtExists ? Prisma.raw(', "updatedAt"') : Prisma.raw(', NULL as "updatedAt"');
+        const orderCol = nameExists ? Prisma.raw('name') : Prisma.raw('id');
 
-        const categories = await db.$queryRawUnsafe(dataQuery) as any[];
+        const categories = await db.$queryRaw`
+          SELECT
+            id,
+            ${nameCol},
+            ${slugCol}
+            ${createdAtCol}
+            ${updatedAtCol}
+          FROM "Category"
+          ORDER BY ${orderCol} ASC
+        `;
 
         // Format categories with safe defaults
         const formattedCategories = categories.map(category => ({

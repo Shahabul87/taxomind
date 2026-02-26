@@ -1,0 +1,1 @@
+import '../pedagogy-analyze.test';

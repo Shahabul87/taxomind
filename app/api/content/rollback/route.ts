@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-protection";
 import { ContentVersioningService } from "@/lib/content-versioning";
 import { logger } from '@/lib/logger';
@@ -9,7 +9,7 @@ export const POST = withAuth(async (request: NextRequest) => {
     const { contentType, contentId, targetVersionId, reason } = body;
 
     if (!contentType || !contentId || !targetVersionId) {
-      return Response.json(
+      return NextResponse.json(
         { error: "Content type, ID, and target version ID are required" },
         { status: 400 }
       );
@@ -22,10 +22,10 @@ export const POST = withAuth(async (request: NextRequest) => {
       reason
     );
 
-    return Response.json({ version });
+    return NextResponse.json({ version });
   } catch (error) {
     logger.error("[CONTENT_ROLLBACK_POST]", error);
-    return Response.json(
+    return NextResponse.json(
       { error: "Failed to rollback content" },
       { status: 500 }
     );

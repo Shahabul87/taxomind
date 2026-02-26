@@ -129,6 +129,8 @@ export async function GET(req: NextRequest) {
         timestamp: new Date().toISOString(),
         count: exportRequests.length,
       },
+    }, {
+      headers: { 'Cache-Control': 'private, no-cache' },
     });
 
   } catch (error) {

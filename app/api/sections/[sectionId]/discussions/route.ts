@@ -229,6 +229,8 @@ export async function GET(
       success: true,
       discussions: discussionsWithScores,
       count: discussions.length,
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('Discussion fetch error:', error);

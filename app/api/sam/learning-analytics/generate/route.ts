@@ -696,7 +696,7 @@ export async function POST(req: NextRequest) {
       } catch (error) {
         logger.error('[LearningAnalytics] Generation error:', error);
         await sendEvent('error', {
-          message: error instanceof Error ? error.message : 'Failed to generate analytics',
+          message: 'Analytics generation failed',
         });
       } finally {
         await writer.close();

@@ -10,6 +10,7 @@
  */
 
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import * as crypto from 'crypto';
@@ -223,11 +224,8 @@ export class PgVectorSearchService {
 
     const vectorString = `[${embedding.join(',')}]`;
     try {
-      await db.$executeRawUnsafe(
-        `UPDATE "${table}" SET "embedding_vector" = $1::vector WHERE id = $2`,
-        vectorString,
-        id
-      );
+      const tableSql = Prisma.raw(`"${table}"`);
+      await db.$executeRaw`UPDATE ${tableSql} SET "embedding_vector" = ${vectorString}::vector WHERE id = ${id}`;
     } catch (error) {
       logger.warn('[VectorSearch] Failed to update pgvector column', {
         table,
@@ -391,37 +389,28 @@ export class PgVectorSearchService {
   ): Promise<VectorSearchResult[]> {
     const vectorString = `[${queryEmbedding.join(',')}]`;
 
-    // Build WHERE conditions
-    const conditions: string[] = ['"embedding_vector" IS NOT NULL'];
-    const params: unknown[] = [vectorString, options.topK];
-    let paramIndex = 3;
+    // Build WHERE conditions using Prisma.sql for safe composition
+    const conditions: Prisma.Sql[] = [Prisma.sql`"embedding_vector" IS NOT NULL`];
 
     if (options.userId) {
-      conditions.push(`"userId" = $${paramIndex}`);
-      params.push(options.userId);
-      paramIndex++;
+      conditions.push(Prisma.sql`"userId" = ${options.userId}`);
     }
     if (options.courseId) {
-      conditions.push(`"courseId" = $${paramIndex}`);
-      params.push(options.courseId);
-      paramIndex++;
+      conditions.push(Prisma.sql`"courseId" = ${options.courseId}`);
     }
     if (options.sourceTypes?.length) {
-      conditions.push(`"sourceType" = ANY($${paramIndex})`);
-      params.push(options.sourceTypes);
-      paramIndex++;
+      conditions.push(Prisma.sql`"sourceType" = ANY(${options.sourceTypes})`);
     }
     if (options.tags?.length) {
-      conditions.push(`tags && $${paramIndex}`);
-      params.push(options.tags);
-      paramIndex++;
+      conditions.push(Prisma.sql`tags && ${options.tags}`);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`;
+    const contentTextCol = options.includeContent ? Prisma.raw('"contentText",') : Prisma.empty;
 
     try {
       // Use pgvector cosine distance operator (<=>)
-      const results = await db.$queryRawUnsafe<
+      const results = await db.$queryRaw<
         Array<{
           id: string;
           sourceId: string;
@@ -433,25 +422,22 @@ export class PgVectorSearchService {
           tags: string[];
           distance: number;
         }>
-      >(
-        `
+      >`
         SELECT
           id,
           "sourceId",
           "sourceType",
-          ${options.includeContent ? '"contentText",' : ''}
+          ${contentTextCol}
           "customMetadata",
           "userId",
           "courseId",
           tags,
-          embedding_vector <=> $1::vector as distance
+          embedding_vector <=> ${vectorString}::vector as distance
         FROM "sam_vector_embeddings"
         ${whereClause}
-        ORDER BY embedding_vector <=> $1::vector
-        LIMIT $2
-        `,
-        ...params
-      );
+        ORDER BY embedding_vector <=> ${vectorString}::vector
+        LIMIT ${options.topK}
+      `;
 
       return results
         .filter((r) => {

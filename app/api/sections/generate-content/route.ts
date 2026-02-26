@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAdminAuth, type APIAuthContext, createSuccessResponse, createErrorResponse, ApiError } from "@/lib/api";
+import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
@@ -11,6 +12,10 @@ export const POST = withAdminAuth(async (
   context: APIAuthContext,
   props?: any
 ) => {
+  // Rate limit AI content generation
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Admin access already verified by withAdminAuth wrapper
     const body = await request.json();

@@ -1550,8 +1550,8 @@ export async function POST(req: NextRequest) {
       if (existingAnalysis && existingAnalysis.contentHash === currentContentHash) {
 
         // Return the cached analysis
-        const cachedDistribution = normalizeBloomsDistribution(existingAnalysis.bloomsDistribution as any);
-        
+        const cachedDistribution = normalizeBloomsDistribution(existingAnalysis.bloomsDistribution as Record<string, number>);
+
         return NextResponse.json({
           success: true,
           cached: true,
@@ -1565,8 +1565,8 @@ export async function POST(req: NextRequest) {
               complexity: 75,
               completeness: completionPercentage
             },
-            gaps: existingAnalysis.gapAnalysis as any,
-            recommendations: existingAnalysis.recommendations as any,
+            gaps: existingAnalysis.gapAnalysis as Prisma.JsonValue,
+            recommendations: existingAnalysis.recommendations as Prisma.JsonValue,
             insights: generateInsights(
               { overallDistribution: cachedDistribution },
               { bloomsAnalysis: {}, marketAnalysis: {}, qualityAnalysis: {}, completionAnalysis: {} }
@@ -1911,11 +1911,15 @@ Use this exact JSON structure:
     // Store the analysis with content hash (only if using Bloom's engine directly)
     if (samAnalysis.bloomsAnalysis && 'distribution' in samAnalysis.bloomsAnalysis) {
       try {
+        const bloomsData = samAnalysis.bloomsAnalysis as FallbackBloomsAnalysis;
+        const distributionJson = bloomsData.distribution as unknown as Prisma.InputJsonValue;
+        const depth = bloomsData.cognitiveDepth || analysis.scores.depth;
+
         await db.courseBloomsAnalysis.upsert({
           where: { courseId },
           update: {
-            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution as any,
-            cognitiveDepth: (samAnalysis.bloomsAnalysis as any).cognitiveDepth || analysis.scores.depth,
+            bloomsDistribution: distributionJson,
+            cognitiveDepth: depth,
             learningPathway: analysis.learningPathway || {},
             skillsMatrix: analysis.studentImpact?.skillsDeveloped || [],
             gapAnalysis: analysis.gaps || [],
@@ -1925,8 +1929,8 @@ Use this exact JSON structure:
           },
           create: {
             courseId,
-            bloomsDistribution: samAnalysis.bloomsAnalysis.distribution as any,
-            cognitiveDepth: (samAnalysis.bloomsAnalysis as any).cognitiveDepth || analysis.scores.depth,
+            bloomsDistribution: distributionJson,
+            cognitiveDepth: depth,
             learningPathway: analysis.learningPathway || {},
             skillsMatrix: analysis.studentImpact?.skillsDeveloped || [],
             gapAnalysis: analysis.gaps || [],

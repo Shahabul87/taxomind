@@ -1,0 +1,1 @@
+import '../../chapter-detail.test';
