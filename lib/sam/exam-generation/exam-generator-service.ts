@@ -13,28 +13,43 @@ import { logger } from '@/lib/logger';
 
 // SAM imports
 import {
-  // Quality Gates
   validateContent,
   type GeneratedContent,
   type DifficultyLevel,
-  // Pedagogical
-  evaluatePedagogically,
-  createBloomsAligner,
-  type PedagogicalContent,
-  type StudentCognitiveProfile,
-  // Safety
-  createStrictFairnessValidator,
-  createBiasDetector,
-  createDiscouragingLanguageDetector,
-  createAccessibilityChecker,
+} from '@/lib/sam/quality-gates';
+import {
   type EvaluationFeedback,
-  // Telemetry
+} from '@/lib/sam/safety/types';
+import {
+  evaluatePedagogically,
+} from '@/lib/sam/pedagogical/pipeline';
+import {
+  createBloomsAligner,
+} from '@/lib/sam/pedagogical/blooms-aligner';
+import type {
+  PedagogicalContent,
+  StudentCognitiveProfile,
+} from '@/lib/sam/pedagogical/types';
+import {
+  createStrictFairnessValidator,
+} from '@/lib/sam/safety/fairness-validator';
+import {
+  createBiasDetector,
+} from '@/lib/sam/safety/bias-detector';
+import {
+  createDiscouragingLanguageDetector,
+} from '@/lib/sam/safety/discouraging-language-detector';
+import {
+  createAccessibilityChecker,
+} from '@/lib/sam/safety/accessibility-checker';
+import {
   getSAMTelemetryService,
   ToolExecutionStatus,
-  // Schema Validation
+} from '@/lib/sam/telemetry';
+import {
   AssessmentQuestionsResponseSchema,
   type AssessmentQuestion,
-} from '@/lib/sam';
+} from '@/lib/sam/schemas/evaluation-schemas';
 
 // Local types
 import type {

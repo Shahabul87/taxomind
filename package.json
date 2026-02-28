@@ -139,6 +139,8 @@
     "test:diagnose": "node scripts/diagnose-memory.js",
     "test:debug": "jest --debug",
     "test:update-snapshots": "jest --updateSnapshot",
+    "test:quality": "node scripts/test-quality-audit.js",
+    "test:quality:strict": "node scripts/test-quality-audit.js --strict",
     "coverage:track": "node scripts/test-coverage-tracker.js",
     "test:fix": "npm test -- __tests__/components/course-card.test.tsx __tests__/components/ui/button.test.tsx",
     "dev:db:reset": "npx prisma db push --force-reset",

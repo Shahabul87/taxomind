@@ -21,28 +21,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Save, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Save,
+  Trash2,
+  Star,
+  TrendingUp,
+  DollarSign,
+  Target,
+  AlertCircle,
+  BookOpen,
+  Zap,
+  Award,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FilterPreset, CourseFilters } from "@/types/course";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import * as Icons from "lucide-react";
 
 export interface CustomPresetDialogProps {
   onPresetCreated: (preset: FilterPreset) => void;
   existingPresets: FilterPreset[];
 }
 
-const iconOptions = [
-  { name: 'Star', icon: Icons.Star },
-  { name: 'TrendingUp', icon: Icons.TrendingUp },
-  { name: 'DollarSign', icon: Icons.DollarSign },
-  { name: 'Target', icon: Icons.Target },
-  { name: 'AlertCircle', icon: Icons.AlertCircle },
-  { name: 'BookOpen', icon: Icons.BookOpen },
-  { name: 'Zap', icon: Icons.Zap },
-  { name: 'Award', icon: Icons.Award },
+const iconOptions: { name: string; icon: LucideIcon }[] = [
+  { name: 'Star', icon: Star },
+  { name: 'TrendingUp', icon: TrendingUp },
+  { name: 'DollarSign', icon: DollarSign },
+  { name: 'Target', icon: Target },
+  { name: 'AlertCircle', icon: AlertCircle },
+  { name: 'BookOpen', icon: BookOpen },
+  { name: 'Zap', icon: Zap },
+  { name: 'Award', icon: Award },
 ];
 
 const colorOptions = [
@@ -107,7 +119,7 @@ export const CustomPresetDialog = ({
       }
     }
 
-    const iconComponent = iconOptions.find(i => i.name === selectedIcon)?.icon || Icons.Star;
+    const iconComponent = iconOptions.find(i => i.name === selectedIcon)?.icon || Star;
 
     const newPreset: FilterPreset = {
       id: `custom-${Date.now()}`,
@@ -137,7 +149,7 @@ export const CustomPresetDialog = ({
     setMinRating(0);
   };
 
-  const SelectedIcon = iconOptions.find(i => i.name === selectedIcon)?.icon || Icons.Star;
+  const SelectedIcon = iconOptions.find(i => i.name === selectedIcon)?.icon || Star;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

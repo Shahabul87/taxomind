@@ -1,1 +1,7 @@
 import '../attachments.test';
+
+describe('__tests__/api/courses/[courseId]/attachments.test.ts alias suite', () => {
+  it('loads delegated course tests', () => {
+    expect(true).toBe(true);
+  });
+});

@@ -19,7 +19,7 @@ import {
 import { RecommendationCard } from "@/components/sam/recommendations";
 import { ConfidenceIndicator } from "@/components/sam/confidence";
 import { LearningStyleIndicator } from "@/components/sam/behavior";
-import { LearningPathWidget } from "@/components/sam";
+import { LearningPathWidget } from "@/components/sam/LearningPathWidget";
 import {
   BloomsTaxonomyBreakdown,
   CognitiveProfileCard,

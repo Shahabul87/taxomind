@@ -1,6 +1,9 @@
 /**
  * SAM Components Index
  * Exports all SAM AI Tutor components
+ *
+ * @deprecated Prefer importing from specific component files (e.g. '@/components/sam/LearningPathWidget')
+ * to improve tree-shaking and reduce bundle size. This barrel file will be removed in a future release.
  */
 
 // ============================================================================

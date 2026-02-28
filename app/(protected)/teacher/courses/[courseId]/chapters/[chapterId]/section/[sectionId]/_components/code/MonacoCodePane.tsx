@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import dynamic from "next/dynamic";
 import type { editor } from "monaco-editor";
 import type {
   MonacoCodePaneProps,
@@ -14,8 +13,7 @@ import {
   getExplanationBorderColor,
 } from "./code-explanation.types";
 
-// Lazy-load Monaco editor on client only
-const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+import { MonacoEditor as Editor } from "@/components/lazy-imports";
 
 /**
  * Monaco Editor pane with line selection support

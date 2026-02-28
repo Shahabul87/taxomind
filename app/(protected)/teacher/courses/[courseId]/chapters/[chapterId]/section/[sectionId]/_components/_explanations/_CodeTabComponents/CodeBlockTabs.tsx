@@ -3,8 +3,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import dynamic from 'next/dynamic';
-// Lazy-load Monaco editor on client only to keep bundles lean
-const Editor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+import { MonacoEditor as Editor } from '@/components/lazy-imports';
 import {
   Select,
   SelectContent,

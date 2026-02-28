@@ -22,7 +22,7 @@ import { AchievementsPanel } from "./achievements-panel";
 import { CourseContentNavigation } from "../course-content-navigation";
 import { LearningPath } from "../learning-path";
 import { SmartSidebar } from "../smart-sidebar";
-import { LearningPathOptimizer } from "@/components/sam";
+import { LearningPathOptimizer } from "@/components/sam/LearningPathOptimizer";
 import { StreakTracker } from "../streak-tracker";
 import { SmartPredictions } from "../smart-predictions";
 import { SectionErrorBoundary } from "./learn-error-boundary";

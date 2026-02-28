@@ -123,6 +123,41 @@ const customJestConfig = {
     '!**/coverage/**',
     '!**/backups/**',
   ],
+
+  // Enforce baseline coverage and prevent silent regressions.
+  // These thresholds reflect the current baseline and should be ratcheted upward over time.
+  coverageThreshold: {
+    global: {
+      statements: 9,
+      branches: 55,
+      functions: 30,
+      lines: 9,
+    },
+    './app/': {
+      statements: 10,
+      branches: 50,
+      functions: 20,
+      lines: 10,
+    },
+    './actions/': {
+      statements: 30,
+      branches: 80,
+      functions: 45,
+      lines: 30,
+    },
+    './lib/': {
+      statements: 15,
+      branches: 65,
+      functions: 40,
+      lines: 15,
+    },
+    './components/': {
+      statements: 2,
+      branches: 20,
+      functions: 5,
+      lines: 2,
+    },
+  },
   
   // Disable cache for consistency
   cache: false,

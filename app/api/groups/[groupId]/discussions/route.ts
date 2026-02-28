@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: Request, props: { params: Promise<{ groupId: string }> }) {
   const params = await props.params;
@@ -15,7 +16,7 @@ export async function POST(req: Request, props: { params: Promise<{ groupId: str
 
     const discussion = await db.groupDiscussion.create({
       data: {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         title: values.title,
         content: values.content,
         groupId: params.groupId,

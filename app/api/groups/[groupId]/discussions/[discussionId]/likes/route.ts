@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 export async function POST(
   req: Request,
@@ -49,7 +50,7 @@ export async function POST(
     // Create new like
     await db.groupDiscussionLike.create({
       data: {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         discussionId: params.discussionId,
         userId: session.user.id,
       },

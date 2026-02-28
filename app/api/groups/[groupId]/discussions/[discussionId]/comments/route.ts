@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { randomUUID } from 'crypto';
 
 const createCommentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
@@ -28,7 +29,7 @@ export async function POST(
 
     const comment = await db.groupDiscussionComment.create({
       data: {
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         content: validatedFields.data.content,
         authorId: session.user.id,
         discussionId: params.discussionId,
