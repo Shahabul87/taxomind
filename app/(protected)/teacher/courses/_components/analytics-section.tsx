@@ -3,8 +3,15 @@
 import { useCourseAnalytics } from "@/hooks/use-course-analytics";
 import { SerializedCourseWithRelations } from "@/types/course";
 import { MetricCard, MetricCardSkeleton } from "./metric-card";
-import { RevenueChart } from "./revenue-chart";
-import { CategoryBreakdownChart } from "./category-breakdown-chart";
+import dynamic from 'next/dynamic';
+const RevenueChart = dynamic(
+  () => import('./revenue-chart').then(mod => ({ default: mod.RevenueChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const CategoryBreakdownChart = dynamic(
+  () => import('./category-breakdown-chart').then(mod => ({ default: mod.CategoryBreakdownChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 import {
   DollarSign,
   Users,

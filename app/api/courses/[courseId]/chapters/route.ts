@@ -54,7 +54,14 @@ export async function GET(request: NextRequest, props: { params: Promise<{ cours
       },
     });
 
-    return successResponse(chapters);
+    return NextResponse.json({
+      success: true,
+      data: chapters,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+      },
+    });
   } catch (error) {
     logger.error("[CHAPTERS_GET] Error:", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch chapters", HttpStatus.INTERNAL_ERROR);

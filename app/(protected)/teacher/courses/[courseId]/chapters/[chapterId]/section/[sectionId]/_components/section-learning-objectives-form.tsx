@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import TipTapEditor from "@/components/tiptap/editor";
+import { TipTapEditor } from "@/components/lazy-imports";
 import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";
 import { MathAwareHtmlRenderer, extractItemsPreservingHtml } from "@/components/shared/math-aware-html-renderer";

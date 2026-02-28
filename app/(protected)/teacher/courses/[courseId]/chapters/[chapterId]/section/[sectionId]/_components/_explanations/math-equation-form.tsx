@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
 import axios from "axios";
-import TipTapEditor from "@/components/tiptap/editor";
+import { TipTapEditor } from "@/components/lazy-imports";
 import { logger } from '@/lib/logger';
 import {
   Form,

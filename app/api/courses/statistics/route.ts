@@ -74,6 +74,10 @@ export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseSta
           timestamp: new Date().toISOString(),
           cached: true,
         },
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+        },
       });
     }
 
@@ -188,6 +192,10 @@ export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseSta
         timestamp: new Date().toISOString(),
         cached: false,
         ttl: CACHE_TTL.MEDIUM,
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
       },
     });
   } catch (error) {

@@ -191,6 +191,8 @@ export const GET = withAuth(async (
       success: true,
       posts,
       count: posts.length
+    }, 200, undefined, {
+      'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
     });
   } catch (error) {
     logger.error("💥 [API] /api/posts - Error fetching posts:", error);

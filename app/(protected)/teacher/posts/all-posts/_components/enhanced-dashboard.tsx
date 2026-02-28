@@ -49,7 +49,11 @@ import {
 import { StatsCards } from "./stats-cards";
 import { EnhancedPostCard } from "./enhanced-post-card";
 import { EnhancedEmptyState } from "./enhanced-empty-state";
-import { EnhancedAnalytics } from "./enhanced-analytics";
+import dynamic from 'next/dynamic';
+const EnhancedAnalytics = dynamic(
+  () => import('./enhanced-analytics').then(mod => ({ default: mod.EnhancedAnalytics })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 import { BulkActionsBar } from "./bulk-actions-bar";
 import { DashboardSkeleton, AnalyticsSkeleton } from "./shimmer-skeleton";
 import type { Post, DashboardStats, DashboardUser, ViewMode, TabValue, SortOption } from "./types";

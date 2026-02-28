@@ -3,7 +3,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { Form } from "@/components/ui/form";
-import { ExplanationFormFields } from "./explanation-form-fields";
+import dynamic from 'next/dynamic';
+const ExplanationFormFields = dynamic(
+  () => import('./explanation-form-fields').then(mod => ({ default: mod.ExplanationFormFields })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 import { ExplanationSubmitButton } from "./explanation-submit-button";
 import { logger } from '@/lib/logger';
 

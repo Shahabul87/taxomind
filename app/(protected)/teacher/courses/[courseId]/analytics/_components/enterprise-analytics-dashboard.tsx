@@ -28,14 +28,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { cn } from '@/lib/utils';
-import {
-  MetricCard,
-  ChartWidget,
-  ProgressWidget,
-  AlertsWidget,
-  BloomsProgressWidget,
-  RealTimeWidget,
-} from '@/components/ui/analytics-widgets';
+import dynamic from 'next/dynamic';
+
+const MetricCard = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.MetricCard })),
+  { ssr: false }
+);
+const ChartWidget = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.ChartWidget })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const ProgressWidget = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.ProgressWidget })),
+  { ssr: false, loading: () => <div className="animate-pulse h-32 bg-muted rounded-lg" /> }
+);
+const AlertsWidget = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.AlertsWidget })),
+  { ssr: false }
+);
+const BloomsProgressWidget = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.BloomsProgressWidget })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const RealTimeWidget = dynamic(
+  () => import('@/components/ui/analytics-widgets').then(mod => ({ default: mod.RealTimeWidget })),
+  { ssr: false }
+);
 import {
   analyticsEngine,
   AnalyticsMetric,

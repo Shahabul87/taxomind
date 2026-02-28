@@ -35,8 +35,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { useQualityAnalysis } from './hooks/use-quality-analysis';
 import { CourseSelector } from './sections/CourseSelector';
 import { AnalysisProgressDisplay } from './sections/AnalysisProgress';
-import { AnalysisHero } from './sections/AnalysisHero';
-import { BloomsTaxonomyChart } from './sections/BloomsTaxonomyChart';
+import dynamic from 'next/dynamic';
+const AnalysisHero = dynamic(
+  () => import('./sections/AnalysisHero').then(mod => ({ default: mod.AnalysisHero })),
+  { ssr: false, loading: () => <div className="animate-pulse h-48 bg-muted rounded-lg" /> }
+);
+const BloomsTaxonomyChart = dynamic(
+  () => import('./sections/BloomsTaxonomyChart').then(mod => ({ default: mod.BloomsTaxonomyChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 import { KnowledgeFlowMap } from './sections/KnowledgeFlowMap';
 import { ConsistencyMatrix } from './sections/ConsistencyMatrix';
 import { ChapterBreakdown } from './sections/ChapterBreakdown';

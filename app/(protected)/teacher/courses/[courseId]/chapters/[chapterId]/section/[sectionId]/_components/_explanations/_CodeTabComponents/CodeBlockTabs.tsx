@@ -24,7 +24,10 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from 'rehype-sanitize';
 import { rehypeSanitizeSchema } from '@/lib/utils/rehype-config';
 import { CodeBlock, languageOptions } from "./types";
-import { CodeExplanationEditor } from "./CodeExplanationEditor";
+const CodeExplanationEditor = dynamic(
+  () => import('./CodeExplanationEditor').then(mod => ({ default: mod.CodeExplanationEditor })),
+  { ssr: false, loading: () => <div className="animate-pulse h-32 bg-muted rounded-lg" /> }
+);
 
 interface CodeBlockTabsProps {
   codeBlocks: CodeBlock[];

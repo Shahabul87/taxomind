@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import TipTapEditor from "@/components/tiptap/editor";
+import { TipTapEditor } from "@/components/lazy-imports";
 import ContentViewer from "@/components/tiptap/content-viewer";
 import { UnifiedAIGenerator } from "@/components/ai/unified-ai-generator";
 import { useIsPremium } from "@/hooks/use-premium-status";

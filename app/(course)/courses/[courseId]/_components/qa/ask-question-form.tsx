@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import TipTapEditor from '@/components/tiptap/editor';
+import { TipTapEditor } from '@/components/lazy-imports';
 import {
   Select,
   SelectContent,

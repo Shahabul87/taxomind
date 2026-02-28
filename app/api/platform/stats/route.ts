@@ -75,6 +75,10 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         cacheMaxAge: 3600,
       },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
+      },
     });
   } catch (error) {
     console.error("[PLATFORM_STATS_ERROR]", error);
@@ -94,6 +98,10 @@ export async function GET() {
       metadata: {
         timestamp: new Date().toISOString(),
         error: "Stats temporarily unavailable",
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'no-store',
       },
     });
   }

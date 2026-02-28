@@ -9,7 +9,11 @@ import { Clock, AlertCircle, CheckCircle, XCircle, TrendingUp, Users, FileText, 
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { ApprovalDashboard } from './_components/approval-dashboard';
-import { ApprovalAnalytics } from './_components/approval-analytics';
+import dynamic from 'next/dynamic';
+const ApprovalAnalytics = dynamic(
+  () => import('./_components/approval-analytics').then(mod => ({ default: mod.ApprovalAnalytics })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 import { WorkflowTemplates } from './_components/workflow-templates';
 
 interface DashboardData {

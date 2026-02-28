@@ -13,11 +13,29 @@ import type { DateRange } from "react-day-picker";
 import type { CreatorAnalytics, CreatorTimeframe } from "./creator-types";
 import { CreatorDashboardSkeleton } from "./creator-dashboard-skeleton";
 import { CreatorKpiCards } from "./creator-kpi-cards";
-import { CreatorCoursesTab } from "./creator-courses-tab";
-import { CreatorLearnersTab } from "./creator-learners-tab";
-import { CreatorEngagementTab } from "./creator-engagement-tab";
-import { CreatorFeedbackTab } from "./creator-feedback-tab";
-import { CreatorSuggestionsTab } from "./creator-suggestions-tab";
+import dynamic from 'next/dynamic';
+
+const chartTabLoading = () => <div className="animate-pulse h-64 bg-muted rounded-lg" />;
+const CreatorCoursesTab = dynamic(
+  () => import('./creator-courses-tab').then(mod => ({ default: mod.CreatorCoursesTab })),
+  { ssr: false, loading: chartTabLoading }
+);
+const CreatorLearnersTab = dynamic(
+  () => import('./creator-learners-tab').then(mod => ({ default: mod.CreatorLearnersTab })),
+  { ssr: false, loading: chartTabLoading }
+);
+const CreatorEngagementTab = dynamic(
+  () => import('./creator-engagement-tab').then(mod => ({ default: mod.CreatorEngagementTab })),
+  { ssr: false, loading: chartTabLoading }
+);
+const CreatorFeedbackTab = dynamic(
+  () => import('./creator-feedback-tab').then(mod => ({ default: mod.CreatorFeedbackTab })),
+  { ssr: false, loading: chartTabLoading }
+);
+const CreatorSuggestionsTab = dynamic(
+  () => import('./creator-suggestions-tab').then(mod => ({ default: mod.CreatorSuggestionsTab })),
+  { ssr: false, loading: chartTabLoading }
+);
 
 interface CourseCreatorDashboardProps {
   creatorId: string;

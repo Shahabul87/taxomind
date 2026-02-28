@@ -245,6 +245,10 @@ export async function GET(
         requestId: crypto.randomUUID(),
         version: '1.0.0'
       }
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+      },
     });
   } catch (error) {
     logger.error("[SECTION_GET_ERROR]:", error);

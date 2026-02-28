@@ -42,13 +42,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Import secure chart components
-import { 
-  ClientLineChart, 
-  ClientBarChart, 
-  ClientPieChart,
-  ClientAreaChart
-} from "@/components/charts/client-charts";
+// Dynamically import chart components to avoid pulling recharts into initial bundle
+import dynamic from 'next/dynamic';
+const ClientLineChart = dynamic(
+  () => import("@/components/charts/client-charts").then(mod => ({ default: mod.ClientLineChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const ClientBarChart = dynamic(
+  () => import("@/components/charts/client-charts").then(mod => ({ default: mod.ClientBarChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const ClientPieChart = dynamic(
+  () => import("@/components/charts/client-charts").then(mod => ({ default: mod.ClientPieChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
+const ClientAreaChart = dynamic(
+  () => import("@/components/charts/client-charts").then(mod => ({ default: mod.ClientAreaChart })),
+  { ssr: false, loading: () => <div className="animate-pulse h-64 bg-muted rounded-lg" /> }
+);
 
 // Enterprise Intelligence Dashboard
 import { EnterpriseIntelligenceDashboard } from "@/components/admin/enterprise-intelligence-dashboard";
