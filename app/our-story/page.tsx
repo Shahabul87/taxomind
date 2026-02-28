@@ -7,6 +7,8 @@ import StoryBuilding from './_components/story-building';
 import StoryVision from './_components/story-vision';
 import StoryCta from './_components/story-cta';
 
+export const dynamic = 'force-static';
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 
 export const metadata: Metadata = {

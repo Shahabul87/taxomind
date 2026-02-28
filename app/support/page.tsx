@@ -1,6 +1,8 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { PageWithMobileLayout } from "@/components/layouts/PageWithMobileLayout";
+
+export const dynamic = 'force-dynamic';
 import { SupportHero } from "./_components/support-hero";
 import { QuickActions } from "./_components/quick-actions";
 import { FAQSection } from "./_components/faq-section";

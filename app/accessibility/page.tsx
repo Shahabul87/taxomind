@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Accessibility Statement | Taxomind",
   description: "Taxomind is committed to making our learning platform accessible to everyone, including people with disabilities.",

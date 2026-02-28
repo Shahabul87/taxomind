@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { Map, CheckCircle2, Clock, Sparkles, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Roadmap | Taxomind",
   description: "See what we're building next. Our public roadmap shows planned features and recent releases.",

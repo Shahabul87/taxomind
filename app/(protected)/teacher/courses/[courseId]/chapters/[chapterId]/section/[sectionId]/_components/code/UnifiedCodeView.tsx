@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PrismAsyncLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import dynamic from 'next/dynamic';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+const SyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter/dist/esm/prism-async-light').then(m => m.default),
+  { ssr: false, loading: () => <div className="animate-pulse bg-slate-800 rounded-md h-32" /> }
+);
 import { Copy, Download, Eye, EyeOff, Loader2, Pencil, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

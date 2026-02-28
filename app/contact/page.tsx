@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { Mail, MapPin, Phone, MessageSquare } from "lucide-react";
 import { ContactForm } from "./_components/contact-form";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Contact Us | Taxomind",
   description: "Get in touch with the Taxomind team. We're here to help with sales, support, and partnerships.",

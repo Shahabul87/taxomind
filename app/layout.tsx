@@ -188,7 +188,7 @@ export default async function RootLayout({
         <Script
           id="organization-schema"
           type="application/ld+json"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(organizationSchema),
           }}
@@ -196,7 +196,7 @@ export default async function RootLayout({
         <Script
           id="website-schema"
           type="application/ld+json"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(websiteSchema),
           }}
@@ -204,7 +204,7 @@ export default async function RootLayout({
         <Script
           id="educational-org-schema"
           type="application/ld+json"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(educationalOrgSchema),
           }}
@@ -280,8 +280,8 @@ export default async function RootLayout({
               </div>
             </Suspense>
 
-            {/* SAM AI Assistant - Context-aware floating assistant */}
-            <SAMAssistantWrapper />
+            {/* SAM AI Assistant - Context-aware floating assistant (authenticated only) */}
+            {session?.user && <SAMAssistantWrapper />}
 
           {/* CSS Error Monitor - Only in development */}
           <CSSErrorMonitorClient />

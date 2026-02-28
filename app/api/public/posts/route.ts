@@ -156,6 +156,8 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString(),
         version: '1.0.0',
       },
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
     console.error('[PUBLIC_POSTS_GET]', error);

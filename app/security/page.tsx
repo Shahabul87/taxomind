@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { Shield, Lock, Eye, Server, CheckCircle2, BadgeCheck, FileKey2, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Security | Taxomind",
   description: "Learn about Taxomind's enterprise-grade security measures, data protection, and compliance certifications.",

@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { Briefcase, MapPin, Clock, Users, Heart, Zap, Globe, Coffee, GraduationCap, Plane } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Careers | Taxomind",
   description: "Join the Taxomind team and help shape the future of AI-powered education.",

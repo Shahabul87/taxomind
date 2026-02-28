@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { BecomeInstructorForm } from "./_components/become-instructor-form";
+
+export const dynamic = 'force-dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Users, DollarSign, Award, Target, Zap } from "lucide-react";
 

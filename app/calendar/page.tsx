@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { CalendarLayout } from "./_components/calendar-layout";
+
+export const dynamic = 'force-dynamic';
 import { CalendarErrorBoundary } from "./_components/calendar-error-boundary";
 import ConditionalHeader from "@/app/(homepage)/user-header";
 import { SidebarDemo } from "@/components/ui/sidebar-demo";

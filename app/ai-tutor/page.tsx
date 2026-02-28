@@ -1,3 +1,5 @@
+export const dynamic = 'force-static';
+
 export const metadata = {
   title: 'AI Tutor | Taxomind',
   description: 'Personal learning assistant powered by AI. Get explanations, practice, and personalized guidance.'

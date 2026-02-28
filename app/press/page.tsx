@@ -3,6 +3,8 @@ import { Download, ExternalLink, Mail, Calendar, Newspaper } from "lucide-react"
 import Image from "next/image";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Press | Taxomind",
   description: "Press resources, media kit, and latest news about Taxomind.",

@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { Puzzle, Check, ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = 'force-static';
+
 export const metadata: Metadata = {
   title: "Integrations | Taxomind",
   description: "Connect Taxomind with your favorite tools and workflows. Explore our growing ecosystem of integrations.",

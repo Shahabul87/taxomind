@@ -6,6 +6,8 @@ import { AboutValues } from "./_components/about-values";
 import { AboutTestimonials } from "./_components/about-testimonials";
 import { AboutCTA } from "./_components/about-cta";
 
+export const dynamic = 'force-static';
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 
 /**

@@ -5,6 +5,8 @@ import { currentUser } from "@/lib/auth";
 import { checkPremiumAccess } from "@/lib/premium/check-premium";
 import { PricingClient } from "./_components/pricing-client";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Pricing | Taxomind",
   description: "Simple, transparent pricing. Unlock AI-powered course creation and learning features.",

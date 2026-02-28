@@ -407,7 +407,9 @@ export const GET = async (req: Request): Promise<NextResponse> => {
 
     logger.info('[COURSES_API] Cached courses list');
 
-    return NextResponse.json(processedCourses);
+    return NextResponse.json(processedCourses, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    });
   } catch (error) {
     logger.error("[COURSES_API]", error);
     return new NextResponse("Internal Error", { status: 500 });
