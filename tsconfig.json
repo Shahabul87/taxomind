@@ -139,6 +139,7 @@
     "**/mocks/**",
     "scripts/**",
     "SCALABLE_ARCHITECTURE_DOCS/**",
-    "**/examples/**"
+    "**/examples/**",
+    "cleanup/**"
   ]
 }

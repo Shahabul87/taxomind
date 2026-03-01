@@ -6,16 +6,6 @@
  * to improve tree-shaking and reduce bundle size. This barrel file will be removed in a future release.
  */
 
-// Engine Presets
-export {
-  ENGINE_PRESETS,
-  getEnginePreset,
-  detectGenerationIntent,
-  detectAnalysisIntent,
-  selectEngines,
-  type EnginePresetName,
-} from './engine-presets';
-
 // Form Actions
 export {
   detectFormFields,
@@ -759,33 +749,6 @@ export {
   type TaxomindAgenticStores,
   type TaxomindIntegrationContext,
 } from './taxomind-context';
-
-// Testing Integration - Golden test framework for SAM AI quality assurance
-export {
-  // Initialization
-  initializeSAMTesting,
-  getSAMTestingSystem,
-  // Test case helpers
-  createContentGenerationTest,
-  createAssessmentTest,
-  createSafetyTest,
-  // Suite runners
-  runContentGenerationTests,
-  runAssessmentTests,
-  runSafetyTests,
-  runAllSAMTests,
-  // Re-exports from @sam-ai/testing
-  createTestingSystem,
-  createGoldenTestRunner,
-  testCase,
-  runTestSuite,
-  type TestingSystem,
-  type GoldenTestCase as SAMGoldenTestCase,
-  type TestRun as SAMTestRun,
-  type TestResult as SAMTestResult,
-  type TestCaseCategory as SAMTestCaseCategory,
-  type TestExecutor as SAMTestExecutor,
-} from './testing-integration';
 
 // External Knowledge Integration - Content enrichment from external sources
 export {

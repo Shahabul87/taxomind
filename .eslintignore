@@ -57,3 +57,6 @@ temp/
 
 # Docker
 docker/
+
+# Cleanup (unused files staged for removal)
+cleanup/

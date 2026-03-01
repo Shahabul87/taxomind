@@ -905,11 +905,6 @@ jest.mock('@/actions/new-verification', () => ({
   newVerification: jest.fn().mockResolvedValue({ success: true }),
 }));
 
-// Mock logout action
-jest.mock('@/actions/logout', () => ({
-  logout: jest.fn().mockResolvedValue({ success: true }),
-}));
-
 // Mock auth audit helpers
 jest.mock('@/lib/audit/auth-audit', () => ({
   authAuditHelpers: {
@@ -949,10 +944,6 @@ jest.mock('@/actions/get-all-courses', () => ({
   getAllCourses: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock('@/actions/get-all-search-courses', () => ({
-  getAllSearchCourses: jest.fn().mockResolvedValue([]),
-}));
-
 jest.mock('@/actions/get-analytics', () => ({
   getAnalytics: jest.fn().mockResolvedValue({ data: [], totalRevenue: 0, totalSales: 0 }),
 }));
@@ -966,36 +957,12 @@ jest.mock('@/actions/get-user-posts', () => ({
   getUserPosts: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock('@/actions/get-all-posts', () => ({
-  getAllPosts: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock('@/actions/get-all-posts-optimized', () => ({
-  getAllPostsOptimized: jest.fn().mockResolvedValue([]),
-}));
-
 jest.mock('@/actions/get-simple-posts', () => ({
   getSimplePosts: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock('@/actions/get-courses-optimized', () => ({
-  getCoursesOptimized: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock('@/actions/get-all-courses-optimized', () => ({
-  getAllCoursesOptimized: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock('@/actions/get-section', () => ({
-  getSection: jest.fn().mockResolvedValue(null),
-}));
-
 jest.mock('@/actions/get-course', () => ({
   getCourse: jest.fn().mockResolvedValue(null),
-}));
-
-jest.mock('@/actions/get-chapter', () => ({
-  getChapter: jest.fn().mockResolvedValue(null),
 }));
 
 jest.mock('@/actions/admin-secure', () => ({
@@ -1025,19 +992,6 @@ jest.mock('@/data/two-factor-token', () => ({
 
 jest.mock('@/data/two-factor-confirmation', () => ({
   getTwoFactorConfirmationByUserId: jest.fn(),
-}));
-
-// Mock encryption utilities
-jest.mock('@/lib/encryption', () => ({
-  encrypt: jest.fn((data) => `encrypted_${JSON.stringify(data)}`),
-  decrypt: jest.fn((data) => {
-    if (typeof data === 'string' && data.startsWith('encrypted_')) {
-      return JSON.parse(data.replace('encrypted_', ''));
-    }
-    return data;
-  }),
-  hashPassword: jest.fn((password) => `hashed_${password}`),
-  verifyPassword: jest.fn((password, hash) => hash === `hashed_${password}`),
 }));
 
 // Mock TOTP utilities - removed, using lib/auth/totp below
@@ -1074,18 +1028,6 @@ jest.mock('@/lib/security/encryption', () => ({
     encrypt: jest.fn(async (data) => ({ encryptedData: 'encrypted', iv: 'iv', tag: 'tag', salt: 'salt' })),
     decrypt: jest.fn(async () => 'decrypted-data'),
   },
-}));
-
-// Mock session fingerprint
-jest.mock('@/lib/session-fingerprint', () => ({
-  generateFingerprint: jest.fn(() => 'test-fingerprint'),
-  validateFingerprint: jest.fn(() => true),
-}));
-
-// Mock with-api-auth
-jest.mock('@/lib/with-api-auth', () => ({
-  withApiAuth: jest.fn((handler) => handler),
-  requireApiAuth: jest.fn((handler) => handler),
 }));
 
 // ===========================
