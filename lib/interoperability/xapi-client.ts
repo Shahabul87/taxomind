@@ -313,7 +313,8 @@ export class xAPIClient {
     const response = await fetch(`${this.baseUrl}/statements`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify(statement)
+      body: JSON.stringify(statement),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -337,7 +338,8 @@ export class xAPIClient {
     const response = await fetch(`${this.baseUrl}/statements`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify(preparedStatements)
+      body: JSON.stringify(preparedStatements),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -366,7 +368,8 @@ export class xAPIClient {
 
     const response = await fetch(`${this.baseUrl}/statements?${params.toString()}`, {
       method: 'GET',
-      headers: this.headers
+      headers: this.headers,
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {

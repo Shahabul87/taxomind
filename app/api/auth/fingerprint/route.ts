@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { SessionManager } from '@/lib/security/session-manager';
 import { extractServerFingerprint, generateFingerprintHash, generateDeviceId, generateDeviceName } from '@/lib/security/session-fingerprint';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * Submit client-side fingerprint for session validation
  */
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Get current session
     const session = await auth();
     

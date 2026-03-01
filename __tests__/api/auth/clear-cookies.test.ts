@@ -1,11 +1,15 @@
 /**
  * Tests for Auth Clear Cookies Route - app/api/auth/clear-cookies/route.ts
  *
- * Covers: GET and POST handlers, cookie clearing, v4/v5 conflict resolution
+ * Covers: POST handler (GET removed for CSRF safety), cookie clearing, auth check
  */
 
 jest.mock('next/headers', () => ({
   cookies: jest.fn(),
+}));
+
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
 }));
 
 // Patch the NextResponse mock to include a cookies property with set()
@@ -33,20 +37,34 @@ const PatchedNextResponse = class extends OriginalNextResponse {
 };
 originalNextServerMock.NextResponse = PatchedNextResponse;
 
-import { GET, POST } from '@/app/api/auth/clear-cookies/route';
+import { POST } from '@/app/api/auth/clear-cookies/route';
 import { cookies } from 'next/headers';
+import { currentUser } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 
 const mockCookies = cookies as jest.Mock;
+const mockCurrentUser = currentUser as jest.Mock;
 
-describe('GET /api/auth/clear-cookies', () => {
+function createPostRequest() {
+  return new NextRequest('http://localhost:3000/api/auth/clear-cookies', {
+    method: 'POST',
+    headers: {
+      origin: 'http://localhost:3000',
+    },
+  });
+}
+
+describe('POST /api/auth/clear-cookies', () => {
   let mockCookieStore: { getAll: jest.Mock; delete: jest.Mock };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     mockCookieStore = {
       getAll: jest.fn(),
       delete: jest.fn(),
     };
     mockCookies.mockResolvedValue(mockCookieStore);
+    mockCurrentUser.mockResolvedValue({ id: 'user-1', email: 'test@test.com' });
   });
 
   it('returns 200 with success message and cleared cookies list', async () => {
@@ -55,7 +73,7 @@ describe('GET /api/auth/clear-cookies', () => {
       { name: 'next-auth.csrf-token', value: 'xyz' },
     ]);
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -63,7 +81,6 @@ describe('GET /api/auth/clear-cookies', () => {
     expect(body.message).toContain('Auth cookies cleared');
     expect(body.clearedCookies).toContain('authjs.session-token');
     expect(body.clearedCookies).toContain('next-auth.csrf-token');
-    expect(body.instruction).toBeTruthy();
   });
 
   it('filters only auth-related cookies from all cookies', async () => {
@@ -74,10 +91,9 @@ describe('GET /api/auth/clear-cookies', () => {
       { name: 'analytics_id', value: 'tracking' },
     ]);
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
     const body = await res.json();
 
-    // Only auth cookies should be cleared
     expect(body.clearedCookies).toContain('authjs.session-token');
     expect(body.clearedCookies).toContain('__Secure-authjs.pkce.code_verifier');
     expect(body.clearedCookies).not.toContain('some-other-cookie');
@@ -89,7 +105,7 @@ describe('GET /api/auth/clear-cookies', () => {
       { name: 'unrelated-cookie', value: 'val' },
     ]);
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -108,23 +124,19 @@ describe('GET /api/auth/clear-cookies', () => {
       }
     });
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
     const body = await res.json();
 
-    // Should still succeed even if one cookie fails
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    // The first cookie should have been cleared
     expect(body.clearedCookies).toContain('authjs.session-token');
   });
 
   it('sets response cookies with maxAge 0 to expire all known auth cookies', async () => {
     mockCookieStore.getAll.mockReturnValue([]);
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
 
-    // The response explicitly sets known auth cookies to expire via response.cookies.set
-    // We check that the response was created (status 200) and has cookie headers
     expect(res.status).toBe(200);
   });
 
@@ -133,35 +145,18 @@ describe('GET /api/auth/clear-cookies', () => {
       { name: '__Secure-authjs.pkce.code_verifier', value: 'pkce-val' },
     ]);
 
-    const res = await GET();
+    const res = await POST(createPostRequest());
     const body = await res.json();
 
     expect(body.clearedCookies).toContain('__Secure-authjs.pkce.code_verifier');
     expect(mockCookieStore.delete).toHaveBeenCalledWith('__Secure-authjs.pkce.code_verifier');
   });
-});
 
-describe('POST /api/auth/clear-cookies', () => {
-  let mockCookieStore: { getAll: jest.Mock; delete: jest.Mock };
+  it('returns 401 when user is not authenticated', async () => {
+    mockCurrentUser.mockResolvedValueOnce(null);
 
-  beforeEach(() => {
-    mockCookieStore = {
-      getAll: jest.fn().mockReturnValue([]),
-      delete: jest.fn(),
-    };
-    mockCookies.mockResolvedValue(mockCookieStore);
-  });
+    const res = await POST(createPostRequest());
 
-  it('returns same response as GET (delegates to GET)', async () => {
-    mockCookieStore.getAll.mockReturnValue([
-      { name: 'authjs.session-token', value: 'abc' },
-    ]);
-
-    const res = await POST();
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(body.clearedCookies).toContain('authjs.session-token');
+    expect(res.status).toBe(401);
   });
 });

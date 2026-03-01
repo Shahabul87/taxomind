@@ -18,6 +18,7 @@ if (!(db as Record<string, unknown>).bill) {
   (db as Record<string, unknown>).bill = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -30,6 +31,11 @@ if (!(db as Record<string, unknown>).billPayment) {
     findMany: jest.fn(),
   };
 }
+
+// Mock $transaction to pass through the callback with the db mock
+(db as Record<string, unknown>).$transaction = jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+  return fn(db);
+});
 
 function createPaymentRequest(body: Record<string, unknown>) {
   return new Request('http://localhost:3000/api/bills/bill-1/payment', {
@@ -68,6 +74,12 @@ describe('POST /api/bills/[billId]/payment', () => {
       status: 'PAID',
       lastPaidAmount: 150.50,
       lastPaidDate: new Date('2026-02-25'),
+    });
+
+    // Mock findFirst for bill ownership check
+    (db.bill as Record<string, jest.Mock>).findFirst.mockResolvedValue({
+      id: 'bill-1',
+      userId: 'user-1',
     });
   });
 
@@ -156,20 +168,12 @@ describe('POST /api/bills/[billId]/payment', () => {
     );
   });
 
-  it('creates payment without optional reference', async () => {
+  it('returns 400 when reference is missing (now required)', async () => {
     const paymentNoRef = { amount: 100, method: 'bank_transfer' };
 
     const res = await POST(createPaymentRequest(paymentNoRef), createParams());
 
-    expect(res.status).toBe(200);
-    expect((db.billPayment as Record<string, jest.Mock>).create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          amount: 100,
-          method: 'bank_transfer',
-        }),
-      })
-    );
+    expect(res.status).toBe(400);
   });
 
   it('returns 500 when payment creation fails', async () => {

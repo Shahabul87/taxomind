@@ -13,7 +13,7 @@ import {
   Trophy
 } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 const steps = [
   {

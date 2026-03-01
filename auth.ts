@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log('[Auth] Production configuration check:', {
     AUTH_SECRET: !!process.env.AUTH_SECRET ? 'SET' : 'MISSING',
     AUTH_URL: process.env.AUTH_URL ? 'SET' : 'NOT SET',
-    AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST || 'NOT SET',
+    AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST ? 'SET' : 'NOT SET',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'NOT SET',
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ? 'SET' : 'NOT SET',
   });
@@ -284,6 +284,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }
   },
   adapter: PrismaAdapter(getBasePrismaClient()),
-  // DEBUG MODE ENABLED - Investigating Configuration error
-  debug: process.env.NODE_ENV === 'production',
+  debug: process.env.NODE_ENV !== 'production',
 });

@@ -193,15 +193,15 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
 
   // Connect to Socket.io and join conversation
   useEffect(() => {
-    const socket = connectSocket();
+    connectSocket().then((socket) => {
+      socket.on("connect", () => {
+        joinConversation(chatId);
+      });
 
-    socket.on("connect", () => {
-      joinConversation(chatId);
+      if (socket.connected) {
+        joinConversation(chatId);
+      }
     });
-
-    if (socket.connected) {
-      joinConversation(chatId);
-    }
 
     return () => {
       leaveConversation(chatId);

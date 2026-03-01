@@ -319,7 +319,7 @@ const nextConfig = {
   
   // External packages for Next.js 15
   // firebase-admin is optional - only used when FIREBASE_* env vars are set
-  serverExternalPackages: ['@noble/hashes', 'bcryptjs', '@grpc/grpc-js', 'firebase-admin'],
+  serverExternalPackages: ['@noble/hashes', 'bcryptjs', '@grpc/grpc-js', 'firebase-admin', 'bullmq', 'kafkajs', 'ioredis', 'pg'],
   
   // Essential image configuration
   images: {
@@ -468,12 +468,12 @@ const nextConfig = {
       });
     }
 
-    // Content Security Policy (Report-Only mode to avoid breaking functionality)
+    // Content Security Policy (enforcing mode)
     securityHeaders.push({
-      key: 'Content-Security-Policy-Report-Only',
+      key: 'Content-Security-Policy',
       value: [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https: blob:",
         "font-src 'self' data: https://fonts.gstatic.com",

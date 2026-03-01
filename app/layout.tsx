@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Script from 'next/script';
+
 import './globals.css'
 import clsx from "clsx";
 import { Suspense } from 'react';
@@ -184,27 +184,24 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* JSON-LD Structured Data for SEO */}
-        <Script
+        {/* JSON-LD Structured Data for SEO - plain script tags for non-executable data */}
+        <script
           id="organization-schema"
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(organizationSchema),
           }}
         />
-        <Script
+        <script
           id="website-schema"
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(websiteSchema),
           }}
         />
-        <Script
+        <script
           id="educational-org-schema"
           type="application/ld+json"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(educationalOrgSchema),
           }}
@@ -258,7 +255,7 @@ export default async function RootLayout({
         playfairDisplay.variable,
         sourceSerif.variable,
         inter.variable,
-        "min-h-screen transition-colors duration-300",
+        "min-h-screen",
         "bg-background text-foreground font-sans"
       )}>
         <Providers session={session}>

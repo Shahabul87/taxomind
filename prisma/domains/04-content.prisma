@@ -28,6 +28,9 @@ model Blog {
   updatedAt   DateTime  @updatedAt
   section     Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sectionId])
 }
 
 model Article {
@@ -46,6 +49,9 @@ model Article {
   updatedAt   DateTime  @updatedAt
   section     Section?  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sectionId])
 }
 
 model Note {
@@ -62,6 +68,9 @@ model Note {
   updatedAt   DateTime @updatedAt
   section     Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sectionId])
 }
 
 model CodeExplanation {
@@ -254,7 +263,9 @@ model FavoriteArticle {
   category  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id])
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model FavoriteAudio {
@@ -267,7 +278,9 @@ model FavoriteAudio {
   category  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id])
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model FavoriteBlog {
@@ -280,7 +293,9 @@ model FavoriteBlog {
   category  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id])
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model FavoriteImage {
@@ -304,7 +319,9 @@ model FavoriteVideo {
   category  String?
   createdAt DateTime @default(now())
   updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id])
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model PostChapterSection {

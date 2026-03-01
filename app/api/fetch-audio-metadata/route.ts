@@ -1,18 +1,33 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import * as cheerio from "cheerio";
+import { load as cheerioLoad } from "cheerio";
 import { logger } from '@/lib/logger';
+import { currentUser } from '@/lib/auth';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { validateFetchUrl } from '@/lib/utils/url-validator';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimitResponse = await withRateLimit(request, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
 
   if (!url) {
-
     return NextResponse.json(
       { error: "URL parameter is required" },
       { status: 400 }
     );
+  }
+
+  const urlError = validateFetchUrl(url);
+  if (urlError) {
+    return NextResponse.json({ error: urlError }, { status: 400 });
   }
 
   try {
@@ -40,7 +55,7 @@ export async function GET(request: Request) {
     });
 
     // Parse the HTML
-    const $ = cheerio.load(response.data);
+    const $ = cheerioLoad(response.data);
     
     // Extract metadata - try multiple approaches to get the most accurate title
     let title: string | null = $('meta[property="og:title"]').attr('content') || 
@@ -305,7 +320,7 @@ async function handleAppleMusicUrl(url: string) {
       timeout: 5000
     });
     
-    const $ = cheerio.load(response.data);
+    const $ = cheerioLoad(response.data);
     
     // Extract metadata from Apple Music page
     const title = $('meta[property="og:title"]').attr('content') || 

@@ -7,11 +7,7 @@ import React, {
   useContext,
   useCallback,
 } from "react";
-import {
-  IconArrowNarrowLeft,
-  IconArrowNarrowRight,
-  IconX,
-} from "@tabler/icons-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import Image, { ImageProps } from "next/image";
@@ -141,7 +137,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
             disabled={!canScrollLeft}
             aria-label="Scroll left"
           >
-            <IconArrowNarrowLeft className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+            <ArrowLeft className="h-6 w-6 text-gray-700 dark:text-gray-300" />
           </button>
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 dark:bg-gray-800/90 disabled:opacity-50 transition-all hover:bg-white dark:hover:bg-gray-700 shadow-lg backdrop-blur-sm border border-gray-200 dark:border-gray-700"
@@ -149,7 +145,7 @@ export const Carousel = ({ items, initialScroll = 0 }: CarouselProps) => {
             disabled={!canScrollRight}
             aria-label="Scroll right"
           >
-            <IconArrowNarrowRight className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+            <ArrowRight className="h-6 w-6 text-gray-700 dark:text-gray-300" />
           </button>
         </div>
       </div>
@@ -222,7 +218,7 @@ export const Card = ({
                 className="sticky top-4 right-0 ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-black dark:bg-white"
                 onClick={handleClose}
               >
-                <IconX className="h-6 w-6 text-neutral-100 dark:text-neutral-900" />
+                <X className="h-6 w-6 text-neutral-100 dark:text-neutral-900" />
               </button>
               <motion.p
                 layoutId={layout ? `category-${card.title}` : undefined}

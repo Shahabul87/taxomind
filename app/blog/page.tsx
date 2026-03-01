@@ -2,7 +2,7 @@ import { ModernBlogPage } from './components/modern-blog-page';
 import { getSimplePostsForBlog } from '@/actions/get-simple-posts';
 import { currentUser } from '@/lib/auth';
 import { PageWithMobileLayout } from '@/components/layouts/PageWithMobileLayout';
-import Script from 'next/script';
+
 
 // Fetch posts from database for initial SSR
 async function getPosts() {
@@ -78,10 +78,9 @@ export default async function BlogPage() {
       enableGestures={false}
       contentClassName="bg-slate-50 dark:bg-slate-900"
     >
-      <Script
+      <script
         id="blog-ld-json"
         type="application/ld+json"
-        strategy="afterInteractive"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
       <ModernBlogPage

@@ -265,6 +265,23 @@ export function createEmbeddingAdapter(options?: {
 // PGVECTOR ADAPTER
 // ============================================================================
 
+// Allowed table and column names to prevent SQL injection via raw queries
+const ALLOWED_TABLES = new Set([
+  'SAMMemory',
+  'SAMMemoryEntry',
+  'knowledge_graph_nodes',
+  'knowledge_graph_edges',
+]);
+
+const ALLOWED_COLUMNS = new Set([
+  'embedding',
+  'content',
+  'text',
+  'body',
+  'description',
+  'vector',
+]);
+
 /**
  * PgVector-based vector database adapter
  */
@@ -283,6 +300,23 @@ export class PgVectorAdapter implements VectorAdapter {
       embeddingProvider?: EmbeddingAdapter;
     }
   ) {
+    // Validate table and column names to prevent SQL injection
+    if (!ALLOWED_TABLES.has(this.tableName)) {
+      throw new Error(
+        `Invalid table name: "${this.tableName}". Allowed tables: ${[...ALLOWED_TABLES].join(', ')}`
+      );
+    }
+    if (!ALLOWED_COLUMNS.has(this.embeddingColumn)) {
+      throw new Error(
+        `Invalid embedding column: "${this.embeddingColumn}". Allowed columns: ${[...ALLOWED_COLUMNS].join(', ')}`
+      );
+    }
+    if (!ALLOWED_COLUMNS.has(this.contentColumn)) {
+      throw new Error(
+        `Invalid content column: "${this.contentColumn}". Allowed columns: ${[...ALLOWED_COLUMNS].join(', ')}`
+      );
+    }
+
     this.dimensions = options?.dimensions ?? 1536;
     this.embeddingProvider = options?.embeddingProvider;
   }

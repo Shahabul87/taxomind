@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/auth.admin";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { 
   needsInitialAdmin,
   createFirstAdmin,
@@ -102,6 +103,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await req.json();
     const { action } = body;
 

@@ -340,7 +340,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     setCustomContext(prev => ({ ...prev, ...context }));
   }, []);
 
-  const value: SAMGlobalContextType = {
+  const value = useMemo<SAMGlobalContextType>(() => ({
     isOpen,
     setIsOpen,
     learningContext,
@@ -352,7 +352,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
     shouldShow,
     toggleSAM,
     updateContext
-  };
+  }), [isOpen, setIsOpen, learningContext, tutorMode, features, position, theme, screenSize, shouldShow, toggleSAM, updateContext]);
 
   return (
     <SAMGlobalContext.Provider value={value}>

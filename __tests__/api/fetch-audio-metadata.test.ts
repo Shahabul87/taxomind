@@ -29,6 +29,14 @@ jest.mock('@/lib/logger', () => ({
   logger: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() },
 }));
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
+}));
+
+jest.mock('@/lib/utils/url-validator', () => ({
+  validateFetchUrl: jest.fn().mockReturnValue(null),
+}));
+
 import { GET } from '@/app/api/fetch-audio-metadata/route';
 import axios from 'axios';
 

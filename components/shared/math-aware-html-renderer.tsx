@@ -799,7 +799,12 @@ export function MathText({ text, className }: MathTextProps) {
       html = renderAsciiMath(decoded);
     }
 
-    return html;
+    // Sanitize the final HTML to prevent XSS from math content
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
+      ALLOW_DATA_ATTR: false,
+    });
   }, [text, katexReady]);
 
   if (!text) return null;

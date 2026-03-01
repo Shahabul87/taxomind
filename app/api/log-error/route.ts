@@ -1,19 +1,32 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
-// Minimal error logging endpoint used by client error boundaries.
-// Accepts arbitrary JSON and logs at error level.
+const LogErrorSchema = z.object({
+  message: z.string().max(5000).optional(),
+  digest: z.string().max(200).optional(),
+  page: z.string().max(500).optional(),
+  timestamp: z.union([z.string(), z.number()]).optional(),
+});
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const data = await request.json().catch(() => ({}));
 
-    // Attach basic request context (redacted)
+    const parsed = LogErrorSchema.safeParse(data);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 });
+    }
+
     const context = {
-      message: data?.message || 'Client error reported',
-      digest: data?.digest,
-      page: data?.page,
-      timestamp: data?.timestamp,
+      message: parsed.data.message || 'Client error reported',
+      digest: parsed.data.digest,
+      page: parsed.data.page,
+      timestamp: parsed.data.timestamp,
       userAgent: request.headers.get('user-agent') || undefined,
     };
 

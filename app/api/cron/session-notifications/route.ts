@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
           gt: now,
         },
       },
+      take: 500,
       include: {
         user: {
           select: { id: true, name: true },
@@ -63,6 +64,8 @@ export async function GET(req: NextRequest) {
       skipped: 0,
       failed: 0,
     };
+
+    const sentSessionIds: string[] = [];
 
     for (const session of sessionsToNotify) {
       const sessionStart = new Date(session.startTime);
@@ -91,11 +94,7 @@ export async function GET(req: NextRequest) {
           });
 
           if (result.success) {
-            // Mark notification as sent
-            await db.dashboardStudySession.update({
-              where: { id: session.id },
-              data: { notificationSentAt: now },
-            });
+            sentSessionIds.push(session.id);
             results.sent++;
 
             logger.info('[SessionNotificationCron] Notification sent', {
@@ -120,6 +119,14 @@ export async function GET(req: NextRequest) {
       } else {
         results.skipped++;
       }
+    }
+
+    // Batch-update all successfully sent notifications in a single query
+    if (sentSessionIds.length > 0) {
+      await db.dashboardStudySession.updateMany({
+        where: { id: { in: sentSessionIds } },
+        data: { notificationSentAt: now },
+      });
     }
 
     logger.info('[SessionNotificationCron] Completed', results);

@@ -1,3 +1,6 @@
+// Override global mock from jest.setup.js so we test the real implementation
+jest.unmock('@/lib/sam/middleware/rate-limiter');
+
 /**
  * Verification Tests for the 6 AI Infrastructure Improvements
  *

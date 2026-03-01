@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+
 import { logger } from '@/lib/logger';
 
 // Configuration for safe scraping

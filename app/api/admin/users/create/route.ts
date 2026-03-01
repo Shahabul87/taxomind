@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { AdminRole } from "@/types/admin-role";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const CreateUserSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -17,8 +18,11 @@ const CreateUserSchema = z.object({
   isTeacher: z.boolean().default(false),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Check authentication
     const user = await currentUser();
 

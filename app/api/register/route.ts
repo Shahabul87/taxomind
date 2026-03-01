@@ -1,7 +1,4 @@
-// pages/api/register.ts
-
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 
 import { db } from "@/lib/db";
@@ -10,11 +7,14 @@ import { getUserByEmail } from "@/data/user";
 import { sendVerificationEmail } from "@/lib/mail";
 import { generateVerificationToken } from "@/lib/tokens";
 import { hashPassword } from "@/lib/passwordUtils";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'heavy');
+  if (rateLimitResponse) return rateLimitResponse;
   try {
     // Parse and validate the request body using Zod schema
     const body = await req.json();

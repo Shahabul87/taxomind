@@ -5,6 +5,10 @@
  * Auth: No auth required for POST, no auth for GET
  */
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
+}));
+
 jest.mock('@/lib/performance-monitoring', () => ({
   performanceMonitoring: {
     traceDatabaseQuery: jest.fn((_op: string, _model: string, fn: () => Promise<unknown>) => fn()),

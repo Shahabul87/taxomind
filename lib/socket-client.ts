@@ -1,12 +1,13 @@
 "use client";
 
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
-export const getSocket = (userId?: string, userName?: string): Socket => {
+export const getSocket = async (userId?: string, userName?: string): Promise<Socket> => {
   if (!socket) {
-    // Connect to Socket.io server
+    const { io } = await import("socket.io-client");
+
     socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001", {
       autoConnect: false,
       reconnection: true,
@@ -19,11 +20,11 @@ export const getSocket = (userId?: string, userName?: string): Socket => {
     });
 
     socket.on("connect", () => {
-      console.log("✓ Socket connected:", socket?.id);
+      console.log("Socket connected:", socket?.id);
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("✗ Socket disconnected:", reason);
+      console.log("Socket disconnected:", reason);
     });
 
     socket.on("connect_error", (error) => {
@@ -34,12 +35,12 @@ export const getSocket = (userId?: string, userName?: string): Socket => {
   return socket;
 };
 
-export const connectSocket = () => {
-  const socket = getSocket();
-  if (!socket.connected) {
-    socket.connect();
+export const connectSocket = async () => {
+  const s = await getSocket();
+  if (!s.connected) {
+    s.connect();
   }
-  return socket;
+  return s;
 };
 
 export const disconnectSocket = () => {
@@ -66,7 +67,7 @@ export const emitStopTyping = (conversationId: string, userId: string) => {
   socket?.emit("stop_typing", { conversationId, userId });
 };
 
-export const emitMessageSent = (message: any) => {
+export const emitMessageSent = (message: Record<string, unknown>) => {
   socket?.emit("message_sent", message);
 };
 
@@ -75,7 +76,7 @@ export const emitMessageRead = (messageId: string, conversationId: string) => {
 };
 
 // Event listeners
-export const onNewMessage = (callback: (message: any) => void) => {
+export const onNewMessage = (callback: (message: Record<string, unknown>) => void) => {
   socket?.on("new_message", callback);
   return () => {
     socket?.off("new_message", callback);

@@ -7,6 +7,10 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn().mockResolvedValue({ id: 'user-1', email: 'test@test.com' }),
+}));
+
 import { POST } from '@/app/api/error-monitoring/route';
 import { db } from '@/lib/db';
 import { NextRequest } from 'next/server';

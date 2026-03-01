@@ -24,7 +24,9 @@ describe('fetcher', () => {
 
     const result = await fetcher('https://api.example.com/data');
 
-    expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/data');
+    expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/data', expect.objectContaining({
+      signal: expect.any(AbortSignal),
+    }));
     expect(mockResponse.json).toHaveBeenCalled();
     expect(result).toEqual(mockData);
   });
@@ -42,7 +44,9 @@ describe('fetcher', () => {
       'An error occurred while fetching the data.'
     );
 
-    expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/notfound');
+    expect(mockFetch).toHaveBeenCalledWith('https://api.example.com/notfound', expect.objectContaining({
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it('should throw error when response is not ok with 500 status', async () => {
@@ -105,13 +109,19 @@ describe('fetcher', () => {
 
     // Test with different URL formats
     await fetcher('/api/local');
-    expect(mockFetch).toHaveBeenCalledWith('/api/local');
+    expect(mockFetch).toHaveBeenCalledWith('/api/local', expect.objectContaining({
+      signal: expect.any(AbortSignal),
+    }));
 
     await fetcher('https://external-api.com/endpoint');
-    expect(mockFetch).toHaveBeenCalledWith('https://external-api.com/endpoint');
+    expect(mockFetch).toHaveBeenCalledWith('https://external-api.com/endpoint', expect.objectContaining({
+      signal: expect.any(AbortSignal),
+    }));
 
     await fetcher('/api/users/123');
-    expect(mockFetch).toHaveBeenCalledWith('/api/users/123');
+    expect(mockFetch).toHaveBeenCalledWith('/api/users/123', expect.objectContaining({
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it('should handle empty response', async () => {

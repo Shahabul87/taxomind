@@ -572,17 +572,11 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
 
-    // In development, return detailed error info
-    const isDev = process.env.NODE_ENV === 'development';
-
     const response: ApiResponse = {
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: isDev
-          ? `Error: ${errorMessage}`
-          : 'Unable to load profile. Please try again or contact support if the issue persists.',
-        details: isDev ? { stack: errorStack, error: String(error) } : undefined,
+        message: 'Unable to load profile. Please try again or contact support if the issue persists.',
       },
     };
     return NextResponse.json(response, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { oidcProviderManager, type OIDCConfiguration } from '@/lib/auth/oidc-provider';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * OIDC SSO Authentication Endpoints
@@ -17,6 +18,9 @@ import { logger } from '@/lib/logger';
  */
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { tenantId, redirectUri, additionalParams } = await request.json();
     
     if (!tenantId) {

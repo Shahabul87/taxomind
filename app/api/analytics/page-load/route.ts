@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { performanceMonitoring } from '@/lib/performance-monitoring'
 import { successResponse, apiErrors } from '@/lib/utils/api-response';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { currentUser } from '@/lib/auth';
 
 const PageLoadSchema = z.object({
   dns: z.number().optional(),
@@ -20,6 +22,9 @@ const PageLoadSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json()
 
@@ -102,6 +107,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const url = new URL(req.url)
     const timeframe = url.searchParams.get('timeframe') || '24h'

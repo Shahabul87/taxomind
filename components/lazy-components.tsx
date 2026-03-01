@@ -89,34 +89,6 @@ export const LazyExam = withLazyLoading(LazyExamCreation, EditorLoadingFallback)
 export const LazyFlow = withLazyLoading(LazyReactFlow, ChartLoadingFallback);
 export const LazyCode = withLazyLoading(LazyCodeEditor, EditorLoadingFallback);
 
-// Dynamic import utilities
-export const dynamicImport = {
-  // UI Libraries
-  framerMotion: () => import('framer-motion'),
-  reactFlow: () => import('reactflow'),
-  recharts: () => import('recharts'),
-  chartjs: () => import('chart.js'),
-  
-  // Editor
-  tiptap: () => import('@tiptap/react'),
-  monaco: () => import('@monaco-editor/react'),
-  
-  // Analytics
-  analytics: () => import('@/lib/analytics'),
-  
-  // AI
-  anthropic: () => import('@anthropic-ai/sdk'),
-  
-  // Utilities
-  lodash: () => import('lodash'),
-  dateFns: () => import('date-fns'),
-  
-  // Video
-  reactYoutube: () => import('react-youtube'),
-  
-  // Confetti
-  confetti: () => import('react-confetti'),
-};
 
 // Route-based lazy loading
 // NOTE: Disabled - Next.js Server Components cannot be used with React.lazy()
@@ -130,4 +102,3 @@ export const dynamicImport = {
 // };
 
 // Preload functions for critical routes
-export const preloadCriticalComponents = {} as const;

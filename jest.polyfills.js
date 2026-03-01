@@ -12,6 +12,15 @@ if (typeof globalThis.URL === 'undefined') {
   globalThis.URLSearchParams = URLSearchParams
 }
 
+// Polyfill for AbortSignal.timeout (not available in jsdom)
+if (typeof AbortSignal.timeout !== 'function') {
+  AbortSignal.timeout = function(ms) {
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError')), ms)
+    return controller.signal
+  }
+}
+
 // Polyfill for crypto
 if (typeof globalThis.crypto === 'undefined') {
   const crypto = require('crypto')

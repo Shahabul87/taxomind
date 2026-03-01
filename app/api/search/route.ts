@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Add these exports to make the endpoint publicly accessible and not cached
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,8 @@ interface SearchResponse {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     // Get search query from URL

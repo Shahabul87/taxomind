@@ -26,7 +26,7 @@ function ensureModel(modelName: string, methods: string[]) {
 }
 
 const billPayment = ensureModel('billPayment', ['create']);
-const bill = ensureModel('bill', ['update']);
+const bill = ensureModel('bill', ['update', 'findFirst']);
 
 describe('/api/bills/[billId]/payment route', () => {
   beforeEach(() => {
@@ -34,6 +34,11 @@ describe('/api/bills/[billId]/payment route', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
     billPayment.create.mockResolvedValue({ id: 'payment-1', status: 'successful' });
     bill.update.mockResolvedValue({ id: 'b1', status: 'PAID' });
+    bill.findFirst.mockResolvedValue({ id: 'b1', userId: 'user-1' });
+    // Mock $transaction to pass through the callback with the db mock
+    (db as Record<string, unknown>).$transaction = jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      return fn(db);
+    });
   });
 
   it('returns 401 when unauthenticated', async () => {

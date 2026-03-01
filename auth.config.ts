@@ -59,11 +59,11 @@ export default {
   // Session configuration to match across auth.ts and edge config
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days matching session
+    maxAge: 7 * 24 * 60 * 60, // 7 days matching session
     encode,
     // Custom decode to handle secret rotation/mismatch errors gracefully
     async decode(params) {
@@ -86,6 +86,12 @@ export default {
   useSecureCookies: process.env.NODE_ENV === 'production',
   // Trust host
   trustHost: true,
-  // Secret for JWT signing
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  // Secret for JWT signing - fail fast if neither secret is set
+  secret: (() => {
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!secret) {
+      throw new Error('AUTH_SECRET or NEXTAUTH_SECRET must be set');
+    }
+    return secret;
+  })(),
 } satisfies NextAuthConfig

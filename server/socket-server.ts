@@ -61,13 +61,20 @@ const onlineUsers = new Map<string, UserStatus>();
 
 // Create HTTP server
 const httpServer = createServer();
+const allowedOrigins = (process.env.SOCKET_CORS_ORIGINS || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
   transports: ["websocket", "polling"],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6, // 1MB max payload
 });
 
 // SAM realtime WebSocket server (raw WS on /ws/sam)

@@ -307,7 +307,6 @@ export class SecurityHeaders {
     
     // Add custom security headers
     response.headers.set('X-Security-Headers', 'applied');
-    response.headers.set('X-Environment', this.config.environment);
 
     return response;
   }

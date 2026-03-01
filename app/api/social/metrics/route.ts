@@ -42,7 +42,9 @@ export async function GET(req: NextRequest) {
       const facebookMetricsUrl = `${baseUrl}/api/social/facebook/metrics`;
       
       // Make the request
-      const response = await fetch(facebookMetricsUrl);
+      const response = await fetch(facebookMetricsUrl, {
+        signal: AbortSignal.timeout(10_000),
+      });
       
       if (!response.ok) {
 

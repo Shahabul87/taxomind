@@ -43,6 +43,7 @@ describe('/api/cron/session-notifications route', () => {
     mockDb.dashboardStudySession = {
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
+      updateMany: jest.fn(),
     };
   });
 
@@ -93,8 +94,8 @@ describe('/api/cron/session-notifications route', () => {
     expect(body.success).toBe(true);
     expect(body.sent).toBe(1);
     expect(mockSendPushToUser).toHaveBeenCalledTimes(1);
-    expect(mockDb.dashboardStudySession.update).toHaveBeenCalledWith({
-      where: { id: 'session-1' },
+    expect(mockDb.dashboardStudySession.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['session-1'] } },
       data: { notificationSentAt: expect.any(Date) },
     });
   });

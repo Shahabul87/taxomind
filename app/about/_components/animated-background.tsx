@@ -1,12 +1,22 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 export const Star = ({ delay = 0 }) => {
+  const [position, setPosition] = useState({ top: '50%', left: '50%' });
+
+  useEffect(() => {
+    setPosition({
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+    });
+  }, []);
+
   return (
     <motion.div
       initial={{ scale: 0, rotate: 0 }}
-      animate={{ 
+      animate={{
         scale: [0, 1, 0],
         rotate: 360,
         opacity: [0, 1, 0]
@@ -18,10 +28,7 @@ export const Star = ({ delay = 0 }) => {
         ease: "easeInOut"
       }}
       className="absolute w-1 h-1 bg-white rounded-full"
-      style={{
-        top: `${Math.random() * 100}%`,
-        left: `${Math.random() * 100}%`,
-      }}
+      style={position}
     />
   );
 };

@@ -206,6 +206,7 @@ async function sendAnalyticsEvent(event: BlogAnalyticsEvent): Promise<void> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(event),
+      signal: AbortSignal.timeout(5_000),
     });
   } catch (error) {
     // Fail silently - don't disrupt user experience

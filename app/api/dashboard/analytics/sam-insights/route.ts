@@ -47,12 +47,16 @@ export async function GET(req: NextRequest) {
     // Fetch user enrollments
     const enrollments = await db.enrollment.findMany({
       where: { userId: user.id },
+      take: 50,
       include: {
         Course: {
-          include: {
+          select: {
+            id: true,
+            title: true,
             chapters: {
-              include: {
-                sections: true,
+              select: {
+                id: true,
+                sections: { select: { id: true } },
               },
             },
           },
@@ -67,6 +71,7 @@ export async function GET(req: NextRequest) {
         startTime: { gte: thirtyDaysAgo },
         status: 'COMPLETED',
       },
+      take: 500,
       select: {
         startTime: true,
         duration: true,
@@ -87,12 +92,18 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      include: {
+      take: 500,
+      select: {
+        id: true,
+        isCompleted: true,
+        sectionId: true,
         Section: {
-          include: {
+          select: {
+            id: true,
             chapter: {
-              include: {
-                course: true,
+              select: {
+                id: true,
+                courseId: true,
               },
             },
           },
@@ -106,6 +117,7 @@ export async function GET(req: NextRequest) {
         userId: user.id,
         status: 'ACTIVE',
       },
+      take: 100,
       include: {
         course: true,
       },
@@ -118,6 +130,7 @@ export async function GET(req: NextRequest) {
         status: 'SUBMITTED',
         submittedAt: { gte: thirtyDaysAgo },
       },
+      take: 200,
       include: {
         Exam: {
           include: {

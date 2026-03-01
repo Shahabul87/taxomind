@@ -53,6 +53,9 @@ export const defaultWorkerOptions: WorkerOptions = {
     max: 100, // Max 100 jobs
     duration: 1000, // per second
   },
+  stalledInterval: 30000, // Check for stalled jobs every 30s
+  maxStalledCount: 2, // Allow 2 stalls before marking as failed
+  lockDuration: 300000, // 5 min lock duration for long-running jobs
 };
 
 // Job priorities

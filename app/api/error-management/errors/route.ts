@@ -82,7 +82,6 @@ export const GET = withErrorHandling(async (request: Request) => {
   const formattedErrors = errors.map(error => ({
     id: error.id,
     message: error.message,
-    stack: error.stack,
     timestamp: error.timestamp,
     user: error.user,
     userAgent: error.userAgent,

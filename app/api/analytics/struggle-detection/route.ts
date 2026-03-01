@@ -104,7 +104,8 @@ async function detectStruggles(courseId: string, threshold: number) {
     where: {
       riskScore: { gte: 0.7 }, // High risk score
       ...(courseId && { courseId })
-    }
+    },
+    take: 200,
   });
 
   // 4. Create struggle reports

@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,24 +25,23 @@ export function AdminFeaturesTab({ analytics, performance }: AdminFeaturesProps)
   const [systemData, setSystemData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSystemData();
-    const interval = setInterval(fetchSystemData, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchSystemData = async () => {
+  const fetchSystemData = useCallback(async () => {
     try {
-      // Fetch system-wide data
       const response = await fetch('/api/system/health?detailed=true');
       const data = await response.json();
       setSystemData(data);
       setIsLoading(false);
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Failed to fetch system data:', error);
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSystemData();
+    const interval = setInterval(fetchSystemData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchSystemData]);
 
   const adminFeatures = [
     {

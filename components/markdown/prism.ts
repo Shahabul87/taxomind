@@ -1,7 +1,7 @@
 // This file exports Prism syntax highlighting themes for code blocks
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight, oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // Light theme for syntax highlighting
 export const prismLight = {

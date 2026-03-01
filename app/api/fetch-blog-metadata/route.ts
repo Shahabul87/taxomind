@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import axios, { AxiosRequestConfig } from "axios";
 import { load } from "cheerio";
 import { logger } from '@/lib/logger';
+import { currentUser } from '@/lib/auth';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { validateFetchUrl } from '@/lib/utils/url-validator';
 
 // Browser-like headers to avoid 403 blocks
 const browserHeaders = {
@@ -33,7 +36,15 @@ const createAxiosConfig = (url: string): AxiosRequestConfig => ({
   validateStatus: (status: number) => status >= 200 && status < 400,
 });
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimitResponse = await withRateLimit(req, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { searchParams } = new URL(req.url);
     const url = searchParams.get("url");
@@ -46,18 +57,10 @@ export async function GET(req: Request) {
       );
     }
 
-    // Validate URL format
-    try {
-      const parsedUrl = new URL(url);
-      // Only allow http/https protocols
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        throw new Error('Invalid protocol');
-      }
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid URL format" },
-        { status: 400 }
-      );
+    // Validate URL format and block SSRF
+    const urlError = validateFetchUrl(url);
+    if (urlError) {
+      return NextResponse.json({ error: urlError }, { status: 400 });
     }
 
     // Extract blog metadata with proper error handling

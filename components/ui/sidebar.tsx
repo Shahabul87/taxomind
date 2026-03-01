@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import Link, { LinkProps } from 'next/link';
 import React, {
   useState,
+  useMemo,
   createContext,
   useContext,
   ReactNode,
@@ -51,8 +52,10 @@ export const SidebarProvider = ({
   const open = openProp !== undefined ? openProp : openState;
   const setOpen = setOpenProp !== undefined ? setOpenProp : setOpenState;
 
+  const contextValue = useMemo(() => ({ open, setOpen, animate }), [open, setOpen, animate]);
+
   return (
-    <SidebarContext.Provider value={{ open, setOpen, animate: animate }}>
+    <SidebarContext.Provider value={contextValue}>
       {children}
     </SidebarContext.Provider>
   );

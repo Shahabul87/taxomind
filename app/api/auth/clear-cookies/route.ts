@@ -1,12 +1,28 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { currentUser } from '@/lib/auth';
 
 /**
- * Clear all auth-related cookies to fix v4/v5 cookie conflicts
- * The "Configuration" error on first OAuth login is often caused by
- * old next-auth v4 cookies conflicting with new authjs v5 cookies
+ * Clear all auth-related cookies to fix v4/v5 cookie conflicts.
+ * POST-only to prevent CSRF via GET requests.
  */
-export async function GET() {
+export async function POST(request: NextRequest) {
+  // Validate origin to prevent CSRF
+  const origin = request.headers.get('origin');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+  if (origin && appUrl) {
+    const allowedOrigin = new URL(appUrl).origin;
+    if (origin !== allowedOrigin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  // Require authentication
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
 
@@ -22,10 +38,8 @@ export async function GET() {
 
   const clearedCookies: string[] = [];
 
-  // Clear each auth cookie
   for (const cookie of authCookies) {
     try {
-      // Try to delete with various options to ensure deletion
       cookieStore.delete(cookie.name);
       clearedCookies.push(cookie.name);
     } catch (error) {
@@ -33,30 +47,25 @@ export async function GET() {
     }
   }
 
-  // Set response with cookie deletion headers
   const response = NextResponse.json({
     success: true,
     message: 'Auth cookies cleared. Please try logging in again.',
     clearedCookies,
-    instruction: 'After seeing this response, go to /auth/login and try Google/GitHub login again',
   });
 
-  // Explicitly delete cookies via response headers for all possible prefixes and names
+  // Explicitly delete cookies via response headers
   const cookiesToClear = [
-    // Auth.js v5 cookies
     '__Host-authjs.csrf-token',
     '__Secure-authjs.callback-url',
     '__Secure-authjs.session-token',
     '__Secure-authjs.pkce.code_verifier',
     '__Secure-authjs.state',
     '__Secure-authjs.nonce',
-    // Old next-auth v4 cookies
     '__Host-next-auth.csrf-token',
     '__Host-next-auth.callback-url',
     '__Secure-next-auth.session-token',
     '__Secure-next-auth.pkce.code_verifier',
     '__Secure-next-auth.state',
-    // Non-prefixed versions
     'authjs.csrf-token',
     'authjs.callback-url',
     'authjs.session-token',
@@ -74,9 +83,4 @@ export async function GET() {
   }
 
   return response;
-}
-
-export async function POST() {
-  // Same as GET for convenience
-  return GET();
 }

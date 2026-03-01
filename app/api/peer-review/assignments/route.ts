@@ -154,6 +154,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
+      take: 100,
     });
 
     return NextResponse.json({

@@ -493,6 +493,13 @@ jest.mock('@/lib/db-pooled', () => ({
   getBasePrismaClient: () => dbMock,
 }));
 
+// Mock rate limiter to always allow requests in tests
+jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
+  withRateLimit: jest.fn().mockResolvedValue(null), // null = not rate limited
+  createRateLimiter: jest.fn(),
+  rateLimitConfigs: {},
+}));
+
 // Also mock the test-db prismaMock to use the same instance
 jest.mock('./__tests__/utils/test-db', () => ({
   prismaMock: dbMock,

@@ -10,7 +10,7 @@ import { HeroSkeleton, TrendingSectionSkeleton, GroupsSkeleton } from "./_compon
 // SAM AI Study Buddy Integration
 import { StudyBuddyFinder } from "@/components/sam/StudyBuddyFinder";
 
-export const revalidate = 0;
+export const revalidate = 30;
 
 interface GroupsPageProps {
   searchParams: Promise<{

@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { signIn } from '@/auth';
 import { logger } from '@/lib/logger';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const SAMLAuthSchema = z.object({
   tenantId: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/, 'Invalid tenant ID format'),
@@ -25,6 +26,9 @@ const SAMLAuthSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const parsed = SAMLAuthSchema.safeParse(body);
 

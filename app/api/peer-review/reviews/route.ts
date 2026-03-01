@@ -113,53 +113,55 @@ export async function POST(req: NextRequest) {
     }
     totalScore = Math.round(totalScore * 100) / 100; // Round to 2 decimal places
 
-    // Create review with scores
-    const review = await db.peerReview.create({
-      data: {
-        assignmentId: validatedData.assignmentId,
-        reviewerId: user.id,
-        submissionId: assignment.submissionId,
-        overallScore: totalScore,
-        overallFeedback: validatedData.overallFeedback,
-        strengths: validatedData.strengths,
-        improvements: validatedData.improvements,
-        timeSpentMinutes: validatedData.timeSpentMinutes,
-        confidence: validatedData.confidence,
-        submittedAt: new Date(),
-        scores: {
-          create: validatedData.scores.map((s) => ({
-            criterionId: s.criterionId,
-            score: s.score,
-            feedback: s.feedback,
-          })),
+    // Create review, update assignment, and update reviewer profile atomically
+    const review = await db.$transaction(async (tx) => {
+      const createdReview = await tx.peerReview.create({
+        data: {
+          assignmentId: validatedData.assignmentId,
+          reviewerId: user.id,
+          submissionId: assignment.submissionId,
+          overallScore: totalScore,
+          overallFeedback: validatedData.overallFeedback,
+          strengths: validatedData.strengths,
+          improvements: validatedData.improvements,
+          timeSpentMinutes: validatedData.timeSpentMinutes,
+          confidence: validatedData.confidence,
+          submittedAt: new Date(),
+          scores: {
+            create: validatedData.scores.map((s) => ({
+              criterionId: s.criterionId,
+              score: s.score,
+              feedback: s.feedback,
+            })),
+          },
         },
-      },
-      include: {
-        scores: true,
-      },
-    });
+        include: {
+          scores: true,
+        },
+      });
 
-    // Update assignment status
-    await db.reviewAssignment.update({
-      where: { id: validatedData.assignmentId },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
+      await tx.reviewAssignment.update({
+        where: { id: validatedData.assignmentId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
 
-    // Update reviewer profile stats
-    await db.reviewerProfile.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
-        totalReviews: 1,
-        averageTimeMinutes: validatedData.timeSpentMinutes,
-        level: 'NOVICE',
-      },
-      update: {
-        totalReviews: { increment: 1 },
-      },
+      await tx.reviewerProfile.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          totalReviews: 1,
+          averageTimeMinutes: validatedData.timeSpentMinutes,
+          level: 'NOVICE',
+        },
+        update: {
+          totalReviews: { increment: 1 },
+        },
+      });
+
+      return createdReview;
     });
 
     return NextResponse.json({

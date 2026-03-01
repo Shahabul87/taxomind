@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bell, Check, X, Mail, AlertCircle, BookOpen, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,14 +49,7 @@ export const NotificationDropdown = ({ className }: NotificationDropdownProps) =
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    fetchNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch("/api/notifications?limit=10");
       const data = await response.json();
@@ -68,7 +61,13 @@ export const NotificationDropdown = ({ className }: NotificationDropdownProps) =
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     try {

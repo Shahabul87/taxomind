@@ -48,6 +48,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const data = await response.json();
@@ -116,6 +117,7 @@ export async function verifyResendConnection(): Promise<boolean> {
         subject: 'Test',
         html: '<p>Test</p>',
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     // Even if the email fails due to invalid recipient,

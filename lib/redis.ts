@@ -253,11 +253,28 @@ export const redis = (() => {
         maxRetriesPerRequest: 3,
         enableReadyCheck: false,
         lazyConnect: true,
-      } as any);
+        connectTimeout: 10000,
+        retryStrategy: (times: number) => {
+          if (times > 5) return null; // Stop retrying after 5 attempts
+          return Math.min(times * 200, 3000);
+        },
+      });
+
+      redisClient.on('error', (err) => {
+        logger.error('Redis connection error:', { error: err.message });
+      });
+
+      redisClient.on('connect', () => {
+        logger.info('Redis connected successfully');
+      });
+
+      redisClient.on('reconnecting', () => {
+        logger.warn('Redis reconnecting...');
+      });
 
       globalThis.redis = redisClient;
       return redisClient;
-    } catch (error: any) {
+    } catch (error) {
       logger.warn('Redis connection failed, using fallback:', error);
     }
   }

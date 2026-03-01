@@ -68,16 +68,16 @@ export async function POST(req: Request) {
         course,
         message: "Course updated successfully"
       });
-    } catch (dbError: any) {
+    } catch (dbError) {
       logger.error("Database error during update:", dbError);
-      return NextResponse.json({ 
-        error: `Database Error: ${dbError.message}` 
+      return NextResponse.json({
+        error: 'Database error occurred'
       }, { status: 500 });
     }
-  } catch (error: any) {
+  } catch (error) {
     logger.error("[COURSE_UPDATE] Detailed error:", error);
-    return NextResponse.json({ 
-      error: `Internal Error: ${error.message}` 
+    return NextResponse.json({
+      error: 'An unexpected error occurred'
     }, { status: 500 });
   }
 } 

@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -18,8 +19,11 @@ const ChangePasswordSchema = z.object({
   path: ["confirmPassword"],
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Check authentication
     const user = await currentUser();
 
@@ -127,7 +131,6 @@ export async function POST(req: Request) {
       {
         success: false,
         error: "Failed to change password",
-        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

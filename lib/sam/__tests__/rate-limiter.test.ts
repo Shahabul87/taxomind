@@ -2,6 +2,9 @@
  * Tests for SAM Rate Limiter
  */
 
+// Override global mock from jest.setup.js so we test the real implementation
+jest.unmock('../middleware/rate-limiter');
+
 import {
   RateLimiter,
   RATE_LIMIT_CONFIGS,
