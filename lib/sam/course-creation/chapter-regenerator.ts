@@ -276,6 +276,12 @@ export async function regenerateChapter(
 
     onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: `Regenerating chapter ${chapterPosition}...` } });
 
+    // Mark chapter as 'generating' at regeneration start
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'generating' },
+    });
+
     // 5. Delete existing sections for the target chapter
     await db.section.deleteMany({ where: { chapterId } });
     logger.info('[ORCHESTRATOR] Deleted sections for chapter regeneration', {
@@ -782,6 +788,12 @@ export async function regenerateChapter(
       averageQuality,
     });
 
+    // Mark chapter as ready after successful regeneration
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'ready' },
+    });
+
     return {
       success: true,
       chapterId,
@@ -790,6 +802,16 @@ export async function regenerateChapter(
       qualityScore: averageQuality,
     };
   } catch (error) {
+    // Mark chapter as failed on regeneration error
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'failed' },
+    }).catch((updateErr) => {
+      logger.error('[ORCHESTRATOR] Failed to mark chapter as failed during regeneration', {
+        chapterId, error: updateErr instanceof Error ? updateErr.message : String(updateErr),
+      });
+    });
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Chapter regeneration failed:', errorMessage);
     return {
@@ -895,6 +917,12 @@ export async function regenerateSectionsOnly(
     const strategyMonitor = new AdaptiveStrategyMonitor();
 
     const qualityScores: QualityScore[] = [];
+
+    // Mark chapter as 'generating' during sections-only regeneration
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'generating' },
+    });
 
     // Delete existing sections (only targeted ones if specified)
     if (options.targetSectionPositions && options.targetSectionPositions.length > 0) {
@@ -1184,8 +1212,24 @@ export async function regenerateSectionsOnly(
 
     logger.info('[ORCHESTRATOR] Sections-only regeneration complete', { chapterId, sectionsRegenerated, averageQuality });
 
+    // Mark chapter as ready after successful sections-only regeneration
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'ready' },
+    });
+
     return { success: true, chapterId, chapterTitle: existingChapter.title, sectionsRegenerated, qualityScore: averageQuality };
   } catch (error) {
+    // Mark chapter as failed on sections-only regeneration error
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'failed' },
+    }).catch((updateErr) => {
+      logger.error('[ORCHESTRATOR] Failed to mark chapter as failed during sections-only regen', {
+        chapterId, error: updateErr instanceof Error ? updateErr.message : String(updateErr),
+      });
+    });
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Sections-only regeneration failed:', errorMessage);
     return { success: false, error: errorMessage };
@@ -1447,8 +1491,24 @@ export async function regenerateDetailsOnly(
 
     logger.info('[ORCHESTRATOR] Details-only regeneration complete', { chapterId, sectionsUpdated, averageQuality });
 
+    // Mark chapter as ready after successful details-only regeneration
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'ready' },
+    });
+
     return { success: true, chapterId, chapterTitle: existingChapter.title, sectionsRegenerated: sectionsUpdated, qualityScore: averageQuality };
   } catch (error) {
+    // Mark chapter as failed on details-only regeneration error
+    await db.chapter.update({
+      where: { id: chapterId },
+      data: { status: 'failed' },
+    }).catch((updateErr) => {
+      logger.error('[ORCHESTRATOR] Failed to mark chapter as failed during details-only regen', {
+        chapterId, error: updateErr instanceof Error ? updateErr.message : String(updateErr),
+      });
+    });
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Details-only regeneration failed:', errorMessage);
     return { success: false, error: errorMessage };

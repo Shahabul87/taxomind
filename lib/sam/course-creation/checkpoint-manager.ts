@@ -441,7 +441,10 @@ export async function resumeCourseCreation(
     const sectionsWithDetails = new Set<string>();
     let partialChapterDbId: string | undefined;
     let partialChapterSectionIds: string[] | undefined;
-    const partialDbChapter = course.chapters[completedChapterCount]; // 0-indexed
+    // Detect partial chapter: either the next chapter in sequence, or any chapter
+    // with status 'generating' or 'failed' (indicating incomplete generation)
+    const partialDbChapter = course.chapters[completedChapterCount] // 0-indexed
+      ?? course.chapters.find(ch => ch.status === 'generating' || ch.status === 'failed');
 
     if (partialDbChapter) {
       // This chapter exists in DB — it was started but not fully completed

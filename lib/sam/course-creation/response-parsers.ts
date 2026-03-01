@@ -372,6 +372,8 @@ export function parseSectionResponse(
   templateDef?: TemplateSectionDef,
   fallbackTracker?: FallbackTracker,
   validationMode?: ValidationMode,
+  /** Teacher-specified content type from blueprint — overrides AI-generated type */
+  blueprintContentType?: string,
 ): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   const mode = validationMode ?? DEFAULT_STAGE_VALIDATION.stage2;
   try {
@@ -396,7 +398,10 @@ export function parseSectionResponse(
       title = `${title} - ${chapter.title.split(':')[0]}`;
     }
 
-    const contentType = normalizeContentType(sec.contentType);
+    // Blueprint content type override: teacher-specified type takes precedence
+    const contentType = blueprintContentType
+      ? normalizeContentType(blueprintContentType)
+      : normalizeContentType(sec.contentType);
 
     const section: GeneratedSection = {
       position: sectionNumber,

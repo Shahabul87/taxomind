@@ -53,6 +53,7 @@ import {
   type StagePrompt,
   type ComposedTemplatePrompt,
   type TeacherBlueprintChapter,
+  type ContentType,
 } from './types';
 import {
   CHAPTER_THINKING_FRAMEWORK,
@@ -71,6 +72,13 @@ import {
   type PromptBudgetAlert,
   type PromptSection,
 } from './prompt-budget';
+
+/**
+ * System prompt token budget. If category enhancer blocks push the system
+ * prompt beyond this limit, guidance blocks are dropped (keeping only the
+ * core expertise block) and a budget alert is fired.
+ */
+const SYSTEM_PROMPT_TOKEN_BUDGET = 3500;
 
 // ============================================================================
 // SAM's Pedagogical Expertise — Research-Backed Course Design Knowledge
@@ -967,7 +975,7 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
 
   // Compose domain-specific blocks (empty strings if no enhancer)
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
-  const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
+  let domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage1Block ?? '';
 
   // Blueprint-guided: use condensed system prompt (~200 tokens vs ~2,500)
@@ -975,6 +983,28 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   const designExpertise = hasBlueprintGuide
     ? BLUEPRINT_GUIDED_EXPERTISE
     : getStage1DesignExpertise(variant, currentChapterNumber);
+
+  // System prompt budget: cap system prompt at module-level budget. If category
+  // enhancer pushes the system prompt over budget, drop chapter/section/detail
+  // guidance blocks and keep only the expertiseBlock (core domain knowledge).
+  const coreSystemTokens = estimateTokens(designExpertise) + estimateTokens(domainExpertise);
+  const frameworkTokens = hasBlueprintGuide ? 0 : (
+    estimateTokens(TITLE_QUALITY_FRAMEWORK) +
+    estimateTokens(CHAPTER_DESIGN_PRINCIPLES) +
+    estimateTokens(CHAPTER_THINKING_FRAMEWORK)
+  );
+  if (coreSystemTokens + frameworkTokens + estimateTokens(domainChapterGuidance) > SYSTEM_PROMPT_TOKEN_BUDGET) {
+    // Truncate: drop chapter guidance from category enhancer, keep expertiseBlock only
+    domainChapterGuidance = '';
+    onPromptBudgetAlert?.({
+      stage: 1,
+      totalTokens: coreSystemTokens + frameworkTokens,
+      budgetTokens: SYSTEM_PROMPT_TOKEN_BUDGET,
+      droppedSections: ['domainChapterGuidance (system prompt)'],
+      droppedHighPrioritySections: [],
+    });
+  }
+
   const systemPrompt = hasBlueprintGuide
     ? `${designExpertise}\n${domainExpertise}`
     : `${designExpertise}
@@ -1225,7 +1255,7 @@ export function buildStage2Prompt(
   templatePrompt?: ComposedTemplatePrompt,
   recalledMemory?: RecalledMemory,
   onPromptBudgetAlert?: (alert: PromptBudgetAlert) => void,
-  blueprintSection?: { title: string; keyTopics: string[] },
+  blueprintSection?: { title: string; keyTopics: string[]; contentType?: ContentType },
   northStarProject?: string,
   chapterDeliverable?: string,
 ): StagePrompt {
@@ -1304,7 +1334,7 @@ This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}).
 
   // Compose domain-specific blocks
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
-  const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
+  let domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage2Block ?? '';
 
   // Blueprint-guided: use condensed system prompt (~200 tokens vs ~2,000)
@@ -1312,6 +1342,25 @@ This is a MIDDLE section (${currentSectionNumber} of ${ctx.sectionsPerChapter}).
   const designExpertise = hasBlueprintGuide
     ? BLUEPRINT_GUIDED_EXPERTISE
     : getStage2DesignExpertise(variant);
+
+  // System prompt budget: truncate section guidance if over budget
+  const s2CoreTokens = estimateTokens(designExpertise) + estimateTokens(domainExpertise);
+  const s2FrameworkTokens = hasBlueprintGuide ? 0 : (
+    estimateTokens(TITLE_QUALITY_FRAMEWORK) +
+    estimateTokens(SECTION_DESIGN_PRINCIPLES) +
+    estimateTokens(SECTION_THINKING_FRAMEWORK)
+  );
+  if (s2CoreTokens + s2FrameworkTokens + estimateTokens(domainSectionGuidance) > SYSTEM_PROMPT_TOKEN_BUDGET) {
+    domainSectionGuidance = '';
+    onPromptBudgetAlert?.({
+      stage: 2,
+      totalTokens: s2CoreTokens + s2FrameworkTokens,
+      budgetTokens: SYSTEM_PROMPT_TOKEN_BUDGET,
+      droppedSections: ['domainSectionGuidance (system prompt)'],
+      droppedHighPrioritySections: [],
+    });
+  }
+
   const systemPrompt = hasBlueprintGuide
     ? `${designExpertise}\n${domainExpertise}`
     : `${designExpertise}
@@ -1397,9 +1446,9 @@ ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${
       content: hasBlueprintGuide ? `
 ## TEACHER-APPROVED BLUEPRINT FOR THIS SECTION
 Section ${currentSectionNumber}: "${blueprintSection.title}"
-Key Topics: ${blueprintSection.keyTopics.join(', ')}${chapterDeliverable ? `\nChapter Deliverable: ${chapterDeliverable}` : ''}${northStarProject ? `\nNorth Star Project: ${northStarProject}` : ''}
+Key Topics: ${blueprintSection.keyTopics.join(', ')}${blueprintSection.contentType ? `\nContent Type: ${blueprintSection.contentType} (teacher-specified — DO NOT change)` : ''}${chapterDeliverable ? `\nChapter Deliverable: ${chapterDeliverable}` : ''}${northStarProject ? `\nNorth Star Project: ${northStarProject}` : ''}
 
-Follow this blueprint precisely. The section title and key topics are teacher-approved.${chapterDeliverable ? ` This section should contribute to the chapter deliverable: "${chapterDeliverable}".` : ''}
+Follow this blueprint precisely. The section title and key topics are teacher-approved.${blueprintSection.contentType ? ` The content type "${blueprintSection.contentType}" is fixed by the teacher — you MUST use it.` : ''}${chapterDeliverable ? ` This section should contribute to the chapter deliverable: "${chapterDeliverable}".` : ''}
 
 ## OUTPUT REQUIREMENTS
 
@@ -1868,13 +1917,30 @@ Design this as a collaborative sense-making experience:
 
   // Compose domain-specific blocks
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
-  const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
+  let domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
   const templateBlock = templatePrompt?.stage3Block ?? '';
+
+  // System prompt budget: truncate detail guidance if over budget
+  const s3DesignExpertise = hasBlueprintGuide ? BLUEPRINT_GUIDED_EXPERTISE : getStage3DesignExpertise(variant);
+  const s3CoreTokens = estimateTokens(s3DesignExpertise) + estimateTokens(domainExpertise);
+  const s3FrameworkTokens = estimateTokens(DETAIL_DESIGN_PRINCIPLES) +
+    (hasBlueprintGuide ? 0 : estimateTokens(LEARNING_OBJECTIVES_FRAMEWORK)) +
+    estimateTokens(activityGuidance);
+  if (s3CoreTokens + s3FrameworkTokens + estimateTokens(domainDetailGuidance) > SYSTEM_PROMPT_TOKEN_BUDGET) {
+    domainDetailGuidance = '';
+    onPromptBudgetAlert?.({
+      stage: 3,
+      totalTokens: s3CoreTokens + s3FrameworkTokens,
+      budgetTokens: SYSTEM_PROMPT_TOKEN_BUDGET,
+      droppedSections: ['domainDetailGuidance (system prompt)'],
+      droppedHighPrioritySections: [],
+    });
+  }
 
   // Blueprint-guided: condensed system prompt, keep DETAIL_DESIGN_PRINCIPLES (output format)
   const systemPrompt = hasBlueprintGuide
     ? `${BLUEPRINT_GUIDED_EXPERTISE}\n${domainExpertise}\n\n${DETAIL_DESIGN_PRINCIPLES}\n${activityGuidance}`
-    : `${getStage3DesignExpertise(variant)}
+    : `${s3DesignExpertise}
 ${domainExpertise}
 
 ${DETAIL_DESIGN_PRINCIPLES}

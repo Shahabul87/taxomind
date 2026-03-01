@@ -42,6 +42,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ cours
       where: {
         courseId: params.courseId,
         isPublished: true,
+        // Defense-in-depth: exclude chapters still being generated or failed
+        OR: [{ status: null }, { status: 'ready' }],
       },
       select: {
         id: true,

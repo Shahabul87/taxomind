@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { traceAICall, sanitizeCourseContext } from './helpers';
 import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from './category-prompts';
+import { findOverlappingCourseContent } from './cross-course-dedup';
 import type {
   CourseContext,
   CourseBlueprintPlan,
@@ -184,6 +185,15 @@ async function doGenerateBlueprint(
 - Flag areas where students typically struggle as risk areas
 ${domainExpertiseBlock}`;
 
+  // Cross-course deduplication: check for overlapping content
+  const dedupResult = await findOverlappingCourseContent(
+    ctx.courseTitle,
+    ctx.courseDescription,
+    ctx.courseLearningObjectives,
+    userId,
+  );
+  const dedupBlock = dedupResult.hasOverlap ? dedupResult.promptBlock : '';
+
   // Adaptive maxTokens: same formula as blueprint route for consistency
   const totalSections = ctx.totalChapters * ctx.sectionsPerChapter;
   const plannerMaxTokens = Math.min(8192, 1500 + ctx.totalChapters * 200 + totalSections * 100);
@@ -201,7 +211,7 @@ ${domainExpertiseBlock}`;
 - Learning Objectives:
 ${ctx.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
 ${memorySection}${qualitySection}
-${chapterGuidanceBlock}
+${chapterGuidanceBlock}${dedupBlock}
 
 ## TASK
 Create a blueprint with:
@@ -254,6 +264,7 @@ Return ONLY valid JSON, no markdown formatting.`;
       systemPrompt,
       maxTokens: plannerMaxTokens,
       temperature: 0.6,
+      responseFormat: 'json',
     }),
   );
 
@@ -525,6 +536,7 @@ Return ONLY valid JSON, no markdown formatting.`;
       systemPrompt,
       maxTokens: 3000,
       temperature: 0.6,
+      responseFormat: 'json',
     }),
   );
 

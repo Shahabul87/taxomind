@@ -8,6 +8,7 @@
 export {
   getCategoryEnhancer,
   getCategoryEnhancers,
+  getCategoryEnhancersWithAIFallback,
   blendEnhancers,
   composeCategoryPrompt,
   listCategoryEnhancers,

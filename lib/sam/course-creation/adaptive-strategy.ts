@@ -151,11 +151,16 @@ export class AdaptiveStrategyMonitor {
   }
 
   /** Get the current strategy for a stage/chapter */
-  getStrategy(stage: 1 | 2 | 3, _chapterNumber: number): GenerationStrategy {
-    return {
+  getStrategy(stage: 1 | 2 | 3, _chapterNumber: number, variant?: string): GenerationStrategy {
+    const strategy = {
       ...this.currentStrategy,
       maxTokens: this.getMaxTokens(stage),
     };
+    // Experiment: temperature-fixed-v1 overrides adaptive temperature to 0.3
+    if (variant?.includes('fixed-temp-0.3')) {
+      strategy.temperature = 0.3;
+    }
+    return strategy;
   }
 
   /** Detect quality degradation trends */

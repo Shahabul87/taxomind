@@ -12,6 +12,7 @@ export interface BlueprintSection {
   title: string;
   keyTopics: string[];
   estimatedMinutes?: number;
+  contentType?: 'video' | 'reading' | 'assignment' | 'quiz' | 'project' | 'discussion';
   formativeAssessment?: FormativeAssessment;
 }
 

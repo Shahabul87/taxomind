@@ -280,6 +280,12 @@ export interface CreationProgress {
   };
   /** AI-recommended chapter count from blueprint (may differ from user's totalChapters) */
   aiRecommendedChapters?: number;
+  /** Whether healing loop is currently in progress */
+  healingInProgress?: boolean;
+  /** Chapters currently being healed */
+  healingChapters?: number[];
+  /** Healing diagnosis/strategy message */
+  healingMessage?: string;
 }
 
 // ============================================================================
@@ -306,6 +312,14 @@ export interface ChapterDetailState {
 
   /** Overall aggregated quality score */
   qualityScore?: number;
+  /** Per-dimension quality breakdown for UI display */
+  qualityBreakdown?: {
+    uniqueness: number;
+    specificity: number;
+    bloomsAlignment: number;
+    completeness: number;
+    depth: number;
+  };
   /** Bloom&apos;s taxonomy level (e.g. APPLY, ANALYZE) */
   bloomsLevel?: string;
   /** Key topics covered */
@@ -684,6 +698,8 @@ export interface TeacherBlueprintChapter {
     position: number;
     title: string;
     keyTopics: string[];
+    /** Teacher-specified content type (overrides AI-generated type when present) */
+    contentType?: ContentType;
     estimatedMinutes?: number;
     formativeAssessment?: { type: string; prompt: string };
   }>;
@@ -704,7 +720,7 @@ export interface ChapterPlanEntry {
   /** Role of this chapter in the overall pedagogical arc (e.g. "bridge", "capstone", "foundation") */
   pedagogicalArc?: string;
   /** Teacher-approved section structure (from blueprint). Preserves per-section titles and key topics. */
-  sectionPlan?: Array<{ position: number; title: string; keyTopics: string[] }>;
+  sectionPlan?: Array<{ position: number; title: string; keyTopics: string[]; contentType?: ContentType }>;
 }
 
 // ============================================================================
@@ -1067,6 +1083,28 @@ export interface GenerationCostData {
   callCount: number;
   budgetUtilizationPercent: number;
   capturedAt: string; // ISO timestamp
+  chapterCosts?: Array<{
+    chapterNumber: number;
+    totalTokens: number;
+    callCount: number;
+    stages: Record<number, { inputTokens: number; outputTokens: number; calls: number }>;
+  }>;
+}
+
+/** Quality history entry appended to Course.qualityHistory on each generation run */
+export interface QualityHistoryEntry {
+  runId?: string;
+  timestamp: string;
+  averageQualityScore: number;
+  chaptersCreated: number;
+  sectionsCreated: number;
+  totalTimeMs: number;
+  perChapter: Array<{
+    chapterNumber: number;
+    qualityScore: number;
+    bloomsLevel?: string;
+  }>;
+  qualityFlags?: string[];
 }
 
 /** AI-diagnosed healing strategy for a flagged chapter */

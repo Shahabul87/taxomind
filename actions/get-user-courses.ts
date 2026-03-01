@@ -142,7 +142,12 @@ export async function getUserEnrolledCourses() {
 
     const [publishedChapters, completedProgress] = await Promise.all([
       db.chapter.findMany({
-        where: { courseId: { in: courseIds }, isPublished: true },
+        where: {
+          courseId: { in: courseIds },
+          isPublished: true,
+          // Exclude chapters still generating or failed
+          OR: [{ status: null }, { status: 'ready' }],
+        },
         select: { id: true, courseId: true }
       }),
       db.user_progress.findMany({

@@ -27,7 +27,7 @@ import {
   joinVariants,
 } from './experiments';
 import {
-  getCategoryEnhancers,
+  getCategoryEnhancersWithAIFallback,
   blendEnhancers,
   composeCategoryPrompt,
 } from './category-prompts';
@@ -167,10 +167,11 @@ export async function orchestrateCourseCreation(
     duration: config.duration,
   };
 
-  // Resolve domain-specific category prompt enhancer (with optional multi-domain blending)
-  const matchedEnhancers = getCategoryEnhancers(
+  // Resolve domain-specific category prompt enhancer (with optional multi-domain blending + AI fallback)
+  const matchedEnhancers = await getCategoryEnhancersWithAIFallback(
     courseContext.courseCategory,
     courseContext.courseSubcategory,
+    userId,
   );
   const categoryEnhancer = matchedEnhancers.length >= 2
     ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])

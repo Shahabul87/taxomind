@@ -11,6 +11,7 @@
 import type { BloomsLevel } from '../types';
 import type { CategoryPromptEnhancer, ComposedCategoryPrompt, DomainBloomsGuidance } from './types';
 import { getOrderedEnhancers, getGeneralEnhancer } from './skill-loader';
+import { logger } from '@/lib/logger';
 
 // =============================================================================
 // Bloom's Level Constants
@@ -367,4 +368,102 @@ export function listCategoryEnhancers(): Array<{
     displayName: e.displayName,
     matchesCategories: e.matchesCategories,
   }));
+}
+
+// =============================================================================
+// AI-Generated Domain Context Fallback
+// =============================================================================
+
+const AI_DOMAIN_CONTEXT_ENABLED = process.env.ENABLE_AI_DOMAIN_CONTEXT_FALLBACK === 'true';
+
+/** Module-level cache for AI-generated domain contexts (survives across calls within a process) */
+const aiDomainContextCache = new Map<string, CategoryPromptEnhancer>();
+
+/**
+ * Generate domain context via AI for categories without a static enhancer.
+ * Returns a lightweight CategoryPromptEnhancer with AI-generated expertise.
+ */
+async function generateDomainContext(
+  category: string,
+  subcategory: string | undefined,
+  userId: string,
+): Promise<CategoryPromptEnhancer> {
+  const cacheKey = `${category}::${subcategory ?? ''}`;
+  const cached = aiDomainContextCache.get(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const { runSAMChatWithPreference } = await import('@/lib/sam/ai-provider');
+    const domainLabel = subcategory ? `${category} > ${subcategory}` : category;
+
+    const prompt = `You are helping build an educational course in the domain: "${domainLabel}".
+Provide a concise JSON object with these fields:
+- "domainExpertise": A 2-3 sentence description of the expertise needed to teach this domain effectively.
+- "teachingMethodology": A 2-3 sentence description of best teaching practices for this domain.
+- "contentTypeGuidance": A 1-2 sentence note on ideal content types (video, reading, assignment, project, etc.) for this domain.
+- "qualityCriteria": A 1-2 sentence note on what makes high-quality content in this domain.
+- "chapterSequencingAdvice": A 1-2 sentence suggestion for ordering topics in this domain.
+Respond with ONLY the JSON object, no extra text.`;
+
+    const response = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
+      messages: [{ role: 'user', content: prompt }],
+      systemPrompt: 'You are a curriculum design expert. Respond with valid JSON only.',
+      maxTokens: 500,
+      temperature: 0.3,
+    });
+
+    const parsed = JSON.parse(response);
+    const enhancer: CategoryPromptEnhancer = {
+      categoryId: `ai-generated-${normalize(category).replace(/\s+/g, '-')}`,
+      displayName: domainLabel,
+      matchesCategories: [category, ...(subcategory ? [subcategory] : [])],
+      domainExpertise: String(parsed.domainExpertise ?? ''),
+      teachingMethodology: String(parsed.teachingMethodology ?? ''),
+      bloomsInDomain: {},
+      contentTypeGuidance: String(parsed.contentTypeGuidance ?? ''),
+      qualityCriteria: String(parsed.qualityCriteria ?? ''),
+      chapterSequencingAdvice: String(parsed.chapterSequencingAdvice ?? ''),
+      activityExamples: {},
+    };
+
+    aiDomainContextCache.set(cacheKey, enhancer);
+    logger.info('[category-registry] AI-generated domain context', { category, subcategory });
+    return enhancer;
+  } catch (error) {
+    logger.warn('[category-registry] AI domain context generation failed, using general fallback', {
+      category,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return getGeneralEnhancer();
+  }
+}
+
+/**
+ * Get category enhancers with AI fallback for unmatched categories.
+ * Tries static enhancers first. If only the general fallback would be returned
+ * and AI fallback is enabled, generates domain context via AI.
+ *
+ * @param category - Course category
+ * @param subcategory - Optional subcategory
+ * @param userId - User ID for AI provider calls
+ * @returns Array of matched enhancers (static or AI-generated)
+ */
+export async function getCategoryEnhancersWithAIFallback(
+  category: string,
+  subcategory: string | undefined,
+  userId: string,
+): Promise<CategoryPromptEnhancer[]> {
+  const staticResult = getCategoryEnhancers(category, subcategory);
+
+  // If we got a real match (not just the general fallback), use it
+  const isOnlyGeneral = staticResult.length === 1 && staticResult[0].categoryId === 'general';
+  if (!isOnlyGeneral) return staticResult;
+
+  // If AI fallback is disabled, return the general fallback
+  if (!AI_DOMAIN_CONTEXT_ENABLED) return staticResult;
+
+  const aiEnhancer = await generateDomainContext(category, subcategory, userId);
+  return [aiEnhancer];
 }

@@ -55,6 +55,16 @@ export type BudgetThresholdCallback = (event: BudgetThresholdEvent) => void;
 /** Budget multiplier — max spend is this * the initial estimate */
 const BUDGET_MULTIPLIER = 3;
 
+/** Per-chapter cost breakdown */
+export interface ChapterCost {
+  chapterNumber: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  callCount: number;
+  stages: Record<number, { inputTokens: number; outputTokens: number; calls: number }>;
+}
+
 export class PipelineBudgetTracker {
   private maxTotalTokens: number;
   private maxCostUSD: number;
@@ -63,6 +73,7 @@ export class PipelineBudgetTracker {
   private callCount: number = 0;
   private onThreshold?: BudgetThresholdCallback;
   private thresholdFired: { 70: boolean; 90: boolean; 100: boolean } = { 70: false, 90: false, 100: false };
+  private chapterCosts: Map<number, ChapterCost> = new Map();
 
   /**
    * @param estimatedTotalTokens Expected total tokens for the full pipeline run
@@ -177,6 +188,41 @@ export class PipelineBudgetTracker {
         });
       }
     }
+  }
+
+  /**
+   * Record an AI call attributed to a specific chapter and stage.
+   * Used for per-chapter cost breakdown reporting.
+   */
+  recordChapterCall(chapterNumber: number, stage: number, inputTokens: number, outputTokens: number): void {
+    const existing = this.chapterCosts.get(chapterNumber) ?? {
+      chapterNumber,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      callCount: 0,
+      stages: {},
+    };
+
+    existing.inputTokens += inputTokens;
+    existing.outputTokens += outputTokens;
+    existing.totalTokens += inputTokens + outputTokens;
+    existing.callCount++;
+
+    const stageData = existing.stages[stage] ?? { inputTokens: 0, outputTokens: 0, calls: 0 };
+    stageData.inputTokens += inputTokens;
+    stageData.outputTokens += outputTokens;
+    stageData.calls++;
+    existing.stages[stage] = stageData;
+
+    this.chapterCosts.set(chapterNumber, existing);
+  }
+
+  /**
+   * Get per-chapter cost breakdown, sorted by chapter number.
+   */
+  getChapterCosts(): ChapterCost[] {
+    return [...this.chapterCosts.values()].sort((a, b) => a.chapterNumber - b.chapterNumber);
   }
 
   /**

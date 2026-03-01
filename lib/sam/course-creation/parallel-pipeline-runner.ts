@@ -361,6 +361,17 @@ export async function runParallelPipeline(
         `parallel_chapter_${position}`,
       );
 
+      // Compute per-dimension quality breakdown for UI display
+      const qualityBreakdown = result.qualityScores.length > 0
+        ? {
+            uniqueness: Math.round(result.qualityScores.reduce((a, b) => a + b.uniqueness, 0) / result.qualityScores.length),
+            specificity: Math.round(result.qualityScores.reduce((a, b) => a + b.specificity, 0) / result.qualityScores.length),
+            bloomsAlignment: Math.round(result.qualityScores.reduce((a, b) => a + b.bloomsAlignment, 0) / result.qualityScores.length),
+            completeness: Math.round(result.qualityScores.reduce((a, b) => a + b.completeness, 0) / result.qualityScores.length),
+            depth: Math.round(result.qualityScores.reduce((a, b) => a + b.depth, 0) / result.qualityScores.length),
+          }
+        : undefined;
+
       onSSEEvent?.({
         type: 'parallel_chapter_complete',
         data: {
@@ -371,6 +382,7 @@ export async function runParallelPipeline(
           qualityScore: result.qualityScores.length > 0
             ? Math.round(result.qualityScores.reduce((a, b) => a + b.overall, 0) / result.qualityScores.length)
             : undefined,
+          qualityBreakdown,
           chaptersCreated: result.chaptersCreated,
           sectionsCreated: result.sectionsCreated,
           isRetry,
@@ -703,7 +715,7 @@ export async function runParallelPipeline(
       try {
         const fallback = buildFallbackChapter(position, courseContext);
 
-        // Persist chapter to DB
+        // Persist chapter to DB with 'generating' status
         const dbChapter = await db.chapter.create({
           data: {
             title: fallback.title,
@@ -717,6 +729,7 @@ export async function runParallelPipeline(
             targetBloomsLevel: fallback.bloomsLevel,
             sectionCount: courseContext.sectionsPerChapter,
             isPublished: false,
+            status: 'generating',
           },
         });
 
@@ -750,6 +763,12 @@ export async function runParallelPipeline(
             details: fbDetails,
           });
         }
+
+        // Mark fallback chapter as ready — all sections persisted
+        await db.chapter.update({
+          where: { id: dbChapter.id },
+          data: { status: 'ready' },
+        });
 
         // Construct proper CompletedChapter and merge into accumulators
         const completedFallback: CompletedChapter = {

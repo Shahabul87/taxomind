@@ -312,30 +312,42 @@ export const ChaptersList = ({
                       <Lock className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
                     </div>
                   )}
-                  <Badge className={cn(
-                    "px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-xs font-medium min-w-[50px] xs:min-w-[60px] sm:min-w-[70px] text-center flex-shrink-0",
-                    chapter.isPublished 
-                      ? "bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200/50 dark:border-purple-500/30"
-                      : "bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200/50 dark:border-gray-700/50"
-                  )}>
-                    {chapter.isPublished ? "Published" : "Draft"}
-                  </Badge>
+                  {chapter.status === 'generating' ? (
+                    <Badge className="px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-xs font-medium min-w-[50px] xs:min-w-[60px] sm:min-w-[70px] text-center flex-shrink-0 bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200/50 dark:border-amber-500/30 animate-pulse">
+                      Generating...
+                    </Badge>
+                  ) : chapter.status === 'failed' ? (
+                    <Badge className="px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-xs font-medium min-w-[50px] xs:min-w-[60px] sm:min-w-[70px] text-center flex-shrink-0 bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200/50 dark:border-red-500/30">
+                      Failed
+                    </Badge>
+                  ) : (
+                    <Badge className={cn(
+                      "px-1 xs:px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] xs:text-[10px] sm:text-xs font-medium min-w-[50px] xs:min-w-[60px] sm:min-w-[70px] text-center flex-shrink-0",
+                      chapter.isPublished
+                        ? "bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 border-purple-200/50 dark:border-purple-500/30"
+                        : "bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200/50 dark:border-gray-700/50"
+                    )}>
+                      {chapter.isPublished ? "Published" : "Draft"}
+                    </Badge>
+                  )}
                   <button
                     onClick={() => onEdit(chapter.id)}
+                    disabled={chapter.status === 'generating'}
                     className={cn(
                       "flex items-center justify-center gap-x-0.5 xs:gap-x-1 px-1 xs:px-1.5 sm:px-2 py-0.5 xs:py-1 rounded-md flex-shrink-0",
                       "text-gray-700 dark:text-gray-300",
                       "hover:text-gray-900 dark:hover:text-gray-100",
                       "hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
                       "transition-colors",
-                      "h-6 xs:h-7 sm:h-8"
+                      "h-6 xs:h-7 sm:h-8",
+                      chapter.status === 'generating' && "opacity-50 cursor-not-allowed"
                     )}
                   >
                     <Pencil className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
                     <span className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium hidden lg:inline">Edit</span>
                   </button>
-                  {onDelete && (
-                    <ChapterDeleteButton 
+                  {onDelete && chapter.status !== 'generating' && (
+                    <ChapterDeleteButton
                       chapter={chapter}
                       onDelete={onDelete}
                     />

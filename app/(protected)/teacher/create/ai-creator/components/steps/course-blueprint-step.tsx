@@ -55,6 +55,7 @@ import type {
   StepComponentProps,
   TeacherBlueprint,
   BlueprintChapter,
+  BlueprintSection,
   BlueprintVersion,
   BlueprintCriticResult,
 } from '../../types/sam-creator.types';
@@ -580,6 +581,32 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
     });
   }, [setFormData]);
 
+  const updateSectionContentType = useCallback((chapterPos: number, sectionPos: number, contentType: string | undefined) => {
+    setFormData(prev => {
+      if (!prev.teacherBlueprint) return prev;
+      const chapters = prev.teacherBlueprint.chapters.map(ch => {
+        if (ch.position !== chapterPos) return ch;
+        return {
+          ...ch,
+          sections: ch.sections.map(sec => {
+            if (sec.position !== sectionPos) return sec;
+            const updated = { ...sec };
+            if (contentType) {
+              updated.contentType = contentType as BlueprintSection['contentType'];
+            } else {
+              delete updated.contentType;
+            }
+            return updated;
+          }),
+        };
+      });
+      return {
+        ...prev,
+        teacherBlueprint: { ...prev.teacherBlueprint, chapters, isEdited: true },
+      };
+    });
+  }, [setFormData]);
+
   // -------------------------------------------------------------------------
   // Topic editing
   // -------------------------------------------------------------------------
@@ -937,6 +964,7 @@ export function CourseBlueprintStep({ formData, setFormData }: StepComponentProp
             onToggle={() => toggleChapter(chapter.position)}
             onUpdateChapter={updateChapter}
             onUpdateSectionTitle={updateSectionTitle}
+            onUpdateSectionContentType={updateSectionContentType}
             onRemoveTopic={removeTopic}
             onAddTopic={addTopic}
             newTopicInputs={newTopicInputs}
@@ -1158,6 +1186,7 @@ interface ChapterCardProps {
   onToggle: () => void;
   onUpdateChapter: (chapterPos: number, updates: Partial<BlueprintChapter>) => void;
   onUpdateSectionTitle: (chapterPos: number, sectionPos: number, title: string) => void;
+  onUpdateSectionContentType: (chapterPos: number, sectionPos: number, contentType: string | undefined) => void;
   onRemoveTopic: (chapterPos: number, sectionPos: number, topicIndex: number) => void;
   onAddTopic: (chapterPos: number, sectionPos: number, topic: string) => void;
   newTopicInputs: Record<string, string>;
@@ -1171,6 +1200,7 @@ function ChapterCard({
   onToggle,
   onUpdateChapter,
   onUpdateSectionTitle,
+  onUpdateSectionContentType,
   onRemoveTopic,
   onAddTopic,
   newTopicInputs,
@@ -1324,6 +1354,29 @@ function ChapterCard({
                         {section.estimatedMinutes} min
                       </span>
                     )}
+                    <Select
+                      value={section.contentType ?? '__auto__'}
+                      onValueChange={(val) =>
+                        onUpdateSectionContentType(
+                          chapter.position,
+                          section.position,
+                          val === '__auto__' ? undefined : val,
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-6 w-[100px] text-[10px] border-dashed flex-shrink-0">
+                        <SelectValue placeholder="Auto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__auto__" className="text-xs">Auto (AI picks)</SelectItem>
+                        <SelectItem value="video" className="text-xs">Video</SelectItem>
+                        <SelectItem value="reading" className="text-xs">Reading</SelectItem>
+                        <SelectItem value="assignment" className="text-xs">Assignment</SelectItem>
+                        <SelectItem value="quiz" className="text-xs">Quiz</SelectItem>
+                        <SelectItem value="project" className="text-xs">Project</SelectItem>
+                        <SelectItem value="discussion" className="text-xs">Discussion</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Key Topics */}

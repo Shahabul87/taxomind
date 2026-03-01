@@ -107,6 +107,32 @@ function getQualityBgColor(score: number) {
   return 'bg-red-100 dark:bg-red-900/30';
 }
 
+function getQualityBarColor(score: number) {
+  if (score >= 80) return 'bg-emerald-500';
+  if (score >= 60) return 'bg-amber-500';
+  return 'bg-red-500';
+}
+
+/** Per-dimension quality progress bar */
+function QualityBreakdownBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-slate-500 dark:text-slate-400 w-28 text-right flex-shrink-0">
+        {label}
+      </span>
+      <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all", getQualityBarColor(value))}
+          style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
+        />
+      </div>
+      <span className={cn("text-[10px] font-semibold w-8 text-right", getQualityColor(value))}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function formatRelativeTime(timestamp: number): string {
   const diff = Date.now() - timestamp;
   const seconds = Math.floor(diff / 1000);
@@ -314,6 +340,16 @@ export function ChapterDetailModal({
                     )}
                   </div>
                 </div>
+                {/* Per-dimension quality breakdown */}
+                {chapter.qualityBreakdown && (
+                  <div className="mt-3 space-y-1.5">
+                    <QualityBreakdownBar label="Uniqueness" value={chapter.qualityBreakdown.uniqueness} />
+                    <QualityBreakdownBar label="Specificity" value={chapter.qualityBreakdown.specificity} />
+                    <QualityBreakdownBar label="Bloom&apos;s Alignment" value={chapter.qualityBreakdown.bloomsAlignment} />
+                    <QualityBreakdownBar label="Completeness" value={chapter.qualityBreakdown.completeness} />
+                    <QualityBreakdownBar label="Depth" value={chapter.qualityBreakdown.depth} />
+                  </div>
+                )}
               </div>
             )}
 

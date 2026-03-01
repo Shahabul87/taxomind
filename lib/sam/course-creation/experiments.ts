@@ -93,6 +93,22 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     weights: [1 - ENTERPRISE_CANARY_WEIGHT, ENTERPRISE_CANARY_WEIGHT],
     autoGraduateAfterSamples: 50,
   },
+  {
+    id: 'structured-output-v1',
+    name: 'Structured JSON Output',
+    description: 'Compares responseFormat: json forced on all non-reasoning calls vs control (no forced format). Tests whether structured output improves parse reliability.',
+    active: COURSE_CREATION_EXPERIMENTS_ENABLED,
+    variants: ['control', 'structured-output'],
+    autoGraduateAfterSamples: 20,
+  },
+  {
+    id: 'temperature-fixed-v1',
+    name: 'Fixed Temperature 0.3',
+    description: 'Compares adaptive temperature (default) vs fixed 0.3 temperature for all stages. Tests whether lower temperature improves consistency.',
+    active: COURSE_CREATION_EXPERIMENTS_ENABLED,
+    variants: ['control', 'fixed-temp-0.3'],
+    autoGraduateAfterSamples: 25,
+  },
 ];
 
 // ============================================================================

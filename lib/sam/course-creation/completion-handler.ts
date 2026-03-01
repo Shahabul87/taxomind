@@ -24,7 +24,7 @@ import {
   CourseCreationSLOTracker,
   recordCourseCreationSLOSnapshot,
 } from './slo-telemetry';
-import type { SequentialCreationConfig, SequentialCreationResult, QualityScore, GenerationCostData } from './types';
+import type { SequentialCreationConfig, SequentialCreationResult, QualityScore, GenerationCostData, QualityHistoryEntry } from './types';
 import type { FallbackTracker } from './response-parsers';
 
 export interface CompletionOptions {
@@ -74,10 +74,11 @@ export async function finalizeAndEmit(
     budgetTracker,
   } = stats;
 
-  // Persist generation cost data (fire-and-forget)
+  // Persist generation cost data with per-chapter breakdown (fire-and-forget)
   let budgetSnapshot: GenerationCostData | undefined;
   if (budgetTracker) {
     const snapshot = budgetTracker.getSnapshot();
+    const chapterCosts = budgetTracker.getChapterCosts();
     budgetSnapshot = {
       totalTokens: snapshot.accumulatedTokens,
       estimatedCostUSD: snapshot.accumulatedCostUSD,
@@ -86,6 +87,14 @@ export async function finalizeAndEmit(
         ? Math.round((snapshot.accumulatedTokens / snapshot.maxTotalTokens) * 100)
         : 0,
       capturedAt: new Date().toISOString(),
+      chapterCosts: chapterCosts.length > 0
+        ? chapterCosts.map(c => ({
+            chapterNumber: c.chapterNumber,
+            totalTokens: c.totalTokens,
+            callCount: c.callCount,
+            stages: c.stages,
+          }))
+        : undefined,
     };
     db.course.update({
       where: { id: courseId },
@@ -95,6 +104,51 @@ export async function finalizeAndEmit(
         courseId, error: err instanceof Error ? err.message : String(err),
       });
     });
+  }
+
+  // Append quality history entry (fire-and-forget)
+  {
+    const perChapter = qualityScores
+      .filter(q => q.stage === 1)
+      .map(q => ({
+        chapterNumber: q.chapterNumber ?? 0,
+        qualityScore: q.overall,
+        bloomsLevel: undefined as string | undefined,
+      }));
+
+    const qualityFlags = qualityScores
+      .filter(q => q.overall < 50)
+      .map(q => `Ch${q.chapterNumber ?? '?'} S${q.stage}: score ${q.overall}`);
+
+    const entry: QualityHistoryEntry = {
+      runId,
+      timestamp: new Date().toISOString(),
+      averageQualityScore: qualityScores.length > 0
+        ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
+        : 0,
+      chaptersCreated,
+      sectionsCreated,
+      totalTimeMs: totalTime,
+      perChapter,
+      qualityFlags: qualityFlags.length > 0 ? qualityFlags : undefined,
+    };
+
+    db.course.findUnique({ where: { id: courseId }, select: { qualityHistory: true } })
+      .then(async (existing) => {
+        const history = Array.isArray(existing?.qualityHistory) ? existing.qualityHistory : [];
+        history.push(entry);
+        // Keep last 20 entries
+        const trimmed = history.slice(-20);
+        await db.course.update({
+          where: { id: courseId },
+          data: { qualityHistory: trimmed as unknown as Prisma.InputJsonValue },
+        });
+      })
+      .catch((err: unknown) => {
+        logger.warn('[COMPLETION] Failed to persist quality history', {
+          courseId, error: err instanceof Error ? err.message : String(err),
+        });
+      });
   }
 
   // Emit stage completion events

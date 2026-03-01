@@ -54,6 +54,45 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 1a. Student preview mode: return generation preview for a specific course
+    const previewCourseId = req.nextUrl.searchParams.get('courseId');
+    if (previewCourseId) {
+      const chapters = await db.chapter.findMany({
+        where: { courseId: previewCourseId },
+        select: { id: true, title: true, position: true, status: true },
+        orderBy: { position: 'asc' },
+      });
+
+      const course = await db.course.findUnique({
+        where: { id: previewCourseId },
+        select: { title: true },
+      });
+
+      const chapterStates = chapters.map(ch => ({
+        position: ch.position,
+        title: ch.title,
+        state: ch.status === 'ready' || ch.status === null ? 'completed' as const
+          : ch.status === 'generating' ? 'generating' as const
+          : ch.status === 'failed' ? 'failed' as const
+          : 'pending' as const,
+      }));
+
+      const completedCount = chapterStates.filter(c => c.state === 'completed').length;
+      const totalCount = chapterStates.length;
+
+      return NextResponse.json({
+        success: true,
+        generationPreview: {
+          courseId: previewCourseId,
+          courseTitle: course?.title ?? 'Course',
+          chapters: chapterStates,
+          completedCount,
+          totalCount,
+          percentage: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+        },
+      });
+    }
+
     // 1b. Queue-based progress: if runId is provided, check Redis first
     const runId = req.nextUrl.searchParams.get('runId');
     if (runId && process.env.ENABLE_QUEUE_PROCESSING === 'true') {

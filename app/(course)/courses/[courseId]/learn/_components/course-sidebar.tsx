@@ -18,6 +18,11 @@ interface CourseSidebarProps {
 export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) => {
   const pathname = usePathname();
 
+  // Defense-in-depth: filter out chapters still generating or failed
+  const visibleChapters = course.chapters.filter(
+    (ch) => !ch.status || ch.status === 'ready'
+  );
+
   return (
     <div className="h-full border-r flex flex-col overflow-y-auto no-scrollbar shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
       {/* Course Title Section */}
@@ -30,7 +35,7 @@ export const CourseSidebar = ({ course, currentChapterId }: CourseSidebarProps) 
       {/* Chapters List */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <nav className="p-4 space-y-2" aria-label="Chapters">
-          {course.chapters.map((chapter) => (
+          {visibleChapters.map((chapter) => (
             // Use nav semantics per chapter link
             <Link
               key={chapter.id}

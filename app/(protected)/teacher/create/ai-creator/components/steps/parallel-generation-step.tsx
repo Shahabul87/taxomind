@@ -327,6 +327,26 @@ export function ParallelGenerationStep({
         </div>
       )}
 
+      {/* Healing Progress Banner */}
+      {sequentialProgress.healingInProgress && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 animate-pulse">
+          <Loader2 className="h-4 w-4 animate-spin text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Improving Course Quality
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 truncate">
+              {sequentialProgress.healingMessage ?? 'Regenerating low-quality chapters...'}
+            </p>
+          </div>
+          {sequentialProgress.healingChapters && sequentialProgress.healingChapters.length > 0 && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 flex-shrink-0">
+              {sequentialProgress.healingChapters.length} chapter{sequentialProgress.healingChapters.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Chapter Progress Grid */}
       {hasStarted && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

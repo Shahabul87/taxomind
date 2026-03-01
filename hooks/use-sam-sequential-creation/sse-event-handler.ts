@@ -562,6 +562,7 @@ export function handleSSEEvent(
           stageName: 'Complete',
           stagesCompleted: [1, 2, 3],
           qualityScore,
+          qualityBreakdown: data.qualityBreakdown as ChapterDetailState['qualityBreakdown'],
           id: chapterId || undefined,
           bloomsLevel: data.bloomsLevel as string | undefined,
           keyTopics: data.keyTopics as string[] | undefined,
@@ -785,6 +786,80 @@ export function handleSSEEvent(
     case 'healing_diagnosis':
     case 'state_change': {
       // Acknowledged but no UI state change needed
+      return {};
+    }
+
+    // ── Healing loop events ──
+
+    case 'healing_start': {
+      setProgress(prev => ({
+        ...prev,
+        healingInProgress: true,
+        healingChapters: (data.chapters as number[]) ?? [],
+        healingMessage: (data.message as string) ?? 'Improving course quality...',
+      }));
+      return {};
+    }
+
+    case 'healing_chapter': {
+      const healChapterPos = data.chapter as number;
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        const existing = details[healChapterPos];
+        if (existing) {
+          details[healChapterPos] = {
+            ...existing,
+            status: 'generating',
+            stageName: 'Healing',
+            events: [...existing.events, {
+              timestamp: Date.now(),
+              type: 'stage_start' as const,
+              message: 'Healing: regenerating for quality improvement',
+            }],
+          };
+        }
+        return { ...prev, chapterDetails: details };
+      });
+      return {};
+    }
+
+    case 'healing_diagnosis': {
+      setProgress(prev => ({
+        ...prev,
+        healingMessage: (data.strategy as string) ?? (data.message as string) ?? prev.healingMessage,
+      }));
+      return {};
+    }
+
+    case 'healing_complete': {
+      const healedChapters = (data.chapters as Array<{ chapter: number; newQuality: number }>) ?? [];
+      setProgress(prev => {
+        const details = { ...(prev.chapterDetails ?? {}) };
+        for (const healed of healedChapters) {
+          const existing = details[healed.chapter];
+          if (existing) {
+            details[healed.chapter] = {
+              ...existing,
+              status: 'complete',
+              stageName: 'Complete',
+              qualityScore: healed.newQuality,
+              events: [...existing.events, {
+                timestamp: Date.now(),
+                type: 'complete' as const,
+                message: `Healing complete — quality improved to ${healed.newQuality}%`,
+                data: { qualityScore: healed.newQuality },
+              }],
+            };
+          }
+        }
+        return {
+          ...prev,
+          healingInProgress: false,
+          healingChapters: undefined,
+          healingMessage: undefined,
+          chapterDetails: details,
+        };
+      });
       return {};
     }
 

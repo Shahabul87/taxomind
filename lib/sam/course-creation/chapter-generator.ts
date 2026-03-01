@@ -168,7 +168,11 @@ export async function generateSingleChapter(
 
   // JSON mode: request structured JSON output from non-reasoning models.
   // Reasoning models (e.g. deepseek-reasoner, o1) don't support responseFormat.
-  const responseFormat = isReasoningModel ? undefined : ('json' as const);
+  // Experiment: structured-output-v1 forces JSON on (structured-output) or off (control).
+  const useStructuredOutput = experimentVariant?.includes('structured-output')
+    ? true
+    : !isReasoningModel;
+  const responseFormat = useStructuredOutput ? ('json' as const) : undefined;
 
   // Extract teacher blueprint chapter entry for this chapter (prompt simplification)
   const teacherBlueprintChapter = teacherBlueprintChapters?.find(
@@ -225,6 +229,9 @@ export async function generateSingleChapter(
   let chThinking = '';
   let chQuality: QualityScore = buildDefaultQualityScore(70);
 
+  // Wrap in try/catch to mark chapter as 'failed' on error
+  try {
+
   // Resume support: continue from an in-progress chapter row if one exists.
   const resumePartialChapter = partialChapterDbId
     ? await db.chapter.findFirst({
@@ -249,6 +256,12 @@ export async function generateSingleChapter(
     chapterWithId = { ...chapter, id: resumePartialChapter.id };
     generatedChapters.push(chapterWithId);
     chThinking = `Resuming chapter ${chNum} from checkpointed partial data`;
+
+    // Reset status to 'generating' for resumed partial chapter
+    await db.chapter.update({
+      where: { id: resumePartialChapter.id },
+      data: { status: 'generating' },
+    });
 
     onSSEEvent?.({
       type: 'item_complete',
@@ -277,7 +290,7 @@ export async function generateSingleChapter(
   const previousPlain = generatedChapters.map((ch) => stripId(ch));
 
   // Quality gate: retry with feedback-driven improvement
-  const s1StrategyBase = strategyMonitor.getStrategy(1, chNum);
+  const s1StrategyBase = strategyMonitor.getStrategy(1, chNum, experimentVariant);
   // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
   const s1Strategy = isBlueprintDriven
     ? { ...s1StrategyBase, maxRetries: 0, retryThreshold: 0, enableSelfCritique: false }
@@ -335,6 +348,7 @@ export async function generateSingleChapter(
         responseText = s1UsageResult.content;
         if (budgetTracker && s1UsageResult.usage.totalTokens > 0) {
           budgetTracker.recordActualUsage(s1UsageResult.usage.inputTokens, s1UsageResult.usage.outputTokens);
+          budgetTracker.recordChapterCall(chNum, 1, s1UsageResult.usage.inputTokens, s1UsageResult.usage.outputTokens);
         }
       }
       const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters, currentBlueprintEntry, fallbackTracker);
@@ -438,7 +452,28 @@ export async function generateSingleChapter(
 
   onSSEEvent?.({ type: 'thinking', data: { stage: 1, chapter: chNum, thinking: chThinking } });
 
-  // Save chapter to DB
+  // Lightweight cross-course overlap check (informational, fire-and-forget)
+  if (process.env.ENABLE_RAG_RETRIEVAL === 'true') {
+    import('./cross-course-dedup').then(({ findOverlappingCourseContent }) =>
+      findOverlappingCourseContent(chapter.title, chapter.description, chapter.learningObjectives, userId)
+        .then(dedup => {
+          if (dedup.hasOverlap && dedup.overlappingCourses.some(c => c.highestSimilarity > 0.85)) {
+            onSSEEvent?.({
+              type: 'cross_course_overlap',
+              data: {
+                chapter: chNum,
+                overlappingCourses: dedup.overlappingCourses
+                  .filter(c => c.highestSimilarity > 0.85)
+                  .map(c => ({ title: c.courseTitle, similarity: Math.round(c.highestSimilarity * 100) })),
+              },
+            });
+          }
+        })
+        .catch(() => { /* informational only — swallow errors */ })
+    ).catch(() => { /* module import failure — swallow */ });
+  }
+
+  // Save chapter to DB with 'generating' status to prevent orphan visibility
   const dbChapter = await db.chapter.create({
     data: {
       title: chapter.title,
@@ -452,6 +487,7 @@ export async function generateSingleChapter(
       targetBloomsLevel: chapter.bloomsLevel,
       sectionCount: effectiveSectionsPerChapter,
       isPublished: false,
+      status: 'generating',
     },
   });
 
@@ -461,7 +497,17 @@ export async function generateSingleChapter(
 
   onSSEEvent?.({
     type: 'item_complete',
-    data: { stage: 1, chapter: chNum, title: chapter.title, id: dbChapter.id, qualityScore: chQuality.overall },
+    data: {
+      stage: 1, chapter: chNum, title: chapter.title, id: dbChapter.id,
+      qualityScore: chQuality.overall,
+      qualityBreakdown: {
+        uniqueness: chQuality.uniqueness,
+        specificity: chQuality.specificity,
+        bloomsAlignment: chQuality.bloomsAlignment,
+        completeness: chQuality.completeness,
+        depth: chQuality.depth,
+      },
+    },
   });
 
   // Fire-and-forget: usage recording is for analytics/rate-limiting, not pipeline correctness.
@@ -528,7 +574,7 @@ export async function generateSingleChapter(
         'Address ALL reviewer feedback. Generate a substantially improved version.',
       ].join('\n');
 
-      const s1Retry = strategyMonitor.getStrategy(1, chNum);
+      const s1Retry = strategyMonitor.getStrategy(1, chNum, experimentVariant);
       const s1CriticTemplatePrompt = composeTemplatePromptBlocks(chapterTemplate, 1, {
         totalSectionsOverride: effectiveSectionsPerChapter,
       });
@@ -747,7 +793,7 @@ export async function generateSingleChapter(
       sectionDefOverride: s3TemplateDef,
       sequenceOverride: selectedSections,
     });
-    const s3StrategyBase = strategyMonitor.getStrategy(3, chNum);
+    const s3StrategyBase = strategyMonitor.getStrategy(3, chNum, experimentVariant);
     // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
     const s3Strategy = isBlueprintDriven
       ? { ...s3StrategyBase, maxRetries: 0, retryThreshold: 0 }
@@ -802,6 +848,7 @@ export async function generateSingleChapter(
           s3ResponseText = s3UsageResult.content;
           if (budgetTracker && s3UsageResult.usage.totalTokens > 0) {
             budgetTracker.recordActualUsage(s3UsageResult.usage.inputTokens, s3UsageResult.usage.outputTokens);
+            budgetTracker.recordChapterCall(chNum, 3, s3UsageResult.usage.inputTokens, s3UsageResult.usage.outputTokens);
           }
         }
         const result = parseDetailsResponse(s3ResponseText, chapterPlain, sectionPlain, courseContext, s3TemplateDef, fallbackTracker);
@@ -965,7 +1012,7 @@ export async function generateSingleChapter(
       sectionDefOverride: templateSectionDef,
       sequenceOverride: selectedSections,
     });
-    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum);
+    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum, experimentVariant);
     // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
     const s2Strategy = { ...s2StrategyBase, maxRetries: 0, retryThreshold: 0 };
     const s2StartTime = Date.now();
@@ -991,7 +1038,7 @@ export async function generateSingleChapter(
           s2TemplatePrompt,
           recalledMemory ?? undefined,
           (alert) => emitPromptBudgetAlert(alert, 2, secNum),
-          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics } : undefined,
+          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics, contentType: blueprintSec2.contentType } : undefined,
           northStarProject,
           teacherBlueprintChapter?.deliverable,
         );
@@ -1012,9 +1059,10 @@ export async function generateSingleChapter(
           s2ResponseText = s2UsageResult.content;
           if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
             budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
+            budgetTracker.recordChapterCall(chNum, 2, s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
           }
         }
-        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker, undefined, blueprintSec2?.contentType);
 
         // Blueprint-driven: skip SAM validation — teacher already approved structure
         return { result, score: result.qualityScore.overall };
@@ -1314,7 +1362,7 @@ export async function generateSingleChapter(
       sectionDefOverride: templateSectionDef,
       sequenceOverride: selectedSections,
     });
-    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum);
+    const s2StrategyBase = strategyMonitor.getStrategy(2, chNum, experimentVariant);
     // Blueprint-driven: no retries, fully trust the teacher-approved blueprint
     const s2Strategy = isBlueprintDriven
       ? { ...s2StrategyBase, maxRetries: 0, retryThreshold: 0 }
@@ -1342,7 +1390,7 @@ export async function generateSingleChapter(
           s2TemplatePrompt,
           recalledMemory ?? undefined,
           (alert) => emitPromptBudgetAlert(alert, 2, secNum),
-          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics } : undefined,
+          blueprintSec2 ? { title: blueprintSec2.title, keyTopics: blueprintSec2.keyTopics, contentType: blueprintSec2.contentType } : undefined,
           northStarProject,
           teacherBlueprintChapter?.deliverable,
         );
@@ -1364,9 +1412,10 @@ export async function generateSingleChapter(
           s2ResponseText = s2UsageResult.content;
           if (budgetTracker && s2UsageResult.usage.totalTokens > 0) {
             budgetTracker.recordActualUsage(s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
+            budgetTracker.recordChapterCall(chNum, 2, s2UsageResult.usage.inputTokens, s2UsageResult.usage.outputTokens);
           }
         }
-        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker);
+        const result = parseSectionResponse(s2ResponseText, secNum, chapterPlain, allSectionTitles, templateSectionDef, fallbackTracker, undefined, blueprintSec2?.contentType);
 
         // Blueprint-driven: skip SAM validation and semantic duplicate detection
         // High-quality (>80): skip SAM validation — rarely fails, saves ~8s per item
@@ -1530,6 +1579,12 @@ export async function generateSingleChapter(
   };
   completedChapters.push(completedChapter);
 
+  // Mark chapter as ready — all 3 stages completed successfully
+  await db.chapter.update({
+    where: { id: chapterWithId.id },
+    data: { status: 'ready' },
+  });
+
   // Between-chapter agentic decision
   let agenticDecision: AgenticDecision | null = null;
   if (blueprintPlan && chNum < totalChapters) {
@@ -1553,4 +1608,19 @@ export async function generateSingleChapter(
     chaptersCreated,
     sectionsCreated,
   };
+  } catch (chapterError) {
+    // Mark chapter as failed if we have a DB record for it
+    const failedChapterId = chapterWithId?.id ?? partialChapterDbId;
+    if (failedChapterId) {
+      await db.chapter.update({
+        where: { id: failedChapterId },
+        data: { status: 'failed' },
+      }).catch((updateErr) => {
+        logger.error('[CHAPTER_GENERATOR] Failed to mark chapter as failed', {
+          chapterId: failedChapterId, error: updateErr instanceof Error ? updateErr.message : String(updateErr),
+        });
+      });
+    }
+    throw chapterError;
+  }
 }

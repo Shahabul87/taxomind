@@ -171,6 +171,9 @@ model Course {
   // AI generation cost data (token usage, cost estimate) from pipeline budget tracker
   generationCostData       Json?
 
+  // Quality score history across generation runs (append-only array of QualityHistoryEntry)
+  qualityHistory           Json?
+
   @@index([categoryId])
   @@index([organizationId])
   @@index([userId])
