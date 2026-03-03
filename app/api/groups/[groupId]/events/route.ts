@@ -120,7 +120,8 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
       },
       orderBy: {
         date: "asc"
-      }
+      },
+      take: 200,
     });
 
     return NextResponse.json(events);

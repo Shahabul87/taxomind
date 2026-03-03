@@ -171,25 +171,27 @@ export async function POST(req: NextRequest) {
         }
       );
 
-    } catch (decryptError: any) {
+    } catch (decryptError: unknown) {
+      const decryptMessage = decryptError instanceof Error ? decryptError.message : 'Unknown error';
       logger.error("[RECOVERY_CODES_DECRYPT_ERROR]", {
         userId,
-        error: decryptError.message,
+        error: decryptMessage,
         timestamp: new Date().toISOString(),
       });
 
       return NextResponse.json(
         { error: "Failed to verify TOTP token due to encryption error" },
-        { 
+        {
           status: 500,
           headers: rateLimitResult.headers as Record<string, string>
         }
       );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error("[RECOVERY_CODES_ERROR]", {
-      error: error.message,
+      error: message,
       timestamp: new Date().toISOString(),
     });
     
@@ -248,9 +250,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("[RECOVERY_CODES_STATUS_ERROR]", error);
-    
+
     return NextResponse.json(
       { error: "Failed to get recovery codes status" },
       { status: 500 }

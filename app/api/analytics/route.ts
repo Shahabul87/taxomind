@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
     logger.info('Analytics event', event);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    logger.error('POST /api/analytics failed', { error: error?.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('POST /api/analytics failed', { error: message });
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
   }
 }

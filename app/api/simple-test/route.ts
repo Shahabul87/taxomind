@@ -34,10 +34,10 @@ export async function POST(req: Request) {
       environment: process.env.NODE_ENV,
       runtime: 'nodejs'
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('[SIMPLE_TEST]', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({
       error: "Failed to parse JSON",
-      message: error.message,
       timestamp: new Date().toISOString()
     }, { status: 400 });
   }

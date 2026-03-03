@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { getActiveSessions, terminateAllSessions } from '@/lib/auth/session-limiter';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * GET /api/auth/sessions
  * List all active sessions for the current user
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -56,6 +60,9 @@ const DeleteSessionsSchema = z.object({
  */
 export async function DELETE(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

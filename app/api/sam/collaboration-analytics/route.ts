@@ -398,6 +398,7 @@ async function handleGetCollaborationInsights(data: any) {
           gte: startDate,
         },
       },
+      take: 500,
     });
 
     const reactions = await db.collaborationReaction.count({
@@ -432,6 +433,7 @@ async function handleGetCollaborationInsights(data: any) {
           gte: startDate,
         },
       },
+      take: 500,
     });
 
     const uniqueParticipants = new Set<string>();
@@ -446,6 +448,7 @@ async function handleGetCollaborationInsights(data: any) {
           in: courseSessions.map((s) => s.sessionId),
         },
       },
+      take: 500,
     });
 
     return {
@@ -1119,7 +1122,7 @@ export async function GET(req: NextRequest) {
         break;
 
       case "session-history":
-        const limit = parseInt(searchParams.get("limit") || "20");
+        const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20), 100);
         result = await db.collaborationSession.findMany({
           where: courseId
             ? { courseId }

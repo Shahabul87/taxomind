@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { terminateSession } from '@/lib/auth/session-limiter';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 interface RouteParams {
   params: Promise<{
@@ -14,6 +15,9 @@ interface RouteParams {
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

@@ -73,12 +73,9 @@ export async function DELETE(
     // Check if user owns the course
     if (courseExists.userId !== user.id) {
 
-      return NextResponse.json({ 
-        error: "Unauthorized", 
-        details: "You do not own this course",
-        courseId,
-        courseOwner: courseExists.userId,
-        currentUser: user.id
+      return NextResponse.json({
+        error: "Unauthorized",
+        details: "You do not have permission to modify this course"
       }, { status: 403 });
     }
 

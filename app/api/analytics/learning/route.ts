@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         lastAccessedAt: 'desc',
       },
+      take: 500,
     });
 
     // Calculate overall statistics

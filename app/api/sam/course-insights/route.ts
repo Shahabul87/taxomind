@@ -78,12 +78,14 @@ export async function GET() {
     // Get user's achievements
     const achievements = await db.user_achievements.findMany({
       where: { userId: user.id },
+      take: 200,
     });
 
     // Get user's learning goals (Milestone relation, not subGoals)
     const goals = await db.goal.findMany({
       where: { userId: user.id },
       include: { Milestone: true },
+      take: 200,
     });
 
     // Calculate insights for each course (filter out enrollments without courses)

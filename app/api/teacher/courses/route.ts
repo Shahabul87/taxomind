@@ -119,10 +119,12 @@ export async function GET(req: NextRequest) {
         pagination: { page, pageSize, total, totalPages },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    const stack = error instanceof Error ? error.stack : undefined;
     logger.error('GET /api/teacher/courses failed', {
-      error: error?.message,
-      stack: error?.stack,
+      error: message,
+      stack,
     });
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
   }

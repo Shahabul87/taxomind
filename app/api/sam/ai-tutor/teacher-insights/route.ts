@@ -410,6 +410,7 @@ async function generateEngagementInsights(userId: string, courseId: string | nul
   const activityLogs = await db.learningActivityLog.findMany({
     where: activityWhere,
     select: { userId: true, createdAt: true, contentType: true },
+    take: 500,
   });
 
   const overallEngagement = activityLogs.length;
@@ -544,6 +545,7 @@ async function generatePerformanceInsights(userId: string, courseId: string | nu
         },
       },
     },
+    take: 500,
   });
 
   const scores = attempts.map((attempt) => attempt.scorePercentage ?? 0);
@@ -620,6 +622,7 @@ async function generateAtRiskInsights(userId: string, courseId: string | null, t
   const enrollments = await db.enrollment.findMany({
     where: courseId ? { courseId } : {},
     select: { userId: true },
+    take: 500,
   });
 
   const userIds = Array.from(new Set(enrollments.map((item) => item.userId)));
@@ -779,6 +782,7 @@ async function generateLearningPatternInsights(userId: string, courseId: string 
       ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
     },
     select: { createdAt: true, contentType: true },
+    take: 500,
   });
 
   const mockPatternData = {
@@ -837,6 +841,7 @@ async function generateContentEffectivenessInsights(userId: string, courseId: st
       ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
     },
     select: { contentType: true, score: true },
+    take: 500,
   });
 
   const contentRatings = buildContentRatings(activityLogs);

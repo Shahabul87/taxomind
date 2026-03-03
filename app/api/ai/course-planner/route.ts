@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       if (apiError instanceof OperationTimeoutError) {
         logger.error('Course planner timed out:', { operation: apiError.operationName, timeoutMs: apiError.timeoutMs });
         return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
@@ -359,7 +359,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof OperationTimeoutError) {
       logger.error('Course planner timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
@@ -368,12 +368,9 @@ export async function POST(request: NextRequest) {
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
-    logger.error('Course planner error:', error);
+    logger.error('[COURSE_PLANNER]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

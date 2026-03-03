@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as bcrypt from 'bcryptjs';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {

@@ -175,7 +175,8 @@ async function getDropoutRiskAlerts(courseId: string | null) {
             name: true
           }
         }
-      }
+      },
+      take: 200,
     });
 
     // Check which users have no recent exam attempts
@@ -356,7 +357,8 @@ async function getContentQualityAlerts(courseId: string | null) {
             }
           }
         }
-      }
+      },
+      take: 500,
     });
 
     // Group by exam and calculate metrics
@@ -426,14 +428,16 @@ async function getContentIdsForCourse(courseId: string): Promise<string[]> {
         courseId
       }
     },
-    select: { id: true }
+    select: { id: true },
+    take: 500,
   });
 
   const videos = await db.video.findMany({
     where: {
       sectionId: { in: sections.map(s => s.id) }
     },
-    select: { id: true }
+    select: { id: true },
+    take: 500,
   });
 
   return [...sections.map(s => s.id), ...videos.map(v => v.id)];

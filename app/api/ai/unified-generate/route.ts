@@ -983,14 +983,9 @@ export async function POST(request: NextRequest) {
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
-    logger.error("Unified generate error:", error);
+    logger.error('[UNIFIED_GENERATE]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: process.env.NODE_ENV === "development" && error instanceof Error
-          ? error.message
-          : "Something went wrong",
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

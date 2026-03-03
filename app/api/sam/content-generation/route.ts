@@ -261,7 +261,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const contentType = searchParams.get("type");
     const quality = searchParams.get("quality");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "10", 10) || 10), 100);
 
     // Build query
     const where: any = {};

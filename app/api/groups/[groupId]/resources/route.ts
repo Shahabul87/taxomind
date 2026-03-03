@@ -50,6 +50,7 @@ export async function GET(req: Request, props: { params: Promise<{ groupId: stri
       orderBy: {
         createdAt: "desc",
       },
+      take: 200,
     });
 
     return NextResponse.json(resources);

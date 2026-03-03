@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * Newsletter Subscription API
@@ -11,8 +12,11 @@ const subscribeSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await req.json();
 
     // Validate input

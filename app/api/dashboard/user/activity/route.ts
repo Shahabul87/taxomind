@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     }
 
     const searchParams = req.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 200);
     const activityType = searchParams.get('type');
     const courseId = searchParams.get('courseId');
     
@@ -259,7 +259,8 @@ async function calculateStreakDays(userId: string): Promise<number> {
     },
     orderBy: {
       timestamp: 'desc'
-    }
+    },
+    take: 500,
   });
 
   if (activities.length === 0) return 0;

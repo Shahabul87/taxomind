@@ -67,14 +67,17 @@ export async function GET() {
       const formattedData = transformFacebookData(pageData, insightsData, postsData);
       
       return NextResponse.json({ data: formattedData }, { status: 200 });
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       // Handle specific Facebook API errors
       const errorMessage = formatFacebookError(apiError);
       logger.error('Facebook API error:', errorMessage);
-      
+      const statusCode = apiError instanceof Error && 'response' in apiError
+        ? ((apiError as Record<string, unknown>).response as Record<string, unknown>)?.status as number || 500
+        : 500;
+
       return NextResponse.json(
-        { error: errorMessage }, 
-        { status: apiError.response?.status || 500 }
+        { error: errorMessage },
+        { status: statusCode }
       );
     }
   } catch (error) {

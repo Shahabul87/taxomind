@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -11,6 +12,9 @@ cloudinary.config({
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {

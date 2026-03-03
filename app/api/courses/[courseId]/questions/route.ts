@@ -12,22 +12,22 @@ const CreateQuestionSchema = z.object({
 
 function sanitizeHtmlServer(input: string): string {
   try {
-    let out = input;
-    // Remove script and style tags
-    out = out.replace(/<\/(?:script|style)>/gi, '').replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '');
-    // Remove on* attributes and javascript: URIs
-    out = out.replace(/ on[a-z]+="[^"]*"/gi, '').replace(/ on[a-z]+='[^']*'/gi, '');
-    out = out.replace(/javascript:/gi, '');
-    return out;
+    // Use DOMPurify for robust server-side sanitization
+    const DOMPurify = require('isomorphic-dompurify');
+    return DOMPurify.sanitize(input, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'code', 'pre', 'ul', 'ol', 'li', 'a', 'blockquote'],
+      ALLOWED_ATTR: ['href', 'target', 'rel'],
+    });
   } catch {
-    return input;
+    // Fallback: strip all HTML tags
+    return input.replace(/<[^>]*>/g, '');
   }
 }
 
 // Schema for query parameters
 const QuerySchema = z.object({
   page: z.string().optional().transform((val) => parseInt(val || '1', 10)),
-  limit: z.string().optional().transform((val) => parseInt(val || '10', 10)),
+  limit: z.string().optional().transform((val) => Math.min(Math.max(1, parseInt(val || '10', 10) || 10), 100)),
   sortBy: z.enum(['recent', 'top', 'unanswered']).optional().default('recent'),
   sectionId: z.string().optional(),
   search: z.string().optional(),

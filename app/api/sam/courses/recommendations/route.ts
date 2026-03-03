@@ -187,6 +187,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 200,
     });
 
     // Filter out enrollments where Course might be null (deleted courses)

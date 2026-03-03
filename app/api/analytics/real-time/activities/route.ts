@@ -74,7 +74,8 @@ async function getStudentActivities(courseId: string | null) {
     },
     orderBy: {
       lastAccessedAt: 'desc'
-    }
+    },
+    take: 500,
   });
 
   // Group by student

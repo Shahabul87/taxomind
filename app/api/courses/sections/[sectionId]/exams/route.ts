@@ -84,13 +84,10 @@ export async function GET(
 
     return NextResponse.json(transformedExams);
 
-  } catch (error: any) {
-    logger.error('Student exam fetch error:', error);
+  } catch (error) {
+    logger.error('[STUDENT_EXAM_FETCH]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

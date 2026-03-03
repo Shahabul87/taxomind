@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+
+const ReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().min(10).max(5000).trim(),
+});
 
 
 export async function POST(req: Request, props: { params: Promise<{ courseId: string }> }) {
@@ -14,18 +20,14 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
         return new NextResponse("Unauthorized", { status: 401 });
       }
 
-    const userId = user?.id;
+    const userId = user.id;
 
-    const { rating, comment } = await req.json();
-
-    // Validate input
-    if (!rating || rating < 1 || rating > 5) {
-      return new NextResponse("Invalid rating", { status: 400 });
+    const body = await req.json();
+    const parsed = ReviewSchema.safeParse(body);
+    if (!parsed.success) {
+      return new NextResponse(parsed.error.errors[0]?.message || "Invalid input", { status: 400 });
     }
-
-    if (!comment || comment.length < 10) {
-      return new NextResponse("Review comment must be at least 10 characters", { status: 400 });
-    }
+    const { rating, comment } = parsed.data;
 
     // Check if course exists
     const course = await db.course.findUnique({
@@ -116,6 +118,7 @@ export async function GET(req: Request, props: { params: Promise<{ courseId: str
         orderBy: {
           createdAt: 'desc',
         },
+        take: 500,
       });
       const items = results.map((r: any) => ({
         id: r.id,

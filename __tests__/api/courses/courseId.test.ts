@@ -138,9 +138,7 @@ describe('DELETE /api/courses/[courseId]', () => {
 
     expect(res.status).toBe(403);
     expect(body.error).toBe('Unauthorized');
-    expect(body.details).toBe('You do not own this course');
-    expect(body.courseOwner).toBe('other-user');
-    expect(body.currentUser).toBe('user-1');
+    expect(body.details).toBe('You do not have permission to modify this course');
   });
 
   // ----- Successful Deletion -----

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -6,18 +7,27 @@ import { db } from "@/lib/db";
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
+const reorderSchema = z.object({
+  list: z.array(
+    z.object({
+      id: z.string(),
+      position: z.number().int().min(0),
+    })
+  ).max(200),
+});
+
 export async function PUT(req: Request, props: { params: Promise<{ courseId: string; }> }) {
   const params = await props.params;
   try {
     const user = await currentUser();
 
     if (!user?.id) {
-        return new NextResponse("Unauthorized", { status: 401 });
-      }
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
-    const userId = user?.id;
-
-    const { list } = await req.json();
+    const userId = user.id;
+    const body = await req.json();
+    const { list } = reorderSchema.parse(body);
 
     const ownCourse = await db.course.findUnique({
       where: {
@@ -30,16 +40,20 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    for (const item of list) {
-      await db.chapter.update({
-        where: { id: item.id },
-        data: { position: item.position }
-      });
-    }
+    await db.$transaction(
+      list.map((item) =>
+        db.chapter.update({
+          where: { id: item.id, courseId: params.courseId },
+          data: { position: item.position },
+        })
+      )
+    );
 
     return new NextResponse("Success", { status: 200 });
   } catch (error) {
-
-    return new NextResponse("Internal Error", { status: 500 }); 
+    if (error instanceof z.ZodError) {
+      return new NextResponse("Invalid input", { status: 400 });
+    }
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

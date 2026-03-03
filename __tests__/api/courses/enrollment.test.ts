@@ -270,7 +270,7 @@ describe('GET /api/courses/[courseId]/enrollment', () => {
     (stripe.checkout.sessions.retrieve as jest.Mock).mockResolvedValue({
       id: 'cs_test_123',
       payment_status: 'paid',
-      metadata: { courseId: 'course-1' },
+      metadata: { courseId: 'course-1', userId: 'user-1' },
       amount_total: 4999,
       currency: 'usd',
       payment_intent: 'pi_test_123',
@@ -320,7 +320,7 @@ describe('GET /api/courses/[courseId]/enrollment', () => {
     (stripe.checkout.sessions.retrieve as jest.Mock).mockResolvedValue({
       id: 'cs_test_123',
       payment_status: 'paid',
-      metadata: { courseId: 'course-1' },
+      metadata: { courseId: 'course-1', userId: 'user-1' },
       amount_total: 4999,
       currency: 'usd',
       payment_intent: 'pi_test_123',
@@ -370,7 +370,7 @@ describe('GET /api/courses/[courseId]/enrollment', () => {
     (stripe.checkout.sessions.retrieve as jest.Mock).mockResolvedValue({
       id: 'cs_test_unpaid',
       payment_status: 'unpaid',
-      metadata: { courseId: 'course-1' },
+      metadata: { courseId: 'course-1', userId: 'user-1' },
       amount_total: 4999,
       currency: 'usd',
     });
@@ -424,7 +424,7 @@ describe('GET /api/courses/[courseId]/enrollment', () => {
     (stripe.checkout.sessions.retrieve as jest.Mock).mockResolvedValue({
       id: 'cs_test_no_course',
       payment_status: 'paid',
-      metadata: { courseId: 'course-1' },
+      metadata: { courseId: 'course-1', userId: 'user-1' },
       amount_total: 4999,
       currency: 'usd',
     });
@@ -530,7 +530,7 @@ describe('GET /api/courses/[courseId]/enrollment', () => {
     (stripe.checkout.sessions.retrieve as jest.Mock).mockResolvedValue({
       id: 'cs_special_session',
       payment_status: 'paid',
-      metadata: { courseId: 'course-1' },
+      metadata: { courseId: 'course-1', userId: 'user-1' },
       amount_total: 2999,
       currency: 'usd',
       payment_intent: 'pi_special',

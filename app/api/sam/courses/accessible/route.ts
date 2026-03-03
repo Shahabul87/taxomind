@@ -36,6 +36,7 @@ export async function GET() {
           category: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: 'desc' },
+        take: 200,
       }),
       db.enrollment.findMany({
         where: { userId: user.id },

@@ -258,19 +258,19 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       logger.error('Anthropic API error:', apiError);
-      
+
       // Fall back to mock response for API errors
       const mockQuestions = generateMockQuestions(examRequest);
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         questions: mockQuestions,
         warning: 'AI service temporarily unavailable, using template response'
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof OperationTimeoutError) {
       logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
@@ -278,12 +278,9 @@ export async function POST(request: NextRequest) {
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
-    logger.error('Exam generator error:', error);
+    logger.error('[EXAM_GENERATOR]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

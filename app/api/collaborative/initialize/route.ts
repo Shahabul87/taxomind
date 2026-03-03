@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       message: 'Collaborative editing enabled successfully',
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error initializing collaborative editing:', error);
     return NextResponse.json(
       { error: 'Failed to initialize collaborative editing' },
@@ -216,7 +216,7 @@ export async function GET(request: NextRequest) {
       lastActivity: collaborativeSession.lastActivity,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error getting collaborative session info:', error);
     return NextResponse.json(
       { error: 'Failed to get session information' },
@@ -249,7 +249,7 @@ async function checkEnablePermission(userId: string, contentType: string, conten
     });
 
     return adminAccount?.role === 'ADMIN' || adminAccount?.role === 'SUPERADMIN';
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error checking enable permission:', error);
     return false;
   }
@@ -293,7 +293,7 @@ async function createDefaultPermissionRules(contentType: string, contentId: stri
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error creating default permission rules:', error);
   }
 }

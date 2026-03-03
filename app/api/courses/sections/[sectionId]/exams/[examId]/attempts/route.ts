@@ -108,13 +108,10 @@ export async function POST(
 
     return NextResponse.json(newAttempt);
 
-  } catch (error: any) {
-    logger.error('Exam attempt creation error:', error);
+  } catch (error) {
+    logger.error('[EXAM_ATTEMPT_CREATE]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -207,13 +204,10 @@ export async function GET(
 
     return NextResponse.json(sanitized);
 
-  } catch (error: any) {
-    logger.error('Exam attempts fetch error:', error);
+  } catch (error) {
+    logger.error('[EXAM_ATTEMPTS_FETCH]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

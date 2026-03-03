@@ -34,6 +34,7 @@ async function generateStudentInsights(studentId: string): Promise<any> {
         db.enrollment.findMany({
           where: { userId: studentId },
           select: { courseId: true },
+          take: 200,
         }),
         db.sAMStreak.findUnique({
           where: { userId: studentId },

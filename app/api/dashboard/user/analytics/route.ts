@@ -89,7 +89,8 @@ export async function GET(req: NextRequest) {
       },
       orderBy: {
         lastStudyDate: 'desc'
-      }
+      },
+      take: 200,
     });
 
     // Get user progress
@@ -121,7 +122,8 @@ export async function GET(req: NextRequest) {
       },
       orderBy: {
         lastAccessedAt: 'desc'
-      }
+      },
+      take: 500,
     });
 
     // Get achievements

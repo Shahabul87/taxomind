@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       data: null
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await adminAuth();
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       data: []
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },

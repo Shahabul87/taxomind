@@ -65,7 +65,8 @@ export async function GET(req: NextRequest) {
       },
       orderBy: {
         updatedAt: 'desc'
-      }
+      },
+      take: 200,
     });
 
     // Calculate summary statistics
@@ -134,13 +135,14 @@ async function getOrCreatePerformanceMetrics(
     },
     orderBy: {
       date: 'asc'
-    }
+    },
+    take: 500,
   });
 
   // Generate missing metrics
   const dates = generateDateRange(startDate, endDate, period);
   const existingDates = new Set(existingMetrics.map(m => m.date.toISOString().split('T')[0]));
-  
+
   for (const date of dates) {
     const dateStr = date.toISOString().split('T')[0];
     if (!existingDates.has(dateStr)) {
@@ -160,7 +162,8 @@ async function getOrCreatePerformanceMetrics(
     },
     orderBy: {
       date: 'asc'
-    }
+    },
+    take: 500,
   });
 }
 
@@ -190,7 +193,8 @@ async function calculateAndCreatePerformanceMetric(
         gte: startDate,
         lt: endDate
       }
-    }
+    },
+    take: 500,
   });
 
   // Get activities for the period
@@ -201,7 +205,8 @@ async function calculateAndCreatePerformanceMetric(
         gte: startDate,
         lt: endDate
       }
-    }
+    },
+    take: 500,
   });
 
   // Calculate metrics

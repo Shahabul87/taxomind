@@ -133,16 +133,19 @@ async function gatherLearningData(userId: string): Promise<LearningData> {
   // Get enrollments
   const enrollments = await db.enrollment.findMany({
     where: { userId },
+    take: 200,
   });
 
   // Get progress records
   const progressRecords = await db.user_progress.findMany({
     where: { userId },
+    take: 500,
   });
 
   // Get exam attempts
   const examAttempts = await db.userExamAttempt.findMany({
     where: { userId, status: 'GRADED' },
+    take: 500,
   });
 
   // Calculate metrics
@@ -219,6 +222,7 @@ async function gatherCreatorData(userId: string): Promise<CreatorData> {
       Enrollment: true,
       reviews: true,
     },
+    take: 200,
   });
 
   const publishedCourses = courses.filter((c) => c.isPublished).length;
@@ -228,6 +232,7 @@ async function gatherCreatorData(userId: string): Promise<CreatorData> {
   const courseIds = courses.map((c) => c.id);
   const progressRecords = await db.user_progress.findMany({
     where: { courseId: { in: courseIds } },
+    take: 500,
   });
 
   // Calculate completions

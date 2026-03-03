@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CryptoUtils } from '@/lib/security/crypto-utils';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * CSP Violation Report Endpoint
@@ -185,6 +186,9 @@ function getClientIP(request: NextRequest): string {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Validate content type
     const contentType = request.headers.get('content-type');
     if (!contentType?.includes('application/csp-report') && !contentType?.includes('application/json')) {
@@ -257,6 +261,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Require admin authentication
     const user = await currentUser();
     if (!user?.id || user.role !== 'ADMIN') {

@@ -137,14 +137,15 @@ export async function POST(req: NextRequest) {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error("[TOTP_SETUP_ERROR]", {
-      error: error.message,
+      error: message,
     });
-    
+
     return NextResponse.json(
       { error: "Failed to setup TOTP. Please try again." },
-      { 
+      {
         status: 500,
         headers: rateLimitResult.headers as Record<string, string>
       }
@@ -201,9 +202,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("[TOTP_STATUS_ERROR]", error);
-    
+
     return NextResponse.json(
       { error: "Failed to get TOTP status" },
       { status: 500 }

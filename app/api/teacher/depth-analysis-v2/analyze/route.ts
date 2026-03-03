@@ -804,8 +804,9 @@ export async function POST(req: NextRequest) {
                 suggestedTier: error.enforcement.suggestedTier,
               });
             } else {
+              logger.error('[DepthAnalysisV2] SSE analysis error', { error: error instanceof Error ? error.message : 'Unknown error' });
               sendEvent('error', {
-                message: error instanceof Error ? error.message : 'Analysis failed',
+                message: 'Analysis failed',
               });
             }
             controller.close();

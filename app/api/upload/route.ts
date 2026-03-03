@@ -3,6 +3,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 import { successResponse, apiErrors } from "@/lib/utils/api-response";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const formData = await req.formData();
 
     // Handle both single and multiple files

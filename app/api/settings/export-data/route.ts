@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // POST - Request data export (GDPR compliance)
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {
@@ -88,6 +92,9 @@ export async function POST(req: NextRequest) {
 // GET - Get export request status
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {

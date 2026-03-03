@@ -429,6 +429,7 @@ async function handleProfitabilityAnalysis(
       include: {
         User: true,
       },
+      take: 500,
     });
 
     const completions = enrollments.filter((e) => e.updatedAt !== e.createdAt); // Mock completion check
@@ -742,6 +743,7 @@ async function calculateStudentSatisfaction(courseId: string): Promise<number> {
   const reviews = await db.courseReview.findMany({
     where: { courseId },
     select: { rating: true },
+    take: 500,
   });
   
   if (reviews.length === 0) return 0;
@@ -791,6 +793,7 @@ async function calculateProfitabilityByCategory(
             },
           },
         },
+        take: 200,
       },
     },
   });

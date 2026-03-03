@@ -244,7 +244,7 @@ export const GET = async (req: Request): Promise<NextResponse> => {
     const categoryId = searchParams.get("categoryId") || undefined;
     const search = searchParams.get("search") || undefined;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20), 100);
     const isFeatured = searchParams.get("featured") === "true" ? true : undefined;
 
     // Generate cache key for this specific query

@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { db } from "@/lib/db";
 import { z } from 'zod';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -17,8 +18,11 @@ const UploadAttachmentSchema = z.object({
 // TODO: MessageAttachment model needs to be added to Prisma schema
 // Currently disabled until the model is implemented
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,8 +78,11 @@ export async function POST(req: Request) {
 }
 
 // Get attachments for a message
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

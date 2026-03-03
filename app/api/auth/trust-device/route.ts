@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { SessionManager } from '@/lib/security/session-manager';
 import { headers } from 'next/headers';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 /**
  * Trust the current device for the authenticated user
  */
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Get current session
     const session = await auth();
     

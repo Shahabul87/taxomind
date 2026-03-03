@@ -342,10 +342,10 @@ export async function POST(request: NextRequest) {
       }
 
       logger.info('[SECTION_CONTENT] Section ownership verified successfully');
-    } catch (dbError: any) {
-      logger.error('[SECTION_CONTENT] Database error during ownership check:', dbError);
+    } catch (dbError: unknown) {
+      logger.error('[SECTION_CONTENT] Database error during ownership check:', { error: dbError instanceof Error ? dbError.message : 'Unknown error' });
       return NextResponse.json(
-        { error: 'Database error', message: dbError.message },
+        { error: 'Internal server error' },
         { status: 500 }
       );
     }
@@ -410,7 +410,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    } catch (apiError: any) {
+    } catch (apiError: unknown) {
       logger.error('Anthropic API error:', apiError);
 
       // Fall back to mock response for API errors
@@ -422,7 +422,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof OperationTimeoutError) {
       logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
@@ -430,12 +430,9 @@ export async function POST(request: NextRequest) {
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
-    logger.error('Section content generator error:', error);
+    logger.error('[SECTION_CONTENT]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

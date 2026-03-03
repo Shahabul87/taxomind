@@ -1,9 +1,9 @@
 import { handleSessionError, refreshSession } from '@/lib/auth-error-handler';
 
-// Mock next-auth/react
-const mockSignOut = jest.fn();
-jest.mock('next-auth/react', () => ({
-  signOut: (...args) => mockSignOut(...args),
+// Mock performSignOut (used by refreshSession instead of direct signOut)
+const mockPerformSignOut = jest.fn();
+jest.mock('@/components/auth/logout-button', () => ({
+  performSignOut: (...args: unknown[]) => mockPerformSignOut(...args),
 }));
 
 // Mock logger
@@ -115,20 +115,17 @@ describe('auth-error-handler', () => {
       });
     });
 
-    it('should call signOut with redirect true and the correct callbackUrl', async () => {
-      mockSignOut.mockResolvedValueOnce(undefined);
+    it('should call performSignOut with the correct callbackUrl', async () => {
+      mockPerformSignOut.mockResolvedValueOnce(undefined);
 
       await refreshSession();
 
-      expect(mockSignOut).toHaveBeenCalledTimes(1);
-      expect(mockSignOut).toHaveBeenCalledWith({
-        redirect: true,
-        callbackUrl: '/auth/login',
-      });
+      expect(mockPerformSignOut).toHaveBeenCalledTimes(1);
+      expect(mockPerformSignOut).toHaveBeenCalledWith('/auth/login');
     });
 
     it('should not modify window.location.href when signOut succeeds', async () => {
-      mockSignOut.mockResolvedValueOnce(undefined);
+      mockPerformSignOut.mockResolvedValueOnce(undefined);
 
       await refreshSession();
 
@@ -136,7 +133,7 @@ describe('auth-error-handler', () => {
     });
 
     it('should redirect via window.location.href when signOut throws', async () => {
-      mockSignOut.mockRejectedValueOnce(new Error('signOut failed'));
+      mockPerformSignOut.mockRejectedValueOnce(new Error('signOut failed'));
 
       await refreshSession();
 
@@ -145,7 +142,7 @@ describe('auth-error-handler', () => {
 
     it('should log the error via logger.error when signOut throws', async () => {
       const signOutError = new Error('signOut exploded');
-      mockSignOut.mockRejectedValueOnce(signOutError);
+      mockPerformSignOut.mockRejectedValueOnce(signOutError);
 
       await refreshSession();
 
@@ -157,12 +154,11 @@ describe('auth-error-handler', () => {
     });
 
     it('should pass callbackUrl pointing to /auth/login', async () => {
-      mockSignOut.mockResolvedValueOnce(undefined);
+      mockPerformSignOut.mockResolvedValueOnce(undefined);
 
       await refreshSession();
 
-      const callArg = mockSignOut.mock.calls[0][0] as { callbackUrl: string };
-      expect(callArg.callbackUrl).toBe('/auth/login');
+      expect(mockPerformSignOut.mock.calls[0][0]).toBe('/auth/login');
     });
   });
 });

@@ -442,18 +442,19 @@ export async function POST(
       } : null,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof OperationTimeoutError) {
       logger.error('Exam submission timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
     }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Exam submission error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
       },
       { status: 500 }
     );

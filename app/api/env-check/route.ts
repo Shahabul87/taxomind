@@ -42,11 +42,12 @@ export async function GET() {
     };
 
     return NextResponse.json(envCheck);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // SECURITY: Don't expose stack traces in error responses
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({
       error: true,
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? message : 'Internal server error',
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

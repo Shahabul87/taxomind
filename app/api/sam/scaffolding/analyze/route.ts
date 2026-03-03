@@ -142,6 +142,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        take: 200,
       }),
     ]);
 

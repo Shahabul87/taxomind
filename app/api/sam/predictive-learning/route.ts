@@ -188,10 +188,12 @@ async function buildStudentProfile(
       db.enrollment.findMany({
         where: { userId },
         include: { Course: true },
+        take: 200,
       }),
       db.user_achievements.findMany({
         where: { userId },
         // orderBy: { earnedAt: "desc" }, // Field not in schema
+        take: 200,
       }),
     ]);
 
@@ -259,6 +261,7 @@ async function buildStudentCohort(
     include: {
       User: true,
     },
+    take: 500,
   });
 
   const students: PredictiveStudentProfile[] = [];

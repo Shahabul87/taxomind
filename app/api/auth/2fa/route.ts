@@ -110,11 +110,11 @@ export async function POST(req: NextRequest) {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("[2FA_ERROR]", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { 
+      {
         status: 500,
         headers: rateLimitResult.headers as Record<string, string>
       }

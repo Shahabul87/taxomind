@@ -207,12 +207,9 @@ export const POST = withAuth(async (
     response.headers.set('Cache-Control', 'private, max-age=300');
     return response;
 
-  } catch (error: any) {
-    logger.error('Teacher analytics error:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-    }, { status: 500 });
+  } catch (error) {
+    logger.error('[TEACHER_ANALYTICS]', { error: error instanceof Error ? error.message : 'Unknown error' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 });
 

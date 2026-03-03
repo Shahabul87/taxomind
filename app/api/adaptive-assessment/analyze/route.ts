@@ -137,13 +137,10 @@ export async function POST(
       }
     });
 
-  } catch (error: any) {
-    logger.error('Adaptive assessment analysis error:', error);
+  } catch (error) {
+    logger.error('[ADAPTIVE_ASSESSMENT_ANALYZE]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

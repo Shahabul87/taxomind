@@ -126,10 +126,11 @@ export async function POST(req: NextRequest) {
         const decryptedSecret = await decryptTOTPSecret(user.totpSecret!);
         isVerified = verifyTOTPToken(token, decryptedSecret);
         verificationMethod = "TOTP";
-      } catch (decryptError: any) {
+      } catch (decryptError: unknown) {
+        const decryptMessage = decryptError instanceof Error ? decryptError.message : 'Unknown error';
         logger.error("[TOTP_DISABLE_DECRYPT_ERROR]", {
           userId,
-          error: decryptError.message,
+          error: decryptMessage,
           timestamp: new Date().toISOString(),
         });
         
@@ -153,10 +154,11 @@ export async function POST(req: NextRequest) {
           updatedRecoveryCodes = recoveryResult.remainingCodes;
           verificationMethod = "Recovery Code";
         }
-      } catch (recoveryError: any) {
+      } catch (recoveryError: unknown) {
+        const recoveryMessage = recoveryError instanceof Error ? recoveryError.message : 'Unknown error';
         logger.error("[RECOVERY_CODE_VERIFY_ERROR]", {
           userId,
-          error: recoveryError.message,
+          error: recoveryMessage,
           timestamp: new Date().toISOString(),
         });
       }
@@ -216,9 +218,10 @@ export async function POST(req: NextRequest) {
       }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error("[TOTP_DISABLE_ERROR]", {
-      error: error.message,
+      error: message,
       timestamp: new Date().toISOString(),
     });
     

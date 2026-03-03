@@ -208,6 +208,7 @@ async function fetchLearnerAnalytics(
         },
       },
     },
+    take: 200,
   });
 
   // Get progress records
@@ -218,6 +219,7 @@ async function fetchLearnerAnalytics(
       Section: { select: { id: true, title: true } },
     },
     orderBy: { lastAccessedAt: 'desc' },
+    take: 500,
   });
 
   // Get exam attempts
@@ -375,6 +377,7 @@ async function fetchCreatorAnalytics(
       },
       courseCompletionAnalytics: true,
     },
+    take: 200,
   });
 
   if (courses.length === 0) {
@@ -419,6 +422,7 @@ async function fetchCreatorAnalytics(
     where: {
       courseId: { in: courseIds },
     },
+    take: 500,
   });
 
   // Calculate completions

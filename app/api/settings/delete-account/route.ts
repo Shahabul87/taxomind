@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // POST - Request account deletion (GDPR compliance)
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {
@@ -92,6 +96,9 @@ export async function POST(req: NextRequest) {
 // GET - Get account deletion request status
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {
@@ -155,6 +162,9 @@ export async function GET(req: NextRequest) {
 // DELETE - Cancel account deletion request
 export async function DELETE(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Authenticate user
     const user = await currentUser();
     if (!user || !user.id) {

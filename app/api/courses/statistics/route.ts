@@ -121,12 +121,14 @@ export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseSta
         },
         select: { userId: true },
         distinct: ['userId'],
+        take: 500,
       }),
 
       // Total learners (unique users with enrollments)
       db.enrollment.findMany({
         select: { userId: true },
         distinct: ['userId'],
+        take: 500,
       }),
 
       // Average rating across all course reviews
@@ -148,6 +150,7 @@ export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseSta
           courseId: true,
           progressHistory: true,
         },
+        take: 500,
       }),
     ]);
 

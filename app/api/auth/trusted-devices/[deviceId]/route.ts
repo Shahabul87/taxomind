@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { SessionManager } from '@/lib/security/session-manager';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 interface RouteParams {
   params: {
@@ -13,6 +14,9 @@ interface RouteParams {
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Get current session
     const session = await auth();
     
@@ -61,6 +65,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Get current session
     const session = await auth();
     

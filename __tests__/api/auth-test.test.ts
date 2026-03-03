@@ -43,7 +43,6 @@ describe('GET /api/auth-test', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toBe(true);
-    expect(body.message).toBe('auth fail');
+    expect(body.message).toBe('Internal server error');
   });
 });

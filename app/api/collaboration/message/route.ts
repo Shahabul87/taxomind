@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
 
     const searchParams = req.nextUrl.searchParams;
     const sessionId = searchParams.get("sessionId");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     if (!sessionId) {

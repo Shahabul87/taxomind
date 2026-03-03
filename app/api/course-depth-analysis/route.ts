@@ -1947,7 +1947,7 @@ Use this exact JSON structure:
       analysis: enhancedAnalysis
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof OperationTimeoutError) {
       logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
@@ -1959,17 +1959,18 @@ Use this exact JSON structure:
     logger.error('Course depth analysis error:', error);
 
     // Handle specific AI API errors
-    let errorMessage = 'Failed to analyze course depth';
     let statusCode = 500;
 
-    if (error.status === 529 || error.status === 503) {
-      errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+    const errorStatus = error instanceof Error && 'status' in error
+      ? (error as Record<string, unknown>).status
+      : undefined;
+
+    if (errorStatus === 529 || errorStatus === 503) {
       statusCode = 503;
-    } else if (error.status === 429) {
-      errorMessage = 'Too many requests. Please wait a moment before trying again.';
+    } else if (errorStatus === 429) {
       statusCode = 429;
     }
-    
+
     return safeErrorResponse(error, statusCode, 'DEPTH_ANALYSIS');
   }
 }

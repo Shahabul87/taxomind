@@ -160,7 +160,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
     const where: any = {

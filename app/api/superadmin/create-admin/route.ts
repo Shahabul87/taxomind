@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import crypto from "crypto";
@@ -24,18 +25,26 @@ function generateSecurePassword(): string {
     "Yellow", "Zulu"
   ];
 
-  const word1 = words[Math.floor(Math.random() * words.length)];
-  const word2 = words[Math.floor(Math.random() * words.length)];
-  const word3 = words[Math.floor(Math.random() * words.length)];
-  const numbers = Math.floor(Math.random() * 90) + 10; // 10-99
+  const randomIndex = (max: number) => {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0] % max;
+  };
+  const word1 = words[randomIndex(words.length)];
+  const word2 = words[randomIndex(words.length)];
+  const word3 = words[randomIndex(words.length)];
+  const numbers = (randomIndex(90)) + 10; // 10-99
   const specialChars = "!@#$%&*";
-  const special = specialChars[Math.floor(Math.random() * specialChars.length)];
+  const special = specialChars[randomIndex(specialChars.length)];
 
   return `${word1}-${word2}-${word3}-${numbers}${special}`;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Check authentication
     const session = await adminAuth();
 

@@ -176,7 +176,8 @@ async function getCompletionMetrics(courseId: string | null, timeFilter: any) {
     where: {
       ...(courseId && { courseId }),
       createdAt: timeFilter
-    }
+    },
+    take: 500,
   });
 
   if (enrollments.length === 0) {

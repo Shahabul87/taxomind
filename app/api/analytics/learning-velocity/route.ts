@@ -50,7 +50,8 @@ export async function GET(req: NextRequest) {
             chapter: true
           }
         }
-      }
+      },
+      take: 500,
     });
 
     // Get total sections in course

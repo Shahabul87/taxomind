@@ -15,10 +15,11 @@ export async function GET() {
       userEmail: session?.user?.email || null,
       timestamp: new Date().toISOString()
     });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('[AUTH_TEST]', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({
       error: true,
-      message: error.message,
+      message: 'Internal server error',
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

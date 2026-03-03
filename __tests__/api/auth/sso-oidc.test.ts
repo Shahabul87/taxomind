@@ -14,17 +14,26 @@ jest.mock('@/lib/auth/oidc-provider', () => ({
   },
 }));
 
-// @/lib/db, @/lib/logger are globally mocked
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn().mockResolvedValue({ id: 'admin-1' }),
+}));
 
 import { POST, GET, PUT, DELETE, HEAD } from '@/app/api/auth/sso/oidc/route';
 import { NextRequest } from 'next/server';
 import { oidcProviderManager } from '@/lib/auth/oidc-provider';
+import { db } from '@/lib/db';
 
 const mockGetProvider = oidcProviderManager.getProvider as jest.Mock;
 const mockRegisterProvider = oidcProviderManager.registerProvider as jest.Mock;
 const mockRemoveProvider = oidcProviderManager.removeProvider as jest.Mock;
 const mockGetConfiguredTenants = oidcProviderManager.getConfiguredTenants as jest.Mock;
 const mockGetProvidersSummary = oidcProviderManager.getProvidersSummary as jest.Mock;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Configure admin auth mock - db is provided by moduleNameMapper/__mocks__/db.js
+  (db.adminAccount.findUnique as jest.Mock).mockResolvedValue({ id: 'admin-1' });
+});
 
 function createPostRequest(body: Record<string, unknown>) {
   return new NextRequest('http://localhost:3000/api/auth/sso/oidc', {

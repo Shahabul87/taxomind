@@ -1,11 +1,15 @@
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ postId: string }> }
 ) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const params = await context.params;
 
     // Check if post exists
@@ -40,10 +44,13 @@ export async function POST(
 }
 
 export async function GET(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ postId: string }> }
 ) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const params = await context.params;
 
     const post = await db.post.findUnique({

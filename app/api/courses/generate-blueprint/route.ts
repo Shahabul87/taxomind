@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/sam/ai-provider";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AIErrorHandler } from "@/lib/error-handler";
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
@@ -216,8 +217,10 @@ function generateFallbackBlueprint(
   };
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Get current user
     const user = await currentUser();

@@ -164,25 +164,27 @@ export async function POST(req: NextRequest) {
         }
       );
 
-    } catch (decryptError: any) {
+    } catch (decryptError: unknown) {
+      const decryptMessage = decryptError instanceof Error ? decryptError.message : 'Unknown error';
       logger.error("[TOTP_DECRYPT_ERROR]", {
         userId,
-        error: decryptError.message,
+        error: decryptMessage,
         timestamp: new Date().toISOString(),
       });
 
       return NextResponse.json(
         { error: "Failed to verify token due to encryption error" },
-        { 
+        {
           status: 500,
           headers: rateLimitResult.headers as Record<string, string>
         }
       );
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error("[TOTP_VERIFY_ERROR]", {
-      error: error.message,
+      error: message,
       timestamp: new Date().toISOString(),
     });
     

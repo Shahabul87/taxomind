@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { currentUser } from '@/lib/auth';
 
 /**
  * OIDC SSO Authentication Endpoints
@@ -139,6 +140,23 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const user = await currentUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify admin role
+    const admin = await db.adminAccount.findUnique({
+      where: { id: user.id },
+      select: { id: true },
+    });
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const config: OIDCConfiguration = await request.json();
     
     if (!config.tenantId) {
@@ -184,6 +202,23 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const user = await currentUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify admin role
+    const admin = await db.adminAccount.findUnique({
+      where: { id: user.id },
+      select: { id: true },
+    });
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenant');
     

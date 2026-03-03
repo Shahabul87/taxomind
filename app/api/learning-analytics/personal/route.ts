@@ -114,13 +114,10 @@ export const POST = withAuth(async (
     response.headers.set('Cache-Control', 'private, no-cache');
     return response;
 
-  } catch (error: any) {
-    logger.error('Personal analytics error:', error);
+  } catch (error) {
+    logger.error('[PERSONAL_ANALYTICS]', { error: error instanceof Error ? error.message : 'Unknown error' });
     return createSuccessResponse(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      },
+      { error: 'Internal server error' },
       500
     );
   }

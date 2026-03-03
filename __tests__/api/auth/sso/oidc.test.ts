@@ -8,9 +8,25 @@ jest.mock('@/lib/auth/oidc-provider', () => ({
   },
 }));
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn(),
+}));
+
+jest.mock('@/lib/db', () => ({
+  db: {
+    adminAccount: { findUnique: jest.fn() },
+  },
+}));
+
+jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
+  withRateLimit: jest.fn().mockResolvedValue(null),
+}));
+
 import { DELETE, GET, POST } from '@/app/api/auth/sso/oidc/route';
 import { NextRequest } from 'next/server';
 import { oidcProviderManager } from '@/lib/auth/oidc-provider';
+import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 
 const mockGetProvider = oidcProviderManager.getProvider as jest.Mock;
 const mockGetConfiguredTenants = oidcProviderManager.getConfiguredTenants as jest.Mock;
@@ -47,7 +63,16 @@ describe('api/auth/sso/oidc route', () => {
     expect(body.tenants).toEqual(['acme']);
   });
 
+  it('DELETE returns 401 when not authenticated', async () => {
+    (currentUser as jest.Mock).mockResolvedValue(null);
+
+    const res = await DELETE(new NextRequest('http://localhost:3000/api/auth/sso/oidc?tenant=missing'));
+    expect(res.status).toBe(401);
+  });
+
   it('DELETE returns 404 when tenant config is not found', async () => {
+    (currentUser as jest.Mock).mockResolvedValue({ id: 'admin-1' });
+    (db.adminAccount.findUnique as jest.Mock).mockResolvedValue({ id: 'admin-1' });
     mockRemoveProvider.mockReturnValue(false);
 
     const res = await DELETE(new NextRequest('http://localhost:3000/api/auth/sso/oidc?tenant=missing'));

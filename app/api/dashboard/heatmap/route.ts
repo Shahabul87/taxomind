@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
         actualEndTime: true,
         status: true,
       },
+      take: 500,
     });
 
     // Fetch learning activity logs
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
         duration: true,
         activityType: true,
       },
+      take: 500,
     });
 
     // Fetch lesson completions (user_progress)
@@ -114,6 +116,7 @@ export async function GET(req: NextRequest) {
       select: {
         createdAt: true,
       },
+      take: 500,
     });
 
     // Fetch quiz completions (UserExamAttempt)
@@ -129,6 +132,7 @@ export async function GET(req: NextRequest) {
       select: {
         submittedAt: true,
       },
+      take: 500,
     });
 
     // Aggregate data by day

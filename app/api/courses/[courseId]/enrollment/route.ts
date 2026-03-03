@@ -79,7 +79,8 @@ export async function GET(
 
         if (
           session.payment_status === "paid" &&
-          session.metadata?.courseId === courseId
+          session.metadata?.courseId === courseId &&
+          session.metadata?.userId === user.id
         ) {
           const course = await db.course.findUnique({
             where: { id: courseId },

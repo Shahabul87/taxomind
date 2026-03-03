@@ -140,7 +140,8 @@ async function getTodayStats(userId: string, todayStart: Date) {
       timestamp: {
         gte: todayStart
       }
-    }
+    },
+    take: 500,
   });
 
   const todaySessions = await db.learning_sessions.findMany({
@@ -149,7 +150,8 @@ async function getTodayStats(userId: string, todayStart: Date) {
       startTime: {
         gte: todayStart
       }
-    }
+    },
+    take: 200,
   });
 
   const coursesStarted = new Set(
@@ -203,7 +205,8 @@ async function getWeeklyMomentum(userId: string, weekStart: Date) {
       timestamp: {
         gte: weekStart
       }
-    }
+    },
+    take: 500,
   });
 
   const dailyBreakdown = [];
