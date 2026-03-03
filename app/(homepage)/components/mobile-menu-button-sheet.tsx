@@ -93,18 +93,16 @@ export const MobileMenuButton = ({ dashboardLink, isOpen, setIsOpen }: MobileMen
               Profile
             </Link>
 
-            <LogoutButton>
-              <button
-                className={cn(
-                  "flex w-full items-center px-4 py-2.5 text-sm rounded-lg",
-                  "text-red-600 dark:text-red-400",
-                  "hover:bg-red-50 dark:hover:bg-red-900/10",
-                  "transition-all duration-200"
-                )}
-              >
-                <LogOut className="h-4 w-4 mr-3" />
-                Logout
-              </button>
+            <LogoutButton
+              className={cn(
+                "flex w-full items-center px-4 py-2.5 text-sm rounded-lg",
+                "text-red-600 dark:text-red-400",
+                "hover:bg-red-50 dark:hover:bg-red-900/10",
+                "transition-all duration-200"
+              )}
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              Logout
             </LogoutButton>
           </div>
         </div>

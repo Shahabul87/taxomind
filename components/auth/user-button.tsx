@@ -16,7 +16,7 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { performSignOut } from "@/components/auth/logout-button";
 
 export const UserButton = () => {
   const user = useCurrentUser();
@@ -93,17 +93,21 @@ export const UserButton = () => {
         {/* Separator */}
         <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
 
-        {/* Logout Button */}
-        <LogoutButton>
-          <DropdownMenuItem className="rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            <div className="flex flex-row items-center w-full py-1 text-red-600 dark:text-red-400">
-              <div className="w-8 h-8 mr-2 rounded-lg bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 flex items-center justify-center">
-                <ExitIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
-              </div>
-              <span className="font-medium">Logout</span>
+        {/* Logout Button - uses onSelect to avoid Radix unmount race condition */}
+        <DropdownMenuItem
+          className="rounded-lg cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          onSelect={(e) => {
+            e.preventDefault();
+            performSignOut("/");
+          }}
+        >
+          <div className="flex flex-row items-center w-full py-1 text-red-600 dark:text-red-400">
+            <div className="w-8 h-8 mr-2 rounded-lg bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 flex items-center justify-center">
+              <ExitIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
             </div>
-          </DropdownMenuItem>
-        </LogoutButton>
+            <span className="font-medium">Logout</span>
+          </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

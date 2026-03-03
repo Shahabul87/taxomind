@@ -541,10 +541,6 @@ const nextConfig = {
       {
         source: '/api/courses/:courseId*',
         destination: '/api/courses/:courseId*',
-      },
-      {
-        source: '/api/auth/:path*',
-        destination: '/api/auth/:path*'
       }
     ];
   },

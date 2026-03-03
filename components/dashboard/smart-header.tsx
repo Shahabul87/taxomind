@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { LearningNotificationBell } from '@/app/dashboard/user/_components/learning-command-center/notifications';
 import { PresenceIndicator, StudyStatusBadge } from '@/components/sam/presence';
-import { signOut } from 'next-auth/react';
+import { performSignOut } from '@/components/auth/logout-button';
 import type { User as NextAuthUser } from 'next-auth';
 import { cn } from '@/lib/utils';
 
@@ -593,7 +593,7 @@ export function SmartHeader({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.2 }}
-                            onClick={() => signOut({ callbackUrl: '/' })}
+                            onClick={() => performSignOut('/')}
                             className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all w-full group"
                           >
                             <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-500/20 group-hover:bg-red-200 dark:group-hover:bg-red-500/30 transition-colors">

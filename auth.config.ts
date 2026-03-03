@@ -6,7 +6,7 @@ import { encode, decode } from "next-auth/jwt";
 
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
-// import { DefaultCookieConfig } from "@/lib/security/cookie-config";
+import { DefaultCookieConfig } from "@/lib/security/cookie-config";
 
 export default {
   providers: [
@@ -56,14 +56,14 @@ export default {
       }
     })
   ],
-  // Session configuration to match across auth.ts and edge config
+  // Session configuration - MUST match auth.config.edge.ts
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days - matches edge config & cookie-config.ts
     updateAge: 24 * 60 * 60, // 24 hours
   },
   jwt: {
-    maxAge: 7 * 24 * 60 * 60, // 7 days matching session
+    maxAge: 30 * 24 * 60 * 60, // 30 days - matches session maxAge
     encode,
     // Custom decode to handle secret rotation/mismatch errors gracefully
     async decode(params) {
@@ -81,8 +81,8 @@ export default {
       }
     },
   },
-  // Cookie configuration (simplified for debugging)
-  // cookies: DefaultCookieConfig,
+  // Cookie configuration - MUST match auth.config.edge.ts
+  cookies: DefaultCookieConfig,
   useSecureCookies: process.env.NODE_ENV === 'production',
   // Trust host
   trustHost: true,
