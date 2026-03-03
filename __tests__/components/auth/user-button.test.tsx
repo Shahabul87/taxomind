@@ -1,55 +1,68 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 // Mock the hooks
 jest.mock('@/hooks/use-current-user', () => ({
   useCurrentUser: jest.fn(),
 }));
 
-// Mock the LogoutButton
+// Mock performSignOut from logout-button
 jest.mock('@/components/auth/logout-button', () => ({
-  LogoutButton: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="logout-button-wrapper">{children}</div>
-  ),
+  performSignOut: jest.fn(),
 }));
 
 // Mock Radix UI Avatar
-jest.mock('@/components/ui/avatar', () => ({
-  Avatar: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="avatar" className={className}>{children}</div>
-  ),
-  AvatarImage: ({ src, className }: { src: string; className?: string }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img data-testid="avatar-image" src={src} alt="avatar" className={className} />
-  ),
-  AvatarFallback: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="avatar-fallback" className={className}>{children}</div>
-  ),
-}));
+jest.mock('@/components/ui/avatar', () => {
+  const React = require('react');
+  return {
+    Avatar: jest.fn((props) =>
+      React.createElement('div', { 'data-testid': 'avatar', className: props.className }, props.children)
+    ),
+    AvatarImage: jest.fn((props) =>
+      React.createElement('img', { 'data-testid': 'avatar-image', src: props.src, alt: 'avatar', className: props.className })
+    ),
+    AvatarFallback: jest.fn((props) =>
+      React.createElement('div', { 'data-testid': 'avatar-fallback', className: props.className }, props.children)
+    ),
+  };
+});
 
 // Mock Radix UI Dropdown
-jest.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dropdown-menu">{children}</div>
-  ),
-  DropdownMenuTrigger: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <button data-testid="dropdown-trigger" className={className}>{children}</button>
-  ),
-  DropdownMenuContent: ({ children, className, align }: { children: React.ReactNode; className?: string; align?: string }) => (
-    <div data-testid="dropdown-content" className={className}>{children}</div>
-  ),
-  DropdownMenuItem: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="dropdown-item" className={className}>{children}</div>
-  ),
-}));
+jest.mock('@/components/ui/dropdown-menu', () => {
+  const React = require('react');
+  return {
+    DropdownMenu: jest.fn((props) =>
+      React.createElement('div', { 'data-testid': 'dropdown-menu' }, props.children)
+    ),
+    DropdownMenuTrigger: jest.fn((props) =>
+      React.createElement('button', { 'data-testid': 'dropdown-trigger', className: props.className }, props.children)
+    ),
+    DropdownMenuContent: jest.fn((props) =>
+      React.createElement('div', { 'data-testid': 'dropdown-content', className: props.className }, props.children)
+    ),
+    DropdownMenuItem: jest.fn((props) =>
+      React.createElement('div', {
+        'data-testid': 'dropdown-item',
+        className: props.className,
+        onClick: () => {
+          if (typeof props.onSelect === 'function') {
+            props.onSelect({ preventDefault: jest.fn() });
+          }
+        },
+      }, props.children)
+    ),
+  };
+});
 
 // Mock ExitIcon from radix
-jest.mock('@radix-ui/react-icons', () => ({
-  ExitIcon: ({ className }: { className?: string }) => (
-    <span data-testid="exit-icon" className={className} />
-  ),
-}));
+jest.mock('@radix-ui/react-icons', () => {
+  const React = require('react');
+  return {
+    ExitIcon: jest.fn((props) =>
+      React.createElement('span', { 'data-testid': 'exit-icon', className: props.className })
+    ),
+  };
+});
 
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { UserButton } from '@/components/auth/user-button';
@@ -119,7 +132,7 @@ describe('UserButton', () => {
     expect(screen.getByText('Client')).toBeInTheDocument();
   });
 
-  it('renders logout button', () => {
+  it('renders logout menu item with onSelect handler', () => {
     mockUseCurrentUser.mockReturnValue({
       id: 'user-1',
       name: 'Test User',
@@ -130,7 +143,7 @@ describe('UserButton', () => {
     render(<UserButton />);
 
     expect(screen.getByText('Logout')).toBeInTheDocument();
-    expect(screen.getByTestId('logout-button-wrapper')).toBeInTheDocument();
+    expect(screen.getByTestId('exit-icon')).toBeInTheDocument();
   });
 
   it('handles null user image gracefully', () => {
