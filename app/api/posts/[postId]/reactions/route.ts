@@ -1,5 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 
 // NOTE: PostReaction model does not exist in the database schema
 // This route is temporarily disabled until the feature is properly implemented
@@ -12,7 +13,7 @@ export async function POST(
   try {
     return new NextResponse("Post reactions feature is currently unavailable", { status: 503 });
   } catch (error) {
-    console.error('[POST_REACTIONS] POST Error:', error);
+    logger.error('[POST_REACTIONS] POST Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -32,7 +33,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[POST_REACTIONS] GET Error:', error);
+    logger.error('[POST_REACTIONS] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

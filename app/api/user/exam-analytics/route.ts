@@ -99,6 +99,7 @@ export async function GET(req: NextRequest) {
     // Fetch all exam attempts with related data
     const attempts = await db.userExamAttempt.findMany({
       where: whereClause,
+      take: 500,
       include: {
         Exam: {
           select: {

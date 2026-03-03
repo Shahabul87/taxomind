@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import {
   startOfDay,
   endOfDay,
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { date: "asc" },
+      take: 200,
     });
 
     // Fetch activities for the range
@@ -69,6 +71,7 @@ export async function GET(req: NextRequest) {
           lte: weekEnd,
         },
       },
+      take: 200,
       include: {
         course: {
           select: { id: true, title: true },
@@ -245,7 +248,7 @@ export async function GET(req: NextRequest) {
       timeline,
     });
   } catch (error) {
-    console.error("[GANTT_GET]", error);
+    logger.error("[GANTT_GET]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);

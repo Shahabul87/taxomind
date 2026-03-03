@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const paramsSchema = z.object({
@@ -112,7 +113,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[STREAK_GET]", error);
+    logger.error("[STREAK_GET]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -243,7 +244,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("[STREAK_POST]", error);
+    logger.error("[STREAK_POST]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -292,6 +293,7 @@ async function calculateWeeklyActivity(
         gte: startOfWeek,
       },
     },
+    take: 500,
     select: {
       lastAccessedAt: true,
     },

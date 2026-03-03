@@ -20,6 +20,7 @@ import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { processContextSnapshot } from '@/lib/sam/context-gathering-integration';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // VALIDATION
@@ -238,7 +239,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Context snapshot processing error:', error);
+    logger.error('Context snapshot processing error', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Context processing failed' } },
       { status: 500 },

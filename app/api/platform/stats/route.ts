@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 /**
  * Public Platform Statistics API
@@ -81,7 +82,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[PLATFORM_STATS_ERROR]", error);
+    logger.error("[PLATFORM_STATS_ERROR]", error);
 
     // Return fallback stats on error to prevent UI breaking
     return NextResponse.json({

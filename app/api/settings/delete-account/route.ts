@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from "@/lib/logger";
 
 // POST - Request account deletion (GDPR compliance)
 export async function POST(req: NextRequest) {
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Account deletion request error:", error);
+    logger.error("Account deletion request error", error);
     return NextResponse.json(
       {
         success: false,
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Deletion request fetch error:", error);
+    logger.error("Deletion request fetch error", error);
     return NextResponse.json(
       {
         success: false,
@@ -215,7 +216,7 @@ export async function DELETE(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Deletion cancellation error:", error);
+    logger.error("Deletion cancellation error", error);
     return NextResponse.json(
       {
         success: false,

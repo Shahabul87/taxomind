@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 
 /**
  * Newsletter Subscription API
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[NEWSLETTER_SUBSCRIBE_ERROR]", error);
+    logger.error("[NEWSLETTER_SUBSCRIBE_ERROR]", error);
 
     return NextResponse.json(
       {

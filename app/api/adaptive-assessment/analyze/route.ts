@@ -84,7 +84,8 @@ export async function POST(
       },
       orderBy: {
         startedAt: 'desc'
-      }
+      },
+      take: 100
     });
 
     if (attempts.length === 0) {

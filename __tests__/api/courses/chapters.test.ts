@@ -153,6 +153,7 @@ describe('GET /api/courses/[courseId]/chapters', () => {
       orderBy: {
         position: 'asc',
       },
+      take: 200,
     });
   });
 

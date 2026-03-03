@@ -11,6 +11,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { EventEmitter } from 'events';
 import * as os from 'os';
+import { logger } from '@/lib/logger';
 
 const execAsync = promisify(exec);
 
@@ -623,7 +624,7 @@ export class IncidentResponseManager {
       await (redis as any).flushdb();
     } else {
       // Fallback for Redis clients without flushdb
-      console.warn('Redis flushdb not available');
+      logger.warn('Redis flushdb not available');
     }
     return 'Cache cleared successfully';
   }
@@ -730,7 +731,7 @@ export class IncidentResponseManager {
   private async notifyOnCall(incident: Incident): Promise<void> {
     // In production, this would page the on-call engineer
     // Using PagerDuty, Opsgenie, or similar service
-    console.log(`Paging on-call for incident: ${incident.id}`);
+    logger.info(`Paging on-call for incident: ${incident.id}`);
   }
   
   /**
@@ -871,7 +872,7 @@ export class IncidentResponseManager {
       );
       await redis.expire(`incident:${incident.id}`, 90 * 24 * 60 * 60); // 90 days retention
     } catch (error) {
-      console.error('Failed to store incident:', error);
+      logger.error('Failed to store incident', error);
     }
   }
   

@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
           authorId: true,
           createdAt: true,
         },
+        take: 500,
       }),
     ]);
 

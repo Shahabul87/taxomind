@@ -45,7 +45,8 @@ export async function PATCH(
       where: {
         courseId: params.courseId,
         isPublished: true,
-      }
+      },
+      take: 200,
     });
 
     if (!publishedChaptersInCourse.length) {

@@ -97,7 +97,7 @@ class MockNotificationService implements NotificationService {
     await new Promise(resolve => setTimeout(resolve, Math.random() * 800 + 300));
     
     const messageId = `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[NOTIFICATION_SERVICE] SMS sent to ${phone}: ${message.substring(0, 50)}...`);
+    logger.info(`[NOTIFICATION_SERVICE] SMS sent to ${phone}: ${message.substring(0, 50)}...`);
     
     return { success: true, messageId };
   }

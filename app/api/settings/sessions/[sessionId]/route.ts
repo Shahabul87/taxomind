@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from "@/lib/logger";
 
 // DELETE - Logout a specific session
 export async function DELETE(
@@ -78,7 +79,7 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error("Session deletion error:", error);
+    logger.error("Session deletion error", error);
     return safeErrorResponse(error, 500, 'SESSION_DELETE');
   }
 }

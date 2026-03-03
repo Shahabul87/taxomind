@@ -8,6 +8,7 @@ import {
   eachDayOfInterval,
   format,
 } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 /**
  * Unified Analytics Overview API v2
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[ANALYTICS_OVERVIEW_V2]', error);
+    logger.error('[ANALYTICS_OVERVIEW_V2]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -167,7 +168,7 @@ async function fetchStudyTimeData(
       })),
     };
   } catch (error) {
-    console.error('[STUDY_TIME_DATA]', error);
+    logger.error('[STUDY_TIME_DATA]', error);
     return {
       totalMinutes: 0,
       totalHours: 0,
@@ -245,7 +246,7 @@ async function fetchCourseProgress(userId: string, courseId?: string) {
       };
     });
   } catch (error: unknown) {
-    console.error('[COURSE_PROGRESS]', error);
+    logger.error('[COURSE_PROGRESS]', error);
     return [];
   }
 }
@@ -288,7 +289,7 @@ async function fetchActivityHeatmap(userId: string, startDate: Date) {
       activityTypes: Array.from(data.types),
     }));
   } catch (error) {
-    console.error('[ACTIVITY_HEATMAP]', error);
+    logger.error('[ACTIVITY_HEATMAP]', error);
     return [];
   }
 }
@@ -351,7 +352,7 @@ async function fetchPerformanceMetrics(
       })),
     };
   } catch (error) {
-    console.error('[PERFORMANCE_METRICS]', error);
+    logger.error('[PERFORMANCE_METRICS]', error);
     return {
       examAttempts: 0,
       avgScore: 0,
@@ -399,7 +400,7 @@ async function fetchSAMInsightsSummary(userId: string) {
       lastInteractionAt: null, // Can be fetched if needed
     };
   } catch (error) {
-    console.error('[SAM_INSIGHTS_SUMMARY]', error);
+    logger.error('[SAM_INSIGHTS_SUMMARY]', error);
     return {
       recentInteractions: 0,
       pendingRecommendations: 0,

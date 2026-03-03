@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   req: NextRequest,
@@ -38,7 +39,7 @@ export async function POST(
       data: { views: updatedPost.views },
     });
   } catch (error) {
-    console.error("[POST_VIEW_ERROR]", error);
+    logger.error("[POST_VIEW_ERROR]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
@@ -67,7 +68,7 @@ export async function GET(
       data: { views: post.views },
     });
   } catch (error) {
-    console.error("[GET_POST_VIEWS_ERROR]", error);
+    logger.error("[GET_POST_VIEWS_ERROR]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

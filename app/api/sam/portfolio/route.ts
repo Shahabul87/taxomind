@@ -263,6 +263,7 @@ export async function GET(request: NextRequest) {
             course: { select: { title: true } },
           },
           orderBy: { createdAt: 'desc' },
+          take: 200,
         });
 
         projects = projectRecords.map((p) => ({
@@ -307,6 +308,7 @@ export async function GET(request: NextRequest) {
         const certRecords = await db.sAMCertificationProgress.findMany({
           where: { userId: user.id, status: 'COMPLETED' },
           select: { certificationId: true },
+          take: 200,
         });
         // Note: certSkillCounts would need skill mapping from certifications
         // For now, keeping it empty as the original code doesn't populate it
@@ -355,6 +357,7 @@ export async function GET(request: NextRequest) {
             status: { in: ['COMPLETED', 'IN_PROGRESS'] },
           },
           orderBy: { completedDate: 'desc' },
+          take: 200,
         });
 
         certifications = certRecords.map((c) => ({
@@ -380,6 +383,7 @@ export async function GET(request: NextRequest) {
         const achievementRecords = await db.skillBuildAchievement.findMany({
           where: { userId: user.id },
           orderBy: { earnedAt: 'desc' },
+          take: 200,
         });
 
         achievements = achievementRecords.map((a) => ({

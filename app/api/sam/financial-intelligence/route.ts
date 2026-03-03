@@ -291,6 +291,7 @@ async function handleRevenueAnalysis(
   const courses = await db.course.findMany({
     where: { id: { in: courseIds } },
     select: { id: true, title: true, price: true },
+    take: 500,
   });
   const courseMap = new Map(courses.map(c => [c.id, c]));
 
@@ -489,6 +490,7 @@ async function handlePricingOptimization(
       db.course.findMany({
         where: { id: { in: courseIds } },
         select: { id: true, title: true, price: true },
+        take: 500,
       }),
       db.purchase.groupBy({
         by: ['courseId'],

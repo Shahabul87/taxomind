@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SessionManager } from '@/lib/security/session-manager';
 import { extractServerFingerprint, generateFingerprintHash, generateDeviceId, generateDeviceName } from '@/lib/security/session-fingerprint';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error processing fingerprint submission:', error);
+    logger.error('Error processing fingerprint submission', error);
     return NextResponse.json(
       { success: false, error: 'Failed to process fingerprint' }, 
       { status: 500 }

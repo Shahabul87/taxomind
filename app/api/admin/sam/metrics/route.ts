@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -193,7 +194,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<MetricsRespon
       },
     });
   } catch (error) {
-    console.error('[SAM Metrics API] Error:', error);
+    logger.error('[SAM Metrics API] Error', error);
     return safeErrorResponse(error, 500, 'ADMIN_SAM_METRICS');
   }
 }

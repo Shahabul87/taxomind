@@ -116,7 +116,7 @@ class DatabaseConnectionManager {
         }
       }
 
-      console.log(`✅ [ENTERPRISE DB] Connected to: ${currentDB} (${this.config.environment})`);
+      logger.info(`✅ [ENTERPRISE DB] Connected to: ${currentDB} (${this.config.environment})`);
       return true;
     } catch (error: any) {
       logger.error('❌ [ENTERPRISE DB] Connection validation failed:', error);
@@ -418,4 +418,4 @@ export const db = {
 };
 
 // Initialize on import
-EnterpriseDB.initialize().catch(console.error);
+EnterpriseDB.initialize().catch((err) => logger.error('Enterprise DB initialization failed:', err));

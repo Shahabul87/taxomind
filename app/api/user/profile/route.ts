@@ -359,6 +359,7 @@ export async function GET(request: NextRequest) {
           isCompleted: true,
           progressPercent: true,
         },
+        take: 200,
       });
     } catch (error) {
       logger.warn('[PROFILE_GET] Failed to fetch user progress:', error);
@@ -637,6 +638,7 @@ export async function PATCH(request: NextRequest) {
             in: ['TWITTER', 'LINKEDIN', 'GITHUB', 'WEBSITE'],
           },
         },
+        take: 200,
       });
 
       const linkUpdates = [];

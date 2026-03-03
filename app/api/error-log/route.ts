@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { errorLogger } from '@/lib/error-handling/error-logger';
 import { rateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 // Schema for incoming error log requests
 const ErrorLogSchema = z.object({
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[API/error-log] Failed to process error log:', err);
+    logger.error('[API/error-log] Failed to process error log', err);
 
     // Don't expose internal errors to client
     return NextResponse.json(

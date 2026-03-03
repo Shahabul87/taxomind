@@ -21,6 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (reportClient && typeof reportClient.findMany === 'function') {
         reports = await reportClient.findMany({
           where: { question: { courseId } },
+          take: 100,
           orderBy: { createdAt: 'desc' },
           include: {
             question: { select: { id: true, title: true, userId: true } },

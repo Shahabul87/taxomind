@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const StartSessionSchema = z.object({
   examId: z.string().min(1),
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[PROCTORING_SESSION_START]', error);
+    logger.error('[PROCTORING_SESSION_START]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to start session' } },
       { status: 500 }
@@ -147,7 +148,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PROCTORING_SESSION_GET]', error);
+    logger.error('[PROCTORING_SESSION_GET]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch session' } },
       { status: 500 }
@@ -233,7 +234,7 @@ export async function DELETE(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PROCTORING_SESSION_END]', error);
+    logger.error('[PROCTORING_SESSION_END]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to end session' } },
       { status: 500 }

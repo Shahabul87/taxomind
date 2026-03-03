@@ -1,6 +1,7 @@
 import { ErrorInfo, ErrorSeverity, ErrorType } from './types';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export class ErrorLogger {
   private static instance: ErrorLogger;
@@ -116,12 +117,12 @@ export class ErrorLogger {
       }
     };
 
-    // Log to console with structured format
-    const logLevel = severity === ErrorSeverity.CRITICAL ? 'error' : 
-                    severity === ErrorSeverity.HIGH ? 'error' : 
+    // Log with structured format
+    const logLevel = severity === ErrorSeverity.CRITICAL ? 'error' :
+                    severity === ErrorSeverity.HIGH ? 'error' :
                     severity === ErrorSeverity.MEDIUM ? 'warn' : 'info';
-    
-    console[logLevel](`[ERROR_LOGGER] ${errorType}:${severity}`, {
+
+    logger[logLevel](`[ERROR_LOGGER] ${errorType}:${severity}`, {
       id: errorInfo.id,
       message: errorInfo.message,
       component: errorInfo.component,
@@ -132,12 +133,12 @@ export class ErrorLogger {
 
     // Store in database (async, non-blocking)
     this.persistError(errorInfo).catch(persistError => {
-      console.error('[ERROR_LOGGER] Failed to persist error:', persistError);
+      logger.error('[ERROR_LOGGER] Failed to persist error', persistError);
     });
 
     // Send to external monitoring services
     this.sendToMonitoring(errorInfo).catch(monitoringError => {
-      console.error('[ERROR_LOGGER] Failed to send to monitoring:', monitoringError);
+      logger.error('[ERROR_LOGGER] Failed to send to monitoring', monitoringError);
     });
 
     return errorInfo;
@@ -163,7 +164,7 @@ export class ErrorLogger {
         }
       });
     } catch (dbError) {
-      console.error('[ERROR_LOGGER] Database persist failed:', dbError);
+      logger.error('[ERROR_LOGGER] Database persist failed', dbError);
     }
   }
 
@@ -193,7 +194,7 @@ export class ErrorLogger {
           })
         });
       } catch (webhookError) {
-        console.error('[ERROR_LOGGER] Webhook failed:', webhookError);
+        logger.error('[ERROR_LOGGER] Webhook failed', webhookError);
       }
     }
   }
@@ -244,7 +245,7 @@ export class ErrorLogger {
 
       return metrics;
     } catch (dbError) {
-      console.error('[ERROR_LOGGER] Failed to get metrics:', dbError);
+      logger.error('[ERROR_LOGGER] Failed to get metrics', dbError);
       return null;
     }
   }

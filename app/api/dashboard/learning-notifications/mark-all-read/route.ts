@@ -6,6 +6,7 @@ import {
   ErrorCodes,
   HttpStatus,
 } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/dashboard/learning-notifications/mark-all-read
@@ -39,7 +40,7 @@ export async function POST() {
       message: `Marked ${result.count} notification${result.count === 1 ? "" : "s"} as read`,
     });
   } catch (error) {
-    console.error("[MARK_ALL_READ_POST]", error);
+    logger.error("[MARK_ALL_READ_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to mark notifications as read",

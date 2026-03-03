@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { getProtectedVideoUrl } from "@/lib/premium";
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{
@@ -80,7 +81,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[PROTECTED_VIDEO_API]", error);
+    logger.error("[PROTECTED_VIDEO_API]", error);
     return NextResponse.json(
       {
         success: false,

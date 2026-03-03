@@ -8,10 +8,11 @@ import {
 } from "@/lib/api-utils";
 import { withAdminAuth } from "@/lib/api/with-api-auth";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 export const POST = withAdminAuth(async (request, context) => {
   try {
-    console.log("🔧 Starting dashboard_activities table fix...");
+    logger.info("Starting dashboard_activities table fix");
 
     // Check if table exists
     const tableCheck = await db.$queryRaw`
@@ -31,7 +32,7 @@ export const POST = withAdminAuth(async (request, context) => {
       });
     }
 
-    console.log("Creating dashboard_activities table...");
+    logger.info("Creating dashboard_activities table");
 
     // Create enums first
     await db.$executeRaw`
@@ -186,7 +187,7 @@ export const POST = withAdminAuth(async (request, context) => {
 
     const count = (verification as Array<{count: bigint}>)[0]?.count || 0;
 
-    console.log("✅ Table created successfully");
+    logger.info("Table created successfully");
 
     return successResponse({
       message: "Dashboard activities table created successfully",
@@ -195,7 +196,7 @@ export const POST = withAdminAuth(async (request, context) => {
     });
 
   } catch (error) {
-    console.error("[FIX_DASHBOARD_TABLE]", error);
+    logger.error("[FIX_DASHBOARD_TABLE]", error);
 
     return safeErrorResponse(error, 500, 'ADMIN_FIX_DASHBOARD_TABLE_POST');
   }
@@ -233,7 +234,7 @@ export const GET = withAdminAuth(async (request, context) => {
     });
 
   } catch (error) {
-    console.error("[CHECK_DASHBOARD_TABLE]", error);
+    logger.error("[CHECK_DASHBOARD_TABLE]", error);
 
     return safeErrorResponse(error, 500, 'ADMIN_FIX_DASHBOARD_TABLE_GET');
   }

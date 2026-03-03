@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import type { AdminRole } from "@/types/admin-role";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 // Schema for updating admin profile
 const UpdateProfileSchema = z.object({
@@ -24,14 +25,14 @@ const UpdateProfileSchema = z.object({
 // GET - Fetch current admin profile
 export async function GET() {
   try {
-    console.log("[ADMIN_PROFILE_GET] Starting profile fetch...");
+    logger.debug("[ADMIN_PROFILE_GET] Starting profile fetch");
 
     // 1. Check admin authentication using adminAuth
     const session = await adminAuth();
-    console.log("[ADMIN_PROFILE_GET] Full session object:", JSON.stringify(session, null, 2));
+    logger.debug("[ADMIN_PROFILE_GET] Full session object", session);
 
     if (!session || !session.user) {
-      console.log("[ADMIN_PROFILE_GET] No session or user found");
+      logger.debug("[ADMIN_PROFILE_GET] No session or user found");
       return NextResponse.json(
         { success: false, error: "Unauthorized - Admin session required" },
         { status: 401 }
@@ -39,14 +40,14 @@ export async function GET() {
     }
 
     const user = session.user;
-    console.log("[ADMIN_PROFILE_GET] User object from session:", JSON.stringify(user, null, 2));
+    logger.debug("[ADMIN_PROFILE_GET] User object from session", user);
 
     // 2. Get user ID from session - handle both 'id' and 'sub' fields
     const userId = user.id || (user as any).sub;
-    console.log("[ADMIN_PROFILE_GET] User ID:", userId);
+    logger.debug("[ADMIN_PROFILE_GET] User ID", userId);
 
     if (!userId) {
-      console.log("[ADMIN_PROFILE_GET] No user ID in session");
+      logger.debug("[ADMIN_PROFILE_GET] No user ID in session");
       return NextResponse.json(
         { success: false, error: "Invalid session - No user ID" },
         { status: 401 }
@@ -57,7 +58,7 @@ export async function GET() {
     // NOTE: Admin sessions have role from AdminAccount table (AdminRole enum)
     const userRole = user.role as AdminRole | undefined;
     if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
-      console.log("[ADMIN_PROFILE_GET] User is not admin:", userRole);
+      logger.warn("[ADMIN_PROFILE_GET] User is not admin", userRole);
       return NextResponse.json(
         { success: false, error: "Forbidden - Admin access required" },
         { status: 403 }
@@ -65,7 +66,7 @@ export async function GET() {
     }
 
     // 4. Fetch full admin profile from database
-    console.log("[ADMIN_PROFILE_GET] Fetching profile for admin ID:", userId);
+    logger.debug("[ADMIN_PROFILE_GET] Fetching profile for admin ID", userId);
     const adminProfile = await db.adminAccount.findUnique({
       where: { id: userId },
       select: {
@@ -110,8 +111,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[ADMIN_PROFILE_GET] Unexpected error:", error);
-    console.error("[ADMIN_PROFILE_GET] Error stack:", error instanceof Error ? error.stack : "No stack");
+    logger.error("[ADMIN_PROFILE_GET] Unexpected error", error);
 
     return safeErrorResponse(error, 500, 'ADMIN_PROFILE_GET');
   }
@@ -219,7 +219,7 @@ export async function PATCH(req: Request) {
       message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error("[ADMIN_PROFILE_PATCH]", error);
+    logger.error("[ADMIN_PROFILE_PATCH]", error);
 
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {

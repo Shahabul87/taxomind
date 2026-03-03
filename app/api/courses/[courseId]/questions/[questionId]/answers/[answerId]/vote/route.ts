@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { qaEventBus } from '@/lib/realtime/event-bus';
+import { logger } from '@/lib/logger';
 
 // Schema for voting
 const VoteSchema = z.object({
@@ -153,7 +154,7 @@ export async function POST(
     try { qaEventBus.emitEvent({ type: 'vote_updated', courseId, questionId, payload: { answerId, upvotes: updatedAnswer.upvotes, downvotes: updatedAnswer.downvotes } }); } catch {}
     return response;
   } catch (error) {
-    console.error('Error voting on answer:', error);
+    logger.error('[ANSWER_VOTE] Error voting on answer', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import { withCronAuth } from '@/lib/api/cron-auth';
+import { logger } from '@/lib/logger';
 
 // Get practice goal store for updating streak goals
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     const authResponse = withCronAuth(request);
     if (authResponse) return authResponse;
 
-    console.log('[CRON] Starting practice streak updates...');
+    logger.info('[CRON] Starting practice streak updates...');
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
       take: 1000,
     });
 
-    console.log(`[CRON] Processing ${activeMasteries.length} active streaks`);
+    logger.info(`[CRON] Processing ${activeMasteries.length} active streaks`);
 
     let brokenStreaks = 0;
     let maintainedStreaks = 0;
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest) {
       const brokenSkills = await db.skillBuildDefinition.findMany({
         where: { id: { in: brokenSkillIds } },
         select: { id: true, name: true },
+        take: 1000,
       });
       const brokenSkillMap = new Map(brokenSkills.map(s => [s.id, s.name]));
 
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest) {
       const milestoneSkills = await db.skillBuildDefinition.findMany({
         where: { id: { in: milestoneSkillIds } },
         select: { id: true, name: true },
+        take: 1000,
       });
       const milestoneSkillMap = new Map(milestoneSkills.map(s => [s.id, s.name]));
 
@@ -148,7 +151,7 @@ export async function GET(request: NextRequest) {
           });
           streakMilestonesAwarded = milestoneInterventions.length;
         } catch (batchError) {
-          console.error('[CRON] Error batch-creating milestone interventions:', batchError);
+          logger.error('[CRON] Error batch-creating milestone interventions', batchError);
         }
       }
     }
@@ -157,7 +160,7 @@ export async function GET(request: NextRequest) {
     // UPDATE STREAK-BASED PRACTICE GOALS
     // =========================================================================
 
-    console.log('[CRON] Updating streak-based practice goals...');
+    logger.info('[CRON] Updating streak-based practice goals...');
 
     // Get all users with active streak goals
     const usersWithStreakGoals = await db.practiceGoal.findMany({
@@ -200,19 +203,20 @@ export async function GET(request: NextRequest) {
       // Log completed goals
       const completed = goalResults.filter((g) => g.wasCompleted);
       if (completed.length > 0) {
-        console.log(
+        logger.info(
           `[CRON] User ${userId} completed ${completed.length} streak goal(s): ` +
           completed.map((g) => g.goal.title).join(', ')
         );
       }
     }
 
-    console.log(`[CRON] Streak goals - Updated: ${streakGoalsUpdated}, Completed: ${streakGoalsCompleted}`);
+    logger.info(`[CRON] Streak goals - Updated: ${streakGoalsUpdated}, Completed: ${streakGoalsCompleted}`);
 
-    console.log('[CRON] Practice streak updates complete');
-    console.log(`[CRON] - Broken streaks: ${brokenStreaks}`);
-    console.log(`[CRON] - Maintained streaks: ${maintainedStreaks}`);
-    console.log(`[CRON] - Milestones awarded: ${streakMilestonesAwarded}`);
+    logger.info('[CRON] Practice streak updates complete', {
+      brokenStreaks,
+      maintainedStreaks,
+      streakMilestonesAwarded,
+    });
 
     return NextResponse.json({
       success: true,
@@ -230,7 +234,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[CRON] Error updating streaks:', error);
+    logger.error('[CRON] Error updating streaks', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update streaks' },
       { status: 500 }
@@ -263,7 +267,7 @@ async function createStreakBrokenNotification(
       },
     });
   } catch (error) {
-    console.error('[CRON] Error creating streak broken notification:', error);
+    logger.error('[CRON] Error creating streak broken notification', error);
   }
 }
 

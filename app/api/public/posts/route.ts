@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
-    console.error('[PUBLIC_POSTS_GET]', error);
+    logger.error('[PUBLIC_POSTS_GET]', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR', details: error.errors } }, { status: 400 });
     }

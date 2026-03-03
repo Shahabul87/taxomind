@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         userId: true,
         title: true,
       },
+      take: 100,
     });
 
     // Check if all courses exist

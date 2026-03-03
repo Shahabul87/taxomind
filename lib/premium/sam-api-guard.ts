@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { canAccessSamFeature, incrementSamUsage, type SAMFeature } from "./sam-access";
+import { logger } from "@/lib/logger";
 
 export interface SAMGuardContext {
   userId: string;
@@ -114,7 +115,7 @@ export function createSAMGuardedHandler(
 
       return response;
     } catch (error) {
-      console.error("[SAM_API_GUARD]", error);
+      logger.error("[SAM_API_GUARD]", error);
       return NextResponse.json(
         {
           success: false,

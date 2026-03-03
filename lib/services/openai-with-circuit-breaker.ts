@@ -11,6 +11,7 @@ import {
   ServiceCircuitBreakers,
   CircuitBreakerError,
 } from '../resilience/circuit-breaker-enhanced';
+import { logger } from '@/lib/logger';
 
 // Lazy initialize OpenAI client to avoid build errors
 let _openai: OpenAI | null = null;
@@ -70,7 +71,7 @@ export class OpenAIServiceWithCircuitBreaker {
     } catch (error) {
       if (error instanceof CircuitBreakerError) {
         // Circuit is open, return fallback or cache
-        console.error('OpenAI service unavailable, circuit breaker is open');
+        logger.error('OpenAI service unavailable, circuit breaker is open');
         throw new Error('AI service temporarily unavailable. Please try again later.');
       }
       throw error;
@@ -193,7 +194,7 @@ Provide:
     } catch (error) {
       if (error instanceof CircuitBreakerError) {
         // Return empty array when circuit is open
-        console.error('Cannot generate quiz questions, OpenAI circuit is open');
+        logger.error('Cannot generate quiz questions, OpenAI circuit is open');
         return [];
       }
       throw error;

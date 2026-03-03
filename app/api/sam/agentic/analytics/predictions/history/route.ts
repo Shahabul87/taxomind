@@ -160,6 +160,7 @@ export async function GET(req: NextRequest) {
         accuracyScore: true,
         createdAt: true,
       },
+      take: 500,
     });
 
     const pendingCount = allPredictions.filter((p) => p.status === 'ACTIVE' || p.status === 'EXPIRED').length;

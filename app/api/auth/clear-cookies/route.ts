@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * Clear all auth-related cookies to fix v4/v5 cookie conflicts.
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       cookieStore.delete(cookie.name);
       clearedCookies.push(cookie.name);
     } catch (error) {
-      console.error(`Failed to delete cookie ${cookie.name}:`, error);
+      logger.error(`Failed to delete cookie ${cookie.name}`, error);
     }
   }
 

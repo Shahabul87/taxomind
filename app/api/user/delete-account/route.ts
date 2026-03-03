@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as bcrypt from 'bcryptjs';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       message: 'Account deleted successfully. You will be logged out shortly.'
     });
   } catch (error) {
-    console.error('[Account Deletion] Error:', error);
+    logger.error('[Account Deletion] Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

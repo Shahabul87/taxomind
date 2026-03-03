@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const AnalyzeSchema = z.object({
   answerId: z.string().min(1),
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[INTEGRITY_ANALYZE]', error);
+    logger.error('[INTEGRITY_ANALYZE]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to analyze submission' } },
       { status: 500 }

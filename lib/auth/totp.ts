@@ -2,6 +2,7 @@ import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 import { dataEncryption } from '@/lib/security/encryption';
+import { logger } from '@/lib/logger';
 
 /**
  * TOTP (Time-based One-Time Password) utilities for multi-factor authentication
@@ -121,7 +122,7 @@ export function verifyTOTPToken(token: string, secret: string): boolean {
       secret,
     });
   } catch (error: any) {
-    console.error('TOTP verification error:', error);
+    logger.error('TOTP verification error', error);
     return false;
   }
 }
@@ -215,7 +216,7 @@ export async function verifyRecoveryCode(
       remainingCodes,
     };
   } catch (error: any) {
-    console.error('Recovery code verification error:', error);
+    logger.error('Recovery code verification error', error);
     return { isValid: false };
   }
 }

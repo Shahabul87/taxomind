@@ -230,6 +230,7 @@ export const GET = withAuth(async (
     // Get comments with their replies and reactions
     const comments = await db.comment.findMany({
       where: { postId },
+      take: 100,
       include: {
         User: {
           select: {

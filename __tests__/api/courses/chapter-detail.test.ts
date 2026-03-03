@@ -146,6 +146,7 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
         position: { gt: 2 },
       },
       orderBy: { position: 'asc' },
+      take: 200,
     });
 
     // Should call $transaction with the update promises

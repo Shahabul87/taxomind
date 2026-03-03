@@ -237,7 +237,7 @@ export class DatabaseRouter {
     }
 
     const selectedRule = applicableRules[0];
-    console.log(`[DB_ROUTER] Applied rule: ${selectedRule.name} (${selectedRule.description || 'No description'}) for ${context.type} operation`);
+    logger.debug(`[DB_ROUTER] Applied rule: ${selectedRule.name} (${selectedRule.description || 'No description'}) for ${context.type} operation`);
 
     let targetClient: PrismaClient;
     let targetType: string;
@@ -686,7 +686,7 @@ export class DatabaseRouter {
     });
     this.routingRules.sort((a, b) => a.priority - b.priority);
     
-    console.log(`[DB_ROUTER] Added routing rule: ${rule.name} (priority: ${rule.priority})`);
+    logger.debug(`[DB_ROUTER] Added routing rule: ${rule.name} (priority: ${rule.priority})`);
   }
 
   /**

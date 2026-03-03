@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { z } from "zod";
 import { subDays } from "date-fns";
+import { logger } from "@/lib/logger";
 
 const notificationFilterSchema = z.object({
   category: z.enum(["DONE", "MISSED", "UPCOMING", "ACHIEVEMENT"]).optional(),
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
       { counts }
     );
   } catch (error) {
-    console.error("[NOTIFICATIONS_GET]", error);
+    logger.error("[NOTIFICATIONS_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch notifications",
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[NOTIFICATIONS_POST]", error);
+    logger.error("[NOTIFICATIONS_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to create notification",

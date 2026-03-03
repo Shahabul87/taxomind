@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export interface DeviceFingerprint {
   userAgent: string;
@@ -72,7 +73,7 @@ export async function extractServerFingerprint(request?: Request): Promise<Parti
       acceptEncoding: request.headers.get('accept-encoding') || '',
     };
   } catch (error) {
-    console.error('Failed to extract server fingerprint:', error);
+    logger.error('Failed to extract server fingerprint', error);
     return {
       userAgent: '',
       acceptHeader: '',

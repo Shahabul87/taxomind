@@ -73,6 +73,7 @@ export class RedisCache {
   private isConnected: boolean = false;
   private reconnectTimer?: NodeJS.Timeout;
   private tagIndex: Map<string, Set<string>> = new Map();
+  private static readonly TAG_INDEX_MAX_SIZE = 10_000;
 
   private constructor() {
     this.metrics = {
@@ -287,6 +288,14 @@ export class RedisCache {
 
       // Handle tags for bulk invalidation
       if (options.tags && options.tags.length > 0) {
+        // Evict oldest entries if tagIndex exceeds size cap
+        if (this.tagIndex.size >= RedisCache.TAG_INDEX_MAX_SIZE) {
+          const keysToDelete = Array.from(this.tagIndex.keys()).slice(0, 1000);
+          for (const key of keysToDelete) {
+            this.tagIndex.delete(key);
+          }
+        }
+
         const tagPipeline = this.redis.pipeline();
         for (const tag of options.tags) {
           if (!this.tagIndex.has(tag)) {

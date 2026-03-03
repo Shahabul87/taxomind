@@ -448,8 +448,8 @@ const nextConfig = {
     // SECURITY FIX: Use specific allowed origins instead of wildcard
     // Cannot use Access-Control-Allow-Origin: * with credentials: true (CORS spec violation)
     const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL ||
-                         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                         'http://localhost:3000';
+                         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                         'https://taxomind.com');
 
     // Security headers for SEO and user trust (Google considers site security for rankings)
     const securityHeaders = [

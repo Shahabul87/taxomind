@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     const competitors = await db.courseCompetitor.findMany({
       where: { courseId },
       orderBy: { analyzedAt: 'desc' },
+      take: 100,
     });
 
     return NextResponse.json({

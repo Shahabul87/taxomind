@@ -63,7 +63,7 @@ export class RealTimeDashboard extends EventEmitter {
       }
     }, this.config.updateInterval);
 
-    console.log(`Real-time updates started (interval: ${this.config.updateInterval}ms)`);
+    logger.info('Real-time updates started', { interval: this.config.updateInterval });
   }
 
   // Broadcast updates to all connected clients

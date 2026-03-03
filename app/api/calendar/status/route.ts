@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { revokeAccess, listCalendars, getValidTokens } from '@/lib/google-calendar';
 import type { CalendarIntegration, SyncSettings, GoogleCalendar } from '@/types/google-calendar';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       try {
         calendars = await listCalendars(tokens.accessToken, tokens.refreshToken);
       } catch (error) {
-        console.error('Failed to fetch calendars:', error);
+        logger.error('Failed to fetch calendars', error);
       }
     }
 
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Calendar Status Error:', error);
+    logger.error('Calendar Status Error', error);
     return NextResponse.json(
       {
         success: false,
@@ -158,7 +159,7 @@ export async function DELETE(req: NextRequest) {
       await revokeAccess(integration.accessToken);
     } catch (error) {
       // Continue even if revoke fails (token might already be invalid)
-      console.error('Failed to revoke Google access:', error);
+      logger.error('Failed to revoke Google access', error);
     }
 
     // Delete event mappings
@@ -181,7 +182,7 @@ export async function DELETE(req: NextRequest) {
       data: { disconnected: true },
     });
   } catch (error) {
-    console.error('Calendar Disconnect Error:', error);
+    logger.error('Calendar Disconnect Error', error);
     return NextResponse.json(
       {
         success: false,

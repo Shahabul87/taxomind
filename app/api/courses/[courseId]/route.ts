@@ -88,7 +88,7 @@ export async function DELETE(
     });
 
     if (!course) {
-      console.log("[COURSE_DELETE] Course not found with ownership check (this shouldn't happen)");
+      logger.warn("[COURSE_DELETE] Course not found with ownership check (this shouldn't happen)");
       return NextResponse.json({ error: "Course not found with ownership" }, { status: 404 });
     }
 

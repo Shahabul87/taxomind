@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { unstable_cache } from "next/cache";
+import { logger } from "@/lib/logger";
 
 export interface AuthPageStats {
   totalLearners: number;
@@ -54,7 +55,7 @@ export const getAuthPageStats = async (): Promise<AuthPageStats> => {
             averageRating: reviewStats._avg.rating || 4.5, // Fallback to 4.5 if no reviews
           };
         } catch (error) {
-          console.error("[AUTH_STATS_DB_ERROR]", error);
+          logger.error("[AUTH_STATS_DB_ERROR]", error);
           return defaultStats;
         }
       },
@@ -70,7 +71,7 @@ export const getAuthPageStats = async (): Promise<AuthPageStats> => {
     // Additional safety check: ensure we never return undefined
     return result || defaultStats;
   } catch (error) {
-    console.error("[AUTH_STATS_CACHE_ERROR]", error);
+    logger.error("[AUTH_STATS_CACHE_ERROR]", error);
     // Return default values if cache or database query fails
     return defaultStats;
   }

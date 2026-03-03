@@ -23,7 +23,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
   try {
     if (!RESEND_API_KEY) {
       logger.error('Resend API key not configured');
-      console.error('[Resend] RESEND_API_KEY environment variable not set');
+      logger.error('[Resend] RESEND_API_KEY environment variable not set');
       return false;
     }
 
@@ -60,7 +60,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
         error: data,
         to: options.to,
       });
-      console.error('[Resend] API Error:', {
+      logger.error('[Resend] API Error:', {
         status: response.status,
         error: data,
       });
@@ -73,7 +73,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
       emailId: data.id,
     });
 
-    console.log('[Resend] ✅ Email sent successfully:', {
+    logger.info('[Resend] Email sent successfully:', {
       to: options.to,
       emailId: data.id,
     });
@@ -86,7 +86,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
       to: options.to,
       subject: options.subject,
     });
-    console.error('[Resend] Exception:', errorMessage);
+    logger.error('[Resend] Exception:', errorMessage);
     return false;
   }
 }

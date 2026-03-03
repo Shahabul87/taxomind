@@ -222,6 +222,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 200,
     });
 
     const conceptsMap = new Map(sections.map((s) => [s.id, s]));
@@ -254,6 +255,7 @@ export async function GET(req: NextRequest) {
     const allPendingReviews = await db.spacedRepetitionSchedule.findMany({
       where: { userId: session.user.id, nextReviewDate: { lte: endOfWeek } },
       select: { nextReviewDate: true, retentionEstimate: true },
+      take: 500,
     });
 
     const stats: ReviewStats = {

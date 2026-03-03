@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
         status: { in: ['ACTIVE', 'PAUSED', 'DRAFT', 'FAILED'] },
       },
       select: { id: true },
+      take: 100,
     });
 
     if (activePlans.length === 0) {

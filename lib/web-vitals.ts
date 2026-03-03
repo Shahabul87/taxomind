@@ -122,7 +122,7 @@ function reportWebVital(metric: Metric) {
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
     const emoji = report.rating === 'good' ? '✅' : report.rating === 'poor' ? '🔴' : '🟡';
-    console.log(`${emoji} ${metric.name}: ${report.value}ms (${report.rating})`);
+    logger.debug(`${emoji} ${metric.name}: ${report.value}ms (${report.rating})`);
   }
 
   // Send to analytics
@@ -177,7 +177,7 @@ export function trackCustomMetric(name: string, value: number, unit: string = 'm
   };
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`📊 Custom Metric - ${name}: ${value}${unit}`);
+    logger.debug(`Custom Metric - ${name}: ${value}${unit}`);
   }
 
   // Send to analytics

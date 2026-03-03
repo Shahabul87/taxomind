@@ -9,6 +9,7 @@ import { AdminRole } from '@prisma/client';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -32,7 +33,7 @@ export const GET = withAdminAuth(async (request, context) => {
     });
 
   } catch (error) {
-    console.error('Security alerts API error:', error);
+    logger.error('Security alerts API error', error);
     return safeErrorResponse(error, 500, 'ADMIN_SECURITY_ALERTS_GET');
   }
 }, {
@@ -75,7 +76,7 @@ export const POST = withAdminAuth(async (request, context) => {
     }
 
   } catch (error) {
-    console.error('Security action API error:', error);
+    logger.error('Security action API error', error);
     return safeErrorResponse(error, 500, 'ADMIN_SECURITY_ALERTS_POST');
   }
 }, {

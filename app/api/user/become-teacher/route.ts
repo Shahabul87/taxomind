@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function POST() {
   try {
@@ -43,7 +44,7 @@ export async function POST() {
       }
     });
   } catch (error) {
-    console.error("[BECOME_TEACHER_ERROR]", error);
+    logger.error("[BECOME_TEACHER_ERROR]", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

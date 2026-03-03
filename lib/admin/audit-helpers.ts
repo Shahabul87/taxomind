@@ -6,6 +6,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 interface AdminAuditEventData {
   userId: string;
@@ -80,10 +81,10 @@ export async function logAdminAuditEvent(data: AdminAuditEventData): Promise<voi
       },
     });
 
-    console.log(`[admin-audit] Logged action: ${data.action} for user ${data.userId} - ${data.success ? 'SUCCESS' : 'FAILED'}`);
+    logger.info(`[admin-audit] Logged action: ${data.action} for user ${data.userId} - ${data.success ? 'SUCCESS' : 'FAILED'}`);
   } catch (error) {
     // Don't fail the main operation if audit logging fails
-    console.error('[admin-audit] Failed to log audit event:', error);
+    logger.error('[admin-audit] Failed to log audit event:', error);
   }
 }
 
@@ -114,9 +115,9 @@ export async function createAdminSessionMetric(data: AdminSessionData): Promise<
       },
     });
 
-    console.log(`[admin-session] Created session metric for user ${data.userId}, session ${data.sessionId}`);
+    logger.info(`[admin-session] Created session metric for user ${data.userId}, session ${data.sessionId}`);
   } catch (error) {
-    console.error('[admin-session] Failed to create session metric:', error);
+    logger.error('[admin-session] Failed to create session metric:', error);
   }
 }
 
@@ -133,7 +134,7 @@ export async function updateAdminSessionMetric(
     });
 
     if (!existingSession) {
-      console.warn(`[admin-session] Session ${sessionId} not found for update`);
+      logger.warn(`[admin-session] Session ${sessionId} not found for update`);
       return;
     }
 
@@ -155,9 +156,9 @@ export async function updateAdminSessionMetric(
       },
     });
 
-    console.log(`[admin-session] Updated session metric for session ${sessionId}`);
+    logger.info(`[admin-session] Updated session metric for session ${sessionId}`);
   } catch (error) {
-    console.error('[admin-session] Failed to update session metric:', error);
+    logger.error('[admin-session] Failed to update session metric:', error);
   }
 }
 
@@ -175,7 +176,7 @@ export async function endAdminSession(
     });
 
     if (!existingSession) {
-      console.warn(`[admin-session] Session ${sessionId} not found for logout`);
+      logger.warn(`[admin-session] Session ${sessionId} not found for logout`);
       return;
     }
 
@@ -193,9 +194,9 @@ export async function endAdminSession(
       },
     });
 
-    console.log(`[admin-session] Ended session ${sessionId} after ${sessionDuration}s - Reason: ${logoutReason}`);
+    logger.info(`[admin-session] Ended session ${sessionId} after ${sessionDuration}s - Reason: ${logoutReason}`);
   } catch (error) {
-    console.error('[admin-session] Failed to end session:', error);
+    logger.error('[admin-session] Failed to end session:', error);
   }
 }
 

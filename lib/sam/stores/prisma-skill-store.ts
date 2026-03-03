@@ -10,6 +10,7 @@ import type {
   UserSkill,
   SkillTrend,
 } from '@sam-ai/agentic';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // PRISMA SKILL STORE ADAPTER
@@ -68,7 +69,7 @@ export class PrismaSkillStore implements SkillStore {
         updatedAt: skillProgress[0]?.updatedAt ?? new Date(),
       };
     } catch (error) {
-      console.error('Failed to get skill profile:', error);
+      logger.error('Failed to get skill profile', error);
       return null;
     }
   }
@@ -82,7 +83,7 @@ export class PrismaSkillStore implements SkillStore {
         await this.updateSkill(profile.userId, skill);
       }
     } catch (error) {
-      console.error('Failed to save skill profile:', error);
+      logger.error('Failed to save skill profile', error);
       throw error;
     }
   }
@@ -106,7 +107,7 @@ export class PrismaSkillStore implements SkillStore {
 
       return this.mapSkillProgressToUserSkill(skillProgress);
     } catch (error) {
-      console.error('Failed to get skill:', error);
+      logger.error('Failed to get skill', error);
       return null;
     }
   }
@@ -157,7 +158,7 @@ export class PrismaSkillStore implements SkillStore {
         },
       });
     } catch (error) {
-      console.error('Failed to update skill:', error);
+      logger.error('Failed to update skill', error);
       throw error;
     }
   }
@@ -230,7 +231,7 @@ export class PrismaSkillStore implements SkillStore {
 
       return [...startedUserSkills, ...unstartedUserSkills];
     } catch (error) {
-      console.error('Failed to get skills for course:', error);
+      logger.error('Failed to get skills for course', error);
       return [];
     }
   }
@@ -255,7 +256,7 @@ export class PrismaSkillStore implements SkillStore {
 
       return skillProgress.map((sp) => this.mapSkillProgressToUserSkill(sp));
     } catch (error) {
-      console.error('Failed to get struggling concepts:', error);
+      logger.error('Failed to get struggling concepts', error);
       return [];
     }
   }
@@ -292,7 +293,7 @@ export class PrismaSkillStore implements SkillStore {
         .slice(0, limit)
         .map((sp) => this.mapSkillProgressToUserSkill(sp));
     } catch (error) {
-      console.error('Failed to get concepts due for review:', error);
+      logger.error('Failed to get concepts due for review', error);
       return [];
     }
   }

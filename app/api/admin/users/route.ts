@@ -5,6 +5,7 @@ import { withRole } from "@/lib/api-protection";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 // Input validation schema for GET
 const GetUsersSchema = z.object({
@@ -239,7 +240,7 @@ export const GET = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    logger.error("Error fetching users", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -435,7 +436,7 @@ export const PATCH = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
       }
     });
   } catch (error) {
-    console.error("Error updating user:", error);
+    logger.error("Error updating user", error);
 
     return NextResponse.json(
       {
@@ -453,11 +454,11 @@ export const PATCH = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
 // DELETE endpoint for removing a user
 export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
   const requestId = crypto.randomUUID();
-  console.log(`[DELETE /api/admin/users] [${requestId}] Request received`);
+  logger.debug(`[DELETE /api/admin/users] [${requestId}] Request received`);
 
   try {
     const body = await request.json();
-    console.log(`[DELETE /api/admin/users] [${requestId}] Request body:`, {
+    logger.debug(`[DELETE /api/admin/users] [${requestId}] Request body`, {
       userId: body.userId,
       hasUserId: !!body.userId
     });
@@ -465,7 +466,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
     // Validate input with Zod
     const validationResult = DeleteUserSchema.safeParse(body);
     if (!validationResult.success) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] VALIDATION_ERROR:`, validationResult.error.errors);
+      logger.debug(`[DELETE /api/admin/users] [${requestId}] VALIDATION_ERROR`, validationResult.error.errors);
       return NextResponse.json(
         {
           success: false,
@@ -486,7 +487,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
 
     const { userId } = validationResult.data;
 
-    console.log(`[DELETE /api/admin/users] [${requestId}] Fetching user from database:`, userId);
+    logger.debug(`[DELETE /api/admin/users] [${requestId}] Fetching user from database`, userId);
 
     // Check if user exists
     const user = await db.user.findUnique({
@@ -500,7 +501,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
     });
 
     if (!user) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] NOT_FOUND: User does not exist:`, userId);
+      logger.debug(`[DELETE /api/admin/users] [${requestId}] NOT_FOUND: User does not exist`, userId);
       return NextResponse.json(
         {
           success: false,
@@ -518,7 +519,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
       );
     }
 
-    console.log(`[DELETE /api/admin/users] [${requestId}] User found:`, {
+    logger.debug(`[DELETE /api/admin/users] [${requestId}] User found`, {
       id: user.id,
       email: user.email,
       isTeacher: user.isTeacher
@@ -535,7 +536,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
     }
 
     if (!currentAdminUser) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] UNAUTHORIZED: Could not determine current user`);
+      logger.warn(`[DELETE /api/admin/users] [${requestId}] UNAUTHORIZED: Could not determine current user`);
       return NextResponse.json(
         {
           success: false,
@@ -555,7 +556,7 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
 
     // Prevent self-deletion
     if (userId === currentAdminUser.id) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] FORBIDDEN: Admin attempting to delete themselves`);
+      logger.warn(`[DELETE /api/admin/users] [${requestId}] FORBIDDEN: Admin attempting to delete themselves`);
       return NextResponse.json(
         {
           success: false,
@@ -576,14 +577,14 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
     // Note: Users no longer have admin roles - admins are in AdminAccount table
     // Regular users and teachers in User table can be deleted by admins
 
-    console.log(`[DELETE /api/admin/users] [${requestId}] Proceeding with user deletion:`, userId);
+    logger.debug(`[DELETE /api/admin/users] [${requestId}] Proceeding with user deletion`, userId);
 
     // Delete user (cascade delete will handle related records based on schema)
     await db.user.delete({
       where: { id: userId },
     });
 
-    console.log(`[DELETE /api/admin/users] [${requestId}] User deleted successfully:`, {
+    logger.info(`[DELETE /api/admin/users] [${requestId}] User deleted successfully`, {
       deletedUserId: userId,
       deletedBy: currentAdminUser.id,
       deletedByEmail: currentAdminUser.email
@@ -603,8 +604,8 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
       },
     });
   } catch (error) {
-    console.error(`[DELETE /api/admin/users] [${requestId}] INTERNAL_ERROR: Caught exception:`, error);
-    console.error(`[DELETE /api/admin/users] [${requestId}] Error stack:`, error instanceof Error ? error.stack : "No stack trace");
+    logger.error(`[DELETE /api/admin/users] [${requestId}] INTERNAL_ERROR: Caught exception`, error);
+    logger.error(`[DELETE /api/admin/users] [${requestId}] Error stack`, error instanceof Error ? error.stack : "No stack trace");
 
     // Check for specific database errors - return user-friendly message for known cases
     if (error instanceof Error && error.message.includes("Foreign key constraint")) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/messages/courses
@@ -128,7 +129,7 @@ export async function GET(req: Request) {
       total: formattedEnrolledCourses.length + formattedCreatedCourses.length,
     });
   } catch (error) {
-    console.error("[MESSAGES_COURSES_GET]", error);
+    logger.error("[MESSAGES_COURSES_GET]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

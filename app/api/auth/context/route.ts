@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { 
   getCurrentContext, 
   switchContext,
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching context:", error);
+    logger.error("Error fetching context", error);
     return NextResponse.json(
       { error: "Failed to fetch context" },
       { status: 500 }
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error switching context:", error);
+    logger.error("Error switching context", error);
     return NextResponse.json(
       { error: "Failed to switch context" },
       { status: 500 }

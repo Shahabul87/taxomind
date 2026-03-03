@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { updateBlogPlanSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!blogPlan) return errorResponse(ErrorCodes.NOT_FOUND, "Blog plan not found", HttpStatus.NOT_FOUND);
     return successResponse(blogPlan);
   } catch (error) {
-    console.error("[BLOG_PLAN_GET]", error);
+    logger.error("[BLOG_PLAN_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch blog plan", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -43,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return successResponse(blogPlan);
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[BLOG_PLAN_PATCH]", error);
+    logger.error("[BLOG_PLAN_PATCH]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to update blog plan", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -61,7 +62,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await db.dashboardBlogPlan.delete({ where: { id: params.id } });
     return successResponse({ id: params.id });
   } catch (error) {
-    console.error("[BLOG_PLAN_DELETE]", error);
+    logger.error("[BLOG_PLAN_DELETE]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to delete blog plan", HttpStatus.INTERNAL_ERROR);
   }
 }

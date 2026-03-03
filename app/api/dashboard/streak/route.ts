@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import {
   startOfDay,
   endOfDay,
@@ -98,6 +99,7 @@ export async function GET(req: NextRequest) {
           lte: today,
         },
       },
+      take: 200,
     });
 
     const weeklyCompletedMinutes = weeklyLogs.reduce(
@@ -124,6 +126,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { date: "asc" },
+      take: 200,
     });
 
     const last30Days = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
@@ -194,7 +197,7 @@ export async function GET(req: NextRequest) {
       activityCalendar,
     });
   } catch (error) {
-    console.error("[STREAK_GET]", error);
+    logger.error("[STREAK_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch streak data",
@@ -307,7 +310,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[STREAK_PATCH]", error);
+    logger.error("[STREAK_PATCH]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);

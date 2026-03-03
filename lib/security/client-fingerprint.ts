@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 export interface ClientFingerprint {
   platform: string;
@@ -62,7 +63,7 @@ export async function collectClientFingerprint(): Promise<ClientFingerprint> {
     fingerprint.canvas = await getCanvasFingerprint();
 
   } catch (error) {
-    console.warn('Failed to collect some fingerprint data:', error);
+    logger.warn('Failed to collect some fingerprint data', error);
   }
 
   return fingerprint;
@@ -164,7 +165,7 @@ export function useDeviceFingerprint() {
     collectClientFingerprint()
       .then(setFingerprint)
       .catch(error => {
-        console.error('Failed to collect device fingerprint:', error);
+        logger.error('Failed to collect device fingerprint', error);
         setFingerprint(null);
       })
       .finally(() => setIsLoading(false));
@@ -198,7 +199,7 @@ export async function submitFingerprint(clientFingerprint: ClientFingerprint): P
 
     return await response.json();
   } catch (error) {
-    console.error('Failed to submit fingerprint:', error);
+    logger.error('Failed to submit fingerprint', error);
     return { success: false };
   }
 }
@@ -226,7 +227,7 @@ export async function requestDeviceTrust(deviceName?: string): Promise<{
 
     return await response.json();
   } catch (error) {
-    console.error('Failed to request device trust:', error);
+    logger.error('Failed to request device trust', error);
     return { 
       success: false, 
       message: 'Failed to establish device trust. Please try again.' 
@@ -259,7 +260,7 @@ export async function getTrustedDevices(): Promise<{
 
     return await response.json();
   } catch (error) {
-    console.error('Failed to get trusted devices:', error);
+    logger.error('Failed to get trusted devices', error);
     return { success: false };
   }
 }
@@ -283,7 +284,7 @@ export async function revokeTrustedDevice(deviceId: string): Promise<{
 
     return await response.json();
   } catch (error) {
-    console.error('Failed to revoke device trust:', error);
+    logger.error('Failed to revoke device trust', error);
     return { 
       success: false, 
       message: 'Failed to revoke device trust. Please try again.' 

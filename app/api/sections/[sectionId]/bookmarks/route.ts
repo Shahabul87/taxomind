@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Input validation schema
 const BookmarkSchema = z.object({
@@ -80,7 +81,7 @@ export async function POST(
       );
     }
 
-    console.error('Bookmark creation error:', error);
+    logger.error('Bookmark creation error', error);
     return NextResponse.json(
       { error: 'Failed to create bookmark' },
       { status: 500 }
@@ -115,7 +116,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, bookmarks });
   } catch (error) {
-    console.error('Bookmark fetch error:', error);
+    logger.error('Bookmark fetch error', error);
     return NextResponse.json(
       { error: 'Failed to fetch bookmarks' },
       { status: 500 }
@@ -172,7 +173,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Bookmark deletion error:', error);
+    logger.error('Bookmark deletion error', error);
     return NextResponse.json(
       { error: 'Failed to delete bookmark' },
       { status: 500 }

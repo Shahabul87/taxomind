@@ -1,4 +1,5 @@
 import { dataEncryption, type EncryptedData } from './encryption';
+import { logger } from '@/lib/logger';
 
 /**
  * Field-level encryption for PII and sensitive data
@@ -330,7 +331,7 @@ export class FieldEncryption {
     }
   ) {
     // This would integrate with your audit logging system
-    console.log(`[AUDIT] Field ${operation}: ${fieldName}`, {
+    logger.info(`[AUDIT] Field ${operation}: ${fieldName}`, {
       timestamp: new Date().toISOString(),
       operation,
       fieldName,

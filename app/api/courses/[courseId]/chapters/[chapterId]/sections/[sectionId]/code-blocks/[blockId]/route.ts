@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -80,7 +81,7 @@ export async function PATCH(
       data: updated
     });
   } catch (error) {
-    console.error('[CODE_BLOCK_PATCH]', error);
+    logger.error('[CODE_BLOCK_PATCH]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>({
@@ -151,6 +152,7 @@ export async function DELETE(
     // Recalculate line numbers for remaining blocks
     const remainingBlocks = await db.codeExplanation.findMany({
       where: { sectionId: params.sectionId },
+      take: 200,
       orderBy: { position: 'asc' }
     });
 
@@ -179,7 +181,7 @@ export async function DELETE(
       data: { deleted: true }
     });
   } catch (error) {
-    console.error('[CODE_BLOCK_DELETE]', error);
+    logger.error('[CODE_BLOCK_DELETE]', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Delete failed' }

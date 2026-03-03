@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import {
   HeatmapResponse,
@@ -341,7 +342,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: response });
   } catch (error) {
-    console.error('Heatmap API Error:', error);
+    logger.error('Heatmap API Error', error);
     return NextResponse.json(
       {
         success: false,

@@ -239,6 +239,7 @@ async function generateOverviewInsights(userId: string, courseId: string | null,
     ? await db.user.findMany({
         where: { id: { in: userIds } },
         select: { id: true, name: true },
+        take: 500,
       })
     : [];
 
@@ -424,6 +425,7 @@ async function generateEngagementInsights(userId: string, courseId: string | nul
     ? await db.user.findMany({
         where: { id: { in: userIds } },
         select: { id: true, name: true, lastLoginAt: true },
+        take: 500,
       })
     : [];
 
@@ -666,6 +668,7 @@ async function generateAtRiskInsights(userId: string, courseId: string | null, t
       await db.user.findMany({
         where: { id: { in: userIds } },
         select: { id: true, name: true },
+        take: 500,
       })
     ).map((user) => [user.id, user.name ?? 'Unknown'])
   );

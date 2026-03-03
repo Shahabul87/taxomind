@@ -7,6 +7,8 @@
  * 2. Replace initializeTracing() with actual SDK setup
  */
 
+import { logger } from '@/lib/logger';
+
 export function initializeTracing(): void {
-  console.log('[OTEL] Tracing stub loaded — install @opentelemetry/sdk-node for full instrumentation');
+  logger.info('[OTEL] Tracing stub loaded — install @opentelemetry/sdk-node for full instrumentation');
 }

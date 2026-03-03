@@ -7,6 +7,7 @@ import {
   ErrorCodes,
   HttpStatus,
 } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function DELETE(req: NextRequest) {
       count: result.count,
     });
   } catch (error) {
-    console.error("[NOTIFICATIONS_CLEAR_ALL]", error);
+    logger.error("[NOTIFICATIONS_CLEAR_ALL]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to clear notifications",

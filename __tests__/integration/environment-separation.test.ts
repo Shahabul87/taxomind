@@ -71,38 +71,43 @@ describe('Environment Separation Tests', () => {
 
   describe('Cross-Environment Protection', () => {
     it('should warn when using production database in development', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
       (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://postgres.railway.internal:5432/railway';
-      
+      process.env.NEXTAUTH_URL = 'http://localhost:3000';
+      process.env.AUTH_SECRET = 'test-secret';
+
+      const { logger: mockLog } = require('@/lib/logger');
+      mockLog.warn.mockClear();
+
       // Import module to trigger warning
       jest.isolateModules(() => {
         const dbEnv = require('@/lib/db-environment');
         dbEnv.validateEnvironment();
       });
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('WARNING: Using production database in development environment!')
+
+      expect(mockLog.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Using production database in development environment')
       );
-      
-      consoleSpy.mockRestore();
     });
 
     it('should not warn when using local database in development', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-      
+      const { logger: isolatedLogger } = require('@/lib/logger');
+      isolatedLogger.warn.mockClear();
+
       (process.env as any).NODE_ENV = 'development';
       process.env.DATABASE_URL = 'postgresql://localhost:5433/dev_db';
-      
+      process.env.NEXTAUTH_URL = 'http://localhost:3000';
+      process.env.AUTH_SECRET = 'test-secret';
+
       jest.isolateModules(() => {
         const dbEnv = require('@/lib/db-environment');
         dbEnv.validateEnvironment();
       });
-      
-      expect(consoleSpy).not.toHaveBeenCalled();
-      
-      consoleSpy.mockRestore();
+
+      // logger.warn should not be called with the production database warning
+      expect(isolatedLogger.warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('Using production database in development environment')
+      );
     });
   });
 

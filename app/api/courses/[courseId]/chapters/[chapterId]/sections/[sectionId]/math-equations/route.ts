@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -79,6 +80,7 @@ export async function GET(
     // Fetch math explanations
     const mathExplanations = await db.mathExplanation.findMany({
       where: { sectionId: params.sectionId },
+      take: 200,
       orderBy: [
         { position: 'asc' },
         { createdAt: 'desc' }
@@ -94,7 +96,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('[MATH_EQUATIONS_GET]', error);
+    logger.error('[MATH_EQUATIONS_GET]', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       error: {
@@ -178,7 +180,7 @@ export async function POST(
       }
     }, { status: 201 });
   } catch (error) {
-    console.error('[MATH_EQUATIONS_POST]', error);
+    logger.error('[MATH_EQUATIONS_POST]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>({

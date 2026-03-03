@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logger } from "@/lib/logger";
 import { 
   getUserCapabilities, 
   grantCapability, 
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching capabilities:", error);
+    logger.error("Error fetching capabilities", error);
     return NextResponse.json(
       { error: "Failed to fetch capabilities" },
       { status: 500 }
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error granting capability:", error);
+    logger.error("Error granting capability", error);
     return NextResponse.json(
       { error: "Failed to grant capability" },
       { status: 500 }
@@ -246,7 +247,7 @@ export async function DELETE(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error revoking capability:", error);
+    logger.error("Error revoking capability", error);
     return NextResponse.json(
       { error: "Failed to revoke capability" },
       { status: 500 }

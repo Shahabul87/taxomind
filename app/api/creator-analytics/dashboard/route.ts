@@ -202,7 +202,8 @@ async function generateCreatorAnalytics(
           }
         }
       }
-    }
+    },
+    take: 500,
   });
 
   // Calculate overview metrics
@@ -345,7 +346,8 @@ async function calculateGrowth(
 
   const courseIds = await db.course.findMany({
     where: { userId: creatorId, isPublished: true },
-    select: { id: true }
+    select: { id: true },
+    take: 500,
   });
 
   if (courseIds.length === 0) return 0;
@@ -355,7 +357,8 @@ async function calculateGrowth(
       courseId: { in: courseIds.map(c => c.id) },
       createdAt: { gte: from, lt: to }
     },
-    select: { userId: true }
+    select: { userId: true },
+    take: 500,
   });
 
   const previousLearners = new Set(previousPurchases.map(p => p.userId)).size;

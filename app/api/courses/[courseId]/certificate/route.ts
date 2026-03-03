@@ -25,10 +25,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
       const [completions, tracking] = await Promise.all([
         db.userSectionCompletion.findMany({
           where: { userId: user.id, sectionId: { in: sectionIds } },
+          take: 200,
           select: { sectionId: true, progress: true, completedAt: true },
         }),
         db.sectionCompletionTracking.findMany({
           where: { userId: user.id, sectionId: { in: sectionIds } },
+          take: 200,
           select: { sectionId: true, status: true },
         })
       ]);
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
     const completedSet = new Set<string>();
     if (user?.id && allSections.length > 0) {
       const sectionIds = allSections.map(({ s }) => s.id);
-      const completions2 = await db.userSectionCompletion.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, select: { sectionId: true, progress: true, completedAt: true } });
+      const completions2 = await db.userSectionCompletion.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, take: 200, select: { sectionId: true, progress: true, completedAt: true } });
       for (const rec of completions2) {
         if (rec.completedAt || (rec.progress ?? 0) >= 0.999) completedSet.add(rec.sectionId);
       }
@@ -102,6 +104,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
       const sectionIds = allSections.map(({ s }) => s.id);
       const track = await db.sectionCompletionTracking.findMany({
         where: { userId: user.id, sectionId: { in: sectionIds } },
+        take: 200,
         select: { sectionId: true, completionType: true, status: true },
       });
       // Count incomplete by completionType

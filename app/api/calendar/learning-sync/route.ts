@@ -17,6 +17,7 @@ import {
   getEvent,
   GoogleCalendarEvent,
 } from '@/lib/google-calendar';
+import { logger } from '@/lib/logger';
 
 const syncRequestSchema = z.object({
   syncType: z.enum(['full', 'incremental', 'specific']).default('incremental'),
@@ -266,7 +267,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Calendar Sync Error:', error);
+    logger.error('Calendar Sync Error', error);
 
     // Try to update integration status
     try {
@@ -331,6 +332,7 @@ async function syncStudySessions(
     include: {
       course: { select: { id: true, title: true } },
     },
+    take: 200,
   });
 
   // Batch-load all existing mappings to avoid N+1 queries
@@ -342,6 +344,7 @@ async function syncStudySessions(
           entityId: { in: sessionIds },
           entityType: 'STUDY_SESSION',
         },
+        take: 200,
       })
     : [];
   const mappingsByEntityId = new Map(existingMappings.map((m) => [m.entityId, m]));
@@ -461,6 +464,7 @@ async function syncTodos(
     include: {
       course: { select: { id: true, title: true } },
     },
+    take: 200,
   });
 
   // Batch-load all existing mappings to avoid N+1 queries
@@ -472,6 +476,7 @@ async function syncTodos(
           entityId: { in: todoIds },
           entityType: 'DAILY_TODO',
         },
+        take: 200,
       })
     : [];
   const todoMappingsByEntityId = new Map(existingTodoMappings.map((m) => [m.entityId, m]));
@@ -578,6 +583,7 @@ async function syncGoalMilestones(
     include: {
       goal: { select: { id: true, title: true } },
     },
+    take: 200,
   });
 
   // Batch-load all existing mappings to avoid N+1 queries
@@ -589,6 +595,7 @@ async function syncGoalMilestones(
           entityId: { in: milestoneIds },
           entityType: 'GOAL_MILESTONE',
         },
+        take: 200,
       })
     : [];
   const milestoneMappingsByEntityId = new Map(existingMilestoneMappings.map((m) => [m.entityId, m]));
@@ -702,6 +709,7 @@ async function syncActivities(
     include: {
       course: { select: { id: true, title: true } },
     },
+    take: 200,
   });
 
   // Batch-load all existing mappings to avoid N+1 queries
@@ -713,6 +721,7 @@ async function syncActivities(
           entityId: { in: activityIds },
           entityType: { in: ['QUIZ_EXAM', 'ASSIGNMENT'] },
         },
+        take: 200,
       })
     : [];
   const activityMappingsByEntityId = new Map(existingActivityMappings.map((m) => [m.entityId, m]));

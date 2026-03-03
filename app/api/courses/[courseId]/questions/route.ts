@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Schema for creating a question
 const CreateQuestionSchema = z.object({
@@ -158,6 +159,7 @@ export async function GET(
         questionId: { in: questionIds },
         isInstructor: true,
       },
+      take: 100,
       select: { questionId: true },
     });
     const hasInstructorAnswer = new Set(instructorAnswers.map((a) => a.questionId));
@@ -166,6 +168,7 @@ export async function GET(
         userId: user.id,
         questionId: { in: questionIds },
       },
+      take: 100,
     });
 
     const userVotesMap = new Map(userVotes.map((v) => [v.questionId, v.value]));
@@ -176,6 +179,7 @@ export async function GET(
       if (subClient && typeof subClient.findMany === 'function') {
         const subs = await subClient.findMany({
           where: { userId: user.id, questionId: { in: questionIds } },
+          take: 100,
           select: { questionId: true },
         });
         subscribedSet = new Set(subs.map((s: any) => s.questionId));
@@ -207,7 +211,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching questions:', error);
+    logger.error('[QUESTIONS_GET] Error fetching questions', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -348,7 +352,7 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating question:', error);
+    logger.error('[QUESTIONS_POST] Error creating question', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

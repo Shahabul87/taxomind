@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { getAdminMFAInfo } from '@/lib/auth/mfa-enforcement';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -23,7 +24,7 @@ export async function GET() {
       message: mfaInfo.mfaEnforcementStatus.message,
     });
   } catch (error) {
-    console.error('[MFA Status API] Error:', error);
+    logger.error('[MFA Status API] Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

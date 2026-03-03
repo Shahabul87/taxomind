@@ -6,5 +6,6 @@
  */
 
 import "./socket-server";
+import { logger } from "@/lib/logger";
 
-console.log("Socket.io server initialized");
+logger.info("Socket.io server initialized");

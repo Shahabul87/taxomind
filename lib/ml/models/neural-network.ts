@@ -2,6 +2,7 @@
 
 import { BaseMLModel } from './base-model';
 import { ModelType, ModelParameters, StudentFeatures, PredictionOutput, ModelMetrics } from '../types';
+import { logger } from '@/lib/logger';
 
 interface NeuralNetworkWeights {
   weights: number[][][];
@@ -213,7 +214,7 @@ export class NeuralNetworkModel extends BaseMLModel {
       // Log progress
       if (epoch % 10 === 0) {
         const avgLoss = epochLoss / normalizedData.length;
-        console.log(`Epoch ${epoch}: Loss = ${avgLoss.toFixed(4)}`);
+        logger.debug(`Epoch ${epoch}: Loss = ${avgLoss.toFixed(4)}`);
       }
     }
 

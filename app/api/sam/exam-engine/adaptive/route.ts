@@ -453,6 +453,7 @@ async function calculatePerformanceTrend(attemptId: string): Promise<'improving'
         isCorrect: true,
         createdAt: true,
       },
+      take: 200,
     });
 
     if (answers.length < 4) {
@@ -498,6 +499,7 @@ async function getAdaptiveMetrics(attemptId: string): Promise<AdaptiveMetrics> {
       },
     },
     orderBy: { createdAt: 'asc' },
+    take: 200,
   });
 
   const metrics: AdaptiveMetrics = {

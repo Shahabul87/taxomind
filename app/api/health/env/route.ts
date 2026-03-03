@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidationSummary } from '@/lib/startup-validation';
 import { headers } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 /**
  * Environment Health Check API Endpoint
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Environment health check failed:', error);
+    logger.error('Environment health check failed', error);
     
     return NextResponse.json(
       {

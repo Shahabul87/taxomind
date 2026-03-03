@@ -61,7 +61,7 @@ export function cacheWrapper<T extends (...args: any[]) => Promise<any>>(
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`cacheWrapper failed for keys [${keyParts.join(',')}]: ${message}`);
     if (process.env.NODE_ENV === 'development') {
-      console.error('cacheWrapper error - returning uncached function:', message);
+      logger.error('cacheWrapper error - returning uncached function:', message);
     }
     return fn;
   }

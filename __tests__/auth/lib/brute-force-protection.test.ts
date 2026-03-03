@@ -50,6 +50,16 @@ describe('Brute Force Protection', () => {
       cache: (fn: Function) => fn,
     }));
 
+    // Mock logger
+    jest.doMock('@/lib/logger', () => ({
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      },
+    }));
+
     // Mock BOTH db paths
     jest.doMock('@/lib/db', () => ({
       db: mockDbObj,
@@ -117,15 +127,14 @@ describe('Brute Force Protection', () => {
 
     it('handles database errors gracefully', async () => {
       mockLoginAttemptCreate.mockRejectedValue(new Error('DB Error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const { logger } = require('@/lib/logger');
 
       await recordLoginAttempt('test@example.com', '192.168.1.1', false);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[BruteForce] Failed to record login attempt:',
+      expect(logger.error).toHaveBeenCalledWith(
+        '[BruteForce] Failed to record login attempt',
         expect.any(Error)
       );
-      consoleSpy.mockRestore();
     });
   });
 
@@ -307,15 +316,14 @@ describe('Brute Force Protection', () => {
 
     it('handles database errors gracefully', async () => {
       mockUserUpdate.mockRejectedValue(new Error('DB Error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const { logger } = require('@/lib/logger');
 
       await resetFailedAttempts('user-123');
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[BruteForce] Failed to reset failed attempts:',
+      expect(logger.error).toHaveBeenCalledWith(
+        '[BruteForce] Failed to reset failed attempts',
         expect.any(Error)
       );
-      consoleSpy.mockRestore();
     });
   });
 

@@ -30,6 +30,7 @@ export async function GET(
           in: ['SUBMITTED', 'GRADED'],
         },
       },
+      take: 500,
       include: {
         UserAnswer: {
           include: {

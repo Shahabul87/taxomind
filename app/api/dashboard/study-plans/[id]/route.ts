@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { updateStudyPlanSchema } from "@/lib/validations/dashboard";
+import { logger } from "@/lib/logger";
 
 // GET /api/dashboard/study-plans/[id] - Get a single study plan
 export async function GET(
@@ -37,7 +38,7 @@ export async function GET(
 
     return successResponse(studyPlan);
   } catch (error) {
-    console.error("Error fetching study plan:", error);
+    logger.error("Error fetching study plan", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch study plan",
@@ -106,7 +107,7 @@ export async function PATCH(
         error.errors[0].message
       );
     }
-    console.error("Error updating study plan:", error);
+    logger.error("Error updating study plan", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update study plan",
@@ -152,7 +153,7 @@ export async function DELETE(
 
     return successResponse({ deleted: true });
   } catch (error) {
-    console.error("Error deleting study plan:", error);
+    logger.error("Error deleting study plan", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete study plan",

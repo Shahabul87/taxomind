@@ -83,22 +83,7 @@ export const DEFAULT_SAM_TELEMETRY_CONFIG: SAMTelemetryConfig = {
 // LOGGER
 // ============================================================================
 
-const logger = {
-  debug: (message: string, data?: Record<string, unknown>) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(`[SAM_TELEMETRY] ${message}`, data ?? '');
-    }
-  },
-  info: (message: string, data?: Record<string, unknown>) => {
-    console.info(`[SAM_TELEMETRY] ${message}`, data ?? '');
-  },
-  warn: (message: string, data?: Record<string, unknown>) => {
-    console.warn(`[SAM_TELEMETRY] ${message}`, data ?? '');
-  },
-  error: (message: string, data?: Record<string, unknown>) => {
-    console.error(`[SAM_TELEMETRY] ${message}`, data ?? '');
-  },
-};
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // PRISMA STORE ADAPTERS

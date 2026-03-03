@@ -5,6 +5,7 @@
  */
 
 import { validateEnvironmentVariables, validateAIConfiguration, validateOAuthConfiguration } from './env-validation';
+import { logger } from '@/lib/logger';
 
 interface StartupValidationOptions {
   /**
@@ -43,20 +44,20 @@ export function validateApplicationStartup(options: StartupValidationOptions = {
     
     if (verbose) {
       const env = result.summary.environment.toUpperCase();
-      console.log(`\n🚀 Starting Taxomind LMS (${env})`);
-      console.log('='.repeat(40));
-      
+      logger.info(`Starting Taxomind LMS (${env})`);
+      logger.info('='.repeat(40));
+
       // Show core service status
-      console.log('📋 Core Services:');
-      console.log(`   ${result.summary.database === 'Configured' ? '✅' : '❌'} Database: ${result.summary.database}`);
-      console.log(`   ${result.summary.auth === 'Configured' ? '✅' : '❌'} Authentication: ${result.summary.auth}`);
+      logger.info('Core Services:');
+      logger.info(`   Database: ${result.summary.database}`);
+      logger.info(`   Authentication: ${result.summary.auth}`);
       
       if (validateOptional) {
-        console.log('\n🔧 Optional Services:');
-        console.log(`   ${result.summary.ai === 'Configured' ? '✅' : '🔸'} AI Services: ${result.summary.ai}`);
-        console.log(`   ${result.summary.media === 'Configured' ? '✅' : '🔸'} Media Storage: ${result.summary.media}`);
-        console.log(`   ${result.summary.caching === 'Configured' ? '✅' : '🔸'} Caching: ${result.summary.caching}`);
-        console.log(`   ${result.summary.monitoring === 'Configured' ? '✅' : '🔸'} Monitoring: ${result.summary.monitoring}`);
+        logger.info('Optional Services:');
+        logger.info(`   AI Services: ${result.summary.ai}`);
+        logger.info(`   Media Storage: ${result.summary.media}`);
+        logger.info(`   Caching: ${result.summary.caching}`);
+        logger.info(`   Monitoring: ${result.summary.monitoring}`);
       }
     }
     
@@ -65,47 +66,47 @@ export function validateApplicationStartup(options: StartupValidationOptions = {
       const aiConfig = validateAIConfiguration();
       const oauthConfig = validateOAuthConfiguration();
       
-      console.log('\n⚡ Feature Availability:');
-      
+      logger.info('Feature Availability:');
+
       if (aiConfig.hasAnyAI) {
-        console.log('   ✅ AI-powered content generation');
-        if (aiConfig.hasOpenAI) console.log('     • OpenAI GPT models available');
-        if (aiConfig.hasAnthropic) console.log('     • Anthropic Claude models available');
+        logger.info('   AI-powered content generation enabled');
+        if (aiConfig.hasOpenAI) logger.info('     OpenAI GPT models available');
+        if (aiConfig.hasAnthropic) logger.info('     Anthropic Claude models available');
       } else {
-        console.log('   🔸 AI features disabled (no API keys configured)');
+        logger.info('   AI features disabled (no API keys configured)');
       }
-      
+
       if (oauthConfig.hasAnyOAuth) {
-        console.log('   ✅ Social authentication');
-        if (oauthConfig.google) console.log('     • Google OAuth enabled');
-        if (oauthConfig.github) console.log('     • GitHub OAuth enabled');
+        logger.info('   Social authentication enabled');
+        if (oauthConfig.google) logger.info('     Google OAuth enabled');
+        if (oauthConfig.github) logger.info('     GitHub OAuth enabled');
       } else {
-        console.log('   🔸 Social auth disabled (credentials-only login)');
+        logger.info('   Social auth disabled (credentials-only login)');
       }
-      
-      console.log(`   ${result.summary.media === 'Configured' ? '✅' : '🔸'} Media uploads ${result.summary.media === 'Configured' ? 'enabled' : 'disabled'}`);
-      console.log(`   ${result.summary.caching === 'Configured' ? '✅' : '🔸'} Redis caching ${result.summary.caching === 'Configured' ? 'enabled' : 'disabled'}`);
+
+      logger.info(`   Media uploads ${result.summary.media === 'Configured' ? 'enabled' : 'disabled'}`);
+      logger.info(`   Redis caching ${result.summary.caching === 'Configured' ? 'enabled' : 'disabled'}`);
     }
     
     // Show warnings
     if (result.warnings.length > 0 && verbose) {
-      console.log('\n⚠️  Configuration Warnings:');
-      result.warnings.forEach(warning => console.warn(`   • ${warning}`));
+      logger.warn('Configuration Warnings:');
+      result.warnings.forEach(warning => logger.warn(`   ${warning}`));
     }
     
     // Handle errors
     if (result.errors.length > 0) {
       if (verbose) {
-        console.log('\n❌ Configuration Errors:');
-        result.errors.forEach(error => console.error(`   • ${error}`));
-        console.log('\n💡 Tips:');
-        console.log('   • Check your .env.local file against .env.example');
-        console.log('   • Run "npm run validate:env" for detailed validation');
-        console.log('   • Ensure production variables are set in production environment');
+        logger.error('Configuration Errors:');
+        result.errors.forEach(error => logger.error(`   ${error}`));
+        logger.info('Tips:');
+        logger.info('   Check your .env.local file against .env.example');
+        logger.info('   Run "npm run validate:env" for detailed validation');
+        logger.info('   Ensure production variables are set in production environment');
       }
       
       if (exitOnError) {
-        console.error('\n🛑 Application startup failed due to configuration errors');
+        logger.error('Application startup failed due to configuration errors');
         process.exit(1);
       }
       
@@ -113,15 +114,15 @@ export function validateApplicationStartup(options: StartupValidationOptions = {
     }
     
     if (verbose) {
-      console.log('\n✅ Startup validation completed successfully');
-      console.log('='.repeat(40));
+      logger.info('Startup validation completed successfully');
+      logger.info('='.repeat(40));
     }
     
     return true;
     
   } catch (error) {
     if (verbose) {
-      console.error('\n❌ Startup validation failed:', error instanceof Error ? error.message : String(error));
+      logger.error('Startup validation failed', error instanceof Error ? error.message : String(error));
     }
     
     if (exitOnError) {
@@ -150,7 +151,7 @@ export function validateMinimalStartup(): boolean {
   const missing = criticalVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
-    console.error('❌ Critical environment variables missing:', missing.join(', '));
+    logger.error('Critical environment variables missing', missing.join(', '));
     return false;
   }
   
@@ -166,25 +167,25 @@ export function validateBuildEnvironment(): boolean {
   
   // Check if we're in a valid build environment
   if (!['development', 'staging', 'production', 'test'].includes(environment)) {
-    console.error(`❌ Invalid NODE_ENV: ${environment}`);
+    logger.error(`Invalid NODE_ENV: ${environment}`);
     return false;
   }
   
   // Check for basic required variables
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL is required for builds');
+    logger.error('DATABASE_URL is required for builds');
     return false;
   }
   
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    console.error('❌ NEXT_PUBLIC_APP_URL is required for builds');
+    logger.error('NEXT_PUBLIC_APP_URL is required for builds');
     return false;
   }
   
   // Production-specific build checks
   if (environment === 'production' || environment === 'staging') {
     if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-      console.error('❌ AUTH_SECRET or NEXTAUTH_SECRET is required for production builds');
+      logger.error('AUTH_SECRET or NEXTAUTH_SECRET is required for production builds');
       return false;
     }
     
@@ -193,7 +194,7 @@ export function validateBuildEnvironment(): boolean {
     const localhostUrls = prodUrls.filter(url => url && (url.includes('localhost') || url.includes('127.0.0.1')));
     
     if (localhostUrls.length > 0) {
-      console.error('❌ Production builds cannot use localhost URLs');
+      logger.error('Production builds cannot use localhost URLs');
       return false;
     }
   }

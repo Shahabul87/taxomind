@@ -17,6 +17,7 @@ import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import { logger } from '@/lib/logger';
 
 // Environment configuration
 const OTEL_EXPORTER_OTLP_ENDPOINT = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
@@ -60,7 +61,7 @@ const prometheusExporter = new PrometheusExporter({
   port: OTEL_PROMETHEUS_PORT,
   endpoint: '/metrics',
 }, () => {
-  console.log(`Prometheus metrics available at http://localhost:${OTEL_PROMETHEUS_PORT}/metrics`);
+  logger.info(`Prometheus metrics available at http://localhost:${OTEL_PROMETHEUS_PORT}/metrics`);
 });
 
 /**
@@ -138,8 +139,8 @@ export const initTelemetry = (): NodeSDK => {
   // Graceful shutdown
   process.on('SIGTERM', () => {
     sdk.shutdown()
-      .then(() => console.log('Telemetry terminated'))
-      .catch((error) => console.error('Error terminating telemetry', error))
+      .then(() => logger.info('Telemetry terminated'))
+      .catch((error) => logger.error('Error terminating telemetry', error))
       .finally(() => process.exit(0));
   });
 
@@ -152,9 +153,9 @@ export const initTelemetry = (): NodeSDK => {
 export const shutdownTelemetry = async (sdk: NodeSDK): Promise<void> => {
   try {
     await sdk.shutdown();
-    console.log('Telemetry shut down successfully');
+    logger.info('Telemetry shut down successfully');
   } catch (error) {
-    console.error('Error shutting down telemetry:', error);
+    logger.error('Error shutting down telemetry', error);
   }
 };
 

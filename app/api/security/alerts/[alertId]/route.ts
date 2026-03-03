@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 // UserRole removed - users no longer have roles
 
 interface RouteParams {
@@ -89,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('Error resolving security alert:', error);
+    logger.error('Error resolving security alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to resolve security alert' }, 
       { status: 500 }
@@ -169,7 +170,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('Error getting security alert:', error);
+    logger.error('Error getting security alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to get security alert' }, 
       { status: 500 }

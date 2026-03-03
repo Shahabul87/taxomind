@@ -9,6 +9,7 @@
  */
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { cache } from "react";
 import {
   UserCapability,
@@ -79,7 +80,7 @@ export const getUserCapabilities = cache(async (userId: string): Promise<UserCap
 
     return capabilities;
   } catch (error) {
-    console.error("Error fetching user capabilities:", error);
+    logger.error("Error fetching user capabilities", error);
     return [];
   }
 });
@@ -189,7 +190,7 @@ export async function grantCapability(
 
     return { success: true };
   } catch (error) {
-    console.error("Error granting capability:", error);
+    logger.error("Error granting capability", error);
     return { success: false, error: "Failed to grant capability" };
   }
 }
@@ -244,7 +245,7 @@ export async function revokeCapability(
 
     return { success: true };
   } catch (error) {
-    console.error("Error revoking capability:", error);
+    logger.error("Error revoking capability", error);
     return { success: false, error: "Failed to revoke capability" };
   }
 }
@@ -322,7 +323,7 @@ export async function getCapabilityStats(): Promise<{
 
     return stats;
   } catch (error) {
-    console.error("Error fetching capability stats:", error);
+    logger.error("Error fetching capability stats", error);
     return {
       total: 0,
       byCapability: {},

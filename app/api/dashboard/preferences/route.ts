@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const preferencesSchema = z.object({
   viewMode: z.enum(["GRID", "LIST"]).default("LIST"),
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(preferences);
   } catch (error) {
-    console.error("[PREFERENCES_GET]", error);
+    logger.error("[PREFERENCES_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch preferences",
@@ -84,7 +85,7 @@ export async function PUT(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[PREFERENCES_PUT]", error);
+    logger.error("[PREFERENCES_PUT]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update preferences",

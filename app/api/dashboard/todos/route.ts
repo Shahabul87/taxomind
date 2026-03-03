@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { todoSchema, paginationSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     try {
       total = await db.dashboardTodo.count({ where });
     } catch (countError) {
-      console.warn("[TODOS_GET] Count failed, using 0:", countError);
+      logger.warn("[TODOS_GET] Count failed, using 0", countError);
     }
 
     // Try to fetch with all includes, fall back progressively if there are schema issues
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (includeError) {
       // If include fails (schema mismatch), try without chapter
-      console.warn("[TODOS_GET] Include with chapter failed, trying without:", includeError);
+      logger.warn("[TODOS_GET] Include with chapter failed, trying without", includeError);
       try {
         todos = await db.dashboardTodo.findMany({
           where,
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
         });
       } catch (courseError) {
         // Ultimate fallback: no includes at all
-        console.warn("[TODOS_GET] Include with course failed, trying bare query:", courseError);
+        logger.warn("[TODOS_GET] Include with course failed, trying bare query", courseError);
         try {
           todos = await db.dashboardTodo.findMany({
             where,
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
             take: pagination.limit,
           });
         } catch (bareError) {
-          console.error("[TODOS_GET] All queries failed:", bareError);
+          logger.error("[TODOS_GET] All queries failed", bareError);
           // Return empty array if all fails
           todos = [];
         }
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(todos, { page: pagination.page, limit: pagination.limit, total });
   } catch (error) {
-    console.error("[TODOS_GET]", error);
+    logger.error("[TODOS_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch todos", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     return successResponse(todo);
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[TODOS_POST]", error);
+    logger.error("[TODOS_POST]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to create todo", HttpStatus.INTERNAL_ERROR);
   }
 }

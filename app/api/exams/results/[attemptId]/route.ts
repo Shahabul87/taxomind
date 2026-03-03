@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { BloomsLevel } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // ==========================================
 // Comprehensive Exam Results API
@@ -242,7 +243,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching exam results:', error);
+    logger.error('Error fetching exam results', error);
     return NextResponse.json({ error: 'Failed to fetch exam results' }, { status: 500 });
   }
 }

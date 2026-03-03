@@ -362,6 +362,7 @@ async function updateAggregatedStats(userId: string, recommendationType: string)
           gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
         },
       },
+      take: 500,
     });
 
     const followed = recentData.filter((d) => d.wasFollowed).length;

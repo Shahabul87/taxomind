@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { LearningAlertType, AlertChannel } from "@prisma/client";
 import { subDays, subHours } from "date-fns";
+import { logger } from "@/lib/logger";
 
 // Filter schema for learning notifications
 const learningNotificationFilterSchema = z.object({
@@ -133,7 +134,7 @@ export async function GET(req: NextRequest) {
       { counts }
     );
   } catch (error) {
-    console.error("[LEARNING_NOTIFICATIONS_GET]", error);
+    logger.error("[LEARNING_NOTIFICATIONS_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch learning notifications",
@@ -227,7 +228,7 @@ export async function POST(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[LEARNING_NOTIFICATIONS_POST]", error);
+    logger.error("[LEARNING_NOTIFICATIONS_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to create learning notification",

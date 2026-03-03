@@ -68,7 +68,8 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         usageCount: 'desc'
-      }
+      },
+      take: 500,
     });
 
     // Get total statistics
@@ -113,7 +114,8 @@ export async function GET(request: NextRequest) {
           name: true,
           email: true,
           image: true
-        }
+        },
+        take: 500,
       });
 
       topAuthors = topAuthors.map(author => ({

@@ -13,6 +13,7 @@
  */
 
 import { ErrorType, ErrorSeverity } from './types';
+import { logger } from '@/lib/logger';
 
 // Track if handlers have been set up to prevent duplicates
 let serverHandlersSetup = false;
@@ -34,8 +35,8 @@ export async function setupServerErrorHandlers(): Promise<void> {
 
   // Handle uncaught exceptions
   process.on('uncaughtException', async (error: Error, origin: string) => {
-    console.error('[FATAL] Uncaught Exception:', error);
-    console.error('Origin:', origin);
+    logger.error('[FATAL] Uncaught Exception', error);
+    logger.error('Origin', { origin });
 
     try {
       // Log to our error tracking system
@@ -61,7 +62,7 @@ export async function setupServerErrorHandlers(): Promise<void> {
         // Sentry not available or failed
       }
     } catch (loggingError) {
-      console.error('[FATAL] Failed to log uncaught exception:', loggingError);
+      logger.error('[FATAL] Failed to log uncaught exception', loggingError);
     }
 
     // Note: In production, you might want to gracefully shutdown
@@ -71,7 +72,7 @@ export async function setupServerErrorHandlers(): Promise<void> {
 
   // Handle unhandled promise rejections
   process.on('unhandledRejection', async (reason: unknown, promise: Promise<unknown>) => {
-    console.error('[ERROR] Unhandled Promise Rejection:', reason);
+    logger.error('[ERROR] Unhandled Promise Rejection', { reason });
 
     const error = reason instanceof Error
       ? reason
@@ -97,13 +98,13 @@ export async function setupServerErrorHandlers(): Promise<void> {
         // Sentry not available or failed
       }
     } catch (loggingError) {
-      console.error('[ERROR] Failed to log unhandled rejection:', loggingError);
+      logger.error('[ERROR] Failed to log unhandled rejection', loggingError);
     }
   });
 
   // Handle warnings (optional, useful for deprecation notices)
   process.on('warning', (warning: Error) => {
-    console.warn('[WARNING]', warning.name, warning.message);
+    logger.warn(`[WARNING] ${warning.name} ${warning.message}`);
 
     // Only log significant warnings, not all deprecation notices
     if (warning.name !== 'DeprecationWarning') {
@@ -115,7 +116,7 @@ export async function setupServerErrorHandlers(): Promise<void> {
     }
   });
 
-  console.log('[GlobalErrorHandler] Server-side error handlers initialized');
+  logger.info('[GlobalErrorHandler] Server-side error handlers initialized');
 }
 
 /**

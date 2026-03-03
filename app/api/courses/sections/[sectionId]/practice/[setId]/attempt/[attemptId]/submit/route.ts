@@ -281,6 +281,7 @@ export async function POST(
       // Update set analytics
       const allAttempts = await tx.userPracticeAttempt.findMany({
         where: { setId: params.setId, status: "GRADED" },
+        take: 500,
         select: { scorePercentage: true },
       });
 

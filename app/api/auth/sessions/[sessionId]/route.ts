@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { terminateSession } from '@/lib/auth/session-limiter';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
@@ -51,7 +52,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       message: 'Session revoked successfully',
     });
   } catch (error) {
-    console.error('[Sessions API] Error revoking session:', error);
+    logger.error('[Sessions API] Error revoking session', error);
     return NextResponse.json(
       { success: false, error: 'Failed to revoke session' },
       { status: 500 }

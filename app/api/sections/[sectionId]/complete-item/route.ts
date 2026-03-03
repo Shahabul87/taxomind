@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // Temporarily disabled - needs schema update for completedItems field
 export async function POST(
@@ -17,7 +18,7 @@ export async function POST(
       { status: 503 }
     );
   } catch (error) {
-    console.error('[SECTION_COMPLETE_ITEM] POST Error:', error);
+    logger.error('[SECTION_COMPLETE_ITEM] POST Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

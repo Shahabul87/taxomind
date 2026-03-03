@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
       // Get data across all courses for the user
       const allProgress = await db.studentBloomsProgress.findMany({
         where: { userId: studentId },
+        take: 200,
       });
 
       // Aggregate progress across all courses

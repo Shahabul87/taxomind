@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SessionManager } from '@/lib/security/session-manager';
 import { headers } from 'next/headers';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error trusting device:', error);
+    logger.error('Error trusting device', error);
     return NextResponse.json(
       { success: false, error: 'Failed to trust device' }, 
       { status: 500 }

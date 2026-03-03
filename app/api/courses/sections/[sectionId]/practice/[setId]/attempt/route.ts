@@ -158,6 +158,7 @@ export async function GET(
         userId: user.id,
         setId: params.setId,
       },
+      take: 100,
       orderBy: { attemptNumber: "desc" },
       select: {
         id: true,

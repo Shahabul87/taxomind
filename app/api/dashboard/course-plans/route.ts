@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { coursePlanSchema, paginationSchema, filterSchema } from "@/lib/validations/dashboard";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // ==========================================
 // Type-safe API Response
@@ -112,7 +113,7 @@ export async function GET(req: NextRequest) {
       return errorResponse("VALIDATION_ERROR", error.errors[0].message);
     }
 
-    console.error("[COURSE_PLANS_GET]", error);
+    logger.error("[COURSE_PLANS_GET]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to fetch course plans", 500);
   }
 }
@@ -183,7 +184,7 @@ export async function POST(req: NextRequest) {
       return errorResponse("VALIDATION_ERROR", error.errors[0].message);
     }
 
-    console.error("[COURSE_PLANS_POST]", error);
+    logger.error("[COURSE_PLANS_POST]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to create course plan", 500);
   }
 }

@@ -270,6 +270,7 @@ export async function GET(req: NextRequest) {
         userId: true,
         currentStreak: true,
       },
+      take: 500,
     });
     const streakMap = new Map(userXPInfo.map((u) => [u.userId, u.currentStreak]));
 

@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const noteSchema = z.object({
   title: z.string().min(1).max(200),
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
       total,
     });
   } catch (error) {
-    console.error("[NOTES_GET]", error);
+    logger.error("[NOTES_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch notes",
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[NOTES_POST]", error);
+    logger.error("[NOTES_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to create note",

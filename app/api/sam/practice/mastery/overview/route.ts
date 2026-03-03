@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         category: true,
         tags: true,
       },
+      take: 100,
     });
 
     const skillsById = new Map(skills.map((s) => [s.id, s]));

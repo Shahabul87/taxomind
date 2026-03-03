@@ -25,6 +25,7 @@ export async function GET(
         sectionId: params.sectionId,
         isPublished: true, // Only show published exams to students
       },
+      take: 200,
       include: {
         ExamQuestion: {
           orderBy: {

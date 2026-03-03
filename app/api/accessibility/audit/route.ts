@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const AuditContentSchema = z.object({
   content: z.string().min(1),
@@ -204,7 +205,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[ACCESSIBILITY_AUDIT]', error);
+    logger.error('[ACCESSIBILITY_AUDIT] Failed to audit content', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to audit content' } },
       { status: 500 }
@@ -233,6 +234,7 @@ export async function GET(req: NextRequest) {
         ...(examId && { examId }),
         isActive: true,
       },
+      take: 100,
     });
 
     // Calculate time extension if exam specified
@@ -293,7 +295,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[ACCESSIBILITY_GET]', error);
+    logger.error('[ACCESSIBILITY_GET] Failed to fetch accommodations', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch accommodations' } },
       { status: 500 }

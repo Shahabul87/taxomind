@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import {
   startOfWeek,
   endOfWeek,
@@ -115,6 +116,7 @@ export async function GET(
         userId: user.id,
         courseId,
       },
+      take: 200,
     });
 
     const completedSectionIds = new Set(
@@ -294,7 +296,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[GANTT_COURSE_GET]", error);
+    logger.error("[GANTT_COURSE_GET]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(

@@ -87,11 +87,11 @@ export const validateEnvironment = () => {
   if (config.isDevelopment && 
       (process.env.DATABASE_URL?.includes('railway') || 
        process.env.DATABASE_URL?.includes('postgres.railway.internal'))) {
-    console.warn('WARNING: Using production database in development environment!');
-    console.warn('Consider using local PostgreSQL for safety.');
+    logger.warn('Using production database in development environment!');
+    logger.warn('Consider using local PostgreSQL for safety.');
   }
 
-  console.log(`✅ Database: ${process.env.DATABASE_URL?.includes('localhost') ? 'Local' : 'Remote'}`);
+  logger.info(`Database: ${process.env.DATABASE_URL?.includes('localhost') ? 'Local' : 'Remote'}`);
 };
 
 // Get database environment details

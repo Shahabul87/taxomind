@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 import { startOfDay, endOfDay, format, differenceInMinutes } from "date-fns";
 
 const querySchema = z.object({
@@ -40,6 +41,7 @@ export async function GET(req: NextRequest) {
           lte: dayEnd,
         },
       },
+      take: 200,
       include: {
         course: {
           select: { id: true, title: true },
@@ -156,6 +158,7 @@ export async function GET(req: NextRequest) {
           lte: dayEnd,
         },
       },
+      take: 200,
     });
 
     const weeklyCompletedMinutes = weeklyLogs.reduce(
@@ -252,7 +255,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(response);
   } catch (error) {
-    console.error("[DAILY_AGENDA_GET]", error);
+    logger.error("[DAILY_AGENDA_GET]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);

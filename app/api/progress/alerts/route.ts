@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Log to help debug frequent calls
-    console.log('[Progress Alerts API] Called at:', new Date().toISOString());
+    logger.info('[Progress Alerts API] Called', { timestamp: new Date().toISOString() });
 
     // Return mock data since progressAlert model doesn't exist in schema
     const mockAlerts = [

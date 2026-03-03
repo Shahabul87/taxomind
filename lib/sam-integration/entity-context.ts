@@ -6,6 +6,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -144,7 +145,7 @@ export async function fetchCourseContext(
       })),
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching course:', error);
+    logger.error('[EntityContext] Error fetching course', error);
     return null;
   }
 }
@@ -189,7 +190,7 @@ export async function fetchChapterContext(
       })),
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching chapter:', error);
+    logger.error('[EntityContext] Error fetching chapter', error);
     return null;
   }
 }
@@ -232,7 +233,7 @@ export async function fetchSectionContext(
       contentType: section.type,
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching section:', error);
+    logger.error('[EntityContext] Error fetching section', error);
     return null;
   }
 }
@@ -407,7 +408,7 @@ export async function buildTaxomindEntityContext(
       }
     }
   } catch (error) {
-    console.error('[EntityContext] Error building context:', error);
+    logger.error('[EntityContext] Error building context', error);
   }
 
   return context;

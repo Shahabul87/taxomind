@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -80,7 +81,7 @@ export async function PATCH(
       data: updated
     });
   } catch (error) {
-    console.error('[MATH_EXPLANATION_PATCH]', error);
+    logger.error('[MATH_EXPLANATION_PATCH]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>({
@@ -148,7 +149,7 @@ export async function DELETE(
       data: { deleted: true }
     });
   } catch (error) {
-    console.error('[MATH_EXPLANATION_DELETE]', error);
+    logger.error('[MATH_EXPLANATION_DELETE]', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Delete failed' }
@@ -199,7 +200,7 @@ export async function GET(
       data: mathExplanation
     });
   } catch (error) {
-    console.error('[MATH_EXPLANATION_GET]', error);
+    logger.error('[MATH_EXPLANATION_GET]', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch math explanation' }

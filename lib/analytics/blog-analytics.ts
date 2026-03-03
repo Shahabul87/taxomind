@@ -3,6 +3,8 @@
  * Tracks user interactions with blog content
  */
 
+import { logger } from '@/lib/logger';
+
 export interface BlogAnalyticsEvent {
   event: string;
   properties: Record<string, unknown>;
@@ -58,13 +60,13 @@ export function trackBlogPageView(): void {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Blog page view:', event);
+      logger.debug('[ANALYTICS] Blog page view', event);
     }
 
     // Send to analytics service (placeholder)
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking page view:', error);
+    logger.error('[ANALYTICS] Error tracking page view', error);
   }
 }
 
@@ -85,12 +87,12 @@ export function trackBlogPostView(data: BlogViewEvent): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Blog post view:', event);
+      logger.debug('[ANALYTICS] Blog post view', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking post view:', error);
+    logger.error('[ANALYTICS] Error tracking post view', error);
   }
 }
 
@@ -111,12 +113,12 @@ export function trackBlogSearch(data: BlogSearchEvent): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Blog search:', event);
+      logger.debug('[ANALYTICS] Blog search', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking search:', error);
+    logger.error('[ANALYTICS] Error tracking search', error);
   }
 }
 
@@ -134,12 +136,12 @@ export function trackBlogFilter(data: BlogFilterEvent): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Blog filter:', event);
+      logger.debug('[ANALYTICS] Blog filter', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking filter:', error);
+    logger.error('[ANALYTICS] Error tracking filter', error);
   }
 }
 
@@ -157,12 +159,12 @@ export function trackBlogInteraction(data: BlogInteractionEvent): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Blog interaction:', event);
+      logger.debug('[ANALYTICS] Blog interaction', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking interaction:', error);
+    logger.error('[ANALYTICS] Error tracking interaction', error);
   }
 }
 
@@ -184,12 +186,12 @@ export function trackReadingTime(postId: string, duration: number): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Reading time:', event);
+      logger.debug('[ANALYTICS] Reading time', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking reading time:', error);
+    logger.error('[ANALYTICS] Error tracking reading time', error);
   }
 }
 
@@ -210,7 +212,7 @@ async function sendAnalyticsEvent(event: BlogAnalyticsEvent): Promise<void> {
     });
   } catch (error) {
     // Fail silently - don't disrupt user experience
-    console.debug('[ANALYTICS] Failed to send event:', error);
+    logger.debug('[ANALYTICS] Failed to send event', error);
   }
 
   // Option 2: Send to Google Analytics (if configured)
@@ -218,7 +220,7 @@ async function sendAnalyticsEvent(event: BlogAnalyticsEvent): Promise<void> {
     try {
       (window as any).gtag('event', event.event, event.properties);
     } catch (error) {
-      console.debug('[ANALYTICS] Failed to send to GA:', error);
+      logger.debug('[ANALYTICS] Failed to send to GA', error);
     }
   }
 
@@ -227,7 +229,7 @@ async function sendAnalyticsEvent(event: BlogAnalyticsEvent): Promise<void> {
     try {
       (window as any).posthog.capture(event.event, event.properties);
     } catch (error) {
-      console.debug('[ANALYTICS] Failed to send to PostHog:', error);
+      logger.debug('[ANALYTICS] Failed to send to PostHog', error);
     }
   }
 }
@@ -299,12 +301,12 @@ export function trackPerformance(metric: string, value: number): void {
     };
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('[ANALYTICS] Performance:', event);
+      logger.debug('[ANALYTICS] Performance', event);
     }
 
     sendAnalyticsEvent(event);
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking performance:', error);
+    logger.error('[ANALYTICS] Error tracking performance', error);
   }
 }
 
@@ -343,6 +345,6 @@ export function trackWebVitals(): void {
       trackPerformance('CLS', clsValue);
     }).observe({ entryTypes: ['layout-shift'] });
   } catch (error) {
-    console.error('[ANALYTICS] Error tracking web vitals:', error);
+    logger.error('[ANALYTICS] Error tracking web vitals', error);
   }
 }

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { BadgeLevel, SAMBadgeType } from "@prisma/client";
 import { nanoid } from "nanoid";
+import { logger } from "@/lib/logger";
 
 // Define missing enums locally
 enum BadgeType {
@@ -56,7 +57,7 @@ export interface BadgeDefinition {
 export class BadgeService {
   async createBadge(badgeData: BadgeDefinition): Promise<any> {
     // TODO: Implement when badge models are added to Prisma schema
-    console.log('Badge creation requested:', badgeData.name);
+    logger.info('Badge creation requested', { name: badgeData.name });
     return {
       id: nanoid(),
       ...badgeData,
@@ -70,13 +71,13 @@ export class BadgeService {
     data: any;
   }): Promise<any[]> {
     // TODO: Implement when badge models are added to Prisma schema
-    console.log('Badge check requested for user:', userId, 'event:', triggerEvent.type);
+    logger.debug('Badge check requested', { userId, eventType: triggerEvent.type });
     return [];
   }
 
   async awardBadge(userId: string, badgeId: string): Promise<any> {
     // TODO: Implement when badge models are added to Prisma schema
-    console.log('Badge awarded to user:', userId, 'badge:', badgeId);
+    logger.info('Badge awarded to user', { userId, badgeId });
     return {
       id: nanoid(),
       userId,
@@ -124,7 +125,7 @@ export class BadgeService {
     conditions: any
   ): Promise<boolean> {
     // TODO: Implement when course models are added
-    console.log('Checking course completion for user:', userId);
+    logger.debug('Checking course completion for user', { userId });
     return false; // Stub implementation
   }
 
@@ -187,7 +188,7 @@ export class BadgeService {
 
   async updateBadgeProgress(userId: string, badgeId: string, progress: number): Promise<void> {
     // TODO: Implement when badge models are added
-    console.log('Badge progress updated:', { userId, badgeId, progress });
+    logger.debug('Badge progress updated', { userId, badgeId, progress });
   }
 
   async getUserBadges(userId: string): Promise<any[]> {
@@ -216,7 +217,7 @@ export class BadgeService {
     eventData: any
   ): Promise<void> {
     // TODO: Implement when badge models are added
-    console.log('Badge event:', { badgeId, eventType, eventData });
+    logger.debug('Badge event', { badgeId, eventType, eventData });
   }
 
   // Pre-defined badge definitions

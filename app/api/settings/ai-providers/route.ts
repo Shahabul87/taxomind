@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { getAllProviders } from "@/lib/sam/providers/ai-registry";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
@@ -31,7 +32,7 @@ export async function GET() {
 
     return NextResponse.json({ providers });
   } catch (error) {
-    console.error("[AI_PROVIDERS_GET]", error);
+    logger.error("[AI_PROVIDERS_GET]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

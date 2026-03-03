@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 export async function register() {
   // ========================================
   // PART 1: Global Error Handlers
@@ -8,7 +10,7 @@ export async function register() {
       const { setupServerErrorHandlers } = await import('./lib/error-handling/global-error-handlers');
       await setupServerErrorHandlers();
     } catch (error) {
-      console.warn('[Instrumentation] Failed to setup global error handlers:', error);
+      logger.warn('[Instrumentation] Failed to setup global error handlers', error);
     }
   }
 
@@ -22,7 +24,7 @@ export async function register() {
         await import('./sentry.server.config')
       } catch (error) {
         // Sentry config not found, skip initialization
-        console.log('Sentry server config not found, skipping initialization')
+        logger.info('Sentry server config not found, skipping initialization')
       }
     }
 
@@ -31,7 +33,7 @@ export async function register() {
         await import('./sentry.edge.config')
       } catch (error) {
         // Sentry config not found, skip initialization
-        console.log('Sentry edge config not found, skipping initialization')
+        logger.info('Sentry edge config not found, skipping initialization')
       }
     }
   }
@@ -46,10 +48,10 @@ export async function register() {
     import('@/lib/observability/tracing')
       .then(({ initializeTracing }) => {
         initializeTracing();
-        console.log('[OTEL] OpenTelemetry tracing initialized');
+        logger.info('[OTEL] OpenTelemetry tracing initialized');
       })
       .catch((error) => {
-        console.warn('[OTEL] Failed to load OpenTelemetry:', error instanceof Error ? error.message : String(error));
+        logger.warn('[OTEL] Failed to load OpenTelemetry', error instanceof Error ? error.message : String(error));
       });
   }
 
@@ -69,21 +71,21 @@ export async function register() {
         const result = await ensureSuperadminExists(adminEmail, adminPassword, process.env.SUPERADMIN_NAME);
 
         if (result.created) {
-          console.log(`[Admin] Superadmin created: ${adminEmail}`);
+          logger.info(`[Admin] Superadmin created: ${adminEmail}`);
         } else if (result.exists) {
           const details = [
             result.fixed && 'emailVerified/gracePeriod fixed',
             result.passwordUpdated && 'password synced from env',
             result.hashMigrated && 'hash migrated to noble/scrypt',
           ].filter(Boolean).join(', ');
-          console.log(`[Admin] Superadmin verified${details ? ` (${details})` : ''}: ${adminEmail}`);
+          logger.info(`[Admin] Superadmin verified${details ? ` (${details})` : ''}: ${adminEmail}`);
         }
       } catch (error) {
         // Log but don't crash — admin can still be created via seed script
-        console.error('[Admin] Failed to initialize superadmin:', error instanceof Error ? error.message : String(error));
+        logger.error('[Admin] Failed to initialize superadmin', error instanceof Error ? error.message : String(error));
       }
     } else if (process.env.NODE_ENV === 'production') {
-      console.warn('[Admin] SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD env vars not set — superadmin auto-init skipped');
+      logger.warn('[Admin] SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD env vars not set - superadmin auto-init skipped');
     }
   }
 
@@ -98,21 +100,21 @@ export async function register() {
             .then(({ startMemoryLifecycle }) => {
               startMemoryLifecycle()
                 .then(() => {
-                  console.log('[SAM] Memory lifecycle scheduler started');
+                  logger.info('[SAM] Memory lifecycle scheduler started');
                 })
                 .catch((error) => {
-                  console.warn('[SAM] Failed to start memory lifecycle:', error.message);
+                  logger.warn('[SAM] Failed to start memory lifecycle', error.message);
                 });
             })
             .catch((error) => {
-              console.warn('[SAM] Failed to load memory lifecycle service:', error.message);
+              logger.warn('[SAM] Failed to load memory lifecycle service', error.message);
             });
         } else {
-          console.log('[SAM] Memory lifecycle disabled (SAM_MEMORY_LIFECYCLE=false)');
+          logger.info('[SAM] Memory lifecycle disabled (SAM_MEMORY_LIFECYCLE=false)');
         }
       })
       .catch((error) => {
-        console.warn('[SAM] Failed to load feature flags:', error.message);
+        logger.warn('[SAM] Failed to load feature flags', error.message);
       });
   }
 
@@ -131,29 +133,29 @@ export async function register() {
               try {
                 const realtimeServer = getSAMRealtimeServer();
                 realtimeServer.start();
-                console.log('[SAM] Realtime server started (push dispatcher active)');
+                logger.info('[SAM] Realtime server started (push dispatcher active)');
 
                 // Log configuration status
                 const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
                 if (wsUrl) {
-                  console.log(`[SAM] WebSocket URL configured: ${wsUrl}`);
+                  logger.info(`[SAM] WebSocket URL configured: ${wsUrl}`);
                 } else {
-                  console.log('[SAM] WebSocket URL not configured, using SSE fallback');
+                  logger.info('[SAM] WebSocket URL not configured, using SSE fallback');
                 }
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                console.warn('[SAM] Failed to start realtime server:', errorMessage);
+                logger.warn('[SAM] Failed to start realtime server', errorMessage);
               }
             })
             .catch((error) => {
-              console.warn('[SAM] Failed to load realtime module:', error.message);
+              logger.warn('[SAM] Failed to load realtime module', error.message);
             });
         } else {
-          console.log('[SAM] Realtime server disabled (SAM_WEBSOCKET_ENABLED=false)');
+          logger.info('[SAM] Realtime server disabled (SAM_WEBSOCKET_ENABLED=false)');
         }
       })
       .catch((error) => {
-        console.warn('[SAM] Failed to load feature flags:', error.message);
+        logger.warn('[SAM] Failed to load feature flags', error.message);
       });
   }
 
@@ -163,9 +165,9 @@ export async function register() {
   // Auto-initialize queue workers when Redis is available
   if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.REDIS_URL) {
     import('@/lib/queue/queue-manager').then(() => {
-      console.log('[instrumentation] Queue workers initialized');
+      logger.info('[instrumentation] Queue workers initialized');
     }).catch((err) => {
-      console.error('[instrumentation] Queue worker init failed:', err);
+      logger.error('[instrumentation] Queue worker init failed', err);
     });
   }
 }

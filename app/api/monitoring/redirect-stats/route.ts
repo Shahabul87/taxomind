@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { getMonitoringStats, checkRedirectSafety } from '@/lib/monitoring/middleware-monitor';
+import { logger } from '@/lib/logger';
 
 /**
  * API endpoint to get redirect monitoring statistics
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Failed to get redirect stats:', error);
+    logger.error('Failed to get redirect stats', error);
 
     return NextResponse.json(
       {

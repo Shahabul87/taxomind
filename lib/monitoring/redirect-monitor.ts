@@ -6,6 +6,7 @@
 import { NextRequest } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '@/lib/logger';
 
 interface RedirectLog {
   timestamp: string;
@@ -47,7 +48,7 @@ export class RedirectMonitor {
     try {
       await fs.mkdir(this.logPath, { recursive: true });
     } catch (error) {
-      console.error('Failed to create log directory:', error);
+      logger.error('Failed to create log directory', error);
     }
   }
 
@@ -75,10 +76,10 @@ export class RedirectMonitor {
 
       // Log to console in development
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Redirect] ${from} → ${to}`);
+        logger.debug(`[Redirect] ${from} -> ${to}`);
       }
     } catch (error) {
-      console.error('Failed to log redirect access:', error);
+      logger.error('Failed to log redirect access', error);
     }
   }
 
@@ -107,9 +108,9 @@ export class RedirectMonitor {
       await fs.appendFile(logFile, JSON.stringify(log) + '\n');
 
       // Alert in console for immediate attention
-      console.error(`[404 Error] Old post route accessed: ${pathname}`);
+      logger.error(`[404 Error] Old post route accessed: ${pathname}`);
     } catch (error) {
-      console.error('Failed to log 404 error:', error);
+      logger.error('Failed to log 404 error', error);
     }
   }
 
@@ -131,7 +132,7 @@ export class RedirectMonitor {
       // Save updated tracker
       await fs.writeFile(this.redirectTrackerPath, JSON.stringify(tracker, null, 2));
     } catch (error) {
-      console.error('Failed to update tracker count:', error);
+      logger.error('Failed to update tracker count', error);
     }
   }
 
@@ -156,7 +157,7 @@ export class RedirectMonitor {
         })),
       };
     } catch (error) {
-      console.error('Failed to get redirect stats:', error);
+      logger.error('Failed to get redirect stats', error);
       return null;
     }
   }
@@ -187,7 +188,7 @@ export class RedirectMonitor {
 
       return safeToRemove;
     } catch (error) {
-      console.error('Failed to check redirect removal:', error);
+      logger.error('Failed to check redirect removal', error);
       return [];
     }
   }

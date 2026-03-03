@@ -14,6 +14,7 @@ import {
   listCalendars,
   DEFAULT_SYNC_SETTINGS,
 } from '@/lib/google-calendar';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -157,7 +158,7 @@ export async function GET(req: NextRequest) {
     successUrl.searchParams.set('calendar_connected', 'true');
     return NextResponse.redirect(successUrl);
   } catch (error) {
-    console.error('Calendar Callback Error:', error);
+    logger.error('Calendar Callback Error', error);
 
     const errorUrl = new URL('/dashboard/user/settings', process.env.NEXT_PUBLIC_APP_URL);
     errorUrl.searchParams.set('tab', 'calendar');

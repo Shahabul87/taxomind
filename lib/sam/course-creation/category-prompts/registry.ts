@@ -131,7 +131,7 @@ export function getCategoryEnhancer(
     const warningKey = `${category}::${subcategory ?? ''}`;
     if (!conflictWarningKeys.has(warningKey)) {
       conflictWarningKeys.add(warningKey);
-      console.warn('[category-registry] Multiple enhancers matched category input; using first by priority order', {
+      logger.warn('[category-registry] Multiple enhancers matched category input; using first by priority order', {
         category,
         subcategory,
         selected: matchedEnhancers[0].categoryId,
@@ -226,7 +226,7 @@ export function getCategoryEnhancers(
       const warningKey = `${category}::${subcategory ?? ''}::${maxResults}`;
       if (!truncationWarningKeys.has(warningKey)) {
         truncationWarningKeys.add(warningKey);
-        console.warn('[category-registry] Additional enhancer matches were truncated by maxResults', {
+        logger.warn('[category-registry] Additional enhancer matches were truncated by maxResults', {
           category,
           subcategory,
           selected: results.map((r) => r.categoryId),

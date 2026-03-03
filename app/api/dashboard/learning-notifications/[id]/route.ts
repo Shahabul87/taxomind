@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Update notification schema
 const updateNotificationSchema = z.object({
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
 
     return successResponse(notification);
   } catch (error) {
-    console.error("[LEARNING_NOTIFICATION_GET]", error);
+    logger.error("[LEARNING_NOTIFICATION_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch notification",
@@ -131,7 +132,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         error.errors[0].message
       );
     }
-    console.error("[LEARNING_NOTIFICATION_PATCH]", error);
+    logger.error("[LEARNING_NOTIFICATION_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update notification",
@@ -179,7 +180,7 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
 
     return successResponse({ deleted: true });
   } catch (error) {
-    console.error("[LEARNING_NOTIFICATION_DELETE]", error);
+    logger.error("[LEARNING_NOTIFICATION_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete notification",

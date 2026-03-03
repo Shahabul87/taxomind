@@ -12,6 +12,7 @@ import type {
   DifficultyLevel,
   PrerequisiteImportance,
 } from '@sam-ai/agentic';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // PRISMA COURSE GRAPH STORE ADAPTER
@@ -148,7 +149,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
         totalEstimatedMinutes,
       };
     } catch (error) {
-      console.error('Failed to get course graph:', error);
+      logger.error('Failed to get course graph', error);
       return null;
     }
   }
@@ -192,7 +193,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
         },
       });
     } catch (error) {
-      console.error('Failed to save course graph:', error);
+      logger.error('Failed to save course graph', error);
       throw error;
     }
   }
@@ -264,7 +265,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
 
       return null;
     } catch (error) {
-      console.error('Failed to get concept:', error);
+      logger.error('Failed to get concept', error);
       return null;
     }
   }
@@ -341,7 +342,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
 
       return [];
     } catch (error) {
-      console.error('Failed to get prerequisites:', error);
+      logger.error('Failed to get prerequisites', error);
       return [];
     }
   }
@@ -404,7 +405,7 @@ export class PrismaCourseGraphStore implements CourseGraphStore {
 
       return [];
     } catch (error) {
-      console.error('Failed to get dependents:', error);
+      logger.error('Failed to get dependents', error);
       return [];
     }
   }

@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-utils";
 import { z } from "zod";
 import { startOfDay, endOfDay, subDays, addDays } from "date-fns";
+import { logger } from "@/lib/logger";
 
 const createActivitySchema = z.object({
   type: z.enum([
@@ -149,6 +150,7 @@ export async function GET(req: NextRequest) {
         userId: user.id,
         scheduledDate: { gte: todayStart, lte: todayEnd },
       },
+      take: 200,
     });
 
     const completedToday = todayActivities.filter(
@@ -179,7 +181,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("[LEARNING_ACTIVITIES_GET]", error);
+    logger.error("[LEARNING_ACTIVITIES_GET]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
@@ -249,7 +251,7 @@ export async function POST(req: NextRequest) {
 
     return successResponse(activity);
   } catch (error) {
-    console.error("[LEARNING_ACTIVITIES_POST]", error);
+    logger.error("[LEARNING_ACTIVITIES_POST]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);

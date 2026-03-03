@@ -9,6 +9,7 @@ import { AdminRole } from "@/types/admin-role";
 import { currentUser, currentRole } from "@/lib/auth";
 import { adminAuth } from "@/auth.admin";
 import { hasPermission, Permission } from "@/lib/role-management";
+import { logger } from "@/lib/logger";
 
 export class UnauthorizedError extends Error {
   constructor(message: string = "Unauthorized") {
@@ -25,74 +26,73 @@ export class ForbiddenError extends Error {
 }
 
 export async function requireAuth() {
-  console.log("[requireAuth] Checking authentication...");
+  logger.debug("[requireAuth] Checking authentication...");
 
   // Try regular user session first
   let user = await currentUser();
-  console.log("[requireAuth] Regular user session:", user ? "found" : "not found");
+  logger.debug("[requireAuth] Regular user session:", { found: !!user });
 
   // If no regular session, try admin session
   if (!user) {
     try {
-      console.log("[requireAuth] Trying admin session...");
+      logger.debug("[requireAuth] Trying admin session...");
       const adminSession = await adminAuth();
       if (adminSession?.user) {
-        console.log("[requireAuth] Admin session found:", {
-          id: adminSession.user.id,
-          email: adminSession.user.email,
-          role: (adminSession.user as any).role // Admin user has role
+        logger.debug("[requireAuth] Admin session found", {
+          userId: adminSession.user.id,
+          role: (adminSession.user as any).role
         });
         user = adminSession.user;
       } else {
-        console.log("[requireAuth] Admin session exists but no user found");
+        logger.debug("[requireAuth] Admin session exists but no user found");
       }
     } catch (error) {
-      console.error("[requireAuth] Admin session check failed:", error instanceof Error ? error.message : String(error));
+      logger.error("[requireAuth] Admin session check failed", error instanceof Error ? error : new Error(String(error)));
     }
   }
 
   if (!user) {
-    console.log("[requireAuth] No valid session found, throwing UnauthorizedError");
+    logger.debug("[requireAuth] No valid session found, throwing UnauthorizedError");
     throw new UnauthorizedError("Authentication required");
   }
 
-  console.log("[requireAuth] Authentication successful for user:", user.id);
+  logger.debug("[requireAuth] Authentication successful", { userId: user.id });
   return user;
 }
 
 export async function requireRole(allowedRoles: AdminRole | AdminRole[]) {
-  console.log("[requireRole] Checking role authorization...");
+  logger.debug("[requireRole] Checking role authorization...");
 
   const user = await requireAuth();
   let role: AdminRole | null = await currentRole();
-  console.log("[requireRole] Regular role:", role || "not found");
+  logger.debug("[requireRole] Regular role check", { found: !!role });
 
   // If no regular role, try admin role
   if (!role) {
     try {
-      console.log("[requireRole] Trying admin role...");
+      logger.debug("[requireRole] Trying admin role...");
       const adminSession = await adminAuth();
       role = adminSession?.user?.role || null;
-      console.log("[requireRole] Admin role:", role || "not found");
+      logger.debug("[requireRole] Admin role check", { found: !!role });
     } catch (error) {
-      console.error("[requireRole] Admin role check failed:", error instanceof Error ? error.message : String(error));
+      logger.error("[requireRole] Admin role check failed", error instanceof Error ? error : new Error(String(error)));
     }
   }
 
   if (!role) {
-    console.log("[requireRole] No role found, throwing UnauthorizedError");
+    logger.debug("[requireRole] No role found, throwing UnauthorizedError");
     throw new UnauthorizedError("Role not found");
   }
 
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-  console.log("[requireRole] Required roles:", roles, "User role:", role);
+  logger.debug("[requireRole] Authorization check", { requiredRoles: roles, userRole: role });
 
   if (!roles.includes(role)) {
-    console.log("[requireRole] Role not authorized, throwing ForbiddenError");
+    logger.debug("[requireRole] Role not authorized, throwing ForbiddenError");
     throw new ForbiddenError(`Access denied. Required role: ${roles.join(" or ")}`);
   }
 
-  console.log("[requireRole] Role authorization successful");
+  logger.debug("[requireRole] Role authorization successful");
   return { user, role };
 }
 

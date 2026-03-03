@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminAuth } from "@/auth.admin";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
-import { 
+import {
   needsInitialAdmin,
   createFirstAdmin,
   promoteToAdmin,
@@ -20,6 +20,7 @@ import {
   getAdminStats
 } from "@/lib/auth/admin-manager";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Request validation schemas
 const createFirstAdminSchema = z.object({
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error checking admin status:", error);
+    logger.error("Error checking admin status", error);
     return NextResponse.json(
       { error: "Failed to check admin status" },
       { status: 500 }
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error("Error in admin operation:", error);
+    logger.error("Error in admin operation", error);
     return NextResponse.json(
       { error: "Failed to perform admin operation" },
       { status: 500 }

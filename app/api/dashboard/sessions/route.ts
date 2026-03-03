@@ -5,6 +5,7 @@ import { studySessionSchema, paginationSchema } from "@/lib/validations/dashboar
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
 import { Prisma, SessionStatus } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(sessions, { page: pagination.page, limit: pagination.limit, total });
   } catch (error) {
-    console.error("[SESSIONS_GET]", error);
+    logger.error("[SESSIONS_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch sessions", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     return successResponse(session);
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[SESSIONS_POST]", error);
+    logger.error("[SESSIONS_POST]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to create session", HttpStatus.INTERNAL_ERROR);
   }
 }

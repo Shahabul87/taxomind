@@ -4,21 +4,22 @@
  */
 
 import { initializeMonitoring, shutdownMonitoring, monitoring } from './index';
+import { logger } from '@/lib/logger';
 
 // Initialize monitoring when module is imported
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_MONITORING === 'true') {
   initializeMonitoring().catch(error => {
-    console.error('Failed to initialize monitoring: ', error);
+    logger.error('Failed to initialize monitoring', error);
   });
-  
+
   // Graceful shutdown
   process.on('SIGTERM', async () => {
-    console.log('SIGTERM signal received: closing monitoring system');
+    logger.info('SIGTERM signal received: closing monitoring system');
     await shutdownMonitoring();
   });
-  
+
   process.on('SIGINT', async () => {
-    console.log('SIGINT signal received: closing monitoring system');
+    logger.info('SIGINT signal received: closing monitoring system');
     await shutdownMonitoring();
   });
 }

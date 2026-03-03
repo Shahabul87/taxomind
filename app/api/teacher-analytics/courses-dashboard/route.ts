@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
@@ -152,7 +153,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'private, max-age=300' },
     });
   } catch (error) {
-    console.error('[Teacher Analytics API] Error:', error);
+    logger.error('Teacher Analytics API error', error);
     return safeErrorResponse(error, 500, 'TEACHER_COURSES_DASHBOARD');
   }
 }

@@ -86,7 +86,8 @@ async function getRealTimeMetrics(courseId: string | null, timeFilter: any, user
       })
     },
     distinct: ['userId'],
-    select: { userId: true }
+    select: { userId: true },
+    take: 500
   });
 
   // Total exam attempts in time range

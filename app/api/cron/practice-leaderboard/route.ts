@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { withCronAuth } from '@/lib/api/cron-auth';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // CRON: Practice Leaderboard Recalculation
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const authResponse = withCronAuth(request);
     if (authResponse) return authResponse;
 
-    console.log('[CRON] Starting practice leaderboard recalculation...');
+    logger.info('[CRON] Starting practice leaderboard recalculation...');
 
     const timeframes: LeaderboardTimeframe[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'ALL_TIME'];
     const results: Record<string, number> = {};
@@ -26,10 +27,10 @@ export async function GET(request: NextRequest) {
     for (const timeframe of timeframes) {
       const count = await recalculateLeaderboard(timeframe);
       results[timeframe] = count;
-      console.log(`[CRON] Processed ${count} entries for ${timeframe} leaderboard`);
+      logger.info(`[CRON] Processed ${count} entries for ${timeframe} leaderboard`);
     }
 
-    console.log('[CRON] Practice leaderboard recalculation complete');
+    logger.info('[CRON] Practice leaderboard recalculation complete');
 
     return NextResponse.json({
       success: true,
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[CRON] Error recalculating leaderboard:', error);
+    logger.error('[CRON] Error recalculating leaderboard', error);
     return NextResponse.json(
       { success: false, error: 'Failed to recalculate leaderboard' },
       { status: 500 }

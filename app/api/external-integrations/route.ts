@@ -1,6 +1,7 @@
 // External Integrations API - Simplified
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -11,7 +12,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, integrations: [] });
   } catch (error) {
-    console.error('[EXTERNAL_INTEGRATIONS] GET Error:', error);
+    logger.error('[EXTERNAL_INTEGRATIONS] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -25,7 +26,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true, message: 'Integration processed' });
   } catch (error) {
-    console.error('[EXTERNAL_INTEGRATIONS] POST Error:', error);
+    logger.error('[EXTERNAL_INTEGRATIONS] POST Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

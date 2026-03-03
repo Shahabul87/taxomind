@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
         id: true,
         name: true,
       },
+      take: 500,
     });
 
     // Build SocialUser array for matching (engine fetches detailed profiles via adapter)

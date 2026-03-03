@@ -103,6 +103,7 @@ export async function GET(
         { type: 'asc' },
         { createdAt: 'asc' },
       ],
+      take: 100,
     });
 
     // Get summary counts

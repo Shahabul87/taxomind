@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { updateGoalSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   req: NextRequest,
@@ -45,7 +46,7 @@ export async function GET(
 
     return successResponse(goal);
   } catch (error) {
-    console.error("[GOAL_GET]", error);
+    logger.error("[GOAL_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch goal",
@@ -132,7 +133,7 @@ export async function PATCH(
         error.errors[0].message
       );
     }
-    console.error("[GOAL_PATCH]", error);
+    logger.error("[GOAL_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update goal",
@@ -183,7 +184,7 @@ export async function DELETE(
 
     return successResponse({ message: "Goal deleted successfully" });
   } catch (error) {
-    console.error("[GOAL_DELETE]", error);
+    logger.error("[GOAL_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete goal",

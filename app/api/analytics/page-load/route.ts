@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       'page_performance',
       async () => {
         // TODO: Implement proper page performance storage model
-        console.log('Page performance data:', {
+        logger.debug('Page performance data', {
           url,
           dnsLookup: dns || 0,
           tcpConnect: tcp || 0,
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     // Create alerts for slow page loads (currently disabled for build compatibility)
     for (const alert of alerts) {
       // TODO: Implement proper performance alert model
-      console.log('Performance alert:', {
+      logger.warn('Performance alert', {
         metric: alert.metric,
         value: alert.value,
         threshold: alert.threshold,

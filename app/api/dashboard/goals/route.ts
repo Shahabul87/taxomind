@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { goalSchema, paginationSchema, goalFilterSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(goals, { page: pagination.page, limit: pagination.limit, total });
   } catch (error) {
-    console.error("[GOALS_GET]", error);
+    logger.error("[GOALS_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch goals", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
     return successResponse(goal);
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[GOALS_POST]", error);
+    logger.error("[GOALS_POST]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to create goal", HttpStatus.INTERNAL_ERROR);
   }
 }

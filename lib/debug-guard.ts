@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * SECURITY: Debug Endpoint Guard
@@ -49,6 +50,6 @@ export function isDebugMode(): boolean {
  */
 export function debugLog(message: string, data?: any): void {
   if (isDebugMode()) {
-    console.log(`[DEBUG] ${message}`, data || '');
+    logger.debug(`[DEBUG] ${message}`, data || '');
   }
 }

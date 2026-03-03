@@ -438,6 +438,7 @@ export async function GET(request: NextRequest) {
           status: 'COMPLETED',
         },
         select: { certificationId: true },
+        take: 200,
       });
       completedCerts = completedCertRecords.map((c) => c.certificationId);
     } catch (certError) {
@@ -475,6 +476,7 @@ export async function GET(request: NextRequest) {
             userId: user.id,
             status: { in: ['IN_PROGRESS', 'SCHEDULED'] },
           },
+          take: 200,
         });
 
         inProgress = progressRecords.map((record) => ({

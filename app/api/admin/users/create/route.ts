@@ -6,6 +6,7 @@ import { currentUser } from "@/lib/auth";
 import { AdminRole } from "@/types/admin-role";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 const CreateUserSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("[ADMIN_CREATE_USER]", error);
+    logger.error("[ADMIN_CREATE_USER]", error);
 
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {

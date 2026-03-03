@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // IRT 3PL probability function
 function calculateProbability(
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
       headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' },
     });
   } catch (error) {
-    console.error('[CAT_ITEM_GET]', error);
+    logger.error('[CAT_ITEM_GET]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get item' } },
       { status: 500 }
@@ -316,7 +317,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[CAT_ITEM_POST]', error);
+    logger.error('[CAT_ITEM_POST]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to submit response' } },
       { status: 500 }

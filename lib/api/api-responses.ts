@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 /**
  * Standard API response structure
@@ -342,7 +343,7 @@ export function withErrorHandling<T extends any[]>(
       }
 
       // Log unexpected errors
-      console.error("Unexpected API error:", error);
+      logger.error("Unexpected API error:", error);
 
       return createErrorResponse(
         ApiError.internal("An unexpected error occurred")

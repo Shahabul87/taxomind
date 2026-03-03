@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
         ...(type ? { type: type as SAMPredictionType } : {}),
       },
       orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     // Calculate metrics

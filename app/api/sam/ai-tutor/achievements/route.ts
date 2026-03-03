@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
       where: {
         userId: userId,
         ...(category && { achievementType: category as any })
-      }
+      },
+      take: 200,
     });
 
     // Get all available achievements

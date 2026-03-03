@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from '@/lib/api-utils';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const notifySchema = z.object({
   enabled: z.boolean(),
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
     }
-    console.error('[SESSION_NOTIFY]', error);
+    logger.error('[SESSION_NOTIFY]', error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       'Failed to update notification settings',

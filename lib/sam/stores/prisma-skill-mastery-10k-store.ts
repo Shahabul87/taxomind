@@ -15,6 +15,7 @@ import {
   getWeekStartInTimezone,
   getMonthStartInTimezone,
 } from '@/lib/utils/timezone';
+import { logger } from '@/lib/logger';
 
 /** Default timezone when none is specified */
 const DEFAULT_TIMEZONE = 'UTC';
@@ -854,7 +855,7 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       };
     } catch (error) {
       // Log but don't fail the main operation
-      console.error('Error computing rolling averages:', error);
+      logger.error('Error computing rolling averages', error);
       return null;
     }
   }

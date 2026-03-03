@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import createDOMPurify from 'isomorphic-dompurify';
+import { logger } from '@/lib/logger';
 
 /**
  * Blog Post Validation Schemas
@@ -225,7 +226,7 @@ export const validateSearchQuery = (query: string): string | null => {
   const result = SearchInputSchema.safeParse({ query });
 
   if (!result.success) {
-    console.warn('[BLOG_VALIDATION] Invalid search query:', result.error.format());
+    logger.warn('[BLOG_VALIDATION] Invalid search query:', result.error.format());
     return null;
   }
 
@@ -240,7 +241,7 @@ export const validateBlogPost = (data: unknown): ValidatedBlogPost | null => {
   const result = BlogPostSchema.safeParse(data);
 
   if (!result.success) {
-    console.error('[BLOG_VALIDATION] Invalid blog post data:', result.error.format());
+    logger.error('[BLOG_VALIDATION] Invalid blog post data:', result.error.format());
     return null;
   }
 

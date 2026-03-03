@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const SubmitReviewSchema = z.object({
   assignmentId: z.string().min(1),
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[PEER_REVIEW_SUBMIT]', error);
+    logger.error('[PEER_REVIEW_SUBMIT]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to submit review' } },
       { status: 500 }
@@ -282,7 +283,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PEER_REVIEW_GET]', error);
+    logger.error('[PEER_REVIEW_GET]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch reviews' } },
       { status: 500 }

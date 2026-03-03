@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { qaEventBus } from '@/lib/realtime/event-bus';
+import { logger } from '@/lib/logger';
 
 // Schema for updating an answer
 const UpdateAnswerSchema = z.object({
@@ -170,7 +171,7 @@ export async function PATCH(
     } catch {}
     return response;
   } catch (error) {
-    console.error('Error updating answer:', error);
+    logger.error('[ANSWER_PATCH] Error updating answer', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -285,7 +286,7 @@ export async function DELETE(
       },
     });
   } catch (error) {
-    console.error('Error deleting answer:', error);
+    logger.error('[ANSWER_DELETE] Error deleting answer', error);
 
     return NextResponse.json(
       {

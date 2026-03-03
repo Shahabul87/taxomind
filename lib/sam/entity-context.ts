@@ -4,6 +4,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -113,7 +114,7 @@ export async function fetchCourseContext(courseId: string): Promise<CourseContex
       })),
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching course:', error);
+    logger.error('[EntityContext] Error fetching course', error);
     return null;
   }
 }
@@ -156,7 +157,7 @@ export async function fetchChapterContext(chapterId: string): Promise<ChapterCon
       })),
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching chapter:', error);
+    logger.error('[EntityContext] Error fetching chapter', error);
     return null;
   }
 }
@@ -195,7 +196,7 @@ export async function fetchSectionContext(sectionId: string): Promise<SectionCon
       contentType: section.type,
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching section:', error);
+    logger.error('[EntityContext] Error fetching section', error);
     return null;
   }
 }
@@ -248,7 +249,7 @@ async function fetchUserCoursesListContext(userId: string): Promise<EntityContex
       summary: parts.join('\n'),
     };
   } catch (error) {
-    console.error('[EntityContext] Error fetching user courses list:', error);
+    logger.error('[EntityContext] Error fetching user courses list', error);
     return {
       type: 'none',
       summary: 'Unable to load course list data.',
@@ -318,7 +319,7 @@ export async function buildEntityContext(
       }
     }
   } catch (error) {
-    console.error('[EntityContext] Error building context:', error);
+    logger.error('[EntityContext] Error building context', error);
   }
 
   return context;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SessionManager } from '@/lib/security/session-manager';
 import { extractServerFingerprint, generateDeviceId } from '@/lib/security/session-fingerprint';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error getting trusted devices:', error);
+    logger.error('Error getting trusted devices', error);
     return NextResponse.json(
       { success: false, error: 'Failed to get trusted devices' }, 
       { status: 500 }

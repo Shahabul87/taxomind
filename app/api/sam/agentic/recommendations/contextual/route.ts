@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { position: 'asc' },
+        take: 100,
       });
 
       for (const chapter of previousChapters) {

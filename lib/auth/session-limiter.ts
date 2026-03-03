@@ -10,6 +10,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const MAX_CONCURRENT_SESSIONS = 5;
 
@@ -26,7 +27,7 @@ export async function countActiveSessions(userId: string): Promise<number> {
       },
     });
   } catch (error) {
-    console.error('[SessionLimiter] Failed to count active sessions:', error);
+    logger.error('[SessionLimiter] Failed to count active sessions', error);
     return 0;
   }
 }
@@ -59,14 +60,14 @@ export async function enforceSessionLimit(
           data: { isActive: false },
         });
 
-        console.log(`[SessionLimiter] Terminated oldest session ${oldest.id} for user ${userId}`);
+        logger.info('[SessionLimiter] Terminated oldest session', { sessionId: oldest.id, userId });
         return { enforced: true, terminatedCount: 1 };
       }
     }
 
     return { enforced: false, terminatedCount: 0 };
   } catch (error) {
-    console.error('[SessionLimiter] Failed to enforce session limit:', error);
+    logger.error('[SessionLimiter] Failed to enforce session limit', error);
     return { enforced: false, terminatedCount: 0 };
   }
 }
@@ -96,7 +97,7 @@ export async function getActiveSessions(userId: string) {
       orderBy: { lastActivity: 'desc' },
     });
   } catch (error) {
-    console.error('[SessionLimiter] Failed to get active sessions:', error);
+    logger.error('[SessionLimiter] Failed to get active sessions', error);
     return [];
   }
 }
@@ -118,10 +119,10 @@ export async function terminateAllSessions(
       data: { isActive: false },
     });
 
-    console.log(`[SessionLimiter] Terminated ${result.count} sessions for user ${userId}`);
+    logger.info('[SessionLimiter] Terminated all sessions', { count: result.count, userId });
     return { terminatedCount: result.count };
   } catch (error) {
-    console.error('[SessionLimiter] Failed to terminate all sessions:', error);
+    logger.error('[SessionLimiter] Failed to terminate all sessions', error);
     return { terminatedCount: 0 };
   }
 }
@@ -151,10 +152,10 @@ export async function terminateSession(
       data: { isActive: false },
     });
 
-    console.log(`[SessionLimiter] Terminated session ${sessionId} for user ${userId}`);
+    logger.info('[SessionLimiter] Terminated session', { sessionId, userId });
     return true;
   } catch (error) {
-    console.error('[SessionLimiter] Failed to terminate session:', error);
+    logger.error('[SessionLimiter] Failed to terminate session', error);
     return false;
   }
 }

@@ -564,6 +564,7 @@ async function getTopCollaborators(userId: string, sessions: any[]) {
         in: sorted.map(([userId]) => userId),
       },
     },
+    take: 100,
     select: {
       id: true,
       name: true,
@@ -687,6 +688,7 @@ async function getCourseTopContributors(courseId: string, startDate: Date) {
       name: true,
       image: true,
     },
+    take: 100,
   });
 
   return contributions.map((contribution) => ({
@@ -1104,6 +1106,7 @@ export async function GET(req: NextRequest) {
             orderBy: {
               startedAt: "desc",
             },
+            take: 100,
           });
         } else {
           result = await db.collaborationSession.findMany({
@@ -1117,6 +1120,7 @@ export async function GET(req: NextRequest) {
             orderBy: {
               startedAt: "desc",
             },
+            take: 100,
           });
         }
         break;

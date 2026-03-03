@@ -10,6 +10,7 @@
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { normalizeToUppercaseSafe } from './utils/blooms-normalizer';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -90,7 +91,7 @@ export async function recordBloomsProgress(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[recordBloomsProgress] Error:', errorMessage);
+    logger.error('[recordBloomsProgress] Error', errorMessage);
     return { success: false, error: errorMessage };
   }
 }

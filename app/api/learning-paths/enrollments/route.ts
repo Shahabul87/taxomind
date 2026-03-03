@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
           }
         }
       },
+      take: 100,
       orderBy: [
         { status: "asc" }, // Active paths first
         { startedAt: "desc" }

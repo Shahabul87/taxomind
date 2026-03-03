@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 interface LineExplanation {
   id: string;
@@ -68,6 +69,7 @@ export async function GET(
       where: {
         sectionId,
       },
+      take: 200,
       orderBy: [
         { position: "asc" },
         { createdAt: "asc" },
@@ -113,7 +115,7 @@ export async function GET(
       data: groupedData,
     });
   } catch (error) {
-    console.error("[CODE_EXPLANATIONS_GROUPED_GET]", error);
+    logger.error("[CODE_EXPLANATIONS_GROUPED_GET]", error);
     return NextResponse.json(
       { success: false, error: { code: "INTERNAL_ERROR", message: "Internal Error" } },
       { status: 500 }

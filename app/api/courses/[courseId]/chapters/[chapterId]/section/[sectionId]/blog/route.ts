@@ -117,6 +117,7 @@ export async function PATCH(
           },
         },
       },
+      take: 200,
     });
 
     // Find the blog with the specified blogId
@@ -178,6 +179,7 @@ export async function DELETE(
           },
         },
       },
+      take: 200,
     });
 
     // Find the specific blog to delete by its ID

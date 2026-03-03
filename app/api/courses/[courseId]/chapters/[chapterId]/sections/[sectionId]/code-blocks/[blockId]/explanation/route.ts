@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -81,7 +82,7 @@ export async function POST(
       data: updated
     });
   } catch (error) {
-    console.error('[CODE_BLOCK_EXPLANATION]', error);
+    logger.error('[CODE_BLOCK_EXPLANATION]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>({

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import {
   SAMInsightsResponse,
   LearningInsight,
@@ -448,7 +449,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: response });
   } catch (error) {
-    console.error('SAM Insights API Error:', error);
+    logger.error('SAM Insights API Error', error);
     return NextResponse.json(
       {
         success: false,

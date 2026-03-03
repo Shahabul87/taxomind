@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { studyPlanSchema, paginationSchema, filterSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     return successResponse(plans, { page: pagination.page, limit: pagination.limit, total });
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[STUDY_PLANS_GET]", error);
+    logger.error("[STUDY_PLANS_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch study plans", HttpStatus.INTERNAL_ERROR);
   }
 }
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     return successResponse(plan);
   } catch (error) {
     if (error instanceof z.ZodError) return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
-    console.error("[STUDY_PLANS_POST]", error);
+    logger.error("[STUDY_PLANS_POST]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to create study plan", HttpStatus.INTERNAL_ERROR);
   }
 }

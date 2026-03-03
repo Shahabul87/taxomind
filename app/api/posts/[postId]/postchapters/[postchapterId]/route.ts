@@ -64,6 +64,7 @@ export async function DELETE(
         postId: params.postId,
         isPublished: true,
       },
+      take: 100,
     });
 
     // If there are no published chapters left, update the post to be unpublished

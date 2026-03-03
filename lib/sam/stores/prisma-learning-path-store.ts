@@ -12,6 +12,7 @@ import type {
   LearningAction,
   StepPriority,
 } from '@sam-ai/agentic';
+import { logger } from '@/lib/logger';
 
 // Use a type alias for the personalized learning path since
 // it conflicts with Prisma's LearningPath model
@@ -83,7 +84,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
         });
       }
     } catch (error) {
-      console.error('Failed to save learning path:', error);
+      logger.error('Failed to save learning path', error);
       throw error;
     }
   }
@@ -108,7 +109,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
 
       return this.mapGoalToLearningPath(goal);
     } catch (error) {
-      console.error('Failed to get learning path:', error);
+      logger.error('Failed to get learning path', error);
       return null;
     }
   }
@@ -133,7 +134,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
         })
         .map((goal) => this.mapGoalToLearningPath(goal));
     } catch (error) {
-      console.error('Failed to get active learning paths:', error);
+      logger.error('Failed to get active learning paths', error);
       return [];
     }
   }
@@ -165,7 +166,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
 
       return this.mapGoalToLearningPath(goal);
     } catch (error) {
-      console.error('Failed to get path for course:', error);
+      logger.error('Failed to get path for course', error);
       return null;
     }
   }
@@ -179,7 +180,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
         where: { id },
       });
     } catch (error) {
-      console.error('Failed to delete learning path:', error);
+      logger.error('Failed to delete learning path', error);
       throw error;
     }
   }
@@ -224,7 +225,7 @@ export class PrismaLearningPathStore implements LearningPathStore {
         },
       });
     } catch (error) {
-      console.error('Failed to mark step completed:', error);
+      logger.error('Failed to mark step completed', error);
       throw error;
     }
   }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { z } from "zod";
 import { AchievementType, BadgeLevel } from "@prisma/client";
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const paramsSchema = z.object({
@@ -209,6 +210,7 @@ export async function GET(
           userId: user.id,
           courseId: courseId,
         },
+        take: 100,
       }),
     ]);
 
@@ -314,7 +316,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[ACHIEVEMENTS_GET]", error);
+    logger.error("[ACHIEVEMENTS_GET]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -345,6 +347,7 @@ async function getProgressData(userId: string, courseId: string) {
       userId,
       courseId,
     },
+    take: 500,
     select: {
       isCompleted: true,
       timeSpent: true,
@@ -354,6 +357,7 @@ async function getProgressData(userId: string, courseId: string) {
   // Get total sections in course
   const chapters = await db.chapter.findMany({
     where: { courseId },
+    take: 200,
     include: {
       sections: {
         where: { isPublished: true },

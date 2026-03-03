@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { checkPremiumAccess, getRemainingFreeUsage, getAvailableFeatures } from "@/lib/premium";
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -47,7 +48,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[SUBSCRIPTION_STATUS]", error);
+    logger.error("[SUBSCRIPTION_STATUS]", error);
     return NextResponse.json(
       {
         success: false,

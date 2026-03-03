@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { blogPlanSchema, paginationSchema, filterSchema } from "@/lib/validations/dashboard";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return errorResponse("VALIDATION_ERROR", error.errors[0].message);
     }
-    console.error("[BLOG_PLANS_GET]", error);
+    logger.error("[BLOG_PLANS_GET]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to fetch blog plans", 500);
   }
 }
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return errorResponse("VALIDATION_ERROR", error.errors[0].message);
     }
-    console.error("[BLOG_PLANS_POST]", error);
+    logger.error("[BLOG_PLANS_POST]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to create blog plan", 500);
   }
 }

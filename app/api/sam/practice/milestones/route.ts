@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
       ? await db.skillBuildDefinition.findMany({
           where: { id: { in: skillIds } },
           select: { id: true, name: true, category: true },
+          take: 200,
         })
       : [];
     const skillMap = new Map(skills.map((s) => [s.id, s]));

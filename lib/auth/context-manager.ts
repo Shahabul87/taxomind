@@ -9,6 +9,7 @@
 import { db } from "@/lib/db";
 import { UserCapability, getUserCapabilities, hasCapability } from "./capabilities";
 import { cache } from "react";
+import { logger } from "@/lib/logger";
 
 /**
  * User context state - represents the current active context
@@ -82,7 +83,7 @@ export const getCurrentContext = cache(async (
       capabilities: activeCapabilities,
     };
   } catch (error) {
-    console.error("Error getting current context:", error);
+    logger.error("Error getting current context", error);
     return null;
   }
 });
@@ -132,7 +133,7 @@ export async function switchContext(
 
     return { success: true, context };
   } catch (error) {
-    console.error("Error switching context:", error);
+    logger.error("Error switching context", error);
     return { success: false, error: "Failed to switch context" };
   }
 }
@@ -170,7 +171,7 @@ async function getContextPreference(userId: string): Promise<ContextPreference |
       }],
     };
   } catch (error) {
-    console.error("Error getting context preference:", error);
+    logger.error("Error getting context preference", error);
     return null;
   }
 }
@@ -185,12 +186,12 @@ async function updateContextPreference(
   try {
     // In a real implementation, this would update a UserPreference table
     // For now, we'll just log the change
-    console.log(`Context preference updated for user ${userId}: ${newContext}`);
+    logger.debug("Context preference updated", { userId, newContext });
     
     // You could store this in session, cookies, or database
     // Example: await db.userPreference.upsert({ ... })
   } catch (error) {
-    console.error("Error updating context preference:", error);
+    logger.error("Error updating context preference", error);
   }
 }
 
@@ -213,7 +214,7 @@ export async function getContextDashboardData(
         return getStudentDashboardData(userId);
     }
   } catch (error) {
-    console.error("Error fetching dashboard data:", error);
+    logger.error("Error fetching dashboard data", error);
     return null;
   }
 }

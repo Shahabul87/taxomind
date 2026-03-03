@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
       ? await db.userNotificationPreferences.findMany({
           where: { userId: { in: pendingUserIds } },
           select: { userId: true, pushNotifications: true, pushCourseReminders: true },
+          take: 1000,
         })
       : [];
     const prefsMap = new Map(allUserPrefs.map(p => [p.userId, p]));

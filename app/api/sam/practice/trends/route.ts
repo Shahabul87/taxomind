@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
           date: { gte: weeksAgo },
         },
         orderBy: { date: 'asc' },
+        take: 500,
       });
       dailyLogs = logs.map((log) => ({
         date: log.date,
@@ -277,6 +278,7 @@ async function calculateSkillTrends(userId: string, sinceDate: Date): Promise<Sk
         startedAt: { gte: sinceDate },
         status: 'COMPLETED',
       },
+      take: 500,
     });
 
     // Calculate hours for first and second half of period to determine growth
@@ -450,6 +452,7 @@ async function getSkillSpecificDailyData(
       qualityHours: true,
       qualityMultiplier: true,
     },
+    take: 500,
   });
 
   // Group by date

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 // UserRole removed - users no longer have roles
 
 /**
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error getting security alerts:', error);
+    logger.error('Error getting security alerts', error);
     return NextResponse.json(
       { success: false, error: 'Failed to get security alerts' }, 
       { status: 500 }
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error creating security alert:', error);
+    logger.error('Error creating security alert', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create security alert' }, 
       { status: 500 }

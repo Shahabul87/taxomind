@@ -22,9 +22,7 @@
 
 import * as jwt from "jsonwebtoken";
 import type { JWT } from "next-auth/jwt";
-
-const IS_DEV = process.env.NODE_ENV === 'development';
-const debugLog = IS_DEV ? (...args: unknown[]) => console.log(...args) : () => {};
+import { logger } from "@/lib/logger";
 
 // Admin-specific JWT secret (can be different from user secret)
 // In production, use ADMIN_JWT_SECRET environment variable for maximum separation
@@ -40,12 +38,13 @@ const ADMIN_JWT_ALGORITHM = 'HS512';
 // Admin JWT max age: 4 hours (14400 seconds)
 const ADMIN_JWT_MAX_AGE = 4 * 60 * 60; // 4 hours
 
-// Log secret configuration on startup (dev only via debugLog)
-debugLog('[admin-jwt] Configuration loaded:');
-debugLog('[admin-jwt]   ADMIN_JWT_SECRET present:', !!process.env.ADMIN_JWT_SECRET);
-debugLog('[admin-jwt]   Using fallback secret:', !process.env.ADMIN_JWT_SECRET);
-debugLog('[admin-jwt]   Algorithm:', ADMIN_JWT_ALGORITHM);
-debugLog('[admin-jwt]   Max age:', ADMIN_JWT_MAX_AGE / 3600, 'hours');
+// Log secret configuration on startup
+logger.debug('[admin-jwt] Configuration loaded', {
+  adminJwtSecretPresent: !!process.env.ADMIN_JWT_SECRET,
+  usingFallbackSecret: !process.env.ADMIN_JWT_SECRET,
+  algorithm: ADMIN_JWT_ALGORITHM,
+  maxAgeHours: ADMIN_JWT_MAX_AGE / 3600,
+});
 
 /**
  * Admin JWT Configuration
@@ -58,11 +57,11 @@ export const adminJwtConfig = {
    */
   async encode({ secret, token, maxAge }: { secret: string; token?: JWT; maxAge?: number }): Promise<string | null> {
     if (!token) {
-      debugLog('[admin-jwt] No token provided to encode');
+      logger.debug('[admin-jwt] No token provided to encode');
       return null;
     }
 
-    debugLog('[admin-jwt] Encoding admin JWT for:', token.sub);
+    logger.debug('[admin-jwt] Encoding admin JWT', { sub: token.sub });
 
     // Add admin-specific claims
     const adminToken = {
@@ -87,10 +86,10 @@ export const adminJwtConfig = {
         expiresIn: maxAge || ADMIN_JWT_MAX_AGE,
       });
 
-      debugLog('[admin-jwt] Admin JWT encoded successfully');
+      logger.debug('[admin-jwt] Admin JWT encoded successfully');
       return encodedToken;
     } catch (error) {
-      console.error('[admin-jwt] Error encoding admin JWT:', error);
+      logger.error('[admin-jwt] Error encoding admin JWT', error);
       throw error;
     }
   },
@@ -107,13 +106,11 @@ export const adminJwtConfig = {
    */
   async decode({ secret, token }: { secret: string; token?: string }): Promise<JWT | null> {
     if (!token) {
-      debugLog('[admin-jwt] No token provided to decode');
+      logger.debug('[admin-jwt] No token provided to decode');
       return null;
     }
 
-    debugLog('[admin-jwt] Starting JWT decode process');
-    debugLog('[admin-jwt] Input token type:', typeof token);
-    debugLog('[admin-jwt] Input token length:', token.length);
+    logger.debug('[admin-jwt] Starting JWT decode process', { tokenLength: token.length });
 
     // Step 1: Try to extract JWT from various formats
     let jwtToken = token;
@@ -136,7 +133,7 @@ export const adminJwtConfig = {
     for (const pattern of cookiePatterns) {
       const match = jwtToken.match(pattern);
       if (match?.[1]) {
-        debugLog('[admin-jwt] Extracted JWT from cookie pattern');
+        logger.debug('[admin-jwt] Extracted JWT from cookie pattern');
         jwtToken = match[1];
         break;
       }
@@ -150,24 +147,24 @@ export const adminJwtConfig = {
     for (const prefix of prefixes) {
       if (jwtToken.startsWith(prefix)) {
         jwtToken = jwtToken.substring(prefix.length);
-        debugLog('[admin-jwt] Removed prefix:', prefix);
+        logger.debug('[admin-jwt] Removed prefix', { prefix: prefix.trim() });
       }
     }
 
     // Step 2: Validate JWT format (3 parts separated by dots)
     const jwtParts = jwtToken.split('.');
     if (jwtParts.length !== 3) {
-      debugLog('[admin-jwt] Invalid JWT format - expected 3 parts, got:', jwtParts.length);
+      logger.debug('[admin-jwt] Invalid JWT format', { expectedParts: 3, gotParts: jwtParts.length });
 
       // Last resort: Try to find JWT pattern in the string
       const jwtPattern = /[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/;
       const jwtMatch = jwtToken.match(jwtPattern);
 
       if (jwtMatch) {
-        debugLog('[admin-jwt] Found JWT pattern in input string');
+        logger.debug('[admin-jwt] Found JWT pattern in input string');
         jwtToken = jwtMatch[0];
       } else {
-        debugLog('[admin-jwt] Could not find valid JWT in input');
+        logger.debug('[admin-jwt] Could not find valid JWT in input');
         return null;
       }
     }
@@ -177,13 +174,13 @@ export const adminJwtConfig = {
       const payloadBase64 = jwtParts[1];
       const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
 
-      debugLog('[admin-jwt] JWT payload preview:', {
+      logger.debug('[admin-jwt] JWT payload preview', {
         aud: payload?.aud,
         iss: payload?.iss,
         role: payload?.role,
         sessionType: payload?.sessionType,
         adminAuth: payload?.adminAuth,
-        sub: payload?.sub?.substring(0, 8) + '...',
+        subPrefix: payload?.sub?.substring(0, 8),
       });
 
       // Verify it&apos;s actually an admin token before full verification
@@ -195,16 +192,16 @@ export const adminJwtConfig = {
       );
 
       if (!isAdminToken) {
-        debugLog('[admin-jwt] Not an admin JWT - skipping verification');
+        logger.debug('[admin-jwt] Not an admin JWT - skipping verification');
         return null;
       }
     } catch (e) {
-      debugLog('[admin-jwt] Could not decode JWT payload for preview:', e);
+      logger.debug('[admin-jwt] Could not decode JWT payload for preview', e);
       // Continue with verification anyway
     }
 
     // Step 4: Verify the JWT with the admin secret (with legacy fallback)
-    debugLog('[admin-jwt] Attempting JWT verification with admin secret');
+    logger.debug('[admin-jwt] Attempting JWT verification with admin secret');
 
     // Try with the new ADMIN_JWT_SECRET first
     let decoded: JWT | null = null;
@@ -217,10 +214,10 @@ export const adminJwtConfig = {
         issuer: 'taxomind-admin-auth',
       }) as JWT;
 
-      debugLog('[admin-jwt] ✓ JWT verified with current ADMIN_JWT_SECRET');
+      logger.debug('[admin-jwt] JWT verified with current ADMIN_JWT_SECRET');
     } catch (primaryError) {
       // If verification fails with new secret, try legacy secret for graceful migration
-      debugLog('[admin-jwt] Verification with current secret failed, trying legacy secret...');
+      logger.debug('[admin-jwt] Verification with current secret failed, trying legacy secret...');
 
       try {
         decoded = jwt.verify(jwtToken, LEGACY_ADMIN_SECRET, {
@@ -230,25 +227,19 @@ export const adminJwtConfig = {
         }) as JWT;
 
         usedLegacySecret = true;
-        debugLog('[admin-jwt] ⚠️  JWT verified with LEGACY secret (old token detected)');
-        debugLog('[admin-jwt] 🔄 User should log out and log in again for new token');
+        logger.warn('[admin-jwt] JWT verified with LEGACY secret (old token detected)');
+        logger.warn('[admin-jwt] User should log out and log in again for new token');
       } catch (legacyError) {
         // Both secrets failed
         if (primaryError instanceof jwt.TokenExpiredError) {
-          debugLog('[admin-jwt] Admin JWT has expired');
-          debugLog('[admin-jwt] Expiry:', primaryError.expiredAt);
-          debugLog('[admin-jwt] 💡 Clear browser cookies and log in again');
+          logger.debug('[admin-jwt] Admin JWT has expired', { expiry: primaryError.expiredAt });
         } else if (primaryError instanceof jwt.JsonWebTokenError) {
-          debugLog('[admin-jwt] JWT verification failed with both secrets');
-          debugLog('[admin-jwt] Primary error:', primaryError.message);
-          debugLog('[admin-jwt] Legacy error:', legacyError instanceof Error ? legacyError.message : 'unknown');
-          debugLog('[admin-jwt] 💡 SOLUTION: Clear browser cookies and restart server');
-          debugLog('[admin-jwt]   1. Open DevTools (F12) → Application → Cookies');
-          debugLog('[admin-jwt]   2. Delete: admin-session-token, __Secure-admin-session-token');
-          debugLog('[admin-jwt]   3. Restart server: npm run dev');
-          debugLog('[admin-jwt]   4. Log in again at /admin/auth/login');
+          logger.debug('[admin-jwt] JWT verification failed with both secrets', {
+            primaryError: primaryError.message,
+            legacyError: legacyError instanceof Error ? legacyError.message : 'unknown',
+          });
         } else {
-          console.error('[admin-jwt] Unexpected error during JWT verification:', primaryError);
+          logger.error('[admin-jwt] Unexpected error during JWT verification', primaryError);
         }
         return null;
       }
@@ -260,26 +251,25 @@ export const adminJwtConfig = {
 
     // Step 5: Verify admin-specific claims
     if (decoded.adminAuth !== true) {
-      console.error('[admin-jwt] SECURITY ALERT - Missing adminAuth claim');
+      logger.error('[admin-jwt] SECURITY ALERT - Missing adminAuth claim');
       return null;
     }
 
     if (decoded.sessionType !== 'ADMIN') {
-      console.error('[admin-jwt] SECURITY ALERT - Invalid sessionType:', decoded.sessionType);
+      logger.error('[admin-jwt] SECURITY ALERT - Invalid sessionType', { sessionType: decoded.sessionType });
       return null;
     }
 
     if (decoded.role !== 'ADMIN') {
-      console.error('[admin-jwt] SECURITY ALERT - Invalid role:', decoded.role);
+      logger.error('[admin-jwt] SECURITY ALERT - Invalid role', { role: decoded.role });
       return null;
     }
 
-    debugLog('[admin-jwt] ✓ Admin JWT decoded and verified successfully');
-    debugLog('[admin-jwt] User ID:', decoded.sub?.substring(0, 8) + '...');
-    debugLog('[admin-jwt] Session type:', decoded.sessionType);
-    if (usedLegacySecret) {
-      debugLog('[admin-jwt] ⚠️  Using legacy token - recommend re-authentication');
-    }
+    logger.debug('[admin-jwt] Admin JWT decoded and verified successfully', {
+      subPrefix: decoded.sub?.substring(0, 8),
+      sessionType: decoded.sessionType,
+      usedLegacySecret,
+    });
 
     return decoded;
   },

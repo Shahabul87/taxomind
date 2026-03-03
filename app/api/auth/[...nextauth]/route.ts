@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 // Force this route to use Node.js runtime, not Edge
 export const runtime = 'nodejs'
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
       message: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString(),
     };
-    console.error('[NextAuth GET] Actual error:', lastAuthError);
+    logger.error('[NextAuth GET] Actual error', lastAuthError);
     throw error; // Re-throw to let NextAuth handle the response
   }
 }
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
       message: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString(),
     };
-    console.error('[NextAuth POST] Actual error:', lastAuthError);
+    logger.error('[NextAuth POST] Actual error', lastAuthError);
     throw error; // Re-throw to let NextAuth handle the response
   }
 } 

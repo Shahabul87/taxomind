@@ -67,7 +67,7 @@ export async function queueVerificationEmail(data: VerificationEmailData): Promi
     const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
-    console.log('[Email Queue] Sending verification email via Resend HTTP API to:', data.userEmail);
+    logger.info('[Email Queue] Sending verification email via Resend HTTP API', { to: data.userEmail });
 
     // Define the email sending function
     const sendFn = async () => {
@@ -167,14 +167,13 @@ export async function queueVerificationEmail(data: VerificationEmailData): Promi
     );
 
     if (sent) {
-      console.log('[Email Queue] ✅ Verification email sent successfully to:', data.userEmail);
+      logger.info('[Email Queue] Verification email sent successfully', { to: data.userEmail });
     } else {
-      console.error('[Email Queue] ❌ Failed to send verification email after retries to:', data.userEmail);
+      logger.error('[Email Queue] Failed to send verification email after retries', { to: data.userEmail });
     }
   } catch (error) {
     logger.error('Failed to queue verification email', error);
     // Don't throw - we don't want registration to fail if email fails
-    console.error('[Email Queue] Error sending verification email:', error);
   }
 }
 
@@ -188,7 +187,7 @@ export async function queuePasswordResetEmail(data: PasswordResetEmailData): Pro
     const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
-    console.log('[Email Queue] Sending password reset email via Resend HTTP API to:', data.userEmail);
+    logger.info('[Email Queue] Sending password reset email via Resend HTTP API', { to: data.userEmail });
 
     const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/new-password?token=${data.resetToken}`;
 
@@ -255,13 +254,12 @@ export async function queuePasswordResetEmail(data: PasswordResetEmailData): Pro
     );
 
     if (sent) {
-      console.log('[Email Queue] ✅ Password reset email sent successfully to:', data.userEmail);
+      logger.info('[Email Queue] Password reset email sent successfully', { to: data.userEmail });
     } else {
-      console.error('[Email Queue] ❌ Failed to send password reset email after retries to:', data.userEmail);
+      logger.error('[Email Queue] Failed to send password reset email after retries', { to: data.userEmail });
     }
   } catch (error) {
     logger.error('Failed to queue password reset email', error);
-    console.error('[Email Queue] Error sending password reset email:', error);
   }
 }
 
@@ -275,7 +273,7 @@ export async function queue2FAEmail(data: TwoFactorEmailData): Promise<void> {
     const { sendEmailWithTracking } = await import('@/lib/queue/email-tracking');
     const { sendEmail } = await import('@/lib/email/resend-service');
 
-    console.log('[Email Queue] Sending 2FA email via Resend HTTP API to:', data.userEmail);
+    logger.info('[Email Queue] Sending 2FA email via Resend HTTP API', { to: data.userEmail });
 
     const sendFn = async () => {
       return await sendEmail({
@@ -306,13 +304,12 @@ export async function queue2FAEmail(data: TwoFactorEmailData): Promise<void> {
     );
 
     if (sent) {
-      console.log('[Email Queue] ✅ 2FA email sent successfully to:', data.userEmail);
+      logger.info('[Email Queue] 2FA email sent successfully', { to: data.userEmail });
     } else {
-      console.error('[Email Queue] ❌ Failed to send 2FA email after retries to:', data.userEmail);
+      logger.error('[Email Queue] Failed to send 2FA email after retries', { to: data.userEmail });
     }
   } catch (error) {
     logger.error('Failed to queue 2FA email', error);
-    console.error('[Email Queue] Error sending 2FA email:', error);
   }
 }
 
@@ -333,7 +330,7 @@ export async function queueLoginAlertEmail(data: {
     });
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Email Queue] Would send login alert to:', data.userEmail);
+      logger.debug('[Email Queue] Would send login alert', { to: data.userEmail });
     }
   } catch (error) {
     logger.error('Failed to queue login alert email', error);

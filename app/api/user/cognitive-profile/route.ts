@@ -420,16 +420,19 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+      take: 200,
     });
 
     // 2. Get student Bloom&apos;s progress across courses
     const bloomsProgress = await db.studentBloomsProgress.findMany({
       where: { userId },
+      take: 200,
     });
 
     // 3. Get performance metrics
     const performanceMetrics = await db.bloomsPerformanceMetric.findMany({
       where: { userId },
+      take: 200,
     });
 
     // Calculate aggregated scores

@@ -6,6 +6,7 @@
  */
 
 import type { RateLimitResult } from './rate-limit';
+import { logger } from '@/lib/logger';
 
 export type AuthEndpoint =
   | 'login'
@@ -33,7 +34,7 @@ export async function rateLimitAuth(
     const { rateLimitAuth: rateLimitFn } = await import('./rate-limit');
     return await rateLimitFn(endpoint, identifier);
   } catch (error) {
-    console.error('[RateLimit] Error in rate limiting, allowing request:', error);
+    logger.error('[RateLimit] Error in rate limiting, allowing request:', error);
     // Fallback: allow the request if rate limiting fails
     return {
       success: true,

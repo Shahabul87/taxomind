@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      take: 1000
     });
 
     // Format for export

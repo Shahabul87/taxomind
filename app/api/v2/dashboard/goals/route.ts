@@ -124,6 +124,7 @@ export async function GET(req: NextRequest) {
       ? await db.course.findMany({
           where: { id: { in: courseIds } },
           select: { id: true, title: true, imageUrl: true },
+          take: 200,
         })
       : [];
 
@@ -147,6 +148,7 @@ export async function GET(req: NextRequest) {
               difficulty: true,
             },
             orderBy: { order: 'asc' },
+            take: 200,
           })
         : [],
       goalIds.length > 0
@@ -162,6 +164,7 @@ export async function GET(req: NextRequest) {
               targetDate: true,
             },
             orderBy: { createdAt: 'desc' },
+            take: 200,
           })
         : [],
     ]);

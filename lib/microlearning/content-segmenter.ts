@@ -1801,7 +1801,7 @@ export class MicrolearningContentSegmenter {
   }
 
   private async logSegmentationAnalytics(segmentation: MicrolearningSegmentation): Promise<void> {
-    console.log('Logging segmentation analytics:', {
+    logger.debug('Logging segmentation analytics:', {
       id: segmentation.id,
       segmentCount: segmentation.segments.length,
       strategy: segmentation.segmentationStrategy.type,

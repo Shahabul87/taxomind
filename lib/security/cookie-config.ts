@@ -6,6 +6,7 @@
  */
 
 import type { NextAuthConfig } from "next-auth";
+import { logger } from '@/lib/logger';
 
 export interface CookieOptions {
   name?: string;
@@ -220,7 +221,7 @@ export function validateCookieConfig(config: CookiesOptions): boolean {
       if (cookieConfig && typeof cookieConfig === 'object' && 'options' in cookieConfig) {
         const options = cookieConfig.options as any;
         if (!options.secure) {
-          console.warn(`Cookie ${cookieName} is not secure in production environment`);
+          logger.warn(`Cookie ${cookieName} is not secure in production environment`);
           return false;
         }
       }

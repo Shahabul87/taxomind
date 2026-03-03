@@ -357,6 +357,7 @@ export async function GET(
       where: {
         sectionId: params.sectionId
       },
+      take: 200,
       include: {
         ExamQuestion: {
           orderBy: {

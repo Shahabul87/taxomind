@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { debugGuard } from "@/lib/debug-guard";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
       runtime: 'nodejs'
     });
   } catch (error) {
-    console.error('[SIMPLE_TEST]', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[SIMPLE_TEST]', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({
       error: "Failed to parse JSON",
       timestamp: new Date().toISOString()

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Returns the error message in development, generic message in production.
@@ -20,7 +21,7 @@ export function createErrorResponse(
   routeName: string,
   status = 500
 ): NextResponse {
-  console.error(`[${routeName}] Error:`, error);
+  logger.error(`[${routeName}] Error:`, error);
   return NextResponse.json(
     { error: safeErrorMessage(error) },
     { status }

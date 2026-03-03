@@ -3,6 +3,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { successResponse, apiErrors } from "@/lib/utils/api-response";
+import { logger } from "@/lib/logger";
 
 const BecomeInstructorSchema = z.object({
   expertise: z.string().min(1, "Expertise is required").max(500),
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in become-instructor API:", error);
+    logger.error("Error in become-instructor API", error);
     return apiErrors.internal("Failed to process instructor application");
   }
 }

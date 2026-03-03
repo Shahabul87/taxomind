@@ -4,6 +4,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // NOTE: UserRole enum no longer exists - only AdminRole exists in AdminAccount
 // Users don't have roles, only permissions
@@ -103,7 +104,7 @@ export class PermissionManager {
       
       return false;
     } catch (error) {
-      console.error('Error checking permission:', error);
+      logger.error('Error checking permission:', error);
       return false;
     }
   }
@@ -180,7 +181,7 @@ export class PermissionManager {
           return false;
       }
     } catch (error) {
-      console.error('Error checking resource ownership:', error);
+      logger.error('Error checking resource ownership:', error);
       return false;
     }
   }
@@ -293,7 +294,7 @@ export class PermissionManager {
       
       return true;
     } catch (error) {
-      console.error('Error granting permission:', error);
+      logger.error('Error granting permission:', error);
       return false;
     }
   }
@@ -335,7 +336,7 @@ export class PermissionManager {
       
       return true;
     } catch (error) {
-      console.error('Error revoking permission:', error);
+      logger.error('Error revoking permission:', error);
       return false;
     }
   }
@@ -374,7 +375,7 @@ export class PermissionManager {
       // Combine and deduplicate
       return [...new Set([...rolePermissions, ...userPermissions])];
     } catch (error) {
-      console.error('Error getting user permissions:', error);
+      logger.error('Error getting user permissions:', error);
       return [];
     }
   }

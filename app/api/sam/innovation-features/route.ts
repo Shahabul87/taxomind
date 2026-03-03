@@ -736,6 +736,7 @@ async function handleTrackDNAEvolution(userId: string) {
   const dnaHistory = await db.learningDNA.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
+    take: 200,
   });
 
   if (dnaHistory.length < 2) {
@@ -1632,6 +1633,7 @@ async function calculateProgressCorrelation(userId: string, buddyCreatedAt: Date
         lt: buddyCreatedAt,
       },
     },
+    take: 200,
   });
 
   const progressAfter = await db.user_progress.findMany({
@@ -1641,6 +1643,7 @@ async function calculateProgressCorrelation(userId: string, buddyCreatedAt: Date
         gte: buddyCreatedAt,
       },
     },
+    take: 200,
   });
 
   const avgBefore = progressBefore.reduce((sum, p) => sum + (p.progressPercent || 0), 0) /
@@ -1917,6 +1920,7 @@ export async function GET(req: NextRequest) {
             isActive: true,
           },
           orderBy: { createdAt: "desc" },
+          take: 100,
         });
         result = paths.map((path) => ({
           ...path,

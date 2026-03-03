@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Validation schemas for preferences
 const NotificationPreferencesSchema = z.object({
@@ -109,7 +110,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Preferences fetch error:", error);
+    logger.error("Preferences fetch error", error);
     return NextResponse.json(
       {
         success: false,
@@ -182,7 +183,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    console.error("Preferences update error:", error);
+    logger.error("Preferences update error", error);
     return NextResponse.json(
       {
         success: false,

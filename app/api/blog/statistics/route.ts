@@ -108,12 +108,14 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
       db.post.findMany({
         select: { userId: true },
         distinct: ['userId'],
+        take: 500,
       }),
 
       // Unique commenters (approximation of active readers)
       db.comment.findMany({
         select: { userId: true },
         distinct: ['userId'],
+        take: 500,
       }),
 
       // Popular categories with counts

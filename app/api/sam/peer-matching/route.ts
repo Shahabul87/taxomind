@@ -284,10 +284,12 @@ export async function GET(request: NextRequest) {
         const yourEnrollments = await db.enrollment.findMany({
           where: { userId: user.id },
           select: { courseId: true, Course: { select: { title: true } } },
+          take: 200,
         });
         const peerEnrollments = await db.enrollment.findMany({
           where: { userId: peer.id },
           select: { courseId: true },
+          take: 200,
         });
 
         const peerCourseIds = new Set(peerEnrollments.map((e) => e.courseId));

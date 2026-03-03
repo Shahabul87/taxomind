@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(
@@ -134,7 +135,7 @@ export async function GET(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error('Error fetching similar courses:', error);
+    logger.error('[SIMILAR_COURSES] Error fetching similar courses', error);
     return safeErrorResponse(error, 500, 'SIMILAR_COURSES');
   }
 }

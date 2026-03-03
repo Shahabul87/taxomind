@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // Validation schema for search
 const SearchSchema = z.object({
@@ -166,7 +167,7 @@ export async function GET(req: Request) {
       );
     }
 
-    console.error("[MESSAGES_SEARCH]", error);
+    logger.error("[MESSAGES_SEARCH]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

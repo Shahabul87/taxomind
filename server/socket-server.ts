@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { getSAMRealtimeServer } from "@/lib/sam/realtime";
 import type { PresenceMetadata } from "@sam-ai/agentic";
+import { logger } from "@/lib/logger";
 
 const MessageSchema = z.object({
   conversationId: z.string().min(1),
@@ -70,7 +71,7 @@ const onlineUsers = new Map<string, UserStatus>();
 // Create HTTP server
 const httpServer = createServer();
 if (process.env.NODE_ENV === 'production' && !process.env.SOCKET_CORS_ORIGINS) {
-  console.error('[SOCKET] WARNING: SOCKET_CORS_ORIGINS not set in production. Using wildcard CORS is insecure.');
+  logger.error('[SOCKET] WARNING: SOCKET_CORS_ORIGINS not set in production. Using wildcard CORS is insecure.');
 }
 
 const allowedOrigins = (process.env.SOCKET_CORS_ORIGINS || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
@@ -164,7 +165,7 @@ samWss.on("connection", (ws, req) => {
   });
 
   ws.on("error", (error) => {
-    console.error("SAM WebSocket error:", error);
+    logger.error("SAM WebSocket error", error);
   });
 });
 
@@ -186,7 +187,7 @@ io.on("connection", (socket: Socket) => {
   const userId = socket.data.userId as string;
   const userName = socket.data.userName as string;
 
-  console.log(`✓ User connected: ${userName} (${userId}) - Socket: ${socket.id}`);
+  logger.info(`User connected: ${userName} (${userId}) - Socket: ${socket.id}`);
 
   // Track online user
   onlineUsers.set(userId, {
@@ -207,7 +208,7 @@ io.on("connection", (socket: Socket) => {
       userStatus.conversationIds.add(conversationId);
     }
 
-    console.log(`  → ${userName} joined conversation: ${conversationId}`);
+    logger.debug(`${userName} joined conversation: ${conversationId}`);
   });
 
   // Leave conversation room
@@ -219,7 +220,7 @@ io.on("connection", (socket: Socket) => {
       userStatus.conversationIds.delete(conversationId);
     }
 
-    console.log(`  ← ${userName} left conversation: ${conversationId}`);
+    logger.debug(`${userName} left conversation: ${conversationId}`);
   });
 
   // Handle typing event
@@ -233,7 +234,7 @@ io.on("connection", (socket: Socket) => {
       userName,
     });
 
-    console.log(`  ⌨ ${userName} is typing in ${conversationId}`);
+    logger.debug(`${userName} is typing in ${conversationId}`);
   });
 
   // Handle stop typing event
@@ -246,7 +247,7 @@ io.on("connection", (socket: Socket) => {
       userId,
     });
 
-    console.log(`  ✓ ${userName} stopped typing in ${conversationId}`);
+    logger.debug(`${userName} stopped typing in ${conversationId}`);
   });
 
   // Handle message sent event
@@ -273,7 +274,7 @@ io.on("connection", (socket: Socket) => {
       io.to(recipientStatus.socketId).emit("new_message_notification", message);
     }
 
-    console.log(`  ✉ ${userName} sent message in ${conversationId}`);
+    logger.debug(`${userName} sent message in ${conversationId}`);
   });
 
   // Handle message read event
@@ -288,12 +289,12 @@ io.on("connection", (socket: Socket) => {
       readBy: userId,
     });
 
-    console.log(`  ✓ ${userName} read message ${messageId} in ${conversationId}`);
+    logger.debug(`${userName} read message ${messageId} in ${conversationId}`);
   });
 
   // Handle disconnect
   socket.on("disconnect", () => {
-    console.log(`✗ User disconnected: ${userName} (${userId})`);
+    logger.info(`User disconnected: ${userName} (${userId})`);
 
     // Remove from online users
     onlineUsers.delete(userId);
@@ -304,7 +305,7 @@ io.on("connection", (socket: Socket) => {
 
   // Handle errors
   socket.on("error", (error) => {
-    console.error(`Socket error for ${userName}:`, error);
+    logger.error(`Socket error for ${userName}`, error);
   });
 });
 
@@ -327,37 +328,29 @@ httpServer.on("request", (req, res) => {
 const PORT = process.env.SOCKET_PORT || 3001;
 
 httpServer.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════════════════════════════╗
-║                                                            ║
-║   🚀 Socket.io Server Running                              ║
-║                                                            ║
-║   Port:     ${PORT}                                           ║
-║   URL:      http://localhost:${PORT}                          ║
-║   Health:   http://localhost:${PORT}/health                   ║
-║                                                            ║
-║   Status:   ✓ Ready to accept connections                  ║
-║                                                            ║
-╚════════════════════════════════════════════════════════════╝
-  `);
+  logger.info(`Socket.io server running on port ${PORT}`, {
+    port: PORT,
+    url: `http://localhost:${PORT}`,
+    health: `http://localhost:${PORT}/health`,
+  });
 });
 
 // Graceful shutdown
 process.on("SIGINT", () => {
-  console.log("\n⚠ Shutting down Socket.io server...");
+  logger.info("Shutting down Socket.io server...");
 
   // Close all connections
   io.close(() => {
-    console.log("✓ Socket.io server closed");
+    logger.info("Socket.io server closed");
     httpServer.close(() => {
-      console.log("✓ HTTP server closed");
+      logger.info("HTTP server closed");
       process.exit(0);
     });
   });
 });
 
 process.on("SIGTERM", () => {
-  console.log("\n⚠ SIGTERM received, shutting down...");
+  logger.info("SIGTERM received, shutting down...");
   io.close(() => {
     httpServer.close(() => {
       process.exit(0);

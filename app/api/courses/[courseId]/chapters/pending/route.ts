@@ -35,8 +35,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
         continue;
       }
       const [completions, tracking] = await Promise.all([
-        db.userSectionCompletion.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, select: { sectionId: true, progress: true, completedAt: true } }),
-        db.sectionCompletionTracking.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, select: { sectionId: true, status: true, completionType: true } }),
+        db.userSectionCompletion.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, take: 200, select: { sectionId: true, progress: true, completedAt: true } }),
+        db.sectionCompletionTracking.findMany({ where: { userId: user.id, sectionId: { in: sectionIds } }, take: 200, select: { sectionId: true, status: true, completionType: true } }),
       ]);
       const completedSet = new Set<string>();
       // Consider granular tracking: all completionType status completed

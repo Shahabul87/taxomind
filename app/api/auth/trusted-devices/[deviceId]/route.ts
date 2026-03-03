@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SessionManager } from '@/lib/security/session-manager';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
@@ -52,7 +53,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('Error revoking device trust:', error);
+    logger.error('Error revoking device trust', error);
     return NextResponse.json(
       { success: false, error: 'Failed to revoke device trust' }, 
       { status: 500 }
@@ -117,7 +118,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     });
 
   } catch (error) {
-    console.error('Error updating device:', error);
+    logger.error('Error updating device', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update device' }, 
       { status: 500 }

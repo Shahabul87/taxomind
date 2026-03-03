@@ -435,6 +435,7 @@ export async function GET(req: NextRequest) {
         const analyses = await db.multiMediaAnalysis.findMany({
           where: { courseId },
           orderBy: { createdAt: "desc" },
+          take: 500,
         });
 
         // Group by content type

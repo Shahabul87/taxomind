@@ -136,7 +136,8 @@ async function getAllChildReplyIds(replyId: string): Promise<string[]> {
     },
     select: {
       id: true
-    }
+    },
+    take: 100,
   });
   
   const childIds = childReplies.map(r => r.id);

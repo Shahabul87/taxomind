@@ -178,7 +178,7 @@ export async function authenticateBySession(): Promise<AuthenticatedUser | null>
  */
 export async function authenticateWithOriginalAuth(): Promise<AuthenticatedUser | null> {
   try {
-    console.log("[AUTH_ORIGINAL] Attempting original auth() function");
+    logger.debug("[AUTH_ORIGINAL] Attempting original auth() function");
     
     const session = await auth();
     

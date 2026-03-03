@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, subDays, subMonths } from 'date-fns';
 
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.error('Unified analytics error:', error);
+    logger.error('Unified analytics error', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

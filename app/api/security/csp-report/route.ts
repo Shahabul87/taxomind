@@ -276,8 +276,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       configuration: {
         reportURI: '/api/security/csp-report',
         reportOnly: process.env.NODE_ENV !== 'production',
-        environment: process.env.NODE_ENV,
-        webhookConfigured: !!process.env.SECURITY_WEBHOOK_URL,
       },
       endpoints: {
         report: 'POST /api/security/csp-report',

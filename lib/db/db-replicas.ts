@@ -259,7 +259,7 @@ export class DatabaseReplicaManager {
       // Update metrics
       this.updateConnectionMetrics(replicaId, responseTime);
 
-      console.log(`[DB_REPLICAS] Connected to ${replicaId} (${responseTime}ms)`);
+      logger.debug(`[DB_REPLICAS] Connected to ${replicaId} (${responseTime}ms)`);
 
       return {
         client,
@@ -352,7 +352,7 @@ export class DatabaseReplicaManager {
       const queryTime = Date.now() - startTime;
       
       this.recordQuerySuccess(connection.replicaId, queryTime);
-      console.log(`[DB_REPLICAS] Raw read query executed on ${connection.replicaId} (${queryTime}ms)`);
+      logger.debug(`[DB_REPLICAS] Raw read query executed on ${connection.replicaId} (${queryTime}ms)`);
       
       return result.rows;
     } catch (error: any) {
@@ -379,7 +379,7 @@ export class DatabaseReplicaManager {
       const queryTime = Date.now() - startTime;
       
       this.recordQuerySuccess('master', queryTime);
-      console.log(`[DB_REPLICAS] Raw write query executed on master (${queryTime}ms)`);
+      logger.debug(`[DB_REPLICAS] Raw write query executed on master (${queryTime}ms)`);
       
       return result.rows;
     } catch (error: any) {
@@ -790,7 +790,7 @@ export class DatabaseReplicaManager {
       });
 
       if (currentHealth && !currentHealth.isHealthy) {
-        console.log(`[DB_REPLICAS] Database ${name} is back online (${responseTime}ms)`);
+        logger.info(`[DB_REPLICAS] Database ${name} is back online (${responseTime}ms)`);
       }
 
     } catch (error: any) {

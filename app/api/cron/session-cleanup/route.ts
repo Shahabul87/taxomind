@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cleanupExpiredSessions, getCleanupStats } from '@/lib/auth/session-cleanup';
 import { withCronAuth } from '@/lib/api/cron-auth';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
 
     const durationMs = Date.now() - startTime;
 
-    console.log('[SESSION_CLEANUP_CRON] Cleanup completed:', {
+    logger.info('[SESSION_CLEANUP_CRON] Cleanup completed', {
       ...result,
       durationMs,
     });
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[SESSION_CLEANUP_CRON] Error running cleanup:', error);
+    logger.error('[SESSION_CLEANUP_CRON] Error running cleanup', error);
     return NextResponse.json(
       {
         success: false,

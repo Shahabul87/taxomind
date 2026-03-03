@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -53,7 +54,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[Data Export] Error:', error);
+    logger.error('[Data Export] Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

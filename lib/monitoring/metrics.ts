@@ -9,6 +9,7 @@ import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { db } from '@/lib/db';
 import { redisCache } from '@/lib/cache/redis-cache';
 import { EventEmitter } from 'events';
+import { logger } from '@/lib/logger';
 
 // Meter for custom metrics
 const meter = metrics.getMeter('taxomind-metrics', '1.0.0');
@@ -321,7 +322,7 @@ export class MetricsCollector {
       try {
         await this.collectBusinessMetrics();
       } catch (error) {
-        console.error('Error collecting business metrics:', error);
+        logger.error('Error collecting business metrics', error);
       }
     }, 5 * 60 * 1000);
     
@@ -330,7 +331,7 @@ export class MetricsCollector {
       try {
         await this.collectTechnicalMetrics();
       } catch (error) {
-        console.error('Error collecting technical metrics:', error);
+        logger.error('Error collecting technical metrics', error);
       }
     }, 60 * 1000);
   }

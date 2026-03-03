@@ -155,7 +155,7 @@ export class EventBus extends EventEmitter {
       }
 
       this.metrics.successfulEvents++;
-      console.log(`[EVENT_BUS] Published event: ${eventType} (${event.id})`);
+      logger.debug(`[EVENT_BUS] Published event: ${eventType} (${event.id})`);
 
       return event;
 

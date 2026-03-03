@@ -13,6 +13,8 @@
  * server-only modules (like auth and db) on the client.
  */
 
+import { logger } from '@/lib/logger';
+
 // Track if handlers have been set up to prevent duplicates
 let clientHandlersSetup = false;
 
@@ -44,7 +46,7 @@ async function logErrorToApi(
     });
   } catch {
     // Silently fail - we don't want error logging to cause more errors
-    console.warn('[ClientErrorHandler] Failed to send error to API');
+    logger.warn('[ClientErrorHandler] Failed to send error to API');
   }
 }
 
@@ -75,7 +77,7 @@ export function setupClientErrorHandlers(): void {
 
     const error = event.error || new Error(event.message);
 
-    console.error('[CLIENT ERROR]', error);
+    logger.error('[CLIENT ERROR]', error);
 
     try {
       // Send to API endpoint for server-side logging
@@ -103,7 +105,7 @@ export function setupClientErrorHandlers(): void {
         // Sentry not available or failed
       }
     } catch (loggingError) {
-      console.error('[CLIENT ERROR] Failed to log error:', loggingError);
+      logger.error('[CLIENT ERROR] Failed to log error', loggingError);
     }
   });
 
@@ -114,7 +116,7 @@ export function setupClientErrorHandlers(): void {
       ? reason
       : new Error(String(reason));
 
-    console.error('[CLIENT] Unhandled Promise Rejection:', error);
+    logger.error('[CLIENT] Unhandled Promise Rejection', error);
 
     try {
       // Send to API endpoint for server-side logging
@@ -135,7 +137,7 @@ export function setupClientErrorHandlers(): void {
         // Sentry not available or failed
       }
     } catch (loggingError) {
-      console.error('[CLIENT ERROR] Failed to log rejection:', loggingError);
+      logger.error('[CLIENT ERROR] Failed to log rejection', loggingError);
     }
   });
 
@@ -154,7 +156,7 @@ export function setupClientErrorHandlers(): void {
         return;
       }
 
-      console.warn('[CLIENT] Resource loading error:', target.tagName, src);
+      logger.warn(`[CLIENT] Resource loading error: ${target.tagName} ${src}`);
 
       // Log resource errors at a lower priority
       logErrorToApi(
@@ -171,7 +173,7 @@ export function setupClientErrorHandlers(): void {
     }
   }, true); // Use capture phase to catch resource errors
 
-  console.log('[GlobalErrorHandler] Client-side error handlers initialized');
+  logger.info('[GlobalErrorHandler] Client-side error handlers initialized');
 }
 
 /**

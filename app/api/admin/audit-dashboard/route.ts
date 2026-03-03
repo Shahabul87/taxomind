@@ -9,6 +9,7 @@ import { auditLogger, AuditEventType, AuditSeverity } from '@/lib/compliance/aud
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -104,7 +105,7 @@ export const GET = withAdminAuth(async (request, context) => {
     });
 
   } catch (error) {
-    console.error('Audit dashboard API error:', error);
+    logger.error('Audit dashboard API error', error);
     return safeErrorResponse(error, 500, 'ADMIN_AUDIT_DASHBOARD_GET');
   }
 }, {
@@ -155,7 +156,7 @@ export const POST = withAdminAuth(async (request, context) => {
     }
 
   } catch (error) {
-    console.error('Audit dashboard action error:', error);
+    logger.error('Audit dashboard action error', error);
     return safeErrorResponse(error, 500, 'ADMIN_AUDIT_DASHBOARD_POST');
   }
 }, {
@@ -211,7 +212,7 @@ async function generateRiskAnalysis(timeWindow: number) {
     };
 
   } catch (error) {
-    console.error('Error generating risk analysis:', error);
+    logger.error('Error generating risk analysis', error);
     return {
       error: 'Failed to generate risk analysis',
       totalHighRiskEvents: 0,

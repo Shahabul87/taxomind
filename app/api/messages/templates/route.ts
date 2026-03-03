@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 // import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // Validation schema for creating templates
 const CreateTemplateSchema = z.object({
@@ -69,7 +70,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ templates });
     */
   } catch (error) {
-    console.error("[TEMPLATES_GET]", error);
+    logger.error("[TEMPLATES_GET]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
       );
     }
 
-    console.error("[TEMPLATES_POST]", error);
+    logger.error("[TEMPLATES_POST]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -186,7 +187,7 @@ export async function PATCH(req: Request) {
       );
     }
 
-    console.error("[TEMPLATES_PATCH]", error);
+    logger.error("[TEMPLATES_PATCH]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -241,7 +242,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
     */
   } catch (error) {
-    console.error("[TEMPLATES_DELETE]", error);
+    logger.error("[TEMPLATES_DELETE]", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

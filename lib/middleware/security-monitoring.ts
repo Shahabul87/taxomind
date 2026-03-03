@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
+import { logger } from '@/lib/logger';
 
 export interface SecurityEvent {
   type: string;
@@ -296,7 +297,7 @@ export class SecurityMonitor {
           }
         );
       } catch (error) {
-        console.error('Failed to log security event:', error);
+        logger.error('Failed to log security event', error);
       }
     }
   }
@@ -317,7 +318,7 @@ export async function monitorRequestSecurity(request: NextRequest): Promise<void
       events
         .filter(e => e.severity === 'high' || e.severity === 'critical')
         .forEach(event => {
-          console.warn(`[SECURITY] ${event.type}: ${event.details}`, {
+          logger.warn(`[SECURITY] ${event.type}: ${event.details}`, {
             ip: securityMonitor['extractIP'](request),
             url: request.url,
             method: request.method,
@@ -326,6 +327,6 @@ export async function monitorRequestSecurity(request: NextRequest): Promise<void
         });
     }
   } catch (error) {
-    console.error('Security monitoring error:', error);
+    logger.error('Security monitoring error', error);
   }
 }

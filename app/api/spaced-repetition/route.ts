@@ -1,6 +1,7 @@
 // Spaced Repetition API - Simplified
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -11,7 +12,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, schedule: [] });
   } catch (error) {
-    console.error('[SPACED_REPETITION] GET Error:', error);
+    logger.error('[SPACED_REPETITION] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -25,7 +26,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true, message: 'Schedule updated' });
   } catch (error) {
-    console.error('[SPACED_REPETITION] POST Error:', error);
+    logger.error('[SPACED_REPETITION] POST Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

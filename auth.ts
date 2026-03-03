@@ -15,13 +15,14 @@ import { getSessionConfig, validateCookieConfig, DefaultCookieConfig } from "@/l
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 import { shouldEnforceMFAOnSignIn, logMFAEnforcementAction } from "@/lib/auth/mfa-enforcement";
 import { SessionManager } from "@/lib/security/session-manager";
+import { logger } from "@/lib/logger";
 
 // Check environment variables on startup
 const envCheck = checkEnvironmentVariables();
 
 // Log critical auth configuration on startup (production debugging)
 if (process.env.NODE_ENV === 'production') {
-  console.log('[Auth] Production configuration check:', {
+  logger.info('[Auth] Production configuration check', {
     AUTH_SECRET: !!process.env.AUTH_SECRET ? 'SET' : 'MISSING',
     AUTH_URL: process.env.AUTH_URL ? 'SET' : 'NOT SET',
     AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST ? 'SET' : 'NOT SET',
@@ -32,7 +33,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Validate cookie configuration on startup
 if (!validateCookieConfig(DefaultCookieConfig)) {
-  console.error('Cookie configuration validation failed!');
+  logger.error('Cookie configuration validation failed!');
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -56,11 +57,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             user.id,
             user.email,
             account.provider
-          ).catch(console.error);
+          ).catch(e => logger.error('[Auth] Failed to log OAuth account linking', e));
         }
       } catch (error) {
         // Log but don't fail - user is already authenticated at this point
-        console.error('[Auth] linkAccount event error (non-fatal):', error);
+        logger.error('[Auth] linkAccount event error (non-fatal)', error);
       }
     },
     async signIn({ user, account }) {
@@ -68,32 +69,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id && user?.email) {
         const provider = account?.provider || 'credentials';
         await authAuditHelpers.logSignInSuccess(
-          user.id, 
-          user.email, 
+          user.id,
+          user.email,
           provider
-        ).catch(console.error); // Don't fail auth if logging fails
+        ).catch(e => logger.error('[Auth] Failed to log sign-in event', e));
       }
     },
     async signOut(message) {
       // Log sign-out events
       if ('token' in message && message.token?.sub && message.token?.email) {
         await authAuditHelpers.logSignOut(
-          message.token.sub, 
-          message.token.email as string, 
+          message.token.sub,
+          message.token.email as string,
           false
-        ).catch(console.error); // Don't fail auth if logging fails
+        ).catch(e => logger.error('[Auth] Failed to log sign-out event', e));
       }
     }
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
       try {
-        console.log('[Auth] redirect callback:', { url, baseUrl });
+        logger.debug('[Auth] redirect callback', { url, baseUrl });
 
         // Handle callback URLs from OAuth providers
         if (url.includes('/api/auth/callback')) {
           const redirectTo = `${baseUrl}/dashboard/user`;
-          console.log('[Auth] OAuth callback redirect to:', redirectTo);
+          logger.debug('[Auth] OAuth callback redirect to', { redirectTo });
           return redirectTo;
         }
 
@@ -115,7 +116,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Default fallback to dashboard
         return `${baseUrl}/dashboard/user`;
       } catch (error) {
-        console.error('[Auth] redirect callback error:', error);
+        logger.error('[Auth] redirect callback error', error);
         // Fallback to base dashboard on any error
         return `${baseUrl}/dashboard/user`;
       }
@@ -123,23 +124,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       // Ensure we return early if missing critical data
       if (!user || !user.id) {
-        console.log("Missing user data, rejecting sign in");
+        logger.warn('[Auth] Missing user data, rejecting sign in');
         return false;
       }
       
-      console.log("signIn callback triggered:", { 
+      logger.debug('[Auth] signIn callback triggered', {
         provider: account?.provider,
         userId: user?.id,
-        email: user?.email 
       });
       
       // For OAuth providers, always allow
       if (account?.provider && account.provider !== "credentials") {
-        console.log("[Auth] OAuth login successful:", {
+        logger.info('[Auth] OAuth login successful', {
           provider: account.provider,
           userId: user.id,
-          email: user.email,
-          authUrl: process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'NOT SET',
+          authUrl: process.env.AUTH_URL ? 'SET' : 'NOT SET',
         });
         return true;
       }
@@ -151,30 +150,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const lockStatus = await checkAccountLocked(user.id);
           if (lockStatus.locked) {
             const remainingMinutes = Math.ceil(lockStatus.remainingMs / 60000);
-            console.log(`[signIn] Account locked: ${lockStatus.reason}, ${remainingMinutes} min remaining`);
+            logger.warn('[Auth] Account locked', { reason: lockStatus.reason, remainingMinutes });
             return false;
           }
         } catch (lockError) {
           // Log but don't fail auth if lock check fails
-          console.error('[signIn] Brute force check error:', lockError);
+          logger.error('[Auth] Brute force check error', lockError);
         }
 
         const existingUser = await getUserById(user.id);
         
         // Handle case where user might not be found
         if (!existingUser) {
-          console.log("User not found in database, rejecting sign in");
+          logger.warn('[Auth] User not found in database, rejecting sign in', { userId: user.id });
           return false;
         }
         
-        console.log("Existing user in signIn callback:", {
+        logger.debug('[Auth] Existing user in signIn callback', {
           id: existingUser.id,
           emailVerified: !!existingUser.emailVerified,
           isTwoFactorEnabled: existingUser.isTwoFactorEnabled
         });
 
         if (!existingUser?.emailVerified) {
-          console.log("Email not verified, rejecting sign in");
+          logger.warn('[Auth] Email not verified, rejecting sign in', { userId: existingUser.id });
           return false;
         }
 
@@ -182,22 +181,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Regular users use User model without role field
 
         if (existingUser.isTwoFactorEnabled) {
-          console.log("2FA is enabled, checking confirmation");
+          logger.debug('[Auth] 2FA is enabled, checking confirmation');
           try {
             const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(existingUser.id);
-            console.log("2FA confirmation:", !!twoFactorConfirmation);
+            logger.debug('[Auth] 2FA confirmation status', { found: !!twoFactorConfirmation });
 
             if (!twoFactorConfirmation) {
-              console.log("No 2FA confirmation found, rejecting sign in");
+              logger.warn('[Auth] No 2FA confirmation found, rejecting sign in');
               return false;
             }
 
             await db.twoFactorConfirmation.delete({
               where: { id: twoFactorConfirmation.id }
             });
-            console.log("2FA confirmation deleted, allowing sign in");
+            logger.debug('[Auth] 2FA confirmation deleted, allowing sign in');
           } catch (twoFactorError) {
-            console.error("Error during 2FA check:", twoFactorError);
+            logger.error('[Auth] Error during 2FA check', twoFactorError);
             return false;
           }
         }
@@ -207,24 +206,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const { enforceSessionLimit } = await import('@/lib/auth/session-limiter');
           const sessionResult = await enforceSessionLimit(user.id);
           if (sessionResult.enforced) {
-            console.log(`[signIn] Terminated ${sessionResult.terminatedCount} old session(s) to enforce limit`);
+            logger.info('[Auth] Terminated old sessions to enforce limit', { terminatedCount: sessionResult.terminatedCount });
           }
         } catch (sessionError) {
           // Log but don't fail auth if session limit check fails
-          console.error('[signIn] Session limit check error:', sessionError);
+          logger.error('[Auth] Session limit check error', sessionError);
         }
 
-        console.log("Authentication successful, allowing sign in");
+        logger.info('[Auth] Authentication successful, allowing sign in');
         return true;
       } catch (error) {
-        console.error("Error in signIn callback:", error);
+        logger.error('[Auth] Error in signIn callback', error);
         return false;
       }
     },
     async session({ token, session }) {
       try {
         if (!token || !session) {
-          console.error("[Auth] Missing token or session in session callback");
+          logger.error('[Auth] Missing token or session in session callback');
           return session;
         }
 
@@ -241,7 +240,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         return session;
       } catch (error) {
-        console.error("[Auth] session callback error:", error);
+        logger.error('[Auth] session callback error', error);
         return session;
       }
     },
@@ -252,7 +251,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const existingUser = await getUserById(token.sub);
 
         if (!existingUser) {
-          console.log('[JWT] User not found for token.sub:', token.sub);
+          logger.debug('[Auth] JWT - User not found', { tokenSub: token.sub });
           return token;
         }
 
@@ -272,10 +271,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         return token;
       } catch (error) {
-        console.error("[JWT Callback Error]:", {
+        logger.error('[Auth] JWT callback error', {
           error,
           message: error instanceof Error ? error.message : 'Unknown error',
-          code: (error as any)?.code,
+          code: (error as Record<string, unknown>)?.code,
           tokenSub: token.sub
         });
         // Return token even on error to prevent auth breakdown

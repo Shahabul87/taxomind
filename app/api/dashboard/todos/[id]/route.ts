@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { updateTodoSchema } from "@/lib/validations/dashboard";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function PATCH(
   req: NextRequest,
@@ -63,7 +64,7 @@ export async function PATCH(
         error.errors[0].message
       );
     }
-    console.error("[TODO_PATCH]", error);
+    logger.error("[TODO_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update todo",
@@ -113,7 +114,7 @@ export async function DELETE(
 
     return successResponse({ message: "Todo deleted successfully" });
   } catch (error) {
-    console.error("[TODO_DELETE]", error);
+    logger.error("[TODO_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete todo",

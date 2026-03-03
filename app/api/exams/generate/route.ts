@@ -317,7 +317,7 @@ async function generateQuestionsForLevel(
       }));
     }
   } catch (error) {
-    console.error('Error parsing generated questions:', error);
+    logger.error('Error parsing generated questions', error);
   }
 
   return [];

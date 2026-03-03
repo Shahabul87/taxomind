@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import { withCronAuth } from '@/lib/api/cron-auth';
+import { logger } from '@/lib/logger';
 
 // Get practice goal store for resetting weekly goals
 const { practiceGoal: practiceGoalStore } = getPracticeStores();
@@ -19,13 +20,13 @@ export async function GET(request: NextRequest) {
     const authResponse = withCronAuth(request);
     if (authResponse) return authResponse;
 
-    console.log('[CRON] Starting weekly practice goal reset...');
+    logger.info('[CRON] Starting weekly practice goal reset...');
 
     // Reset all weekly goals (sets currentValue back to 0)
     const resetCount = await practiceGoalStore.resetWeeklyGoals();
 
-    console.log(`[CRON] Reset ${resetCount} weekly goals`);
-    console.log('[CRON] Weekly practice goal reset complete');
+    logger.info(`[CRON] Reset ${resetCount} weekly goals`);
+    logger.info('[CRON] Weekly practice goal reset complete');
 
     return NextResponse.json({
       success: true,
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[CRON] Error resetting weekly goals:', error);
+    logger.error('[CRON] Error resetting weekly goals', error);
     return NextResponse.json(
       { success: false, error: 'Failed to reset weekly goals' },
       { status: 500 }

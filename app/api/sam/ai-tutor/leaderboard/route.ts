@@ -70,6 +70,7 @@ async function getClassLeaderboard(courseId: string, period: string, limit: numb
   const enrollments = await db.enrollment.findMany({
     where: { courseId },
     select: { userId: true, createdAt: true },
+    take: 500,
   });
 
   const userIds = Array.from(new Set(enrollments.map((enrollment) => enrollment.userId)));
@@ -93,6 +94,7 @@ async function getFriendsLeaderboard(userId: string, period: string, limit: numb
       members: { some: { userId } },
     },
     select: { id: true },
+    take: 100,
   });
 
   if (!friendGroups.length) return [];
@@ -105,6 +107,7 @@ async function getFriendsLeaderboard(userId: string, period: string, limit: numb
       status: 'active',
     },
     select: { userId: true },
+    take: 500,
   });
 
   const friendIds = Array.from(new Set(members.map((item) => item.userId)));
@@ -128,6 +131,7 @@ async function getUserRank(userId: string, type: string, period: string, courseI
     const enrollments = await db.enrollment.findMany({
       where: { courseId },
       select: { userId: true },
+      take: 500,
     });
     scopedUserIds = enrollments.map((item) => item.userId);
   } else if (type === 'friends') {
@@ -137,6 +141,7 @@ async function getUserRank(userId: string, type: string, period: string, courseI
         members: { some: { userId } },
       },
       select: { id: true },
+      take: 100,
     });
     if (friendGroups.length) {
       const groupIds = friendGroups.map((group) => group.id);
@@ -147,6 +152,7 @@ async function getUserRank(userId: string, type: string, period: string, courseI
           status: 'active',
         },
         select: { userId: true },
+        take: 500,
       });
       scopedUserIds = Array.from(new Set(members.map((item) => item.userId)));
     } else {
@@ -276,11 +282,13 @@ async function buildLeaderboard(options: {
       image: true,
       samLevel: true,
     },
+    take: 500,
   });
 
   const streaks = await db.sAMStreak.findMany({
     where: { userId: { in: ids } },
     select: { userId: true, currentStreak: true },
+    take: 500,
   });
 
   const badgesAgg = await db.sAMBadge.groupBy({
@@ -359,6 +367,7 @@ async function buildLeaderboard(options: {
         },
       },
     },
+    take: 500,
   });
 
   const userMap = new Map(users.map((user) => [user.id, user]));
@@ -394,6 +403,7 @@ async function buildLeaderboard(options: {
         userId: { in: ids },
       },
       select: { userId: true, sectionId: true },
+      take: 500,
     });
 
     const sectionIds = Array.from(new Set(logs.map((log) => log.sectionId).filter(Boolean))) as string[];
@@ -401,6 +411,7 @@ async function buildLeaderboard(options: {
       ? await db.section.findMany({
           where: { id: { in: sectionIds } },
           select: { id: true, chapterId: true },
+          take: 500,
         })
       : [];
 

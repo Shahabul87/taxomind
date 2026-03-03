@@ -222,7 +222,7 @@ export class QueueManager {
             delay: 2000,
           },
           removeOnComplete: 100,
-          removeOnFail: false, // Keep failed webhooks for debugging/retry
+          removeOnFail: 50, // Keep last 50 failed webhooks for debugging
         },
         priority: 'high',
       },
@@ -371,7 +371,7 @@ export class QueueManager {
     // Set up worker health monitoring
     this.setupWorkerHealthCheck(worker, queueName);
 
-    console.log(`[QUEUE_MANAGER] Started enterprise worker for queue: ${queueName} (concurrency: ${config.concurrency})`);
+    logger.info(`[QUEUE_MANAGER] Started enterprise worker for queue: ${queueName} (concurrency: ${config.concurrency})`);
   }
 
   /**

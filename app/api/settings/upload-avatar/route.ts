@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { v2 as cloudinary, UploadApiResponse } from "cloudinary";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from "@/lib/logger";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Avatar upload error:", error);
+    logger.error("Avatar upload error", error);
     return NextResponse.json(
       {
         success: false,

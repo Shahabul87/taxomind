@@ -7,6 +7,7 @@
 
 import type { CriterionEvaluationAdapter } from '@sam-ai/agentic';
 import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
+import { logger } from '@/lib/logger';
 
 interface CriterionEvaluationParams {
   criterion: string;
@@ -140,7 +141,7 @@ Respond with JSON only:`;
           reasoning: result.reasoning,
         };
       } catch (error) {
-        console.error('[CriterionEvaluator] Error evaluating criterion:', error);
+        logger.error('[CriterionEvaluator] Error evaluating criterion', error);
 
         return heuristicEvaluator.evaluateCriterion(params);
       }

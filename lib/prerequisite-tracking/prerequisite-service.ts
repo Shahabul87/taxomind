@@ -333,7 +333,7 @@ export class PrerequisiteTrackingService {
     // Update student status to reflect bypass
     await this.updateStudentStatusWithBypass(studentId, contentId, bypassRecord);
     
-    console.log(`Prerequisite bypass recorded: ${studentId} -> ${contentId} (${bypassReason})`);
+    logger.debug(`Prerequisite bypass recorded: ${studentId} -> ${contentId} (${bypassReason})`);
   }
 
   // Suggest prerequisite improvements based on data
@@ -645,7 +645,7 @@ export class PrerequisiteTrackingService {
     status: StudentPrerequisiteStatus
   ): Promise<void> {
     // Log for analytics
-    console.log(`Prerequisite check: ${studentId} -> ${contentId} (${status.overallStatus})`);
+    logger.debug(`Prerequisite check: ${studentId} -> ${contentId} (${status.overallStatus})`);
   }
 
   private async clearRelatedCaches(targetId: string): Promise<void> {

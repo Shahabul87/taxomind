@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(_req: NextRequest) {
   try {
@@ -10,6 +11,7 @@ export async function GET(_req: NextRequest) {
         User: { select: { name: true } },
         Tag: { select: { name: true } },
       },
+      take: 100,
     });
 
     const authorSet = new Set<string>();
@@ -39,7 +41,7 @@ export async function GET(_req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PUBLIC_POSTS_FILTERS_GET]', error);
+    logger.error('[PUBLIC_POSTS_FILTERS_GET]', error);
     return NextResponse.json({ success: false, error: { code: 'INTERNAL_ERROR' } }, { status: 500 });
   }
 }

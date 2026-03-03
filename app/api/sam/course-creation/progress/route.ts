@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
         where: { courseId: previewCourseId },
         select: { id: true, title: true, position: true, status: true },
         orderBy: { position: 'asc' },
+        take: 100,
       });
 
       const course = await db.course.findUnique({

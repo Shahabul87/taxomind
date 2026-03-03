@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Input validation schema
 const DiscussionCreateSchema = z.object({
@@ -118,7 +119,7 @@ export async function POST(
       );
     }
 
-    console.error('Discussion creation error:', error);
+    logger.error('Discussion creation error', error);
     return NextResponse.json(
       { error: 'Failed to create discussion' },
       { status: 500 }
@@ -233,7 +234,7 @@ export async function GET(
       headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
-    console.error('Discussion fetch error:', error);
+    logger.error('Discussion fetch error', error);
     return NextResponse.json(
       { error: 'Failed to fetch discussions' },
       { status: 500 }

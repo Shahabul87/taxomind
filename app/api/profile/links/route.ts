@@ -19,7 +19,8 @@ export async function GET(req: Request) {
       },
       orderBy: {
         createdAt: "desc"
-      }
+      },
+      take: 100,
     });
     
     return NextResponse.json(profileLinks, { status: 200 });
@@ -51,7 +52,8 @@ export async function POST(req: Request) {
       },
       select: {
         id: true
-      }
+      },
+      take: 100,
     });
     
     const existingIds = existingLinks.map(link => link.id);

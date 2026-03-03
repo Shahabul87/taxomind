@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-utils";
 import { z } from "zod";
 import { startOfDay } from "date-fns";
+import { logger } from "@/lib/logger";
 
 const updateActivitySchema = z.object({
   type: z
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest, context: RouteParams) {
 
     return successResponse(activity);
   } catch (error) {
-    console.error("[LEARNING_ACTIVITY_GET]", error);
+    logger.error("[LEARNING_ACTIVITY_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch activity",
@@ -234,7 +235,7 @@ export async function PATCH(req: NextRequest, context: RouteParams) {
 
     return successResponse(activity);
   } catch (error) {
-    console.error("[LEARNING_ACTIVITY_PATCH]", error);
+    logger.error("[LEARNING_ACTIVITY_PATCH]", error);
 
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
@@ -321,7 +322,7 @@ export async function DELETE(req: NextRequest, context: RouteParams) {
 
     return successResponse({ deleted: true });
   } catch (error) {
-    console.error("[LEARNING_ACTIVITY_DELETE]", error);
+    logger.error("[LEARNING_ACTIVITY_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete activity",

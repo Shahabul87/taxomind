@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   req: NextRequest,
@@ -54,7 +55,7 @@ export async function GET(
 
     return successResponse(activity);
   } catch (error) {
-    console.error("[ACTIVITY_GET]", error);
+    logger.error("[ACTIVITY_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch activity",
@@ -132,7 +133,7 @@ export async function PATCH(
         error.errors[0].message
       );
     }
-    console.error("[ACTIVITY_PATCH]", error);
+    logger.error("[ACTIVITY_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update activity",
@@ -182,7 +183,7 @@ export async function DELETE(
 
     return successResponse({ message: "Activity deleted successfully" });
   } catch (error) {
-    console.error("[ACTIVITY_DELETE]", error);
+    logger.error("[ACTIVITY_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete activity",

@@ -128,6 +128,7 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
       where: {
         sectionId: params.sectionId,
       },
+      take: 200,
       orderBy: {
         position: "asc",
       },

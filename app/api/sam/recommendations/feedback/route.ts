@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const feedbackSchema = z.object({
@@ -206,7 +207,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[SAM Recommendation Feedback] Error:', error);
+    logger.error('[SAM Recommendation Feedback] Error processing feedback', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to process feedback' } },
       { status: 500 }
@@ -266,6 +267,7 @@ export async function GET(req: NextRequest) {
         userRating: true,
         difficulty: true,
       },
+      take: 500,
     });
 
     // Calculate statistics
@@ -335,7 +337,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[SAM Recommendation Feedback] Error:', error);
+    logger.error('[SAM Recommendation Feedback] Error fetching statistics', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get feedback statistics' } },
       { status: 500 }
@@ -375,7 +377,7 @@ async function trackFeedbackAnalytics(
     });
   } catch (error) {
     // Non-critical, log and continue
-    console.error('[SAM Recommendation Feedback] Analytics tracking failed:', error);
+    logger.error('[SAM Recommendation Feedback] Analytics tracking failed', error);
   }
 }
 

@@ -1,5 +1,6 @@
 import { ServerActionCache, invalidateByTags, invalidateKey } from './server-action-cache';
 import { REDIS_KEYS } from './config';
+import { logger } from '@/lib/logger';
 
 /**
  * Cache Invalidation Strategies
@@ -47,7 +48,7 @@ export class CacheInvalidation {
     await invalidateKey(REDIS_KEYS.DASHBOARD_DATA(userId));
     await invalidateKey(REDIS_KEYS.USER_COURSES(userId));
 
-    console.log(`Cache invalidated for user progress: ${userId}${courseId ? ` (course: ${courseId})` : ''}`);
+    logger.debug(`Cache invalidated for user progress: ${userId}${courseId ? ` (course: ${courseId})` : ''}`);
   }
 
   /**

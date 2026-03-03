@@ -6,6 +6,7 @@
  */
 
 import type { ValidationError, SchemaName } from './evaluation-schemas';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // ERROR TRACKING TYPES
@@ -449,11 +450,11 @@ export class ValidationErrorTracker {
   private triggerAlert(alert: ErrorAlert): void {
     if (this.alertConfig.onAlert) {
       Promise.resolve(this.alertConfig.onAlert(alert)).catch((err) => {
-        console.error('[ValidationErrorTracker] Alert callback failed:', err);
+        logger.error('[ValidationErrorTracker] Alert callback failed', err);
       });
     } else {
-      // Default: log to console
-      console.warn('[ValidationErrorTracker] Alert:', alert.type, alert.message);
+      // Default: log via structured logger
+      logger.warn(`[ValidationErrorTracker] Alert: ${alert.type} ${alert.message}`);
     }
   }
 

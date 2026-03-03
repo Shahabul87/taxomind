@@ -57,7 +57,7 @@ export function logRequest(request: NextRequest, requestId: string): void {
     }
   });
 
-  console.log('[REQUEST]', JSON.stringify(log));
+  logger.debug('[REQUEST]', JSON.stringify(log));
   
   // In production, send to logging service
   if (process.env.NODE_ENV === 'production') {
@@ -77,7 +77,7 @@ export function logResponse(response: Response, requestId: string, duration: num
     size: parseInt(response.headers.get('content-length') || '0', 10) || undefined,
   };
 
-  console.log('[RESPONSE]', JSON.stringify(log));
+  logger.debug('[RESPONSE]', JSON.stringify(log));
   
   // In production, send to logging service
   if (process.env.NODE_ENV === 'production') {

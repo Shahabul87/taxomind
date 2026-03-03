@@ -3,6 +3,8 @@
  * Supports Google Analytics 4, Google Tag Manager, and custom analytics
  */
 
+import { logger } from '@/lib/logger';
+
 declare global {
   interface Window {
     dataLayer?: any[];
@@ -57,7 +59,7 @@ export function initGA4(measurementId: string) {
     send_page_view: true,
   });
 
-  console.log("[Analytics] GA4 initialized:", measurementId);
+  logger.info("[Analytics] GA4 initialized", { measurementId });
 }
 
 /**
@@ -90,7 +92,7 @@ export function initGTM(containerId: string) {
   noscript.appendChild(iframe);
   document.body.insertBefore(noscript, document.body.firstChild);
 
-  console.log("[Analytics] GTM initialized:", containerId);
+  logger.info("[Analytics] GTM initialized", { containerId });
 }
 
 /**
@@ -118,7 +120,7 @@ export function trackPageView(event: PageViewEvent) {
     });
   }
 
-  console.log("[Analytics] Page view tracked:", event);
+  logger.debug("[Analytics] Page view tracked", event);
 }
 
 /**
@@ -151,7 +153,7 @@ export function trackEvent(event: AnalyticsEvent) {
   // Custom analytics endpoint
   sendToCustomAnalytics(event);
 
-  console.log("[Analytics] Event tracked:", event);
+  logger.debug("[Analytics] Event tracked", event);
 }
 
 /**
@@ -305,7 +307,7 @@ async function sendToCustomAnalytics(event: AnalyticsEvent) {
       }),
     });
   } catch (error) {
-    console.error("[Analytics] Failed to send to custom endpoint:", error);
+    logger.error("[Analytics] Failed to send to custom endpoint", error);
   }
 }
 

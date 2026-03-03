@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
     const allSections = course.chapters.flatMap((ch) => ch.sections.map((s) => s.id));
     const completions = await db.userSectionCompletion.findMany({
       where: { userId: user.id, sectionId: { in: allSections } },
+      take: 200,
       select: { sectionId: true, progress: true, completedAt: true },
     });
     const completed = new Set<string>();

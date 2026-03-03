@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Input validation schema
 const ProgressUpdateSchema = z.object({
@@ -169,7 +170,7 @@ export async function POST(
       );
     }
 
-    console.error("Error updating progress:", error);
+    logger.error("Error updating progress", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -209,7 +210,7 @@ export async function GET(
       headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
-    console.error("Error fetching progress:", error);
+    logger.error("Error fetching progress", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

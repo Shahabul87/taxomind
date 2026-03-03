@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { BloomsAligner } from "@sam-ai/pedagogy";
 import { devOnlyGuard } from "@/lib/api/dev-only-guard";
+import { logger } from "@/lib/logger";
 
 // Request schema
 const RequestSchema = z.object({
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       confidence: result.confidence,
     });
   } catch (error) {
-    console.error("Blooms analysis error:", error);
+    logger.error("Blooms analysis error", error);
     return NextResponse.json(
       { error: "Analysis failed. Please try again." },
       { status: 500 }

@@ -3,6 +3,8 @@
  * XP, achievements, streaks, and learning rewards
  */
 
+import { logger } from '@/lib/logger';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -523,7 +525,7 @@ export class GamificationEngine {
       try {
         listener(event);
       } catch (error) {
-        console.error('Gamification event listener error:', error);
+        logger.error('Gamification event listener error', error);
       }
     }
   }

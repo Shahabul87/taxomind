@@ -83,6 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const questions = await db.selfAssessmentQuestion.findMany({
       where: { examId },
       orderBy: { order: 'asc' },
+      take: 100,
     });
 
     return NextResponse.json({

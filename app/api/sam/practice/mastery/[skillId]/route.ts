@@ -83,6 +83,7 @@ export async function GET(
         skillId,
       },
       orderBy: { hoursRequired: 'asc' },
+      take: 200,
     });
 
     return NextResponse.json({

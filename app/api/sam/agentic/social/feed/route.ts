@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
     const groupMemberships = await db.groupMember.findMany({
       where: { userId: session.user.id },
       select: { groupId: true },
+      take: 200,
     });
     const groupIds = groupMemberships.map((m) => m.groupId);
 

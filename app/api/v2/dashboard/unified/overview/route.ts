@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { getStore } from '@/lib/sam/taxomind-context';
 import { subDays } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 /**
  * Unified Dashboard Overview API
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[UNIFIED_OVERVIEW_GET]', error);
+    logger.error('[UNIFIED_OVERVIEW_GET]', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch dashboard overview' },
       { status: 500 }
@@ -113,7 +114,7 @@ async function fetchGoalsSummary(userId: string) {
       })),
     };
   } catch (error) {
-    console.error('[GOALS_SUMMARY]', error);
+    logger.error('[GOALS_SUMMARY]', error);
     return {
       total: 0,
       byStatus: { active: 0, completed: 0, paused: 0, draft: 0, abandoned: 0 },
@@ -160,7 +161,7 @@ async function fetchNotificationsSummary(userId: string) {
       recent: recentNotifications,
     };
   } catch (error) {
-    console.error('[NOTIFICATIONS_SUMMARY]', error);
+    logger.error('[NOTIFICATIONS_SUMMARY]', error);
     return {
       unreadCount: 0,
       learningUnread: 0,
@@ -195,7 +196,7 @@ async function fetchStreakData(userId: string) {
       lastActivityDate: null,
     };
   } catch (error) {
-    console.error('[STREAK_DATA]', error);
+    logger.error('[STREAK_DATA]', error);
     return {
       currentStreak: 0,
       longestStreak: 0,
@@ -265,7 +266,7 @@ async function fetchActivityStats(userId: string) {
       })),
     };
   } catch (error) {
-    console.error('[ACTIVITY_STATS]', error);
+    logger.error('[ACTIVITY_STATS]', error);
     return {
       last7Days: {
         activitiesCount: 0,
@@ -307,7 +308,7 @@ async function fetchTodosSummary(userId: string) {
       overdue,
     };
   } catch (error) {
-    console.error('[TODOS_SUMMARY]', error);
+    logger.error('[TODOS_SUMMARY]', error);
     return {
       pending: 0,
       completedToday: 0,

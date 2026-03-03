@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { qaEventBus } from '@/lib/realtime/event-bus';
+import { logger } from '@/lib/logger';
 
 // Schema for updating a question
 const UpdateQuestionSchema = z.object({
@@ -116,6 +117,7 @@ export async function GET(
         userId: user.id,
         answerId: { in: answerIds },
       },
+      take: 100,
     });
 
     const userAnswerVotesMap = new Map(userAnswerVotes.map((v) => [v.answerId, v.value]));
@@ -154,7 +156,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching question:', error);
+    logger.error('[QUESTION_GET] Error fetching question', error);
 
     return NextResponse.json(
       {
@@ -316,7 +318,7 @@ export async function PATCH(
     // Emit SSE update (fire-and-forget)
     try { qaEventBus.emitEvent({ type: 'question_updated', courseId, questionId, payload: { fields: Object.keys(updateData) } }); } catch {}
   } catch (error) {
-    console.error('Error updating question:', error);
+    logger.error('[QUESTION_PATCH] Error updating question', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -415,7 +417,7 @@ export async function DELETE(
       },
     });
   } catch (error) {
-    console.error('Error deleting question:', error);
+    logger.error('[QUESTION_DELETE] Error deleting question', error);
 
     return NextResponse.json(
       {

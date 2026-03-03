@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Log to help debug frequent calls
-    console.log('[Progress Metrics API] Called at:', new Date().toISOString());
+    logger.info('[Progress Metrics API] Called', { timestamp: new Date().toISOString() });
 
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import {
   CourseProgressAnalyticsResponse,
@@ -101,6 +102,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 500,
     });
 
     // Fetch study sessions for velocity calculation
@@ -121,6 +123,7 @@ export async function GET(req: NextRequest) {
         actualEndTime: true,
         startTime: true,
       },
+      take: 500,
     });
 
     // Fetch lesson completions for velocity
@@ -147,6 +150,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      take: 500,
     });
 
     // Fetch quiz completions for velocity
@@ -167,6 +171,7 @@ export async function GET(req: NextRequest) {
         submittedAt: true,
         scorePercentage: true,
       },
+      take: 500,
     });
 
     // Calculate course progress data
@@ -348,7 +353,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: response });
   } catch (error) {
-    console.error('Course Progress Analytics API Error:', error);
+    logger.error('Course Progress Analytics API Error', error);
     return NextResponse.json(
       {
         success: false,

@@ -1151,7 +1151,7 @@ export class HealthMonitor {
         category: 'system',
       };
       
-      console.log('[SYSTEM_ALERT]', JSON.stringify(alertData, null, 2));
+      logger.info('[SYSTEM_ALERT]', JSON.stringify(alertData, null, 2));
       
     } catch (error: any) {
       logger.error(`[HEALTH_MONITOR] Failed to send system alert:`, error);

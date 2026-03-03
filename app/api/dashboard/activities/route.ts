@@ -14,6 +14,7 @@ import {
 } from "@/lib/api-utils";
 import { z } from "zod";
 import { startOfDay, endOfDay, subDays, addDays } from "date-fns";
+import { logger } from "@/lib/logger";
 
 async function ensureTableExists() {
   try {
@@ -29,7 +30,7 @@ async function ensureTableExists() {
     const tableExists = (tableCheck as Array<{exists: boolean}>)[0]?.exists || false;
 
     if (!tableExists) {
-      console.log("⚠️ Creating dashboard_activities table on-demand...");
+      logger.info("Creating dashboard_activities table on-demand...");
 
       // Create enums
       await db.$executeRaw`
@@ -113,13 +114,13 @@ async function ensureTableExists() {
           END $$;
         `;
       } else {
-        console.log("⚠️ Skipping foreign key for users table (table doesn't exist)");
+        logger.info("Skipping foreign key for users table (table does not exist)");
       }
 
-      console.log("✅ dashboard_activities table created successfully");
+      logger.info("dashboard_activities table created successfully");
     }
   } catch (error) {
-    console.error("Error ensuring table exists:", error);
+    logger.error("Error ensuring table exists", error);
     // Don't throw - let the main function handle it
   }
 }
@@ -234,7 +235,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("[ACTIVITIES_GET] Error details:", {
+    logger.error("[ACTIVITIES_GET] Error details", {
       error,
       message: error instanceof Error ? error.message : "Unknown error",
       name: error instanceof Error ? error.name : undefined,
@@ -297,7 +298,7 @@ export async function POST(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[ACTIVITIES_POST]", error);
+    logger.error("[ACTIVITIES_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to create activity",

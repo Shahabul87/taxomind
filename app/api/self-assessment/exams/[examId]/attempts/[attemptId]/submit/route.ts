@@ -353,6 +353,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const allAttempts = await db.selfAssessmentAttempt.findMany({
       where: { examId, status: 'GRADED' },
       select: { scorePercentage: true },
+      take: 100,
     });
 
     const avgScore =

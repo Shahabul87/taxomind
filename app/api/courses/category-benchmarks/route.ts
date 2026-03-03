@@ -110,6 +110,7 @@ export async function GET(req: Request) {
           isNot: null,
         },
       },
+      take: 500,
       include: {
         cognitiveQuality: true,
       },

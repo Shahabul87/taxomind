@@ -5,6 +5,7 @@
 
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 interface PasswordStrengthResult {
   score: number;        // 0-5 score
@@ -183,7 +184,7 @@ export class PasswordSecurity {
       
       return false;
     } catch (error) {
-      console.error('Error checking password history:', error);
+      logger.error('Error checking password history:', error);
       return false;
     }
   }
@@ -217,7 +218,7 @@ export class PasswordSecurity {
         });
       }
     } catch (error) {
-      console.error('Error saving password to history:', error);
+      logger.error('Error saving password to history:', error);
     }
   }
 
@@ -268,7 +269,7 @@ export class PasswordSecurity {
       
       return daysSinceChange > maxAgeDays;
     } catch (error) {
-      console.error('Error checking password age:', error);
+      logger.error('Error checking password age:', error);
       return false;
     }
   }
@@ -353,7 +354,7 @@ export class PasswordSecurity {
       
       return { success: true, message: 'Password updated successfully' };
     } catch (error) {
-      console.error('Error updating password:', error);
+      logger.error('Error updating password:', error);
       return { success: false, message: 'Failed to update password' };
     }
   }

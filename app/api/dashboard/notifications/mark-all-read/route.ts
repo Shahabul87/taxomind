@@ -7,6 +7,7 @@ import {
   ErrorCodes,
   HttpStatus,
 } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function PATCH(req: NextRequest) {
       count: result.count,
     });
   } catch (error) {
-    console.error("[NOTIFICATIONS_MARK_ALL_READ]", error);
+    logger.error("[NOTIFICATIONS_MARK_ALL_READ]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to mark notifications as read",

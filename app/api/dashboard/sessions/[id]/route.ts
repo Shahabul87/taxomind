@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from '@/lib/api-utils';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const updateSessionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     return successResponse(session);
   } catch (error) {
-    console.error('[SESSION_GET]', error);
+    logger.error('[SESSION_GET]', error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       'Failed to fetch session',
@@ -112,7 +113,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (error instanceof z.ZodError) {
       return errorResponse(ErrorCodes.VALIDATION_ERROR, error.errors[0].message);
     }
-    console.error('[SESSION_PATCH]', error);
+    logger.error('[SESSION_PATCH]', error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       'Failed to update session',
@@ -151,7 +152,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
 
     return successResponse({ success: true });
   } catch (error) {
-    console.error('[SESSION_DELETE]', error);
+    logger.error('[SESSION_DELETE]', error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       'Failed to delete session',

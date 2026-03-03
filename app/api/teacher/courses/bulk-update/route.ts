@@ -62,6 +62,7 @@ export async function PATCH(request: NextRequest) {
         title: true,
         isPublished: true,
       },
+      take: 100,
     });
 
     // Check if all courses exist

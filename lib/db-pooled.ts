@@ -10,6 +10,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Connection pool configuration - environment-aware defaults
 // Production needs higher limits for concurrent users; dev uses conservative defaults
@@ -44,17 +45,17 @@ class DatabaseMetrics {
 
     // Log slow queries
     if (duration > PERFORMANCE_THRESHOLDS.CRITICAL_QUERY) {
-      console.error(`🔴 CRITICAL: Query ${model}.${action} took ${duration}ms`);
+      logger.error(`CRITICAL: Query ${model}.${action} took ${duration}ms`);
     } else if (duration > PERFORMANCE_THRESHOLDS.VERY_SLOW_QUERY) {
-      console.warn(`🟡 WARNING: Slow query ${model}.${action} took ${duration}ms`);
+      logger.warn(`Slow query ${model}.${action} took ${duration}ms`);
     } else if (duration > PERFORMANCE_THRESHOLDS.SLOW_QUERY) {
-      console.log(`🟠 NOTICE: Query ${model}.${action} took ${duration}ms`);
+      logger.debug(`Query ${model}.${action} took ${duration}ms`);
     }
   }
 
   static recordError(error: Error, model: string, action: string) {
     this.errorCount++;
-    console.error(`Database error in ${model}.${action}:`, error.message);
+    logger.error(`Database error in ${model}.${action}`, error.message);
   }
 
   static getMetrics() {
@@ -184,7 +185,7 @@ const prismaClientSingleton = () => {
               const backoffDelays = [100, 500, 1000]; // Exponential backoff
               for (let attempt = 0; attempt < backoffDelays.length; attempt++) {
                 try {
-                  console.log(`Retrying ${model}.${operation} (attempt ${attempt + 1}) after transient error`);
+                  logger.info(`Retrying ${model}.${operation} (attempt ${attempt + 1}) after transient error`);
                   await sleep(backoffDelays[attempt]);
                   return await query(args);
                 } catch (retryError) {

@@ -15,6 +15,7 @@ import matter from 'gray-matter';
 import type { CategoryPromptEnhancer, DomainBloomsGuidance } from './types';
 import type { BloomsLevel } from '../types';
 import { CategorySkillFrontmatterSchema, type ParsedCategorySkill } from './skill-schema';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Directory where .skill.md files live
@@ -150,7 +151,7 @@ function parseSkillFile(filePath: string): ParsedCategorySkill | null {
 
   const result = CategorySkillFrontmatterSchema.safeParse(data);
   if (!result.success) {
-    console.warn(
+    logger.warn(
       `[skill-loader] Invalid frontmatter in ${fileName}: ${result.error.message}`
     );
     diagnosticsCache.invalidFrontmatter.push(fileName);
@@ -163,7 +164,7 @@ function parseSkillFile(filePath: string): ParsedCategorySkill | null {
     return !body || body.trim().length === 0;
   });
   if (missing.length > 0) {
-    console.warn(
+    logger.warn(
       `[skill-loader] Missing required markdown sections in ${fileName}: ${missing.join(', ')}`
     );
     diagnosticsCache.missingSections.push({ file: fileName, missing: [...missing] });
@@ -278,7 +279,7 @@ function loadAll(): void {
   };
 
   if (!fs.existsSync(SKILLS_DIR)) {
-    console.warn(`[skill-loader] Skills directory not found: ${SKILLS_DIR}`);
+    logger.warn(`[skill-loader] Skills directory not found: ${SKILLS_DIR}`);
     orderedCache = [];
     generalCache = createFallbackGeneral();
     return;
@@ -293,7 +294,7 @@ function loadAll(): void {
     if (parsed) {
       if (byId.has(parsed.frontmatter.categoryId)) {
         diagnosticsCache.duplicateCategoryIds.push(parsed.frontmatter.categoryId);
-        console.warn(`[skill-loader] Duplicate categoryId detected: ${parsed.frontmatter.categoryId}`);
+        logger.warn(`[skill-loader] Duplicate categoryId detected: ${parsed.frontmatter.categoryId}`);
       }
       byId.set(parsed.frontmatter.categoryId, toEnhancer(parsed));
       diagnosticsCache.loaded += 1;
@@ -320,7 +321,7 @@ function loadAll(): void {
   generalCache = byId.get('general') ?? createFallbackGeneral();
   diagnosticsCache.missingPriorityIds = PRIORITY_ORDER.filter((id) => !byId.has(id));
 
-  console.info(
+  logger.info(
     `[skill-loader] Loaded ${diagnosticsCache.loaded}/${diagnosticsCache.totalFiles} skill files ` +
       `(invalid frontmatter: ${diagnosticsCache.invalidFrontmatter.length}, missing sections: ${diagnosticsCache.missingSections.length}, duplicates: ${diagnosticsCache.duplicateCategoryIds.length})`
   );

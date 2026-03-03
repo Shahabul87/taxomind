@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { format } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/dashboard/study-plan-tasks
@@ -26,8 +27,7 @@ export async function GET(req: NextRequest) {
     // Client should ALWAYS provide their local date to avoid timezone issues
     const targetDate = dateParam ?? format(new Date(), 'yyyy-MM-dd');
 
-    // Debug: log what we're searching for (remove in production after debugging)
-    console.log('[STUDY_PLAN_TASKS_GET] Searching for date:', targetDate, 'userId:', user.id);
+    logger.debug('[STUDY_PLAN_TASKS_GET] Searching for date', { targetDate, userId: user.id });
 
     // Get all active goals for the user that are study plans
     const allGoals = await db.sAMLearningGoal.findMany({
@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
         title: true,
         metadata: true,
       },
+      take: 200,
     });
 
     // Filter to only study plan type goals
@@ -50,8 +51,7 @@ export async function GET(req: NextRequest) {
 
     const hasStudyPlans = goals.length > 0;
 
-    // Debug: log goal counts
-    console.log('[STUDY_PLAN_TASKS_GET] Found goals:', {
+    logger.debug('[STUDY_PLAN_TASKS_GET] Found goals', {
       totalActiveGoals: allGoals.length,
       studyPlanGoals: goals.length,
       goalTitles: goals.map(g => g.title).slice(0, 5),
@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
       where: {
         goalId: { in: goals.map((g) => g.id) },
       },
+      take: 200,
       select: {
         id: true,
         goalId: true,
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {} as Record<string, number>);
 
-    console.log('[STUDY_PLAN_TASKS_GET] Subgoal analysis:', {
+    logger.debug('[STUDY_PLAN_TASKS_GET] Subgoal analysis', {
       totalSubgoals: subGoals.length,
       targetDate,
       uniqueDates: Object.keys(scheduledDates).length,
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
       return false;
     });
 
-    console.log('[STUDY_PLAN_TASKS_GET] Found tasks for today:', todaysTasks.length);
+    logger.debug('[STUDY_PLAN_TASKS_GET] Found tasks for today', { count: todaysTasks.length });
 
     // Build goal map for quick lookup
     const goalMap = new Map(goals.map((g) => [g.id, g]));
@@ -156,7 +157,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[STUDY_PLAN_TASKS_GET]', error);
+    logger.error('[STUDY_PLAN_TASKS_GET]', error);
     return NextResponse.json(
       { error: 'Failed to fetch study plan tasks' },
       { status: 500 }

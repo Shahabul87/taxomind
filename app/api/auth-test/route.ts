@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { devOnlyGuard } from "@/lib/api/dev-only-guard";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +21,7 @@ export async function GET() {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('[AUTH_TEST]', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[AUTH_TEST]', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({
       error: true,
       message: 'Internal server error',

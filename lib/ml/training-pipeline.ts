@@ -35,7 +35,7 @@ export class MLTrainingPipeline {
       // 4. Evaluate model
       const formattedTestSet = this.prepareDataForModel(testSet, modelType);
       const metrics = await model.evaluate(formattedTestSet);
-      console.log(`Model accuracy: ${(metrics.accuracy * 100).toFixed(2)}%`);
+      logger.info(`Model accuracy: ${(metrics.accuracy * 100).toFixed(2)}%`);
 
       // 5. Save model if performance is acceptable
       if (metrics.accuracy > 0.7) {
@@ -194,7 +194,7 @@ export class MLTrainingPipeline {
     const modelInfo = model.getModelInfo();
     
     // Store model metadata (in production, use proper ML model table)
-    console.log('Model trained and saved:', {
+    logger.info('Model trained and saved:', {
       modelId: modelInfo.id,
       type: modelInfo.type,
       accuracy: metrics.accuracy
@@ -308,7 +308,7 @@ export class MLTrainingPipeline {
           if (metrics.accuracy > 0.7) {
             await existingModel.saveModel();
             await this.saveModelMetadata(existingModel, metrics);
-            console.log(`Updated ${modelType} model - Accuracy: ${(metrics.accuracy * 100).toFixed(2)}%`);
+            logger.info(`Updated ${modelType} model - Accuracy: ${(metrics.accuracy * 100).toFixed(2)}%`);
           }
         }
       } catch (error: any) {

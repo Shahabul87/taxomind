@@ -5,12 +5,13 @@
  * to ensure OAuth flows work correctly with our security settings.
  */
 
-import { 
-  getSecureCookieConfig, 
-  getSessionConfig, 
+import {
+  getSecureCookieConfig,
+  getSessionConfig,
   validateCookieConfig,
-  CookieEnvironments 
+  CookieEnvironments
 } from './cookie-config';
+import { logger } from '@/lib/logger';
 
 /**
  * Test OAuth callback compatibility
@@ -250,5 +251,5 @@ export function generateSecurityReport(): string {
 
 // Run audit on import in development
 if (process.env.NODE_ENV === 'development') {
-  console.log('\n' + generateSecurityReport());
+  logger.info('Cookie security audit report', { report: generateSecurityReport() });
 }

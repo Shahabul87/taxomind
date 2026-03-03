@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -168,6 +169,7 @@ export async function GET(
       where: {
         sectionId: params.sectionId,
       },
+      take: 200,
       orderBy: [
         { position: 'asc' },
         { createdAt: 'asc' }
@@ -198,6 +200,7 @@ export async function GET(
         where: {
           sectionId: params.sectionId,
         },
+        take: 200,
         orderBy: [
           { position: 'asc' },
           { createdAt: 'asc' }
@@ -225,7 +228,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('[CODE_BLOCKS_GET]', error);
+    logger.error('[CODE_BLOCKS_GET]', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       error: {
@@ -310,6 +313,7 @@ export async function POST(
     // Calculate and update line numbers
     const allBlocks = await db.codeExplanation.findMany({
       where: { sectionId: params.sectionId },
+      take: 200,
       orderBy: { position: 'asc' }
     });
 
@@ -339,7 +343,7 @@ export async function POST(
       }
     }, { status: 201 });
   } catch (error) {
-    console.error('[CODE_BLOCKS_POST]', error);
+    logger.error('[CODE_BLOCKS_POST]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json<ApiResponse>({

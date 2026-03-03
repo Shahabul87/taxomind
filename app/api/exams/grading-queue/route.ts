@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { EvaluationType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // ==========================================
 // Teacher Grading Queue API Route
@@ -163,7 +164,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error fetching grading queue:', error);
+    logger.error('Error fetching grading queue', error);
     return NextResponse.json({ error: 'Failed to fetch grading queue' }, { status: 500 });
   }
 }
@@ -268,7 +269,7 @@ export async function PATCH(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error updating grade:', error);
+    logger.error('Error updating grade', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -324,7 +325,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Error in grading queue action:', error);
+    logger.error('Error in grading queue action', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

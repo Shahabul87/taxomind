@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { LearningAlertType, AlertChannel } from '@prisma/client';
 import { subDays, subHours } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 /**
  * Unified Notifications API v2
@@ -225,7 +226,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[NOTIFICATIONS_GET_V2]', error);
+    logger.error('[NOTIFICATIONS_GET_V2]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
       data: notification,
     });
   } catch (error) {
-    console.error('[NOTIFICATIONS_POST_V2]', error);
+    logger.error('[NOTIFICATIONS_POST_V2]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -379,7 +380,7 @@ export async function PATCH(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[NOTIFICATIONS_PATCH_V2]', error);
+    logger.error('[NOTIFICATIONS_PATCH_V2]', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

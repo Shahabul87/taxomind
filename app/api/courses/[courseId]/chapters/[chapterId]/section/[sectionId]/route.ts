@@ -71,7 +71,8 @@ export async function DELETE(
       where: {
         courseId: params.courseId,
         isPublished: true,
-      }
+      },
+      take: 200,
     });
 
     // If there are no published chapters left, update the course to be unpublished

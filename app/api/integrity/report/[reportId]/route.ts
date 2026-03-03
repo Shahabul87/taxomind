@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -88,7 +89,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[INTEGRITY_REPORT_GET]', error);
+    logger.error('[INTEGRITY_REPORT_GET]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch report' } },
       { status: 500 }

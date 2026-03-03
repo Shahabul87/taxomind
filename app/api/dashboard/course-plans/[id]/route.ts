@@ -8,6 +8,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { updateCoursePlanSchema } from "@/lib/validations/dashboard";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -78,7 +79,7 @@ export async function GET(
 
     return successResponse(coursePlan);
   } catch (error) {
-    console.error("[COURSE_PLAN_GET]", error);
+    logger.error("[COURSE_PLAN_GET]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to fetch course plan", 500);
   }
 }
@@ -166,7 +167,7 @@ export async function PATCH(
       return errorResponse("VALIDATION_ERROR", error.errors[0].message);
     }
 
-    console.error("[COURSE_PLAN_PATCH]", error);
+    logger.error("[COURSE_PLAN_PATCH]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to update course plan", 500);
   }
 }
@@ -207,7 +208,7 @@ export async function DELETE(
 
     return successResponse({ id: params.id });
   } catch (error) {
-    console.error("[COURSE_PLAN_DELETE]", error);
+    logger.error("[COURSE_PLAN_DELETE]", error);
     return errorResponse("INTERNAL_ERROR", "Failed to delete course plan", 500);
   }
 }

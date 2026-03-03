@@ -10,6 +10,7 @@ import axios from 'axios';
 import twilio from 'twilio';
 
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 /**
  * Alert severity levels
@@ -128,7 +129,7 @@ export class AlertManager {
   
   private constructor() {
     this.initializeNotificationChannels().catch((error) => {
-      console.error('Failed to initialize notification channels:', error);
+      logger.error('Failed to initialize notification channels', error);
     });
     this.loadAlertRules();
   }
@@ -620,7 +621,7 @@ export class AlertManager {
    */
   private async sendEmailAlert(config: Record<string, unknown>, alert: Alert): Promise<void> {
     // DISABLED: Email alerts via nodemailer are disabled. Use Resend for email alerts.
-    console.warn('[AlertManager] Email alerts are disabled. Configure Resend for email notifications.');
+    logger.warn('[AlertManager] Email alerts are disabled. Configure Resend for email notifications.');
     return;
 
     // if (!this.emailChannel?.transporter || !this.emailChannel.enabled) return;
@@ -669,7 +670,7 @@ export class AlertManager {
     
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
     if (!fromNumber) {
-      console.error('TWILIO_PHONE_NUMBER not configured');
+      logger.error('TWILIO_PHONE_NUMBER not configured');
       return;
     }
     

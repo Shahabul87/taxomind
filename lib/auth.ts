@@ -3,6 +3,7 @@ import 'server-only';
 import { auth } from "@/auth";
 import { adminAuth } from "@/auth.admin";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export const currentUser = async () => {
   const session = await auth();
@@ -16,8 +17,8 @@ export const currentUser = async () => {
     });
 
     if (!userExists) {
-      console.warn(`[currentUser] Session contains non-existent user ID: ${session.user.id}`);
-      console.warn('User should clear cookies and log in again.');
+      logger.warn(`[currentUser] Session contains non-existent user ID: ${session.user.id}`);
+      logger.warn('User should clear cookies and log in again.');
       return null; // Return null to indicate no valid user
     }
   }
@@ -30,7 +31,7 @@ export const currentUser = async () => {
  * Use isTeacher flag or check against admin auth system instead.
  */
 export const currentRole = async () => {
-  console.warn('[currentRole] DEPRECATED: Users no longer have roles. Admin auth is separate.');
+  logger.warn('[currentRole] DEPRECATED: Users no longer have roles. Admin auth is separate.');
   return null;
 };
 

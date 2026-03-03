@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { logger } from '@/lib/logger';
 
 // ==========================================
 // Subjective Answer Evaluator Types
@@ -386,7 +387,7 @@ Please evaluate this answer according to the guidelines and provide your assessm
         evaluationType: 'AI_EVALUATED',
       };
     } catch (error) {
-      console.error('Error parsing AI evaluation response:', error);
+      logger.error('Error parsing AI evaluation response', error);
       return this.getDefaultEvaluationResult(context);
     }
   }

@@ -13,6 +13,7 @@
  */
 
 import { BloomsLevel, QuestionType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES AND INTERFACES
@@ -588,7 +589,7 @@ export class QTIImporter {
         points: 1 // Default, can be extracted from weight if present
       };
     } catch {
-      console.error('Failed to parse QTI XML');
+      logger.error('Failed to parse QTI XML');
       return null;
     }
   }

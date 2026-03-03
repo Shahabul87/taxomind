@@ -12,6 +12,7 @@
 import { db } from "@/lib/db";
 import { hash } from "bcryptjs";
 import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 /**
  * Admin creation strategies
@@ -34,7 +35,7 @@ export async function needsInitialAdmin(): Promise<boolean> {
     const adminCount = await db.adminAccount.count();
     return adminCount === 0;
   } catch (error) {
-    console.error("Error checking admin count:", error);
+    logger.error("Error checking admin count", error);
     return false;
   }
 }
@@ -92,10 +93,10 @@ export async function createFirstAdmin(
       },
     });
 
-    console.log(`✅ First admin created: ${email}`);
+    logger.info("First admin created");
     return { success: true, user };
   } catch (error) {
-    console.error("Error creating first admin:", error);
+    logger.error("Error creating first admin", error);
     return { success: false, error: "Failed to create admin" };
   }
 }
@@ -154,10 +155,10 @@ export async function promoteToAdmin(
       },
     });
 
-    console.log(`✅ User promoted to admin`);
+    logger.info(`User promoted to admin`);
     return { success: true };
   } catch (error) {
-    console.error("Error promoting user to admin:", error);
+    logger.error("Error promoting user to admin:", error);
     return { success: false, error: "Failed to promote user" };
   }
   */
@@ -227,10 +228,10 @@ export async function createAdminInvitation(
       },
     });
 
-    console.log(`✅ Admin invitation created for ${email}`);
+    logger.info("Admin invitation created");
     return { success: true, invitation: { email, token, expiresAt } };
   } catch (error) {
-    console.error("Error creating admin invitation:", error);
+    logger.error("Error creating admin invitation", error);
     return { success: false, error: "Failed to create invitation" };
   }
 }
@@ -296,10 +297,10 @@ export async function acceptAdminInvitation(
       },
     });
 
-    console.log(`✅ Admin invitation accepted by ${email}`);
+    logger.info("Admin invitation accepted");
     return { success: true, user };
   } catch (error) {
-    console.error("Error accepting admin invitation:", error);
+    logger.error("Error accepting admin invitation", error);
     return { success: false, error: "Failed to accept invitation" };
   }
 }
@@ -361,7 +362,7 @@ export async function initializeAdmin(): Promise<void> {
     const needsAdmin = await needsInitialAdmin();
     
     if (!needsAdmin) {
-      console.log("✅ Admin already exists");
+      logger.info("Admin already exists");
       return;
     }
 
@@ -377,12 +378,12 @@ export async function initializeAdmin(): Promise<void> {
       );
       
       if (result.success) {
-        console.log("✅ Default admin created from environment variables");
+        logger.info("Default admin created from environment variables");
       }
     } else {
-      console.log("⚠️ No admin exists. First user to register will become admin.");
+      logger.warn("No admin exists. First user to register will become admin.");
     }
   } catch (error) {
-    console.error("Error initializing admin:", error);
+    logger.error("Error initializing admin", error);
   }
 }

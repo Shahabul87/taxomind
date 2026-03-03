@@ -20,6 +20,7 @@ import { HealthMonitor, handleHealthCheck, handleLivenessProbe, handleReadinessP
 import { DashboardManager } from './dashboard';
 import { IncidentResponseManager } from './incident-response';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { logger } from '@/lib/logger';
 
 /**
  * Monitoring system instance
@@ -75,9 +76,9 @@ class MonitoringSystem {
       await this.startMetricCollection();
       
       this.initialized = true;
-      console.log('Monitoring system initialized successfully');
+      logger.info('Monitoring system initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize monitoring system: ', error);
+      logger.error('Failed to initialize monitoring system', error);
       throw error;
     }
   }
@@ -101,9 +102,9 @@ class MonitoringSystem {
       }
       
       this.initialized = false;
-      console.log('Monitoring system shut down successfully');
+      logger.info('Monitoring system shut down successfully');
     } catch (error) {
-      console.error('Error shutting down monitoring system: ', error);
+      logger.error('Error shutting down monitoring system', error);
     }
   }
   
@@ -135,7 +136,7 @@ class MonitoringSystem {
    */
   private setupHealthListeners(): void {
     this.healthMonitor.getEmitter().on('status_changed', (event) => {
-      console.log(`Health status changed: ${event.check} from ${event.previousStatus} to ${event.currentStatus}`);
+      logger.info(`Health status changed: ${event.check} from ${event.previousStatus} to ${event.currentStatus}`);
       
       // Record health status change as metric
       this.metricsCollector.recordCustomMetric(
@@ -147,7 +148,7 @@ class MonitoringSystem {
     });
     
     this.healthMonitor.getEmitter().on('critical_failure', async (event) => {
-      console.error(`Critical health failure: ${event.check}`, event.error);
+      logger.error(`Critical health failure: ${event.check}`, event.error);
       
       // Trigger critical alert
       await this.alertManager.evaluateMetric('health_critical',
@@ -162,15 +163,15 @@ class MonitoringSystem {
    */
   private setupIncidentListeners(): void {
     this.incidentManager.getEmitter().on('incident_created', (incident) => {
-      console.log(`Incident created: ${incident.id} - ${incident.title}`);
+      logger.info(`Incident created: ${incident.id} - ${incident.title}`);
     });
     
     this.incidentManager.getEmitter().on('incident_resolved', (incident) => {
-      console.log(`Incident resolved: ${incident.id}`);
+      logger.info(`Incident resolved: ${incident.id}`);
     });
     
     this.incidentManager.getEmitter().on('incident_escalated', (incident) => {
-      console.error(`Incident escalated: ${incident.id} to ${incident.severity}`);
+      logger.error(`Incident escalated: ${incident.id} to ${incident.severity}`);
     });
   }
   
@@ -182,7 +183,7 @@ class MonitoringSystem {
     await this.metricsCollector.collectBusinessMetrics();
     await this.metricsCollector.collectTechnicalMetrics();
     
-    console.log('Metric collection started');
+    logger.info('Metric collection started');
   }
   
   /**

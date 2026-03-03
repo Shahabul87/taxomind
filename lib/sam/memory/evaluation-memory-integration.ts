@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logger as globalLogger } from '@/lib/logger';
 import type {
   EvaluationOutcome,
   OutcomeRecordingResult,
@@ -223,13 +224,13 @@ export interface MemoryIntegrationLogger {
 }
 
 /**
- * Default console logger
+ * Default logger using structured global logger
  */
 const defaultLogger: MemoryIntegrationLogger = {
-  debug: (msg, ctx) => console.debug(`[MemoryIntegration] ${msg}`, ctx),
-  info: (msg, ctx) => console.info(`[MemoryIntegration] ${msg}`, ctx),
-  warn: (msg, ctx) => console.warn(`[MemoryIntegration] ${msg}`, ctx),
-  error: (msg, ctx) => console.error(`[MemoryIntegration] ${msg}`, ctx),
+  debug: (msg, ctx) => globalLogger.debug(`[MemoryIntegration] ${msg}`, ctx),
+  info: (msg, ctx) => globalLogger.info(`[MemoryIntegration] ${msg}`, ctx),
+  warn: (msg, ctx) => globalLogger.warn(`[MemoryIntegration] ${msg}`, ctx),
+  error: (msg, ctx) => globalLogger.error(`[MemoryIntegration] ${msg}`, ctx),
 };
 
 /**

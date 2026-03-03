@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { getUserEmailStatus } from '@/lib/queue/email-tracking';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ emails: emailLogs });
   } catch (error) {
-    console.error('[Email Status API] Error:', error);
+    logger.error('[Email Status API] Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

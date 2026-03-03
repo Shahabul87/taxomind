@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Validation schemas
 const paramsSchema = z.object({
@@ -81,7 +82,7 @@ export async function GET(
       data: predictions,
     });
   } catch (error) {
-    console.error("[SMART_PREDICTIONS_GET]", error);
+    logger.error("[SMART_PREDICTIONS_GET]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -114,6 +115,7 @@ async function getProgressData(userId: string, courseId: string) {
       userId,
       courseId,
     },
+    take: 500,
     select: {
       id: true,
       isCompleted: true,

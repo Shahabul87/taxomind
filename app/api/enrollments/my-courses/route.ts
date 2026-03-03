@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     return successResponse(courses);
   } catch (error) {
-    console.error("[MY_COURSES_GET]", error);
+    logger.error("[MY_COURSES_GET]", error);
     return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch enrolled courses", HttpStatus.INTERNAL_ERROR);
   }
 }

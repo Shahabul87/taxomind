@@ -15,6 +15,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -40,7 +41,7 @@ export async function recordLoginAttempt(
     });
   } catch (error) {
     // Log but don't fail auth flow
-    console.error('[BruteForce] Failed to record login attempt:', error);
+    logger.error('[BruteForce] Failed to record login attempt', error);
   }
 }
 
@@ -106,7 +107,7 @@ export async function checkAccountLocked(userId: string): Promise<{
 
     return { locked: false, remainingMs: 0, reason: null };
   } catch (error) {
-    console.error('[BruteForce] Failed to check account lock status:', error);
+    logger.error('[BruteForce] Failed to check account lock status', error);
     // On error, allow login attempt (fail open for UX)
     return { locked: false, remainingMs: 0, reason: null };
   }
@@ -144,7 +145,7 @@ export async function incrementFailedAttempts(userId: string): Promise<{
 
     return { locked: shouldLock, attempts: newAttempts };
   } catch (error) {
-    console.error('[BruteForce] Failed to increment failed attempts:', error);
+    logger.error('[BruteForce] Failed to increment failed attempts', error);
     return { locked: false, attempts: 0 };
   }
 }
@@ -164,7 +165,7 @@ export async function resetFailedAttempts(userId: string): Promise<void> {
       },
     });
   } catch (error) {
-    console.error('[BruteForce] Failed to reset failed attempts:', error);
+    logger.error('[BruteForce] Failed to reset failed attempts', error);
   }
 }
 
@@ -192,7 +193,7 @@ export async function getRecentAttemptCount(
 
     return count;
   } catch (error) {
-    console.error('[BruteForce] Failed to get recent attempt count:', error);
+    logger.error('[BruteForce] Failed to get recent attempt count', error);
     return 0;
   }
 }

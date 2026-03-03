@@ -11,6 +11,7 @@ import {
   createFairnessSafetyValidator,
   createStrictFairnessValidator,
 } from './fairness-validator';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // TYPES
@@ -308,13 +309,13 @@ export class SafeEvaluationWrapper {
    */
   private logSafetyResult(evaluationId: string | undefined, result: SafetyResult): void {
     if (result.passed) {
-      console.log(`[SafeEvaluation] ${evaluationId ?? 'unknown'}: PASSED (score: ${result.score})`);
+      logger.info(`[SafeEvaluation] ${evaluationId ?? 'unknown'}: PASSED (score: ${result.score})`);
     } else {
-      console.warn(
+      logger.warn(
         `[SafeEvaluation] ${evaluationId ?? 'unknown'}: FAILED (score: ${result.score}, issues: ${result.issues.length})`
       );
       for (const issue of result.issues) {
-        console.warn(`  - [${issue.severity}] ${issue.type}: ${issue.description}`);
+        logger.warn(`  - [${issue.severity}] ${issue.type}: ${issue.description}`);
       }
     }
   }

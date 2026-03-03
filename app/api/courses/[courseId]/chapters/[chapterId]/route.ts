@@ -62,6 +62,7 @@ export async function DELETE(
           gt: chapter.position
         }
       },
+      take: 200,
       orderBy: {
         position: "asc"
       }

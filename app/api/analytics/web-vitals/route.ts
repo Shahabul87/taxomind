@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       'web_vitals',
       async () => {
         // Model doesn't exist, just log the data
-        console.log('Web vital recorded:', {
+        logger.debug('Web vital recorded', {
           name,
           value,
           rating,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (threshold && value > threshold) {
       // Create performance alert
       // await db.performanceAlert.create({ // Model doesn't exist
-      console.log('Performance alert:', {
+      logger.warn('Performance alert', {
         metric: name,
         value,
         threshold,

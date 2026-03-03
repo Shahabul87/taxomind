@@ -45,6 +45,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         },
       },
       orderBy: { attemptNumber: 'desc' },
+      take: 100,
     });
 
     return NextResponse.json({

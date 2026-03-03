@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { safeErrorResponse } from '@/lib/api/safe-error';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from "@/lib/logger";
 
 // POST - Request data export (GDPR compliance)
 export async function POST(req: NextRequest) {
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Data export request error:", error);
+    logger.error("Data export request error", error);
     return safeErrorResponse(error, 500, 'EXPORT_DATA_CREATE');
   }
 }
@@ -136,7 +137,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Export request fetch error:", error);
+    logger.error("Export request fetch error", error);
     return safeErrorResponse(error, 500, 'EXPORT_DATA_FETCH');
   }
 }

@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     // Get all masteries for the user
     const masteries: SkillMastery10K[] = await db.skillMastery10K.findMany({
       where: { userId: session.user.id },
+      take: 200,
     });
 
     // Get skill definitions for enrichment
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest) {
         category: true,
         description: true,
       },
+      take: 200,
     });
 
     const skillsById = new Map(skills.map((s) => [s.id, s]));

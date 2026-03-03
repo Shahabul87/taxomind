@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const ViolationSchema = z.object({
   sessionId: z.string().min(1),
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[PROCTORING_VIOLATION]', error);
+    logger.error('[PROCTORING_VIOLATION]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to record violation' } },
       { status: 500 }

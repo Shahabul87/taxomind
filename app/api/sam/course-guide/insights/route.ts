@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      take: 200,
     });
 
     // Calculate aggregate insights

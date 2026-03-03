@@ -165,6 +165,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        take: 200,
       }),
       // Get recent practice sessions
       db.practiceSession.aggregate({

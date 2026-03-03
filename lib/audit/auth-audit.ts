@@ -8,6 +8,7 @@
 import { AdminRole } from '@prisma/client';
 import { auditLogger, AuditEventType, AuditSeverity, AuditContext, AuditMetadata } from '@/lib/compliance/audit-logger';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Enhanced authentication event types
 export enum AuthEventType {
@@ -109,7 +110,7 @@ class AuthenticationAuditLogger {
       
       return context;
     } catch (error) {
-      console.error('Error extracting auth context:', error);
+      logger.error('Error extracting auth context:', error);
       return {
         ipAddress: 'unknown',
         userAgent: 'unknown',
@@ -210,7 +211,7 @@ class AuthenticationAuditLogger {
         reasons,
       };
     } catch (error) {
-      console.error('Error detecting suspicious activity:', error);
+      logger.error('Error detecting suspicious activity:', error);
       return { isSuspicious: false, reasons: [] };
     }
   }
@@ -659,7 +660,7 @@ class AuthenticationAuditLogger {
         riskScore: alert.riskScore,
       }));
     } catch (error) {
-      console.error('Error generating security alerts:', error);
+      logger.error('Error generating security alerts:', error);
       return [];
     }
   }
@@ -721,7 +722,7 @@ class AuthenticationAuditLogger {
         timeWindow: `${timeWindow}h`,
       };
     } catch (error) {
-      console.error('Error getting auth metrics:', error);
+      logger.error('Error getting auth metrics:', error);
       return {
         totalLogins: 0,
         failedLogins: 0,

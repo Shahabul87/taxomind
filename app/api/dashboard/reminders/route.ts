@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 const reminderSchema = z.object({
   activityId: z.string().optional(),
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
       total,
     });
   } catch (error) {
-    console.error("[REMINDERS_GET]", error);
+    logger.error("[REMINDERS_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch reminders",
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[REMINDERS_POST]", error);
+    logger.error("[REMINDERS_POST]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to create reminder",

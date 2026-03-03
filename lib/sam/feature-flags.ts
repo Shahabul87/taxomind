@@ -37,6 +37,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 /**
  * Check if running in development mode
@@ -185,8 +186,8 @@ function parseFeatureFlags(): SAMFeatureFlags {
   const result = SAMFeatureFlagsSchema.safeParse(envFlags);
 
   if (!result.success) {
-    console.warn(
-      '[SAM Feature Flags] Invalid configuration, using defaults:',
+    logger.warn(
+      '[SAM Feature Flags] Invalid configuration, using defaults',
       result.error.flatten()
     );
     return SAMFeatureFlagsSchema.parse({});
@@ -271,10 +272,10 @@ export function getFeatureFlagsSummary(): Record<string, boolean> {
  */
 export function logFeatureFlags(): void {
   if (process.env.NODE_ENV === 'development') {
-    console.log('[SAM Feature Flags] Current configuration:');
+    logger.info('[SAM Feature Flags] Current configuration');
     Object.entries(SAM_FEATURES).forEach(([key, value]) => {
-      const status = value ? '✅ ENABLED' : '❌ DISABLED';
-      console.log(`  ${key}: ${status}`);
+      const status = value ? 'ENABLED' : 'DISABLED';
+      logger.info(`  ${key}: ${status}`);
     });
   }
 }

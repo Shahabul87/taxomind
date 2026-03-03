@@ -1,6 +1,7 @@
 "use client";
 
 import type { Socket } from "socket.io-client";
+import { logger } from "@/lib/logger";
 
 let socket: Socket | null = null;
 
@@ -20,15 +21,15 @@ export const getSocket = async (userId?: string, userName?: string): Promise<Soc
     });
 
     socket.on("connect", () => {
-      console.log("Socket connected:", socket?.id);
+      logger.info("Socket connected:", socket?.id);
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("Socket disconnected:", reason);
+      logger.warn("Socket disconnected:", reason);
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
+      logger.error("Socket connection error:", error);
     });
   }
 

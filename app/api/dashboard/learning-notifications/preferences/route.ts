@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Validation schema for notification preferences
 const updatePreferencesSchema = z.object({
@@ -85,7 +86,7 @@ export async function GET() {
 
     return successResponse(preferences);
   } catch (error) {
-    console.error("[NOTIFICATION_PREFERENCES_GET]", error);
+    logger.error("[NOTIFICATION_PREFERENCES_GET]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to fetch notification preferences",
@@ -164,7 +165,7 @@ export async function PATCH(req: NextRequest) {
         error.errors[0].message
       );
     }
-    console.error("[NOTIFICATION_PREFERENCES_PATCH]", error);
+    logger.error("[NOTIFICATION_PREFERENCES_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update notification preferences",
@@ -215,7 +216,7 @@ export async function DELETE() {
 
     return successResponse(preferences, undefined, { reset: true });
   } catch (error) {
-    console.error("[NOTIFICATION_PREFERENCES_DELETE]", error);
+    logger.error("[NOTIFICATION_PREFERENCES_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to reset notification preferences",

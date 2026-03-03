@@ -1,6 +1,7 @@
 // Microlearning API - Simplified
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
@@ -11,7 +12,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, modules: [] });
   } catch (error) {
-    console.error('[MICROLEARNING] GET Error:', error);
+    logger.error('[MICROLEARNING] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -25,7 +26,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true, message: 'Module processed' });
   } catch (error) {
-    console.error('[MICROLEARNING] POST Error:', error);
+    logger.error('[MICROLEARNING] POST Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ import {
   ErrorCodes,
   HttpStatus,
 } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function PATCH(
   req: NextRequest,
@@ -55,7 +56,7 @@ export async function PATCH(
 
     return successResponse(updatedNotification);
   } catch (error) {
-    console.error("[NOTIFICATION_PATCH]", error);
+    logger.error("[NOTIFICATION_PATCH]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to update notification",
@@ -105,7 +106,7 @@ export async function DELETE(
 
     return successResponse({ message: "Notification deleted successfully" });
   } catch (error) {
-    console.error("[NOTIFICATION_DELETE]", error);
+    logger.error("[NOTIFICATION_DELETE]", error);
     return errorResponse(
       ErrorCodes.INTERNAL_ERROR,
       "Failed to delete notification",

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import { adminEmailExists } from "@/data/admin";
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 const CreateAdminSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("[SUPERADMIN_CREATE_ADMIN]", error);
+    logger.error("[SUPERADMIN_CREATE_ADMIN]", error);
 
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { getActiveSessions, terminateAllSessions } from '@/lib/auth/session-limiter';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
       total: sessions.length,
     });
   } catch (error) {
-    console.error('[Sessions API] Error getting sessions:', error);
+    logger.error('[Sessions API] Error getting sessions', error);
     return NextResponse.json(
       { success: false, error: 'Failed to get sessions' },
       { status: 500 }
@@ -97,7 +98,7 @@ export async function DELETE(req: NextRequest) {
       message: `Logged out of ${result.terminatedCount} device(s)`,
     });
   } catch (error) {
-    console.error('[Sessions API] Error terminating sessions:', error);
+    logger.error('[Sessions API] Error terminating sessions', error);
     return NextResponse.json(
       { success: false, error: 'Failed to logout devices' },
       { status: 500 }

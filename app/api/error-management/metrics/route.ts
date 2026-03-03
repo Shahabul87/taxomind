@@ -127,7 +127,8 @@ export const GET = withErrorHandling(async (request: Request) => {
         id: true,
         name: true,
         email: true
-      }
+      },
+      take: 500,
     });
 
     topUsersWithDetails = topUsers.map(tu => ({

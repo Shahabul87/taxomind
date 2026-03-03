@@ -20,6 +20,7 @@
 
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword, needsRehashing } from "@/lib/passwordUtils";
+import { logger } from "@/lib/logger";
 
 interface InitResult {
   created: boolean;
@@ -58,7 +59,7 @@ export async function ensureSuperadminExists(
     if (!existingAdmin.emailVerified) {
       updates.emailVerified = new Date();
       fixed = true;
-      console.log('[Admin] Fixing missing emailVerified for superadmin');
+      logger.info('[Admin] Fixing missing emailVerified for superadmin');
     }
 
     // Check if password from env var matches stored hash
@@ -69,18 +70,18 @@ export async function ensureSuperadminExists(
         // Password changed in env vars — re-hash with noble/scrypt
         updates.password = await hashPassword(password);
         passwordUpdated = true;
-        console.log('[Admin] Password changed in env vars — re-hashing');
+        logger.info('[Admin] Password changed in env vars - re-hashing');
       } else if (needsRehashing(existingAdmin.password)) {
         // Password matches but stored in legacy bcrypt format — migrate to noble/scrypt
         updates.password = await hashPassword(password);
         hashMigrated = true;
-        console.log('[Admin] Migrating password hash from bcrypt to noble/scrypt');
+        logger.info('[Admin] Migrating password hash from bcrypt to noble/scrypt');
       }
     } else {
       // No password set — hash and store
       updates.password = await hashPassword(password);
       passwordUpdated = true;
-      console.log('[Admin] No password set — storing hashed password');
+      logger.info('[Admin] No password set - storing hashed password');
     }
 
     // Reset createdAt for accounts without MFA to refresh the grace period
@@ -91,7 +92,7 @@ export async function ensureSuperadminExists(
       if (accountAgeDays > 5) {
         updates.createdAt = new Date();
         fixed = true;
-        console.log('[Admin] Resetting grace period for superadmin (MFA not configured, account age:', accountAgeDays, 'days)');
+        logger.info('[Admin] Resetting grace period for superadmin', { mfaConfigured: false, accountAgeDays });
       }
     }
 
@@ -100,7 +101,7 @@ export async function ensureSuperadminExists(
         where: { email },
         data: updates,
       });
-      console.log('[Admin] Superadmin account updated:', {
+      logger.info('[Admin] Superadmin account updated', {
         emailVerifiedFixed: !existingAdmin.emailVerified,
         passwordUpdated,
         hashMigrated,
@@ -124,6 +125,6 @@ export async function ensureSuperadminExists(
     },
   });
 
-  console.log('[Admin] Superadmin account created:', email);
+  logger.info('[Admin] Superadmin account created');
   return { created: true, exists: false };
 }

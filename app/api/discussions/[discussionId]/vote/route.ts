@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Input validation schema
 const VoteSchema = z.object({
@@ -124,7 +125,7 @@ export async function POST(
       );
     }
 
-    console.error('Vote error:', error);
+    logger.error('Vote error', error);
     return NextResponse.json(
       { error: 'Failed to process vote' },
       { status: 500 }
@@ -157,7 +158,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Vote deletion error:', error);
+    logger.error('Vote deletion error', error);
     return NextResponse.json(
       { error: 'Failed to remove vote' },
       { status: 500 }

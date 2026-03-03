@@ -97,6 +97,7 @@ async function getStudentActivities(courseId: string | null) {
         lastActivityDate: true,
       },
       orderBy: { lastActivityDate: 'desc' },
+      take: 500,
     }),
     db.enrollment.findMany({
       where: {
@@ -107,6 +108,7 @@ async function getStudentActivities(courseId: string | null) {
         userId: true,
         courseId: true,
       },
+      take: 500,
     }),
   ]);
 
@@ -326,7 +328,7 @@ export async function POST(req: NextRequest) {
 
 async function flagStrugglingStudent(studentId: string, data: any) {
   // TODO: Implement proper content flagging system
-  console.log('Flagging struggling student:', {
+  logger.info('Flagging struggling student', {
     studentId,
     contentType: 'student',
     flagType: 'manual_struggle',

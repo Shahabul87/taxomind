@@ -295,6 +295,7 @@ export async function GET(
         score: true,
         maxScore: true,
       },
+      take: 200,
     });
 
     let averageScore: number | null = null;

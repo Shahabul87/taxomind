@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 // Response schema for type safety
 const DashboardStatsSchema = z.object({
@@ -133,7 +134,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[ADMIN_DASHBOARD_STATS_ERROR]", error);
+    logger.error("[ADMIN_DASHBOARD_STATS_ERROR]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

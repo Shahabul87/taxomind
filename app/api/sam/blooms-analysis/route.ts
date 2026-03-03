@@ -352,6 +352,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      take: 500,
     });
 
     // Get chapter-level analysis (Task 6)
@@ -377,6 +378,7 @@ export async function GET(request: NextRequest) {
           position: 'asc',
         },
       },
+      take: 500,
     });
 
     return NextResponse.json({

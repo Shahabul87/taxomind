@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("[ADMIN_CHANGE_PASSWORD]", error);
+    logger.error("[ADMIN_CHANGE_PASSWORD]", error);
 
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {

@@ -367,6 +367,7 @@ async function getQuestionBankStats(where: any): Promise<any> {
       questionType: true,
       usageCount: true,
     },
+    take: 500,
   });
 
   const stats = {

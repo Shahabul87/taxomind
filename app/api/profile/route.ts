@@ -134,7 +134,8 @@ export async function GET() {
           postsCount: true,
           isActive: true,
           lastSyncAt: true
-        }
+        },
+        take: 100,
       });
 
       // Update follower/following counts from social media
@@ -157,7 +158,7 @@ export async function GET() {
     let userSubscriptions: any[] = [];
     try {
       userSubscriptions = await db.userSubscription.findMany({
-        where: { 
+        where: {
           userId: session.user.id,
           isActive: true
         },
@@ -168,7 +169,8 @@ export async function GET() {
           currency: true,
           billingCycle: true,
           nextBillingDate: true
-        }
+        },
+        take: 100,
       });
 
       // Calculate monthly spending
@@ -193,7 +195,8 @@ export async function GET() {
     try {
       profileLinks = await db.profileLink.findMany({
         where: { userId: session.user.id },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 100,
       });
     } catch (profileLinksError) {
       logger.warn("[PROFILE_GET] Error fetching profile links:", profileLinksError);

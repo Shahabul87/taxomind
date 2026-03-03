@@ -8,6 +8,8 @@
  * - HALF_OPEN: Testing if service has recovered
  */
 
+import { logger } from '@/lib/logger';
+
 export enum CircuitState {
   CLOSED = 'CLOSED',
   OPEN = 'OPEN',
@@ -109,7 +111,7 @@ export class CircuitBreaker<T = unknown> {
       // Service has recovered, close the circuit
       this.state = CircuitState.CLOSED;
       this.failures = 0;
-      console.log(`Circuit breaker ${this.config.name} is now CLOSED (recovered)`);
+      logger.info(`Circuit breaker ${this.config.name} is now CLOSED (recovered)`);
     }
   }
 
@@ -132,7 +134,7 @@ export class CircuitBreaker<T = unknown> {
     if (this.state === CircuitState.HALF_OPEN) {
       // Service still failing, reopen circuit
       this.state = CircuitState.OPEN;
-      console.error(`Circuit breaker ${this.config.name} is OPEN (test failed)`);
+      logger.error(`Circuit breaker ${this.config.name} is OPEN (test failed)`);
     } else if (
       this.state === CircuitState.CLOSED &&
       this.totalRequests >= this.config.volumeThreshold &&
@@ -140,7 +142,7 @@ export class CircuitBreaker<T = unknown> {
     ) {
       // Too many failures, open circuit
       this.state = CircuitState.OPEN;
-      console.error(`Circuit breaker ${this.config.name} is OPEN (threshold exceeded)`);
+      logger.error(`Circuit breaker ${this.config.name} is OPEN (threshold exceeded)`);
     }
   }
 
@@ -179,7 +181,7 @@ export class CircuitBreaker<T = unknown> {
     this.lastFailureTime = null;
     this.totalRequests = 0;
     this.halfOpenRequests = 0;
-    console.log(`Circuit breaker ${this.config.name} manually reset`);
+    logger.info(`Circuit breaker ${this.config.name} manually reset`);
   }
 }
 

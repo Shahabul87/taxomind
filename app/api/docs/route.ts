@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { swaggerSpec } from '@/lib/swagger'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   // Only expose API docs in development
@@ -10,7 +11,7 @@ export async function GET() {
   try {
     return NextResponse.json(swaggerSpec)
   } catch (error) {
-    console.error('[DOCS] GET Error:', error);
+    logger.error('[DOCS] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

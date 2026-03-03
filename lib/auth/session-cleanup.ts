@@ -11,6 +11,7 @@
  */
 
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export interface CleanupResult {
   sessionsDeleted: number;
@@ -50,7 +51,7 @@ export async function cleanupExpiredSessions(): Promise<CleanupResult> {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error deleting sessions';
     errors.push(`Sessions cleanup: ${message}`);
-    console.error('[SessionCleanup] Failed to delete expired sessions:', error);
+    logger.error('[SessionCleanup] Failed to delete expired sessions', error);
   }
 
   // 2. Delete old login attempts (keep 7 days for security analysis)
@@ -64,11 +65,11 @@ export async function cleanupExpiredSessions(): Promise<CleanupResult> {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error deleting login attempts';
     errors.push(`LoginAttempts cleanup: ${message}`);
-    console.error('[SessionCleanup] Failed to delete old login attempts:', error);
+    logger.error('[SessionCleanup] Failed to delete old login attempts', error);
   }
 
   // Log summary
-  console.log('[SessionCleanup] Cleanup completed:', {
+  logger.info('[SessionCleanup] Cleanup completed', {
     sessionsDeleted,
     loginAttemptsDeleted,
     errors: errors.length > 0 ? errors : 'none',
@@ -115,7 +116,7 @@ export async function getCleanupStats(): Promise<{
       oldLoginAttempts,
     };
   } catch (error) {
-    console.error('[SessionCleanup] Failed to get cleanup stats:', error);
+    logger.error('[SessionCleanup] Failed to get cleanup stats', error);
     return {
       expiredSessions: 0,
       oldInactiveSessions: 0,

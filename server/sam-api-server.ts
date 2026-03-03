@@ -21,6 +21,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import { z } from 'zod';
 import { expressAdapter } from './adapters/express-adapter';
+import { logger } from '@/lib/logger';
 
 const app = express();
 const PORT = parseInt(process.env.SAM_API_PORT ?? '4000', 10);
@@ -200,9 +201,10 @@ app.get('/api/sam/conversations', authMiddleware, expressAdapter(async (req) => 
 // =============================================================================
 
 app.listen(PORT, () => {
-  console.log(`[SAM API Server] Running on port ${PORT}`);
-  console.log(`[SAM API Server] Health: http://localhost:${PORT}/health`);
-  console.log(`[SAM API Server] Auth: ${API_SECRET ? 'API key required' : 'No auth (development)'}`);
+  logger.info(`[SAM API Server] Running on port ${PORT}`, {
+    health: `http://localhost:${PORT}/health`,
+    auth: API_SECRET ? 'API key required' : 'No auth (development)',
+  });
 });
 
 export default app;

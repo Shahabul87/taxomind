@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { generateAuthUrl } from '@/lib/google-calendar';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Calendar Auth Error:', error);
+    logger.error('Calendar Auth Error', error);
     return NextResponse.json(
       {
         success: false,

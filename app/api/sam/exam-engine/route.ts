@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
             },
           },
         },
+        take: 100,
       });
 
       for (const section of sections) {

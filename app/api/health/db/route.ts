@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { logger } from '@/lib/logger';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -51,7 +52,7 @@ export const GET = withAdminAuth(async (request, context) => {
       }
     });
   } catch (error) {
-    console.error('Database health check failed:', error);
+    logger.error('Database health check failed', error);
     return safeErrorResponse(error, 500, 'HEALTH_DB');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

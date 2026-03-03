@@ -309,7 +309,7 @@ function calculateDropoutRisk(features: any): number {
 // Send data to ML pipeline
 async function sendToMLPipeline(data: MLTrainingData): Promise<void> {
   // In production, this would send to ML training service
-  console.log('Sending to ML pipeline:', {
+  logger.debug('Sending to ML pipeline:', {
     studentId: data.studentId,
     courseId: data.courseId,
     featureCount: Object.keys(data.features).length

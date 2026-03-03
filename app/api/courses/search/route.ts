@@ -315,6 +315,7 @@ export async function GET(request: NextRequest) {
 
     // Get filter options for sidebar
     const categories = await db.category.findMany({
+      take: 100,
       select: {
         id: true,
         name: true,

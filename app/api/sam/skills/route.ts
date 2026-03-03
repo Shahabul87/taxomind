@@ -87,6 +87,7 @@ export async function GET(req: NextRequest) {
         proficiencyLevel: true,
         lastPracticedAt: true,
       },
+      take: 200,
     });
 
     const masteryBySkillId = new Map(
@@ -114,6 +115,7 @@ export async function GET(req: NextRequest) {
       select: { category: true },
       distinct: ['category'],
       orderBy: { category: 'asc' },
+      take: 100,
     });
 
     return NextResponse.json({

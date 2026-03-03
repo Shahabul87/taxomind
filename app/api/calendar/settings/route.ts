@@ -15,6 +15,7 @@ import {
   listCalendars,
   createTaxomindCalendar,
 } from '@/lib/google-calendar';
+import { logger } from '@/lib/logger';
 
 const updateSettingsSchema = z.object({
   selectedCalendarId: z.string().optional(),
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Calendar Settings Get Error:', error);
+    logger.error('Calendar Settings Get Error', error);
     return NextResponse.json(
       {
         success: false,
@@ -161,7 +162,7 @@ export async function PUT(req: NextRequest) {
           selectedCalendarId = newCalendar.id;
           selectedCalendarName = newCalendar.summary;
         } catch (error) {
-          console.error('Failed to create dedicated calendar:', error);
+          logger.error('Failed to create dedicated calendar', error);
           return NextResponse.json(
             {
               success: false,
@@ -187,7 +188,7 @@ export async function PUT(req: NextRequest) {
             selectedCalendarName = selectedCalendar.summary;
           }
         } catch (error) {
-          console.error('Failed to fetch calendar details:', error);
+          logger.error('Failed to fetch calendar details', error);
         }
       }
     }
@@ -313,7 +314,7 @@ export async function PUT(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Calendar Settings Update Error:', error);
+    logger.error('Calendar Settings Update Error', error);
     return NextResponse.json(
       {
         success: false,

@@ -21,6 +21,9 @@ import {
   monitorRequestSecurity,
 } from '@/lib/middleware/security-monitoring';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
+import { logger } from '@/lib/logger';
+
+const mockLogger = logger as any;
 
 const mockLogSuspiciousActivity =
   authAuditHelpers.logSuspiciousActivity as jest.Mock;
@@ -664,9 +667,6 @@ describe('logSecurityEvents()', () => {
 
     const monitor = SecurityMonitor.getInstance();
     const req = createRequest('/api/test');
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
 
     const events = [
       {
@@ -681,12 +681,10 @@ describe('logSecurityEvents()', () => {
       monitor.logSecurityEvents(events, req)
     ).resolves.toBeUndefined();
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to log security event:',
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Failed to log security event',
       expect.any(Error)
     );
-
-    consoleErrorSpy.mockRestore();
   });
 
   it('logs zero events without calling audit', async () => {
@@ -716,11 +714,7 @@ describe('monitorRequestSecurity()', () => {
     expect(mockLogSuspiciousActivity).toHaveBeenCalled();
   });
 
-  it('logs high-severity events to console.warn', async () => {
-    const consoleWarnSpy = jest
-      .spyOn(console, 'warn')
-      .mockImplementation(() => {});
-
+  it('logs high-severity events via logger.warn', async () => {
     // Create an oversized request (high severity)
     const req = createRequest('/api/upload', {
       headers: {
@@ -731,23 +725,17 @@ describe('monitorRequestSecurity()', () => {
 
     await monitorRequestSecurity(req);
 
-    // Should log to console.warn for high/critical events
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
+    // Should log to logger.warn for high/critical events
+    expect(mockLogger.warn).toHaveBeenCalledWith(
       expect.stringContaining('[SECURITY]'),
       expect.objectContaining({
         url: expect.any(String),
         method: 'GET',
       })
     );
-
-    consoleWarnSpy.mockRestore();
   });
 
   it('does nothing for clean requests', async () => {
-    const consoleWarnSpy = jest
-      .spyOn(console, 'warn')
-      .mockImplementation(() => {});
-
     const req = createRequest('/api/courses', {
       headers: {
         'user-agent':
@@ -758,16 +746,10 @@ describe('monitorRequestSecurity()', () => {
     await monitorRequestSecurity(req);
 
     expect(mockLogSuspiciousActivity).not.toHaveBeenCalled();
-    expect(consoleWarnSpy).not.toHaveBeenCalled();
-
-    consoleWarnSpy.mockRestore();
+    expect(mockLogger.warn).not.toHaveBeenCalled();
   });
 
   it('handles errors in analyzeRequest gracefully', async () => {
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-
     // Create a request object that will cause analyzeRequest to throw
     const brokenReq = createRequest('/api/test');
     // Make headers.get throw to simulate an unexpected error
@@ -781,12 +763,10 @@ describe('monitorRequestSecurity()', () => {
       monitorRequestSecurity(brokenReq)
     ).resolves.toBeUndefined();
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Security monitoring error:',
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      'Security monitoring error',
       expect.any(Error)
     );
-
-    consoleErrorSpy.mockRestore();
   });
 });
 

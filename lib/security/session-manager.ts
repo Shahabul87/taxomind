@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
-import { 
-  DeviceFingerprint, 
-  FingerprintAnalysis, 
+import { logger } from '@/lib/logger';
+import {
+  DeviceFingerprint,
+  FingerprintAnalysis,
   calculateFingerprintSimilarity,
   generateFingerprintHash,
   generateDeviceId,
@@ -108,7 +109,7 @@ export class SessionManager {
 
       return session.id;
     } catch (error) {
-      console.error('Failed to create session with fingerprint:', error);
+      logger.error('Failed to create session with fingerprint', error);
       return null;
     }
   }
@@ -216,7 +217,7 @@ export class SessionManager {
         fingerprintAnalysis: analysis,
       };
     } catch (error) {
-      console.error('Failed to validate session fingerprint:', error);
+      logger.error('Failed to validate session fingerprint', error);
       return {
         isValid: false,
         riskLevel: 'CRITICAL',
@@ -289,7 +290,7 @@ export class SessionManager {
 
       return { success: true, message: 'Device trusted successfully' };
     } catch (error) {
-      console.error('Failed to trust device:', error);
+      logger.error('Failed to trust device', error);
       return { success: false, message: 'Failed to trust device' };
     }
   }
@@ -332,7 +333,7 @@ export class SessionManager {
 
       return { success: true, message: 'Device trust revoked successfully' };
     } catch (error) {
-      console.error('Failed to revoke device trust:', error);
+      logger.error('Failed to revoke device trust', error);
       return { success: false, message: 'Failed to revoke device trust' };
     }
   }
@@ -368,7 +369,7 @@ export class SessionManager {
         riskLevel: session.riskLevel,
       }));
     } catch (error) {
-      console.error('Failed to get trusted devices:', error);
+      logger.error('Failed to get trusted devices', error);
       return [];
     }
   }
@@ -400,7 +401,7 @@ export class SessionManager {
 
       return true;
     } catch (error) {
-      console.error('Failed to terminate session:', error);
+      logger.error('Failed to terminate session', error);
       return false;
     }
   }
@@ -423,7 +424,7 @@ export class SessionManager {
         },
       });
     } catch (error) {
-      console.error('Failed to cleanup sessions:', error);
+      logger.error('Failed to cleanup sessions', error);
     }
   }
 
@@ -450,7 +451,7 @@ export class SessionManager {
         },
       });
     } catch (error) {
-      console.error('Failed to log security event:', error);
+      logger.error('Failed to log security event', error);
     }
   }
 }

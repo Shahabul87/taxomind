@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const CreateAssignmentsSchema = z.object({
   rubricId: z.string().min(1),
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error('[PEER_REVIEW_ASSIGNMENTS_POST]', error);
+    logger.error('[PEER_REVIEW_ASSIGNMENTS_POST]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to create assignments' } },
       { status: 500 }
@@ -192,7 +193,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[PEER_REVIEW_ASSIGNMENTS_GET]', error);
+    logger.error('[PEER_REVIEW_ASSIGNMENTS_GET]', error);
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch assignments' } },
       { status: 500 }

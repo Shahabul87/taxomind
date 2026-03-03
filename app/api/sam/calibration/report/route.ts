@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
         include: {
           messages: true,
         },
+        take: 500,
       });
 
       // Calculate metrics from conversation data

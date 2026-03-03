@@ -107,6 +107,7 @@ export async function GET(request: Request) {
         email: true,
         image: true,
       },
+      take: 500,
     });
 
     const topUsersWithDetails = topUsers.map((usage) => {

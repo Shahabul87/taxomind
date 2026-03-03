@@ -8,6 +8,7 @@ import { createHash, randomBytes } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import { db } from '@/lib/db';
 import { Permission } from '@/lib/permissions';
+import { logger } from '@/lib/logger';
 
 // Rate limiter implementation
 class RateLimiter {
@@ -164,7 +165,7 @@ export class APISecurityManager {
         keyId: keyRecord.id
       };
     } catch (error) {
-      console.error('Error validating API key:', error);
+      logger.error('Error validating API key:', error);
       return { valid: false };
     }
   }
@@ -252,7 +253,7 @@ export class APISecurityManager {
       
       return true;
     } catch (error) {
-      console.error('Error revoking API key:', error);
+      logger.error('Error revoking API key:', error);
       return false;
     }
   }
@@ -271,7 +272,7 @@ export class APISecurityManager {
     try {
       const secret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
       if (!secret) {
-        console.error('JWT secret not configured');
+        logger.error('JWT secret not configured');
         return { valid: false };
       }
       
@@ -310,7 +311,7 @@ export class APISecurityManager {
         permissions
       };
     } catch (error) {
-      console.error('JWT validation error:', error);
+      logger.error('JWT validation error:', error);
       return { valid: false };
     }
   }
@@ -490,7 +491,7 @@ export function withAPIAuth(
       
       return response;
     } catch (error) {
-      console.error('API handler error:', error);
+      logger.error('API handler error:', error);
       
       // Log error
       await db.enhancedAuditLog.create({

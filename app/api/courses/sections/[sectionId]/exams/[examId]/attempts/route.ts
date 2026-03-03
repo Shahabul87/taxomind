@@ -135,6 +135,7 @@ export async function GET(
         userId: user.id,
         examId: params.examId,
       },
+      take: 100,
       include: {
         Exam: {
           select: {

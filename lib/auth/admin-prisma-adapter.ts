@@ -16,11 +16,9 @@
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { AdminRole } from "@/types/admin-role";
 import type { Adapter, AdapterUser, AdapterAccount, AdapterSession, VerificationToken } from "next-auth/adapters";
-
-const IS_DEV = process.env.NODE_ENV === 'development';
-const debugLog = IS_DEV ? (...args: unknown[]) => console.log(...args) : () => {};
 
 /**
  * Custom Prisma Adapter for Admin Authentication
@@ -34,7 +32,7 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override createUser to create AdminAccount
     async createUser(user: Omit<AdapterUser, "id">): Promise<AdapterUser> {
-      debugLog('[admin-adapter] Creating admin account:', user.email);
+      logger.debug('[admin-adapter] Creating admin account:', user.email);
 
       const adminAccount = await db.adminAccount.create({
         data: {
@@ -46,20 +44,20 @@ export function AdminPrismaAdapter(): Adapter {
         },
       });
 
-      debugLog('[admin-adapter] Admin account created:', adminAccount.id);
+      logger.debug('[admin-adapter] Admin account created:', adminAccount.id);
       return adminAccount as unknown as AdapterUser;
     },
 
     // Override getUser to get AdminAccount
     async getUser(id: string): Promise<AdapterUser | null> {
-      debugLog('[admin-adapter] Getting admin account:', id);
+      logger.debug('[admin-adapter] Getting admin account:', id);
 
       const adminAccount = await db.adminAccount.findUnique({
         where: { id },
       });
 
       if (!adminAccount) {
-        debugLog('[admin-adapter] Admin account not found');
+        logger.debug('[admin-adapter] Admin account not found');
         return null;
       }
 
@@ -68,14 +66,14 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override getUserByEmail to get AdminAccount
     async getUserByEmail(email: string): Promise<AdapterUser | null> {
-      debugLog('[admin-adapter] Getting admin by email:', email);
+      logger.debug('[admin-adapter] Getting admin by email:', email);
 
       const adminAccount = await db.adminAccount.findUnique({
         where: { email },
       });
 
       if (!adminAccount) {
-        debugLog('[admin-adapter] Admin account not found');
+        logger.debug('[admin-adapter] Admin account not found');
         return null;
       }
 
@@ -84,25 +82,25 @@ export function AdminPrismaAdapter(): Adapter {
 
     // OAuth NOT supported for admins (password-only authentication)
     async getUserByAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterUser | null> {
-      debugLog('[admin-adapter] OAuth not supported for admins');
+      logger.debug('[admin-adapter] OAuth not supported for admins');
       return null;
     },
 
     // OAuth NOT supported for admins (password-only authentication)
     async linkAccount(account: AdapterAccount): Promise<AdapterAccount | null | undefined> {
-      debugLog('[admin-adapter] OAuth not supported for admins');
+      logger.debug('[admin-adapter] OAuth not supported for admins');
       return null;
     },
 
     // OAuth NOT supported for admins (password-only authentication)
     async unlinkAccount(providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">): Promise<AdapterAccount | undefined> {
-      debugLog('[admin-adapter] OAuth not supported for admins');
+      logger.debug('[admin-adapter] OAuth not supported for admins');
       return undefined;
     },
 
     // Override createSession to use AdminActiveSession table
     async createSession(session: { sessionToken: string; userId: string; expires: Date }): Promise<AdapterSession> {
-      debugLog('[admin-adapter] Creating admin session:', session.userId);
+      logger.debug('[admin-adapter] Creating admin session:', session.userId);
 
       const adminSession = await db.adminActiveSession.create({
         data: {
@@ -114,7 +112,7 @@ export function AdminPrismaAdapter(): Adapter {
         },
       });
 
-      debugLog('[admin-adapter] Admin session created:', adminSession.id);
+      logger.debug('[admin-adapter] Admin session created:', adminSession.id);
 
       return {
         sessionToken: adminSession.sessionToken,
@@ -125,7 +123,7 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override getSessionAndUser to use AdminActiveSession table
     async getSessionAndUser(sessionToken: string): Promise<{ session: AdapterSession; user: AdapterUser } | null> {
-      debugLog('[admin-adapter] Getting admin session:', sessionToken.substring(0, 10) + '...');
+      logger.debug('[admin-adapter] Getting admin session:', sessionToken.substring(0, 10) + '...');
 
       const adminSession = await db.adminActiveSession.findUnique({
         where: { sessionToken },
@@ -133,23 +131,23 @@ export function AdminPrismaAdapter(): Adapter {
       });
 
       if (!adminSession || !adminSession.adminAccount) {
-        debugLog('[admin-adapter] Admin session not found');
+        logger.debug('[admin-adapter] Admin session not found');
         return null;
       }
 
       // Verify session is not expired and is active
       if (adminSession.expiresAt < new Date() || !adminSession.isActive) {
-        debugLog('[admin-adapter] Admin session expired or inactive');
+        logger.debug('[admin-adapter] Admin session expired or inactive');
         return null;
       }
 
       // Verify admin role (ADMIN or SUPERADMIN)
       if (adminSession.adminAccount.role !== AdminRole.ADMIN && adminSession.adminAccount.role !== AdminRole.SUPERADMIN) {
-        console.error('[admin-adapter] SECURITY ALERT - Non-admin in admin session');
+        logger.error('[admin-adapter] SECURITY ALERT - Non-admin in admin session');
         return null;
       }
 
-      debugLog('[admin-adapter] Admin session valid:', adminSession.adminAccountId);
+      logger.debug('[admin-adapter] Admin session valid:', adminSession.adminAccountId);
 
       return {
         session: {
@@ -163,7 +161,7 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override updateSession to use AdminActiveSession table
     async updateSession(session: Partial<AdapterSession> & Pick<AdapterSession, "sessionToken">): Promise<AdapterSession | null | undefined> {
-      debugLog('[admin-adapter] Updating admin session:', session.sessionToken.substring(0, 10) + '...');
+      logger.debug('[admin-adapter] Updating admin session:', session.sessionToken.substring(0, 10) + '...');
 
       const adminSession = await db.adminActiveSession.update({
         where: { sessionToken: session.sessionToken },
@@ -173,7 +171,7 @@ export function AdminPrismaAdapter(): Adapter {
         },
       });
 
-      debugLog('[admin-adapter] Admin session updated:', adminSession.id);
+      logger.debug('[admin-adapter] Admin session updated:', adminSession.id);
 
       return {
         sessionToken: adminSession.sessionToken,
@@ -184,13 +182,13 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override deleteSession to use AdminActiveSession table
     async deleteSession(sessionToken: string): Promise<AdapterSession | null | undefined> {
-      debugLog('[admin-adapter] Deleting admin session:', sessionToken.substring(0, 10) + '...');
+      logger.debug('[admin-adapter] Deleting admin session:', sessionToken.substring(0, 10) + '...');
 
       const adminSession = await db.adminActiveSession.delete({
         where: { sessionToken },
       });
 
-      debugLog('[admin-adapter] Admin session deleted:', adminSession.id);
+      logger.debug('[admin-adapter] Admin session deleted:', adminSession.id);
 
       return {
         sessionToken: adminSession.sessionToken,
@@ -201,7 +199,7 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override createVerificationToken to use AdminVerificationToken table
     async createVerificationToken(verificationToken: VerificationToken): Promise<VerificationToken | null | undefined> {
-      debugLog('[admin-adapter] Creating admin verification token:', verificationToken.identifier);
+      logger.debug('[admin-adapter] Creating admin verification token:', verificationToken.identifier);
 
       const token = await db.adminVerificationToken.create({
         data: {
@@ -211,7 +209,7 @@ export function AdminPrismaAdapter(): Adapter {
         },
       });
 
-      debugLog('[admin-adapter] Admin verification token created:', token.id);
+      logger.debug('[admin-adapter] Admin verification token created:', token.id);
 
       return {
         identifier: token.email,
@@ -222,7 +220,7 @@ export function AdminPrismaAdapter(): Adapter {
 
     // Override useVerificationToken to use AdminVerificationToken table
     async useVerificationToken(params: { identifier: string; token: string }): Promise<VerificationToken | null> {
-      debugLog('[admin-adapter] Using admin verification token:', params.identifier);
+      logger.debug('[admin-adapter] Using admin verification token:', params.identifier);
 
       try {
         const verificationToken = await db.adminVerificationToken.findUnique({
@@ -235,7 +233,7 @@ export function AdminPrismaAdapter(): Adapter {
         });
 
         if (!verificationToken) {
-          debugLog('[admin-adapter] Admin verification token not found');
+          logger.debug('[admin-adapter] Admin verification token not found');
           return null;
         }
 
@@ -243,7 +241,7 @@ export function AdminPrismaAdapter(): Adapter {
           where: { id: verificationToken.id },
         });
 
-        debugLog('[admin-adapter] Admin verification token used and deleted');
+        logger.debug('[admin-adapter] Admin verification token used and deleted');
 
         return {
           identifier: verificationToken.email,
@@ -251,7 +249,7 @@ export function AdminPrismaAdapter(): Adapter {
           expires: verificationToken.expires,
         };
       } catch (error) {
-        console.error('[admin-adapter] Error using verification token:', error);
+        logger.error('[admin-adapter] Error using verification token', error);
         return null;
       }
     },

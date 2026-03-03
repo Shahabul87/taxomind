@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Simple liveness probe - confirms the application is running
@@ -16,7 +17,7 @@ export async function GET() {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[HEALTHZ] GET Error:', error);
+    logger.error('[HEALTHZ] GET Error', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -25,7 +26,7 @@ export async function HEAD() {
   try {
     return new NextResponse(null, { status: 200 });
   } catch (error) {
-    console.error('[HEALTHZ] HEAD Error:', error);
+    logger.error('[HEALTHZ] HEAD Error', error);
     return new NextResponse(null, { status: 500 });
   }
 }

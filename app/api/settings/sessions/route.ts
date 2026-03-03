@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 // GET - List all active sessions for the current user
 export async function GET(req: NextRequest) {
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Session fetch error:", error);
+    logger.error("Session fetch error", error);
     return NextResponse.json(
       {
         success: false,
@@ -109,7 +110,7 @@ export async function DELETE(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Session deletion error:", error);
+    logger.error("Session deletion error", error);
     return NextResponse.json(
       {
         success: false,

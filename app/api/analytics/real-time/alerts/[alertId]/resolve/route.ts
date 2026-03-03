@@ -18,7 +18,7 @@ export async function POST(
     
     // In a real implementation, this would update the alert status in the database
     // For now, we'll just return success
-    console.log(`Alert ${alertId} resolved by user ${user.id} at ${new Date()}`);
+    logger.info('Alert resolved', { alertId, userId: user.id, resolvedAt: new Date() });
 
     // Example of what the database operation might look like:
     // await db.contentAlert.update({

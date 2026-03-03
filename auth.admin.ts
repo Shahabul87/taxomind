@@ -30,6 +30,7 @@ import { checkEnvironmentVariables } from "@/lib/env-check";
 import { validateCookieConfig, getAdminCookieConfig } from "@/lib/security/cookie-config";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
 import { shouldEnforceMFAOnSignIn, logMFAEnforcementAction } from "@/lib/auth/mfa-enforcement";
+import { logger } from "@/lib/logger";
 // Phase 3: Enhanced admin audit logging and session tracking
 import {
   logAdminLoginSuccess,
@@ -45,7 +46,7 @@ checkEnvironmentVariables();
 // Validate admin cookie configuration on startup
 const adminCookieConfig = getAdminCookieConfig();
 if (!validateCookieConfig(adminCookieConfig)) {
-  console.error('[admin-auth] Admin cookie configuration validation failed!');
+  logger.error('[admin-auth] Admin cookie configuration validation failed!');
 }
 
 export const {
@@ -73,7 +74,7 @@ export const {
           user.id,
           user.email,
           account.provider
-        ).catch(console.error);
+        ).catch(e => logger.error('[admin-auth] Failed to log OAuth success', e));
       }
     },
     async signIn({ user, account }) {
@@ -90,7 +91,7 @@ export const {
           {
             userRole: 'ADMIN'
           }
-        ).catch(console.error);
+        ).catch(e => logger.error('[admin-auth] Failed to log sign-in success audit', e));
 
         // Phase 3: Log to AdminAuditLog (new enhanced logging)
         await logAdminLoginSuccess(
@@ -99,7 +100,7 @@ export const {
           'unknown',            // IP will be extracted in admin-login-form
           'unknown',            // UserAgent will be extracted in admin-login-form
           provider
-        ).catch(console.error);
+        ).catch(e => logger.error('[admin-auth] Failed to log admin login to audit log', e));
 
         // Phase 3: Create session metric record
         await createAdminSessionMetric({
@@ -107,11 +108,10 @@ export const {
           sessionId: uniqueSessionId,
           ipAddress: 'unknown',
           userAgent: 'unknown',
-        }).catch(console.error);
+        }).catch(e => logger.error('[admin-auth] Failed to create admin session metric', e));
 
-        console.log('[admin-auth] Admin sign-in successful (Phase 3):', {
+        logger.info('[admin-auth] Admin sign-in successful (Phase 3)', {
           userId: user.id,
-          email: user.email,
           provider,
           sessionDuration: '4_HOURS',
           auditLogged: true,
@@ -127,7 +127,7 @@ export const {
           message.token.sub,
           message.token.email as string,
           false
-        ).catch(console.error);
+        ).catch(e => logger.error('[admin-auth] Failed to log sign-out audit', e));
 
         // Phase 3: Log to AdminAuditLog
         const sessionToken = message.token.sessionToken as string | undefined;
@@ -136,7 +136,7 @@ export const {
           sessionToken || 'unknown-session',
           'unknown',
           'unknown'
-        ).catch(console.error);
+        ).catch(e => logger.error('[admin-auth] Failed to log admin logout to audit log', e));
 
         // Phase 3: End session in AdminSessionMetrics
         if (sessionToken) {
@@ -144,12 +144,11 @@ export const {
             sessionToken,
             'USER_LOGOUT',
             false
-          ).catch(console.error);
+          ).catch(e => logger.error('[admin-auth] Failed to end admin session metric', e));
         }
 
-        console.log('[admin-auth] Admin sign-out (Phase 3):', {
+        logger.info('[admin-auth] Admin sign-out (Phase 3)', {
           userId: message.token.sub,
-          email: message.token.email,
           sessionEnded: !!sessionToken,
         });
       }
@@ -179,19 +178,18 @@ export const {
     async signIn({ user, account }) {
       // CRITICAL: Admin-only authentication
       if (!user || !user.id) {
-        console.log("[admin-auth] Missing user data, rejecting sign in");
+        logger.debug("[admin-auth] Missing user data, rejecting sign in");
         return false;
       }
 
-      console.log("[admin-auth] signIn callback triggered:", {
+      logger.debug("[admin-auth] signIn callback triggered", {
         provider: account?.provider,
         userId: user?.id,
-        email: user?.email
       });
 
       // For OAuth providers (currently disabled for admins)
       if (account?.provider && account.provider !== "credentials") {
-        console.log("[admin-auth] OAuth not allowed for admins");
+        logger.debug("[admin-auth] OAuth not allowed for admins");
         return false;
       }
 
@@ -200,17 +198,17 @@ export const {
         const existingAdmin = await getAdminAccountById(user.id);
 
         if (!existingAdmin) {
-          console.log("[admin-auth] Admin account not found in database");
+          logger.debug("[admin-auth] Admin account not found in database");
           return false;
         }
 
         // Verify role is ADMIN or SUPERADMIN
         if (existingAdmin.role !== 'ADMIN' && existingAdmin.role !== 'SUPERADMIN') {
-          console.log("[admin-auth] SECURITY ALERT - Invalid role:", existingAdmin.role);
+          logger.error("[admin-auth] SECURITY ALERT - Invalid role", { role: existingAdmin.role, userId: existingAdmin.id });
           return false;
         }
 
-        console.log("[admin-auth] Admin user verified:", {
+        logger.debug("[admin-auth] Admin user verified", {
           id: existingAdmin.id,
           emailVerified: !!existingAdmin.emailVerified,
           isTwoFactorEnabled: existingAdmin.isTwoFactorEnabled,
@@ -218,7 +216,7 @@ export const {
         });
 
         if (!existingAdmin?.emailVerified) {
-          console.log("[admin-auth] Email not verified");
+          logger.debug("[admin-auth] Email not verified");
           return false;
         }
 
@@ -236,40 +234,40 @@ export const {
         });
 
         if (mfaEnforcement.enforce) {
-          console.log("[admin-auth] MFA setup required after login:", mfaEnforcement.reason);
+          logger.info("[admin-auth] MFA setup required after login", { reason: mfaEnforcement.reason });
           // Don't block — let them sign in so they can reach the MFA setup page
         }
 
         if (existingAdmin.isTwoFactorEnabled) {
-          console.log("[admin-auth] 2FA enabled, checking confirmation");
+          logger.debug("[admin-auth] 2FA enabled, checking confirmation");
           try {
             const twoFactorConfirmation = await getTwoFactorConfirmationByAdminId(existingAdmin.id);
 
             if (!twoFactorConfirmation) {
-              console.log("[admin-auth] No 2FA confirmation found");
+              logger.debug("[admin-auth] No 2FA confirmation found");
               return false;
             }
 
             await db.adminTwoFactorConfirmation.delete({
               where: { id: twoFactorConfirmation.id }
             });
-            console.log("[admin-auth] 2FA confirmation verified and deleted");
+            logger.debug("[admin-auth] 2FA confirmation verified and deleted");
           } catch (twoFactorError) {
-            console.error("[admin-auth] Error during 2FA check:", twoFactorError);
+            logger.error("[admin-auth] Error during 2FA check", twoFactorError);
             return false;
           }
         }
 
-        console.log("[admin-auth] Admin authentication successful");
+        logger.info("[admin-auth] Admin authentication successful");
         return true;
       } catch (error) {
-        console.error("[admin-auth] Error in signIn callback:", error);
+        logger.error("[admin-auth] Error in signIn callback", error);
         return false;
       }
     },
     async session({ token, session }) {
       if (!token || !session) {
-        console.error("[admin-auth] Missing token or session");
+        logger.error("[admin-auth] Missing token or session");
         return session;
       }
 
@@ -282,7 +280,7 @@ export const {
 
         // Verify role is ADMIN or SUPERADMIN
         if (token.role !== 'ADMIN' && token.role !== 'SUPERADMIN') {
-          console.error("[admin-auth] SECURITY ALERT - Invalid role in admin session:", token.role);
+          logger.error("[admin-auth] SECURITY ALERT - Invalid role in admin session", { role: token.role, userId: token.sub });
           // Session will be invalid
           return session;
         }
@@ -308,7 +306,7 @@ export const {
 
         // Role verification - check for ADMIN or SUPERADMIN
         if (existingAdmin.role !== 'ADMIN' && existingAdmin.role !== 'SUPERADMIN') {
-          console.error("[admin-auth] SECURITY ALERT - Invalid role in JWT token:", existingAdmin.role);
+          logger.error("[admin-auth] SECURITY ALERT - Invalid role in JWT token", { role: existingAdmin.role, userId: existingAdmin.id });
           // Return invalid token
           return token;
         }
@@ -328,7 +326,7 @@ export const {
 
         return token;
       } catch (error) {
-        console.error("[admin-auth] Error in JWT callback:", error);
+        logger.error("[admin-auth] Error in JWT callback", error);
         return token;
       }
     }

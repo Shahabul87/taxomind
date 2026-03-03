@@ -119,6 +119,7 @@ export async function PATCH(
           },
         },
       },
+      take: 200,
     });
 
     // Find the video with the specified videoId
@@ -181,6 +182,7 @@ export async function DELETE(
           },
         },
       },
+      take: 200,
     });
 
     // Find the specific video to delete by its ID

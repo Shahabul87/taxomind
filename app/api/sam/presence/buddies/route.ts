@@ -134,6 +134,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
+      take: 200,
     });
 
     const userCourseIds = userEnrollments.map(e => e.courseId);
