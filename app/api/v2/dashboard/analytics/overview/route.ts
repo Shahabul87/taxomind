@@ -130,6 +130,7 @@ async function fetchStudyTimeData(
         actualDuration: true,
         estimatedDuration: true,
       },
+      take: 1000,
     });
 
     // Group by day
@@ -205,6 +206,7 @@ async function fetchCourseProgress(userId: string, courseId?: string) {
           },
         },
       },
+      take: 1000,
     });
 
     // Fetch completed sections for this user separately
@@ -218,6 +220,7 @@ async function fetchCourseProgress(userId: string, courseId?: string) {
         sectionId: true,
         courseId: true,
       },
+      take: 1000,
     });
 
     return enrollments.map((enrollment) => {
@@ -261,6 +264,7 @@ async function fetchActivityHeatmap(userId: string, startDate: Date) {
         createdAt: true,
         type: true,
       },
+      take: 1000,
     });
 
     // Group by day and calculate intensity
@@ -313,6 +317,7 @@ async function fetchPerformanceMetrics(
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: 1000,
     });
 
     // Calculate metrics

@@ -46,10 +46,48 @@ export function sanitizeHtml(dirty: string, config?: DOMPurify.Config): string {
 }
 
 /**
+ * Allowlisted hosts for iframe src attributes.
+ * Only iframes pointing to these domains are permitted in rich content.
+ */
+const ALLOWED_IFRAME_HOSTS = [
+  'youtube.com',
+  'www.youtube.com',
+  'youtu.be',
+  'player.vimeo.com',
+  'codepen.io',
+  'codesandbox.io',
+];
+
+/**
  * Sanitize HTML for rich content (math, iframes, KaTeX, SVG).
+ * Iframes are restricted to allowlisted domains to prevent embedding malicious content.
  */
 export function sanitizeRichHtml(dirty: string): string {
-  return DOMPurify.sanitize(dirty, RICH_CONTENT_CONFIG);
+  // Add hook to restrict iframe sources
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.tagName === 'IFRAME') {
+      const src = node.getAttribute('src') || '';
+      try {
+        const url = new URL(src);
+        const isAllowed = ALLOWED_IFRAME_HOSTS.some(
+          (host) => url.hostname === host || url.hostname.endsWith('.' + host)
+        );
+        if (!isAllowed) {
+          node.remove();
+        }
+      } catch {
+        // Invalid URL - remove iframe
+        node.remove();
+      }
+    }
+  });
+
+  const result = DOMPurify.sanitize(dirty, RICH_CONTENT_CONFIG);
+
+  // Remove hook to prevent it from accumulating on repeated calls
+  DOMPurify.removeHook('afterSanitizeAttributes');
+
+  return result;
 }
 
 /**

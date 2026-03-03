@@ -1,9 +1,12 @@
+import { Suspense } from "react";
 import { DashboardHeader } from "./_components/DashboardHeader";
 import { DashboardStats } from "./_components/DashboardStats";
 import { RecentActivity } from "./_components/RecentActivity";
 import { QuickActions } from "./_components/QuickActions";
 import { SystemStatus } from "./_components/SystemStatus";
 import { CreateAdminSection } from "./_components/CreateAdminSection";
+
+export const dynamic = 'force-dynamic';
 
 // SAM AI Observability Components
 import {
@@ -325,18 +328,24 @@ export default async function AdminPage() {
           </h2>
 
           {/* SAM Health Dashboard - Full Width */}
-          <SAMHealthDashboard />
+          <Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />}>
+            <SAMHealthDashboard />
+          </Suspense>
 
           {/* Tool Execution Log & Quality Metrics */}
           <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
-            <ToolExecutionLog
-              limit={20}
-              refreshInterval={30000}
-              showFilters={true}
-            />
-            <QualityMetricsPanel
-              refreshInterval={60000}
-            />
+            <Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />}>
+              <ToolExecutionLog
+                limit={20}
+                refreshInterval={30000}
+                showFilters={true}
+              />
+            </Suspense>
+            <Suspense fallback={<div className="animate-pulse h-64 bg-gray-200 dark:bg-gray-700 rounded-lg" />}>
+              <QualityMetricsPanel
+                refreshInterval={60000}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

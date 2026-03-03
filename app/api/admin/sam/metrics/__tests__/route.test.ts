@@ -519,7 +519,8 @@ describe('POST /api/admin/sam/metrics', () => {
 
       expect(response.status).toBe(500);
       expect(data.success).toBe(false);
-      expect(typeof data.error).toBe('string');
+      expect(data.error).toHaveProperty('code');
+      expect(data.error).toHaveProperty('message');
     });
 
     it('should handle JSON parse errors', async () => {

@@ -249,7 +249,7 @@ describe('DELETE /api/courses/[courseId]', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
   it('returns 500 when db.course.delete throws', async () => {
@@ -260,7 +260,7 @@ describe('DELETE /api/courses/[courseId]', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
   it('returns generic error when thrown error is not an Error instance', async () => {
@@ -272,7 +272,7 @@ describe('DELETE /api/courses/[courseId]', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 });
 

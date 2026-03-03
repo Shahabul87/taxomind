@@ -132,7 +132,10 @@ export async function GET() {
       (session.user.role !== AdminRole.ADMIN &&
         session.user.role !== AdminRole.SUPERADMIN)
     ) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
 
     // Gather all metrics in parallel where possible

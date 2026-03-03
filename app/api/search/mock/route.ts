@@ -3,7 +3,6 @@ import { logger } from '@/lib/logger';
 
 // Add these exports to make the endpoint publicly accessible and not cached
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 // Make this route publicly accessible
 export const runtime = 'nodejs';
 

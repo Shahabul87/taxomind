@@ -11,7 +11,6 @@ import { SectionLoadingSkeleton } from "./_components/section-loading-skeleton";
 
 // Disable caching for this page to ensure fresh data after mutations
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 // Input validation schema
 const SectionPageParamsSchema = z.object({

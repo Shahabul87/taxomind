@@ -7,11 +7,17 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 import { GET } from '@/app/api/analytics/enhanced/route';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { NextRequest } from 'next/server';
 
 const mockAuth = auth as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 
 describe('GET /api/analytics/enhanced', () => {
   beforeEach(() => {
@@ -19,6 +25,8 @@ describe('GET /api/analytics/enhanced', () => {
     mockAuth.mockResolvedValue({
       user: { id: 'user-1', role: 'USER', email: 'user@test.com' },
     });
+    // Default: not admin
+    mockAdminAuth.mockResolvedValue(null);
   });
 
   it('returns 401 for unauthenticated requests', async () => {
@@ -53,7 +61,7 @@ describe('GET /api/analytics/enhanced', () => {
     expect(res.status).toBe(200);
     expect(body.user).toEqual({
       id: 'user-1',
-      role: 'USER',
+      isAdmin: false,
       email: 'user@test.com',
     });
     expect(body.request.courseId).toBe('course-1');
@@ -65,6 +73,7 @@ describe('GET /api/analytics/enhanced', () => {
     mockAuth.mockResolvedValueOnce({
       user: { id: 'admin-1', role: 'ADMIN', email: 'admin@test.com' },
     });
+    mockAdminAuth.mockResolvedValueOnce({ user: { id: 'admin-1' } });
 
     const req = new NextRequest(
       'http://localhost:3000/api/analytics/enhanced?userId=other-user&view=teacher'

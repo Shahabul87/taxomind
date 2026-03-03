@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { adminAuth } from "@/auth.admin";
 import { PredictiveAnalytics } from "@/lib/predictive-analytics";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
@@ -20,10 +21,12 @@ export async function GET(req: NextRequest) {
 
     // Check if user has instructor/admin access to this course
     const userId = session.user.id;
-    const userRole = session.user.role;
-    
-    // Allow admin access to all courses
-    if (userRole !== 'ADMIN') {
+
+    // Check admin access - admins can view all courses
+    const adminSession = await adminAuth();
+    const isAdmin = !!adminSession?.user;
+
+    if (!isAdmin) {
       // For teachers, verify they own the course
       const course = await db.course.findUnique({
         where: { 

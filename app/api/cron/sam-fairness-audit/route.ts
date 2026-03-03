@@ -283,21 +283,22 @@ async function queueAdminNotification(
       take: 10,
     });
 
-    for (const admin of admins) {
-      await db.notification.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId: admin.id,
-          type: 'system',
-          title: 'SAM Fairness Audit Alert',
-          message: `Fairness audit detected ${result.criticalIssues} critical issue(s). Score: ${result.fairnessScore}/100. ${
-            result.demographicDisparities.length > 0
-              ? `Disparities in: ${result.demographicDisparities.join(', ')}`
-              : ''
-          }`,
-        },
-      });
-    }
+    const notificationMessage = `Fairness audit detected ${result.criticalIssues} critical issue(s). Score: ${result.fairnessScore}/100. ${
+      result.demographicDisparities.length > 0
+        ? `Disparities in: ${result.demographicDisparities.join(', ')}`
+        : ''
+    }`;
+
+    // Batch-insert all admin notifications in a single query
+    await db.notification.createMany({
+      data: admins.map((admin) => ({
+        id: crypto.randomUUID(),
+        userId: admin.id,
+        type: 'system',
+        title: 'SAM Fairness Audit Alert',
+        message: notificationMessage,
+      })),
+    });
 
     logger.info('[SAM_FAIRNESS_AUDIT] Admin notifications queued', {
       adminCount: admins.length,

@@ -12,10 +12,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { logger } from '@/lib/logger';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
-} from 'recharts';
+import {
+  RechartsBarChart as BarChart,
+  RechartsBar as Bar,
+  RechartsXAxis as XAxis,
+  RechartsYAxis as YAxis,
+  RechartsCartesianGrid as CartesianGrid,
+  RechartsTooltip as Tooltip,
+  RechartsResponsiveContainer as ResponsiveContainer,
+  RechartsLineChart as LineChart,
+  RechartsLine as Line,
+  RechartsPieChart as PieChart,
+  RechartsPie as Pie,
+  RechartsCell as Cell,
+  RechartsRadarChart as RadarChart,
+  RechartsPolarGrid as PolarGrid,
+  RechartsPolarAngleAxis as PolarAngleAxis,
+  RechartsPolarRadiusAxis as PolarRadiusAxis,
+  RechartsRadar as Radar,
+} from '@/components/lazy-imports';
 import { 
   Briefcase, Target, TrendingUp, DollarSign, MapPin, Star, 
   Clock, Users, BookOpen, Zap, Brain, Award, AlertCircle, CheckCircle

@@ -89,7 +89,8 @@ async function getCourseVideoAnalytics(courseId: string, dateFilter: any) {
       title: true,
       duration: true,
       url: true
-    }
+    },
+    take: 100,
   });
 
   const videoAnalytics = await Promise.all(

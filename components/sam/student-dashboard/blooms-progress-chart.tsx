@@ -3,7 +3,14 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import {
+  RechartsRadar as Radar,
+  RechartsRadarChart as RadarChart,
+  RechartsPolarGrid as PolarGrid,
+  RechartsPolarAngleAxis as PolarAngleAxis,
+  RechartsPolarRadiusAxis as PolarRadiusAxis,
+  RechartsResponsiveContainer as ResponsiveContainer,
+} from '@/components/lazy-imports';
 import { Brain, Target, Trophy, TrendingUp } from 'lucide-react';
 import { BloomsLevel } from '@prisma/client';
 

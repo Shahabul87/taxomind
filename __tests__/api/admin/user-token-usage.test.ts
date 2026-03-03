@@ -162,6 +162,7 @@ describe('GET /api/admin/user-token-usage', () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.success).toBe(false);
-    expect(typeof data.error).toBe('string');
+    expect(data.error).toHaveProperty('code');
+    expect(data.error).toHaveProperty('message');
   });
 });

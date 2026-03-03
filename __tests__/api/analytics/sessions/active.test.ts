@@ -7,12 +7,18 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 import { GET } from '@/app/api/analytics/sessions/active/route';
 import { currentUser } from '@/lib/auth';
+import { adminAuth } from '@/auth.admin';
 import { db } from '@/lib/db';
 import { NextRequest } from 'next/server';
 
 const mockCurrentUser = currentUser as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 
 function ensureModel(modelName: string, methods: string[]) {
   if (!(db as Record<string, unknown>)[modelName]) {
@@ -31,6 +37,8 @@ describe('GET /api/analytics/sessions/active', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUser.mockResolvedValue({ id: 'user-1' });
+    // Mock as admin to avoid course ownership filter
+    mockAdminAuth.mockResolvedValue({ user: { id: 'user-1' } });
     userExamAttempt.findMany.mockResolvedValue([
       { id: 'a1', userId: 'u1', examId: 'exam-1' },
       { id: 'a2', userId: 'u2', examId: 'exam-1' },

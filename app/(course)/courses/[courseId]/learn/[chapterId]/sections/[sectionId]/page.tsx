@@ -11,7 +11,6 @@ import { logger } from '@/lib/logger';
 
 // Disable caching for real-time data
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 // Input validation schema
 const SectionPageParamsSchema = z.object({

@@ -6,6 +6,10 @@ jest.mock('@/auth', () => ({
   auth: jest.fn(),
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 jest.mock('@/lib/compliance/audit-logger', () => ({
   AuditEventType: {
     ACCESS_DENIED: 'ACCESS_DENIED',
@@ -28,15 +32,18 @@ jest.mock('@/lib/compliance/audit-logger', () => ({
 import { GET, POST } from '@/app/api/compliance/soc2/report/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { auditLogger } from '@/lib/compliance/audit-logger';
 
 const mockAuth = auth as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 const mockAudit = auditLogger as jest.Mocked<typeof auditLogger>;
 
 describe('Compliance soc2 report route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', email: 'admin@test.com', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
     mockAudit.log.mockResolvedValue(undefined as any);
     mockAudit.generateComplianceReport.mockResolvedValue({ controls: 10 } as any);
     mockAudit.archiveOldLogs.mockResolvedValue(3 as any);
@@ -45,6 +52,7 @@ describe('Compliance soc2 report route', () => {
 
   it('GET returns 401 for unauthorized user', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'u1', role: 'USER' } });
+    mockAdminAuth.mockResolvedValue(null);
 
     const res = await GET(new NextRequest('http://localhost:3000/api/compliance/soc2/report?startDate=2026-01-01&endDate=2026-02-01'));
     expect(res.status).toBe(401);
@@ -66,6 +74,7 @@ describe('Compliance soc2 report route', () => {
 
   it('POST returns 401 for unauthorized user', async () => {
     mockAuth.mockResolvedValue(null);
+    mockAdminAuth.mockResolvedValue(null);
 
     const res = await POST(new NextRequest('http://localhost:3000/api/compliance/soc2/report', { method: 'POST', body: JSON.stringify({ action: 'archive' }) }));
     expect(res.status).toBe(401);

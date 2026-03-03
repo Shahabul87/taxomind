@@ -38,10 +38,12 @@ describe('/api/analytics/real-time/metrics route', () => {
     userExamAttempt.count
       .mockResolvedValueOnce(10) // totalInteractions
       .mockResolvedValueOnce(3) // currentVideosWatching
-      .mockResolvedValueOnce(8) // examAttempts for first enrollment
-      .mockResolvedValueOnce(5) // completedExams for first enrollment
-      .mockResolvedValueOnce(15); // recent attempts (system load)
-    userExamAttempt.groupBy.mockResolvedValue([{ userId: 'u3', _count: 2 }]);
+      .mockResolvedValueOnce(15); // recent attempts (system load / calculateSystemLoad)
+    // groupBy is called for: completion metrics (2x), struggling students low scores (1x)
+    userExamAttempt.groupBy
+      .mockResolvedValueOnce([{ userId: 'u1', _count: 8 }]) // examAttemptCounts
+      .mockResolvedValueOnce([{ userId: 'u1', _count: 5 }]) // gradedCounts
+      .mockResolvedValueOnce([{ userId: 'u3', _count: 2 }]); // lowScoreAttempts
 
     learningMetrics.aggregate.mockResolvedValue({ _avg: { riskScore: 0.2 } });
     learningMetrics.count.mockResolvedValue(1);

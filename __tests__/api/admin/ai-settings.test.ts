@@ -198,7 +198,8 @@ describe('GET /api/admin/ai-settings', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(typeof body.error).toBe('string');
+    expect(body.error).toHaveProperty('code');
+    expect(body.error).toHaveProperty('message');
   });
 });
 
@@ -289,6 +290,7 @@ describe('PUT /api/admin/ai-settings', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(typeof body.error).toBe('string');
+    expect(body.error).toHaveProperty('code');
+    expect(body.error).toHaveProperty('message');
   });
 });

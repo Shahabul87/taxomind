@@ -42,7 +42,12 @@ jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
   getRateLimitStats: jest.fn(),
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 import { GET, HEAD } from '@/app/api/health/route';
+import { adminAuth } from '@/auth.admin';
 import { db } from '@/lib/db';
 import { getDbMetrics } from '@/lib/db-pooled';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
@@ -60,6 +65,9 @@ describe('/api/health route', () => {
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     process.env.NODE_ENV = 'test';
+
+    // Mock admin auth to return admin session for detailed health info
+    (adminAuth as jest.Mock).mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
 
     (db.$queryRaw as jest.Mock).mockResolvedValue([{ one: 1 }]);
     (enterpriseDataAPI.healthCheck as jest.Mock).mockResolvedValue({

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { certificateService } from "@/lib/certificate/service";
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { verificationCode } = await request.json();
 
@@ -31,6 +35,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const url = new URL(request.url);
     const verificationCode = url.searchParams.get('code');

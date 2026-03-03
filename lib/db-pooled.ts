@@ -179,8 +179,8 @@ const prismaClientSingleton = () => {
             );
 
             // Implement retry logic for transient failures with exponential backoff
-            // Only retry non-transaction queries to avoid transaction conflicts
-            if (shouldRetry(error as Error)) {
+            // Only retry read operations to avoid duplicating writes on transient failures
+            if (isReadOperation(operation) && shouldRetry(error as Error)) {
               const backoffDelays = [100, 500, 1000]; // Exponential backoff
               for (let attempt = 0; attempt < backoffDelays.length; attempt++) {
                 try {
@@ -210,6 +210,13 @@ const prismaClientSingleton = () => {
     },
   });
 };
+
+// Read-only operations that are safe to retry
+const READ_OPERATIONS = ['findUnique', 'findFirst', 'findMany', 'count', 'aggregate', 'groupBy'];
+
+function isReadOperation(operation: string): boolean {
+  return READ_OPERATIONS.includes(operation);
+}
 
 // Helper function to determine if error is transient
 function shouldRetry(error: Error): boolean {

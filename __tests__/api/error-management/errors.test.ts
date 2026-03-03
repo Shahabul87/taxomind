@@ -1,3 +1,7 @@
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 jest.mock('@/lib/error-handling/api-error-handler', () => ({
   withErrorHandling:
     (handler: (request: Request, context?: any) => Promise<any>) =>
@@ -18,19 +22,19 @@ jest.mock('@/lib/error-handling/api-error-handler', () => ({
 }));
 
 import { DELETE, GET, PATCH } from '@/app/api/error-management/errors/route';
-import { currentUser } from '@/lib/auth';
+import { adminAuth } from '@/auth.admin';
 import { NextRequest } from 'next/server';
 
-const mockCurrentUser = currentUser as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 
 describe('/api/error-management/errors route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCurrentUser.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
   });
 
   it('GET returns 401 for non-admin users', async () => {
-    mockCurrentUser.mockResolvedValue({ id: 'user-1', role: 'USER' });
+    mockAdminAuth.mockResolvedValue(null);
     const req = new NextRequest('http://localhost:3000/api/error-management/errors');
     const res = await GET(req);
     expect(res.status).toBe(401);

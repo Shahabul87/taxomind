@@ -20,7 +20,10 @@ export async function PATCH(
     
     // Check authentication
     if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
     
     const body = await req.json() as ActivityUpdateData;
@@ -74,7 +77,10 @@ export async function DELETE(
     
     // Check authentication
     if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
     
     // Find the activity

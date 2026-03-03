@@ -5,7 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import {
+  RechartsBarChart as BarChart,
+  RechartsBar as Bar,
+  RechartsXAxis as XAxis,
+  RechartsYAxis as YAxis,
+  RechartsCartesianGrid as CartesianGrid,
+  RechartsTooltip as Tooltip,
+  RechartsResponsiveContainer as ResponsiveContainer,
+  RechartsLineChart as LineChart,
+  RechartsLine as Line,
+  RechartsPieChart as PieChart,
+  RechartsPie as Pie,
+  RechartsCell as Cell,
+} from '@/components/lazy-imports';
 import { DateRange } from 'react-day-picker';
 import { addDays, subDays, format } from 'date-fns';
 import { toast } from 'sonner';

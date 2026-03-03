@@ -1,6 +1,12 @@
 /**
- * Stripe Webhook Handler - Enterprise Implementation
- * Logs webhook events and queues them for processing
+ * Stripe Webhook Handler (Primary)
+ *
+ * IMPORTANT: Only ONE Stripe webhook endpoint should be configured per event type.
+ * If using /api/subscription/webhook for subscription events, do NOT configure
+ * the same event types here. Dual processing can cause duplicate charges,
+ * double enrollment, or conflicting state updates.
+ *
+ * Logs webhook events and queues them for processing.
  */
 
 import { headers } from "next/headers";

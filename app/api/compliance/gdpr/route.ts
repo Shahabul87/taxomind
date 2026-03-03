@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { gdprManager } from '@/lib/compliance/gdpr-manager';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
@@ -60,9 +61,10 @@ export async function GET(req: NextRequest) {
         const policy = gdprManager.getDataRetentionPolicy();
         return NextResponse.json({ success: true, policy });
 
-      case 'compliance-report':
+      case 'compliance-report': {
         // Admin only - get compliance report
-        if (session.user.role !== 'ADMIN') {
+        const adminSession = await adminAuth();
+        if (!adminSession?.user) {
           return NextResponse.json(
             { error: 'Admin access required' },
             { status: 403 }
@@ -70,6 +72,7 @@ export async function GET(req: NextRequest) {
         }
         const report = await gdprManager.generateComplianceReport();
         return NextResponse.json({ success: true, report });
+      }
 
       case 'data-minimization':
         // Check data minimization for user
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
@@ -130,6 +133,12 @@ export async function POST(req: NextRequest) {
       case 'delete-account':
         // Delete user account and data
         const { verificationToken } = body;
+        if (!verificationToken || typeof verificationToken !== 'string') {
+          return NextResponse.json(
+            { error: 'Verification token is required' },
+            { status: 400 }
+          );
+        }
         await gdprManager.deleteUserData(session.user.id, verificationToken);
         return NextResponse.json({
           success: true,
@@ -173,7 +182,7 @@ export async function DELETE(req: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
@@ -181,8 +190,15 @@ export async function DELETE(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const verificationToken = searchParams.get('token');
 
+    if (!verificationToken || typeof verificationToken !== 'string') {
+      return NextResponse.json(
+        { error: 'Verification token is required' },
+        { status: 400 }
+      );
+    }
+
     // Process account deletion with verification
-    await gdprManager.deleteUserData(session.user.id, verificationToken || undefined);
+    await gdprManager.deleteUserData(session.user.id, verificationToken);
 
     return NextResponse.json({
       success: true,

@@ -488,6 +488,7 @@ export async function GET(request: NextRequest) {
           platform: true,
           url: true,
         },
+        take: 500,
       });
     } catch (error) {
       logger.warn('[PROFILE_GET] Failed to fetch profile links (table may not exist):', error);

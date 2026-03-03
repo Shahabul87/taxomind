@@ -13,7 +13,10 @@ export async function GET() {
 
     // Check if user is authenticated and is an admin
     if (!session || !session.user || (session.user.role !== AdminRole.ADMIN && session.user.role !== AdminRole.SUPERADMIN)) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
 
     // Fetch total users count

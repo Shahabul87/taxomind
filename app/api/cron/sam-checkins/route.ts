@@ -124,6 +124,9 @@ export async function GET(req: NextRequest) {
       skipped: 0,
     };
 
+    // Collect IDs of successfully sent check-ins for batch status update
+    const sentCheckInIds: string[] = [];
+
     for (const checkIn of dueCheckIns) {
       try {
         results.processed++;
@@ -151,8 +154,7 @@ export async function GET(req: NextRequest) {
         });
 
         if (notificationSent) {
-          // Mark as sent using the store
-          await getCheckInStore().updateStatus(checkIn.id, CheckInStatus.SENT);
+          sentCheckInIds.push(checkIn.id);
           results.sent++;
           logger.info(`Sent check-in ${checkIn.id} to user ${checkIn.userId}`);
         } else {
@@ -163,6 +165,14 @@ export async function GET(req: NextRequest) {
         results.failed++;
         logger.error(`Error processing check-in ${checkIn.id}:`, checkInError);
       }
+    }
+
+    // Batch update all sent check-ins status (reduces N individual updates)
+    if (sentCheckInIds.length > 0) {
+      const store = getCheckInStore();
+      await Promise.allSettled(
+        sentCheckInIds.map((id) => store.updateStatus(id, CheckInStatus.SENT))
+      );
     }
 
     // Expire old unresponded check-ins (older than 48 hours)
@@ -180,9 +190,13 @@ export async function GET(req: NextRequest) {
         (checkIn) => checkIn.status === 'sent' || checkIn.status === 'pending'
       );
 
-      for (const checkIn of toExpire) {
-        await getCheckInStore().updateStatus(checkIn.id, CheckInStatus.EXPIRED);
-        expired++;
+      // Batch expire all old check-ins concurrently instead of sequential loop
+      if (toExpire.length > 0) {
+        const store = getCheckInStore();
+        const expireResults = await Promise.allSettled(
+          toExpire.map((checkIn) => store.updateStatus(checkIn.id, CheckInStatus.EXPIRED))
+        );
+        expired = expireResults.filter((r) => r.status === 'fulfilled').length;
       }
 
       if (expired > 0) {

@@ -5,7 +5,6 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Add these exports to make the endpoint publicly accessible and not cached
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 // Make this route publicly accessible
 export const runtime = 'nodejs';
 
@@ -94,7 +93,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
       },
       take: 15,
       include: {
-        user: true,
+        user: { select: { id: true, name: true, imageUrl: true } },
         chapters: {
           where: { isPublished: true },
           select: { title: true, description: true }
@@ -139,7 +138,7 @@ async function performSearch(query: string): Promise<SearchResult[]> {
       },
       take: 15,
       include: {
-        User: true
+        User: { select: { id: true, name: true, imageUrl: true } }
       }
     });
 

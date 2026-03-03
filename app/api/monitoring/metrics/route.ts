@@ -5,56 +5,61 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
+import { AdminRole } from '@/types/admin-role';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import os from 'os';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await auth();
-    
-    if (!session?.user) {
+    const session = await adminAuth();
+
+    if (
+      !session?.user ||
+      (session.user.role !== AdminRole.ADMIN &&
+        session.user.role !== AdminRole.SUPERADMIN)
+    ) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') ?? '1h';
-    
-    // Mock metrics data
+
+    // Real system metrics
+    const memUsage = process.memoryUsage();
+    const uptimeSeconds = process.uptime();
+    const cpuCount = os.cpus().length;
+    const loadAvg = os.loadavg();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+
     const metrics = {
       period,
       timestamp: new Date().toISOString(),
       system: {
         cpu: {
-          usage: 45,
-          cores: 8,
-          loadAverage: [1.2, 1.5, 1.8]
+          cores: cpuCount,
+          loadAverage: loadAvg,
         },
         memory: {
-          used: 62,
-          total: 100,
-          available: 38
+          totalBytes: totalMem,
+          freeBytes: freeMem,
+          usedPercent: Math.round(((totalMem - freeMem) / totalMem) * 100),
         },
-        disk: {
-          used: 75,
-          total: 500,
-          available: 125
-        }
       },
-      application: {
-        requests: {
-          total: 10000,
-          rate: 50,
-          errors: 12
+      process: {
+        uptime: Math.round(uptimeSeconds),
+        memory: {
+          rss: Math.round(memUsage.rss / 1024 / 1024),
+          heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+          heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+          external: Math.round(memUsage.external / 1024 / 1024),
         },
-        responseTime: {
-          average: 250,
-          p95: 500,
-          p99: 1000
-        }
-      }
+        pid: process.pid,
+      },
     };
 
     return NextResponse.json({ metrics }, { status: 200 });

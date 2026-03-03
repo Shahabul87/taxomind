@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { devOnlyGuard } from "@/lib/api/dev-only-guard";
+import { adminAuth } from "@/auth.admin";
 
 export const runtime = 'nodejs';
 
@@ -12,13 +13,12 @@ export const runtime = 'nodejs';
 export async function GET() {
   try {
     // SECURITY: Block completely in production
-    if (process.env.NODE_ENV === 'production') {
-      return new NextResponse('Not Found', { status: 404 });
-    }
+    const blocked = devOnlyGuard();
+    if (blocked) return blocked;
 
     // SECURITY: Require admin authentication even in development
-    const user = await currentUser();
-    if (!user || user.role !== 'ADMIN') {
+    const adminSession = await adminAuth();
+    if (!adminSession?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

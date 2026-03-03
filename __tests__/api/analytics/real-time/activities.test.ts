@@ -27,8 +27,8 @@ function ensureModel(modelName: string, methods: string[]) {
 
 const course = ensureModel('course', ['findUnique']);
 const userProgress = ensureModel('user_progress', ['findMany']);
-const learningMetrics = ensureModel('learning_metrics', ['findFirst']);
-const enrollment = ensureModel('enrollment', ['findFirst']);
+const learningMetrics = ensureModel('learning_metrics', ['findMany', 'findFirst']);
+const enrollment = ensureModel('enrollment', ['findMany', 'findFirst']);
 
 describe('/api/analytics/real-time/activities route', () => {
   beforeEach(() => {
@@ -53,8 +53,8 @@ describe('/api/analytics/real-time/activities route', () => {
         Section: { id: 'sec-1', title: 'Intro' },
       },
     ]);
-    learningMetrics.findFirst.mockResolvedValue({ engagementTrend: 'UP' });
-    enrollment.findFirst.mockResolvedValue({ id: 'enr-1' });
+    learningMetrics.findMany.mockResolvedValue([{ userId: 'student-1', courseId: 'course-1', engagementTrend: 'UP', lastActivityDate: new Date() }]);
+    enrollment.findMany.mockResolvedValue([{ userId: 'student-1', courseId: 'course-1' }]);
   });
 
   it('GET returns 401 when unauthenticated', async () => {

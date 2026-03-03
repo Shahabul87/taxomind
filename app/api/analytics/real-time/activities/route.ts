@@ -81,30 +81,57 @@ async function getStudentActivities(courseId: string | null) {
   // Group by student
   const studentActivities = new Map<string, any>();
 
+  // Batch fetch to eliminate N+1 queries
+  const uniqueUserIds = [...new Set(recentInteractions.map(a => a.userId).filter((id): id is string => Boolean(id)))];
+
+  const [learningMetricsList, enrollmentsList] = await Promise.all([
+    db.learning_metrics.findMany({
+      where: {
+        userId: { in: uniqueUserIds },
+        ...(courseId && { courseId }),
+      },
+      select: {
+        userId: true,
+        courseId: true,
+        engagementTrend: true,
+        lastActivityDate: true,
+      },
+      orderBy: { lastActivityDate: 'desc' },
+    }),
+    db.enrollment.findMany({
+      where: {
+        userId: { in: uniqueUserIds },
+        ...(courseId && { courseId }),
+      },
+      select: {
+        userId: true,
+        courseId: true,
+      },
+    }),
+  ]);
+
+  // Build lookup maps: userId -> most recent metric (already sorted desc)
+  const metricsMap = new Map<string, typeof learningMetricsList[number]>();
+  for (const m of learningMetricsList) {
+    if (!metricsMap.has(m.userId)) {
+      metricsMap.set(m.userId, m);
+    }
+  }
+
+  const enrollmentMap = new Map<string, typeof enrollmentsList>();
+  for (const e of enrollmentsList) {
+    if (!enrollmentMap.has(e.userId)) enrollmentMap.set(e.userId, []);
+    enrollmentMap.get(e.userId)!.push(e);
+  }
+
   for (const interaction of recentInteractions) {
     if (!interaction.userId) continue;
 
     const studentId = interaction.userId;
-    
-    if (!studentActivities.has(studentId)) {
-      // Get student's learning metrics
-      const metrics = await db.learning_metrics.findFirst({
-        where: {
-          userId: studentId,
-          ...(courseId && { courseId: interaction.courseId })
-        },
-        orderBy: {
-          lastActivityDate: 'desc'
-        }
-      });
 
-      // Get course enrollment for progress
-      const enrollment = await db.enrollment.findFirst({
-        where: {
-          userId: studentId,
-          ...(courseId && interaction.courseId && { courseId: interaction.courseId })
-        }
-      });
+    if (!studentActivities.has(studentId)) {
+      // Use batch-fetched data instead of individual queries
+      const metrics = metricsMap.get(studentId);
 
       studentActivities.set(studentId, {
         studentId,

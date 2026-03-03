@@ -6,6 +6,10 @@ jest.mock('@/auth', () => ({
   auth: jest.fn(),
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 jest.mock('@/lib/compliance/gdpr-manager', () => ({
   gdprManager: {
     getUserConsents: jest.fn(),
@@ -23,9 +27,11 @@ jest.mock('@/lib/compliance/gdpr-manager', () => ({
 import { DELETE, GET, POST } from '@/app/api/compliance/gdpr/route';
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { gdprManager } from '@/lib/compliance/gdpr-manager';
 
 const mockAuth = auth as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 const mockGDPR = gdprManager as jest.Mocked<typeof gdprManager>;
 
 function getReq(action: string) {
@@ -44,6 +50,7 @@ describe('Compliance gdpr route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } });
+    mockAdminAuth.mockResolvedValue(null);
     mockGDPR.getUserConsents.mockResolvedValue([{ consentType: 'analytics', granted: true }] as any);
     mockGDPR.exportUserData.mockResolvedValue({ userId: 'user-1' } as any);
     mockGDPR.getDataRetentionPolicy.mockReturnValue({ defaultDays: 365 } as any);

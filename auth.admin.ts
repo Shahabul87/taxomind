@@ -14,6 +14,7 @@
 // CRITICAL: Mark this file as server-only to prevent client-side bundling
 import "server-only";
 
+import { randomUUID, randomBytes } from 'crypto';
 import NextAuth from "next-auth"
 import { AdminRole } from "@/types/admin-role";
 import type { JWT } from "next-auth/jwt";
@@ -79,8 +80,7 @@ export const {
       // Phase 3: Enhanced logging for admin sign-ins with AdminAuditLog
       if (user?.id && user?.email) {
         const provider = account?.provider || 'credentials';
-        const crypto = require('crypto');
-        const uniqueSessionId = `session-${user.id}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+        const uniqueSessionId = `session-${user.id}-${Date.now()}-${randomBytes(4).toString('hex')}`;
 
         // Phase 2: Standard auth audit logging (kept for backwards compatibility)
         await authAuditHelpers.logSignInSuccess(
@@ -323,8 +323,7 @@ export const {
 
         // Generate session token for fingerprinting
         if (!token.sessionToken) {
-          const crypto = require('crypto');
-          token.sessionToken = crypto.randomUUID();
+          token.sessionToken = randomUUID();
         }
 
         return token;

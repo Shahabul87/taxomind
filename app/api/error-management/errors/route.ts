@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { adminAuth } from '@/auth.admin';
 import { db } from '@/lib/db';
 import { withErrorHandling } from '@/lib/error-handling/api-error-handler';
 import { ErrorSeverity, ErrorType } from '@/lib/error-handling/types';
@@ -8,8 +8,8 @@ export const runtime = 'nodejs';
 
 // GET /api/error-management/errors - Get error logs with filters
 export const GET = withErrorHandling(async (request: Request) => {
-  const user = await currentUser();
-  if (!user || user.role !== 'ADMIN') {
+  const adminSession = await adminAuth();
+  if (!adminSession?.user) {
     throw new Error('Unauthorized');
   }
 
@@ -113,10 +113,11 @@ export const GET = withErrorHandling(async (request: Request) => {
 
 // PATCH /api/error-management/errors - Bulk update errors
 export const PATCH = withErrorHandling(async (request: Request) => {
-  const user = await currentUser();
-  if (!user || user.role !== 'ADMIN') {
+  const adminSession = await adminAuth();
+  if (!adminSession?.user) {
     throw new Error('Unauthorized');
   }
+  const user = adminSession.user;
 
   const body = await request.json();
   const { errorIds, action, data } = body;
@@ -184,8 +185,8 @@ export const PATCH = withErrorHandling(async (request: Request) => {
 
 // DELETE /api/error-management/errors - Delete old errors
 export const DELETE = withErrorHandling(async (request: Request) => {
-  const user = await currentUser();
-  if (!user || user.role !== 'ADMIN') {
+  const adminSession = await adminAuth();
+  if (!adminSession?.user) {
     throw new Error('Unauthorized');
   }
 

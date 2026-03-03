@@ -120,7 +120,7 @@ describe('POST /api/auth/sso/oidc', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 });
 

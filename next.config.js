@@ -137,7 +137,7 @@ const nextConfig = {
     cpus: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production'
       ? 1
       : parseInt(process.env.EXPERIMENTAL_CPUS || '4', 10),
-    // Note: optimizeCss disabled - requires 'critters' package to be installed
+    // TODO: Enable optimizeCss after installing critters: npm install critters
     // optimizeCss: true,
     // Enable partial prerendering for faster builds
     // ppr: true, // Disabled - requires Next.js canary version
@@ -469,6 +469,8 @@ const nextConfig = {
     }
 
     // Content Security Policy (enforcing mode)
+    // Next.js requires 'unsafe-inline' for its runtime inline scripts and styles in production.
+    // This cannot be removed without implementing nonce-based CSP (requires custom Document).
     securityHeaders.push({
       key: 'Content-Security-Policy',
       value: [

@@ -188,7 +188,8 @@ describe('GET /api/admin/audit-dashboard', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(typeof body.error).toBe('string');
+    expect(body.error).toHaveProperty('code');
+    expect(body.error).toHaveProperty('message');
   });
 });
 
@@ -261,6 +262,7 @@ describe('POST /api/admin/audit-dashboard', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(typeof body.error).toBe('string');
+    expect(body.error).toHaveProperty('code');
+    expect(body.error).toHaveProperty('message');
   });
 });

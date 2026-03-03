@@ -1228,6 +1228,7 @@ model SAMPushQueue {
 
   @@index([userId, status])
   @@index([status, priority, queuedAt])
+  @@index([status, queuedAt])
   @@index([expiresAt])
   @@map("sam_push_queue")
 }

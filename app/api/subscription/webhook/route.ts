@@ -1,5 +1,9 @@
 /**
- * Stripe Webhook Handler for Premium Subscriptions - Enterprise Implementation
+ * Stripe Subscription Webhook Handler
+ *
+ * IMPORTANT: Only ONE Stripe webhook endpoint should be configured per event type.
+ * If using /api/webhook for general Stripe events, do NOT configure
+ * the same event types here to prevent dual processing.
  *
  * Handles Stripe events for subscription management:
  * - checkout.session.completed: Activate premium

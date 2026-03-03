@@ -1,7 +1,17 @@
-import { GET } from '@/app/api/env-check/route';
-import { currentUser } from '@/lib/auth';
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
 
-const mockCurrentUser = currentUser as jest.Mock;
+jest.mock('@/lib/api/dev-only-guard', () => ({
+  devOnlyGuard: jest.fn(),
+}));
+
+import { GET } from '@/app/api/env-check/route';
+import { adminAuth } from '@/auth.admin';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
+
+const mockAdminAuth = adminAuth as jest.Mock;
+const mockDevOnlyGuard = devOnlyGuard as jest.Mock;
 
 describe('/api/env-check route', () => {
   const originalEnv = process.env.NODE_ENV;
@@ -9,7 +19,8 @@ describe('/api/env-check route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.NODE_ENV = 'development';
-    mockCurrentUser.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
+    mockDevOnlyGuard.mockReturnValue(null);
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
   });
 
   afterAll(() => {
@@ -18,12 +29,14 @@ describe('/api/env-check route', () => {
 
   it('returns 404 in production', async () => {
     process.env.NODE_ENV = 'production';
+    const { NextResponse } = jest.requireMock('next/server');
+    mockDevOnlyGuard.mockReturnValue(NextResponse.json({ error: 'Not Found' }, { status: 404 }));
     const res = await GET();
     expect(res.status).toBe(404);
   });
 
   it('returns 401 for non-admin in development', async () => {
-    mockCurrentUser.mockResolvedValue({ id: 'user-1', role: 'USER' });
+    mockAdminAuth.mockResolvedValue(null);
     const res = await GET();
     expect(res.status).toBe(401);
   });
@@ -39,7 +52,7 @@ describe('/api/env-check route', () => {
   });
 
   it('returns 500 when auth provider throws', async () => {
-    mockCurrentUser.mockRejectedValueOnce(new Error('auth error'));
+    mockAdminAuth.mockRejectedValueOnce(new Error('auth error'));
     const res = await GET();
     const body = await res.json();
 

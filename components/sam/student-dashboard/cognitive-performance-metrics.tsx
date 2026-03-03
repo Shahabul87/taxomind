@@ -2,7 +2,18 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Line, LineChart, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  RechartsLine as Line,
+  RechartsLineChart as LineChart,
+  RechartsBar as Bar,
+  RechartsBarChart as BarChart,
+  RechartsXAxis as XAxis,
+  RechartsYAxis as YAxis,
+  RechartsCartesianGrid as CartesianGrid,
+  RechartsTooltip as Tooltip,
+  RechartsLegend as Legend,
+  RechartsResponsiveContainer as ResponsiveContainer,
+} from '@/components/lazy-imports';
 import { Activity, Clock, TrendingUp, Award } from 'lucide-react';
 import { BloomsLevel } from '@prisma/client';
 

@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { adminAuth } from '@/auth.admin';
 import { logger } from '@/lib/logger';
 
 // Get active sessions count
@@ -13,22 +14,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check admin access
+    const adminSession = await adminAuth();
+    const isAdmin = !!adminSession?.user;
+
     // Get active sessions in last 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    
+
     const activeSessions = await db.userExamAttempt.findMany({
       where: {
         createdAt: {
           gte: fiveMinutesAgo
         },
-        status: 'IN_PROGRESS'
+        status: 'IN_PROGRESS',
+        ...(!isAdmin ? {
+          exam: {
+            section: {
+              chapter: {
+                course: { userId: user.id }
+              }
+            }
+          }
+        } : {}),
       },
       distinct: ['userId'],
       select: {
         id: true,
         userId: true,
         examId: true
-      }
+      },
+      take: 200,
     });
 
     // Group by exam for teachers

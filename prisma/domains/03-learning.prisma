@@ -179,6 +179,7 @@ model Course {
   @@index([userId])
   @@index([isPublished])
   @@index([createdAt])
+  @@index([userId, isPublished])
 }
 
 // Course-Skill Mapping (Phase 3 SAM Fixes - January 2026)

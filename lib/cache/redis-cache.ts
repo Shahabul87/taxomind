@@ -287,16 +287,19 @@ export class RedisCache {
 
       // Handle tags for bulk invalidation
       if (options.tags && options.tags.length > 0) {
+        const tagPipeline = this.redis.pipeline();
         for (const tag of options.tags) {
           if (!this.tagIndex.has(tag)) {
             this.tagIndex.set(tag, new Set());
           }
           this.tagIndex.get(tag)!.add(cacheKey);
 
-          // Store tag index in Redis
-          await this.redis.sadd(`tag:${tag}`, cacheKey);
-          await this.redis.expire(`tag:${tag}`, ttl);
+          // Store tag index in Redis (pipelined to avoid race condition)
+          const tagKey = `tag:${tag}`;
+          tagPipeline.sadd(tagKey, cacheKey);
+          tagPipeline.expire(tagKey, ttl);
         }
+        await tagPipeline.exec();
       }
 
       return true;
@@ -324,6 +327,25 @@ export class RedisCache {
     }
   }
 
+  // SCAN-based key iteration (non-blocking alternative to KEYS)
+  private async scanKeys(pattern: string): Promise<string[]> {
+    if (!this.redis) return [];
+    const keys: string[] = [];
+    let cursor = '0';
+    do {
+      const [nextCursor, batch] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100
+      );
+      cursor = nextCursor;
+      keys.push(...batch);
+    } while (cursor !== '0');
+    return keys;
+  }
+
   // Invalidate by pattern
   public async invalidatePattern(pattern: string): Promise<number> {
     if (!this.isConnected || !this.redis) {
@@ -331,7 +353,7 @@ export class RedisCache {
     }
 
     try {
-      const keys = await this.redis.keys(pattern);
+      const keys = await this.scanKeys(pattern);
       if (keys.length === 0) {
         return 0;
       }

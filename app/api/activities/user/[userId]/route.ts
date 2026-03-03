@@ -12,7 +12,10 @@ export async function GET(
     
     // Check authentication
     if (!session?.user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
     
     // Get userId from params - properly awaited

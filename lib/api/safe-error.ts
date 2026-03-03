@@ -54,8 +54,22 @@ export function safeErrorResponse(
 
   const message = safeErrorMessage(error);
 
+  // Derive an error code from the HTTP status
+  const codeMap: Record<number, string> = {
+    400: 'BAD_REQUEST',
+    401: 'UNAUTHORIZED',
+    403: 'FORBIDDEN',
+    404: 'NOT_FOUND',
+    409: 'CONFLICT',
+    429: 'TOO_MANY_REQUESTS',
+    500: 'INTERNAL_ERROR',
+    502: 'BAD_GATEWAY',
+    503: 'SERVICE_UNAVAILABLE',
+  };
+  const code = codeMap[status] ?? 'INTERNAL_ERROR';
+
   return NextResponse.json(
-    { success: false, error: message },
+    { success: false, error: { code, message } },
     { status }
   );
 }

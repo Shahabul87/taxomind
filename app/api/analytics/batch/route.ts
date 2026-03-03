@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error('[ANALYTICS] Error processing batch:', error);
-    return NextResponse.json({ success: false }, { status: 200 });
+    return NextResponse.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Batch processing failed' } }, { status: 500 });
   }
 }
 

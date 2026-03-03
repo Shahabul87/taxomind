@@ -120,7 +120,7 @@ describe('POST /api/analytics/batch', () => {
     const res = await POST(badReq);
     const body = await res.json();
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(500);
     expect(body.success).toBe(false);
   });
 });

@@ -80,8 +80,10 @@ export function getSecurityHeaders(options: SecurityHeadersOptions = {}): Record
     ].join(', ');
   }
 
-  // Add environment indicator (non-sensitive)
-  headers['X-Environment'] = environment;
+  // Only expose environment indicator in non-production (aids debugging without leaking prod info)
+  if (environment !== 'production') {
+    headers['X-Environment'] = environment;
+  }
 
   return headers;
 }
@@ -93,6 +95,9 @@ function buildCSPDirectives({ isDev, strictCSP }: { isDev: boolean; strictCSP: b
   const directives: Record<string, string[]> = {
     'default-src': ["'self'"],
     
+    // Next.js requires 'unsafe-inline' for its runtime inline scripts in production.
+    // This cannot be removed without implementing nonce-based CSP (requires custom Document).
+    // The strict CSP in middleware applies environment-aware restrictions.
     'script-src': [
       "'self'",
       "'wasm-unsafe-eval'", // Required for WebAssembly
@@ -105,6 +110,8 @@ function buildCSPDirectives({ isDev, strictCSP }: { isDev: boolean; strictCSP: b
       ...(isDev || !strictCSP ? ["'unsafe-inline'"] : []),
     ],
 
+    // Next.js requires 'unsafe-inline' for its runtime inline styles in production.
+    // This cannot be removed without implementing nonce-based CSP (requires custom Document).
     'style-src': [
       "'self'",
       'https://fonts.googleapis.com',

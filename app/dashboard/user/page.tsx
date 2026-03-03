@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { DashboardClient } from "./_components/DashboardClient";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * User Dashboard Page
  *

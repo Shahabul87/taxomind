@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { auditLogger } from '@/lib/compliance/audit-logger';
 import { AuditEventType, AuditSeverity } from '@/lib/compliance/audit-logger';
 import { logger } from '@/lib/logger';
@@ -9,7 +10,8 @@ export async function GET(req: NextRequest) {
     // Check authentication and admin role
     const session = await auth();
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    const adminSession = await adminAuth();
+    if (!session?.user || !adminSession?.user) {
       // Log unauthorized access attempt
       await auditLogger.log(
         AuditEventType.ACCESS_DENIED,
@@ -20,9 +22,9 @@ export async function GET(req: NextRequest) {
           userEmail: session?.user?.email || undefined,
         }
       );
-      
+
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }
@@ -48,7 +50,6 @@ export async function GET(req: NextRequest) {
       {
         userId: session.user.id,
         userEmail: session.user.email || undefined,
-        userRole: session.user.role,
       },
       {
         resourceType: 'compliance-report',
@@ -94,9 +95,10 @@ export async function POST(req: NextRequest) {
     // Check authentication and admin role
     const session = await auth();
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    const adminSession = await adminAuth();
+    if (!session?.user || !adminSession?.user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
         { status: 401 }
       );
     }

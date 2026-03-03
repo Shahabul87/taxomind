@@ -90,7 +90,7 @@ describe('/api/health/cache route', () => {
 
     expect(res.status).toBe(503);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toEqual({ code: 'SERVICE_UNAVAILABLE', message: 'Internal server error' });
   });
 
   it('POST supports cache set action', async () => {

@@ -236,7 +236,7 @@ export class QueueManager {
           duration: 60000, // Max 4 course creations per minute
         },
         defaultJobOptions: {
-          attempts: 1,
+          attempts: 3,
           backoff: {
             type: 'exponential',
             delay: 30000,

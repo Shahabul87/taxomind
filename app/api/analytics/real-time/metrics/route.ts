@@ -184,40 +184,34 @@ async function getCompletionMetrics(courseId: string | null, timeFilter: any) {
     return { averageCompletion: 0 };
   }
 
-  // Calculate completion rate based on exam attempts
-  let totalCompletedExams = 0;
+  // Batch fetch exam attempt counts to eliminate N+1 queries
+  const enrollmentUserIds = enrollments.map(e => e.userId);
+
+  const [examAttemptCounts, gradedCounts] = await Promise.all([
+    db.userExamAttempt.groupBy({
+      by: ['userId'],
+      where: { userId: { in: enrollmentUserIds } },
+      _count: true,
+    }),
+    db.userExamAttempt.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: enrollmentUserIds },
+        status: 'GRADED',
+      },
+      _count: true,
+    }),
+  ]);
+
+  const totalCountMap = new Map(examAttemptCounts.map(c => [c.userId, c._count]));
+  const gradedCountMap = new Map(gradedCounts.map(c => [c.userId, c._count]));
+
   let totalExamAttempts = 0;
+  let totalCompletedExams = 0;
 
   for (const enrollment of enrollments) {
-    const examAttempts = await db.userExamAttempt.count({
-      where: {
-        userId: enrollment.userId,
-        Exam: {
-          section: {
-            chapter: {
-              courseId: enrollment.courseId
-            }
-          }
-        }
-      }
-    });
-
-    const completedExams = await db.userExamAttempt.count({
-      where: {
-        userId: enrollment.userId,
-        status: 'GRADED',
-        Exam: {
-          section: {
-            chapter: {
-              courseId: enrollment.courseId
-            }
-          }
-        }
-      }
-    });
-
-    totalExamAttempts += examAttempts;
-    totalCompletedExams += completedExams;
+    totalExamAttempts += totalCountMap.get(enrollment.userId) ?? 0;
+    totalCompletedExams += gradedCountMap.get(enrollment.userId) ?? 0;
   }
 
   const completionRate = totalExamAttempts > 0 ? (totalCompletedExams / totalExamAttempts) * 100 : 0;

@@ -139,14 +139,17 @@ export async function GET(request: NextRequest) {
       });
       const milestoneSkillMap = new Map(milestoneSkills.map(s => [s.id, s.name]));
 
-      for (const mastery of milestoneMasteries) {
-        await awardStreakMilestone(
-          mastery.userId,
-          mastery.skillId,
-          mastery.currentStreak,
-          milestoneSkillMap.get(mastery.skillId)
-        );
-        streakMilestonesAwarded++;
+      // Batch-create all milestone interventions with createMany instead of N individual creates
+      const milestoneInterventions = buildMilestoneInterventions(milestoneMasteries, milestoneSkillMap);
+      if (milestoneInterventions.length > 0) {
+        try {
+          await db.sAMIntervention.createMany({
+            data: milestoneInterventions,
+          });
+          streakMilestonesAwarded = milestoneInterventions.length;
+        } catch (batchError) {
+          console.error('[CRON] Error batch-creating milestone interventions:', batchError);
+        }
       }
     }
 
@@ -264,59 +267,62 @@ async function createStreakBrokenNotification(
   }
 }
 
-// Award streak milestone achievement
-async function awardStreakMilestone(
-  userId: string,
-  skillId: string,
-  streakDays: number,
-  skillName?: string
-): Promise<void> {
-  try {
-    // Determine XP reward based on streak length
-    const xpRewards: Record<number, number> = {
-      7: 50, // 1 week
-      14: 100, // 2 weeks
-      30: 250, // 1 month
-      60: 500, // 2 months
-      90: 750, // 3 months
-      180: 1500, // 6 months
-      365: 5000, // 1 year
-    };
+/** XP rewards per streak milestone day count */
+const STREAK_XP_REWARDS: Record<number, number> = {
+  7: 50, // 1 week
+  14: 100, // 2 weeks
+  30: 250, // 1 month
+  60: 500, // 2 months
+  90: 750, // 3 months
+  180: 1500, // 6 months
+  365: 5000, // 1 year
+};
 
-    const xpReward = xpRewards[streakDays] ?? 0;
+/**
+ * Build intervention records for all streak milestones (batch-friendly).
+ * Returns an array of data objects suitable for db.sAMIntervention.createMany().
+ */
+function buildMilestoneInterventions(
+  masteries: Array<{ userId: string; skillId: string; currentStreak: number }>,
+  skillNameMap: Map<string, string>
+): Array<{
+  userId: string;
+  type: string;
+  priority: string;
+  message: string;
+  suggestedActions: Record<string, unknown>;
+}> {
+  const interventions: Array<{
+    userId: string;
+    type: string;
+    priority: string;
+    message: string;
+    suggestedActions: Record<string, unknown>;
+  }> = [];
 
-    if (xpReward === 0) return;
+  for (const mastery of masteries) {
+    const xpReward = STREAK_XP_REWARDS[mastery.currentStreak] ?? 0;
+    if (xpReward === 0) continue;
 
-    // Try to create a SAM intervention to celebrate streak milestone
-    try {
-      const name = skillName ?? 'a skill';
+    const name = skillNameMap.get(mastery.skillId) ?? 'a skill';
+    const badgeName = getStreakBadgeName(mastery.currentStreak);
 
-      await db.sAMIntervention.create({
-        data: {
-          userId,
-          type: 'PROGRESS_CELEBRATION',
-          priority: 'HIGH',
-          message: `🎉 ${streakDays}-Day Streak! ${getStreakBadgeName(streakDays)} - Congratulations! You've maintained a ${streakDays}-day practice streak in ${name}!`,
-          suggestedActions: {
-            skillId,
-            streakDays,
-            actionType: 'STREAK_MILESTONE',
-            xpReward,
-            badgeName: getStreakBadgeName(streakDays),
-          },
-        },
-      });
-    } catch {
-      // Intervention creation may fail, but we continue
-      console.warn('[CRON] Could not create streak celebration intervention');
-    }
-
-    console.log(
-      `[CRON] Awarded ${streakDays}-day streak milestone to user ${userId}`
-    );
-  } catch (error) {
-    console.error('[CRON] Error awarding streak milestone:', error);
+    interventions.push({
+      userId: mastery.userId,
+      type: 'PROGRESS_CELEBRATION',
+      priority: 'HIGH',
+      message: `${mastery.currentStreak}-Day Streak! ${badgeName} - Congratulations! You have maintained a ${mastery.currentStreak}-day practice streak in ${name}!`,
+      suggestedActions: {
+        skillId: mastery.skillId,
+        streakDays: mastery.currentStreak,
+        actionType: 'STREAK_MILESTONE',
+        xpReward,
+        badgeName,
+      },
+    });
   }
+
+  return interventions;
 }
 
 // Get badge name for streak milestone

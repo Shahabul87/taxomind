@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { logger } from '@/lib/logger';
 
 // Enhanced analytics endpoint with comprehensive data
@@ -15,8 +16,12 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId');
     const view = searchParams.get('view') || 'student';
 
+    // Check admin access - admins can view any user's data
+    const adminSession = await adminAuth();
+    const isAdmin = !!adminSession?.user;
+
     // Simple permission check - users can only access their own data unless admin
-    if (session.user.role !== 'ADMIN' && userId && userId !== session.user.id) {
+    if (!isAdmin && userId && userId !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -24,7 +29,7 @@ export async function GET(request: NextRequest) {
     const analyticsData = {
       user: {
         id: session.user.id,
-        role: session.user.role,
+        isAdmin,
         email: session.user.email,
       },
       request: {

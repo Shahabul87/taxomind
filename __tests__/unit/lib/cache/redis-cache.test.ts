@@ -48,6 +48,20 @@ function createFullRedisClient() {
       const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
       return Array.from(store.keys()).filter((k) => regex.test(k));
     }),
+    scan: jest.fn(async (cursor: string, ..._args: unknown[]) => {
+      // Parse MATCH pattern from variadic args: scan(cursor, 'MATCH', pattern, 'COUNT', n)
+      let pattern = '*';
+      for (let i = 0; i < _args.length - 1; i++) {
+        if (_args[i] === 'MATCH') {
+          pattern = _args[i + 1] as string;
+          break;
+        }
+      }
+      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      const matched = Array.from(store.keys()).filter((k) => regex.test(k));
+      // Return all keys in one batch (cursor '0' = done)
+      return ['0', matched];
+    }),
     mget: jest.fn(async (...keys: string[]) => {
       return keys.map((k) => store.get(k) ?? null);
     }),

@@ -11,18 +11,26 @@ jest.mock('@/lib/predictive-analytics', () => ({
   },
 }));
 
+jest.mock('@/auth.admin', () => ({
+  adminAuth: jest.fn(),
+}));
+
 import { GET } from '@/app/api/analytics/at-risk-students/route';
 import { auth } from '@/auth';
+import { adminAuth } from '@/auth.admin';
 import { db } from '@/lib/db';
 import { PredictiveAnalytics } from '@/lib/predictive-analytics';
 import { NextRequest } from 'next/server';
 
 const mockAuth = auth as jest.Mock;
+const mockAdminAuth = adminAuth as jest.Mock;
 const mockIdentifyAtRisk = PredictiveAnalytics.identifyAtRiskStudents as jest.Mock;
 
 describe('GET /api/analytics/at-risk-students', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: not admin
+    mockAdminAuth.mockResolvedValue(null);
   });
 
   it('returns 401 when not authenticated', async () => {
@@ -43,6 +51,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('returns 403 for non-admin non-owner', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } });
+    mockAdminAuth.mockResolvedValue(null);
     (db.course.findUnique as jest.Mock).mockResolvedValue(null);
 
     const req = new NextRequest('http://localhost:3000/api/analytics/at-risk-students?courseId=c1');
@@ -69,6 +78,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('allows admin access to any course', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1' } });
     mockIdentifyAtRisk.mockResolvedValue([]);
 
     const req = new NextRequest('http://localhost:3000/api/analytics/at-risk-students?courseId=c1');
@@ -82,6 +92,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('returns empty list when no students are at risk', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1' } });
     mockIdentifyAtRisk.mockResolvedValue([]);
 
     const req = new NextRequest('http://localhost:3000/api/analytics/at-risk-students?courseId=c1');
@@ -94,6 +105,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('returns multiple at-risk students sorted by risk', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1' } });
     mockIdentifyAtRisk.mockResolvedValue([
       { userId: 's1', riskScore: 0.9 },
       { userId: 's2', riskScore: 0.7 },
@@ -110,6 +122,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('returns 500 when predictive analytics fails', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1' } });
     mockIdentifyAtRisk.mockRejectedValue(new Error('Analytics engine error'));
 
     const req = new NextRequest('http://localhost:3000/api/analytics/at-risk-students?courseId=c1');
@@ -135,6 +148,7 @@ describe('GET /api/analytics/at-risk-students', () => {
 
   it('passes correct courseId to predictive analytics', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
+    mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1' } });
     mockIdentifyAtRisk.mockResolvedValue([]);
 
     const req = new NextRequest(

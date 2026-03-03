@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
     const user = await currentUser();
     
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest) {
           id: "active_users",
           name: "Active Users",
           value: activeUsers,
-          change: Math.random() * 20 - 10, // Simulated change
+          change: 0, // TODO: Calculate real change values from historical data
           trend: activeUsers > totalEnrollments * 0.5 ? "up" : "down",
           period: "daily",
           category: "engagement",
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
           id: "completion_rate",
           name: "Completion Rate",
           value: Math.round(completionRate),
-          change: Math.random() * 10 - 5,
+          change: 0, // TODO: Calculate real change values from historical data
           trend: completionRate > 70 ? "up" : "down",
           period: "daily",
           category: "performance",
@@ -96,7 +99,7 @@ export async function GET(request: NextRequest) {
           id: "exam_performance",
           name: "Exam Performance",
           value: Math.round(examCompletionRate),
-          change: Math.random() * 15 - 7.5,
+          change: 0, // TODO: Calculate real change values from historical data
           trend: examCompletionRate > 80 ? "up" : "down",
           period: "daily",
           category: "performance",
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
           id: "total_enrollments",
           name: "Total Enrollments",
           value: totalEnrollments,
-          change: Math.random() * 5,
+          change: 0, // TODO: Calculate real change values from historical data
           trend: "up",
           period: "daily",
           category: "business",
@@ -123,12 +126,13 @@ export async function GET(request: NextRequest) {
     });
     const totalEnrollments = await db.enrollment.count();
 
+    // TODO: Calculate real change values from historical data
     const platformMetrics = [
       {
         id: "total_users",
         name: "Total Users",
         value: totalUsers,
-        change: 5.2,
+        change: 0,
         trend: "up",
         period: "daily",
         category: "engagement",
@@ -137,7 +141,7 @@ export async function GET(request: NextRequest) {
         id: "published_courses",
         name: "Published Courses",
         value: publishedCourses,
-        change: 3.1,
+        change: 0,
         trend: "up",
         period: "daily",
         category: "business",
@@ -146,7 +150,7 @@ export async function GET(request: NextRequest) {
         id: "total_enrollments",
         name: "Total Enrollments",
         value: totalEnrollments,
-        change: 8.7,
+        change: 0,
         trend: "up",
         period: "daily",
         category: "business",
@@ -155,7 +159,7 @@ export async function GET(request: NextRequest) {
         id: "course_completion",
         name: "Avg Completion Rate",
         value: 73,
-        change: 2.3,
+        change: 0,
         trend: "up",
         period: "daily",
         category: "performance",

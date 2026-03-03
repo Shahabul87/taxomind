@@ -156,4 +156,16 @@ export async function register() {
         console.warn('[SAM] Failed to load feature flags:', error.message);
       });
   }
+
+  // ========================================
+  // PART 5: Queue Worker Auto-Initialization
+  // ========================================
+  // Auto-initialize queue workers when Redis is available
+  if (process.env.NEXT_RUNTIME === 'nodejs' && process.env.REDIS_URL) {
+    import('@/lib/queue/queue-manager').then(() => {
+      console.log('[instrumentation] Queue workers initialized');
+    }).catch((err) => {
+      console.error('[instrumentation] Queue worker init failed:', err);
+    });
+  }
 }

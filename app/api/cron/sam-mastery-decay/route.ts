@@ -320,6 +320,9 @@ async function applyBloomsWeightedDecay(
       take: DECAY_BATCH_SIZE,
     });
 
+    // Collect all update operations, then execute in a single transaction
+    const cognitiveUpdateOps: Array<ReturnType<typeof db.cognitiveSkillProgress.update>> = [];
+
     for (const record of cognitiveRecords) {
       try {
         const lastAttempt = record.lastAttemptDate ?? record.createdAt;
@@ -379,15 +382,17 @@ async function applyBloomsWeightedDecay(
               : 'stable';
 
         if (!dryRun) {
-          await db.cognitiveSkillProgress.update({
-            where: { id: record.id },
-            data: {
-              ...updates,
-              overallMastery: newOverallMastery,
-              trend,
-              lastDecayAppliedAt: now,
-            },
-          });
+          cognitiveUpdateOps.push(
+            db.cognitiveSkillProgress.update({
+              where: { id: record.id },
+              data: {
+                ...updates,
+                overallMastery: newOverallMastery,
+                trend,
+                lastDecayAppliedAt: now,
+              },
+            })
+          );
         }
 
         result.cognitiveRecordsDecayed++;
@@ -397,6 +402,17 @@ async function applyBloomsWeightedDecay(
           recordId: record.id,
           error: recordError,
         });
+      }
+    }
+
+    // Execute all cognitive decay updates atomically in a single transaction
+    if (cognitiveUpdateOps.length > 0) {
+      try {
+        await db.$transaction(cognitiveUpdateOps);
+      } catch (txError) {
+        result.errors += cognitiveUpdateOps.length;
+        result.cognitiveRecordsDecayed -= cognitiveUpdateOps.length;
+        logger.error('[SAM_MASTERY_DECAY] Failed to apply cognitive decay batch', txError);
       }
     }
   } catch (queryError) {
@@ -421,6 +437,9 @@ async function applyBloomsWeightedDecay(
       },
       take: DECAY_BATCH_SIZE,
     });
+
+    // Collect all spaced repetition update operations for batch execution
+    const spacedRepUpdateOps: Array<ReturnType<typeof db.spacedRepetitionSchedule.update>> = [];
 
     for (const record of scheduleRecords) {
       try {
@@ -454,14 +473,16 @@ async function applyBloomsWeightedDecay(
                 : 'low';
 
         if (!dryRun) {
-          await db.spacedRepetitionSchedule.update({
-            where: { id: record.id },
-            data: {
-              retentionEstimate: newRetention,
-              priority: newPriority,
-              lastDecayAppliedAt: now,
-            },
-          });
+          spacedRepUpdateOps.push(
+            db.spacedRepetitionSchedule.update({
+              where: { id: record.id },
+              data: {
+                retentionEstimate: newRetention,
+                priority: newPriority,
+                lastDecayAppliedAt: now,
+              },
+            })
+          );
         }
 
         result.spacedRepRecordsDecayed++;
@@ -471,6 +492,17 @@ async function applyBloomsWeightedDecay(
           recordId: record.id,
           error: recordError,
         });
+      }
+    }
+
+    // Execute all spaced repetition decay updates atomically in a single transaction
+    if (spacedRepUpdateOps.length > 0) {
+      try {
+        await db.$transaction(spacedRepUpdateOps);
+      } catch (txError) {
+        result.errors += spacedRepUpdateOps.length;
+        result.spacedRepRecordsDecayed -= spacedRepUpdateOps.length;
+        logger.error('[SAM_MASTERY_DECAY] Failed to apply spaced rep decay batch', txError);
       }
     }
   } catch (queryError) {

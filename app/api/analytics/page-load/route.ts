@@ -25,6 +25,14 @@ export async function POST(req: NextRequest) {
   const rateLimitResponse = await withRateLimit(req, 'standard');
   if (rateLimitResponse) return rateLimitResponse;
 
+  const user = await currentUser();
+  if (!user?.id) {
+    return NextResponse.json(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await req.json()
 

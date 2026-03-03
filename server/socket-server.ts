@@ -4,8 +4,16 @@ import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
 import { getSAMRealtimeServer } from "@/lib/sam/realtime";
 import type { PresenceMetadata } from "@sam-ai/agentic";
+
+const MessageSchema = z.object({
+  conversationId: z.string().min(1),
+  recipientId: z.string().min(1),
+  content: z.string().min(1).max(10000),
+  type: z.enum(["text", "image", "file", "system"]).default("text"),
+});
 
 interface TypingData {
   conversationId: string;
@@ -61,6 +69,10 @@ const onlineUsers = new Map<string, UserStatus>();
 
 // Create HTTP server
 const httpServer = createServer();
+if (process.env.NODE_ENV === 'production' && !process.env.SOCKET_CORS_ORIGINS) {
+  console.error('[SOCKET] WARNING: SOCKET_CORS_ORIGINS not set in production. Using wildcard CORS is insecure.');
+}
+
 const allowedOrigins = (process.env.SOCKET_CORS_ORIGINS || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")
   .split(",")
   .map((o) => o.trim());
@@ -239,6 +251,17 @@ io.on("connection", (socket: Socket) => {
 
   // Handle message sent event
   socket.on("message_sent", (message: MessageData) => {
+    // Validate incoming message data
+    const validation = MessageSchema.safeParse(message);
+    if (!validation.success) {
+      socket.emit("error", {
+        type: "validation_error",
+        message: "Invalid message data",
+        details: validation.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
     const { conversationId, recipientId } = message;
 
     // Broadcast to all users in the conversation

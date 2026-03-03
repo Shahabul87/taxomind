@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { currentUser } from '@/lib/auth';
+import { adminAuth } from '@/auth.admin';
 import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Admin-only route to check database connectivity and counts
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
@@ -14,8 +13,8 @@ export async function GET(request: NextRequest) {
   if (blocked) return blocked;
 
   // Require admin authentication
-  const user = await currentUser();
-  if (!user?.id || user.role !== 'ADMIN') {
+  const adminSession = await adminAuth();
+  if (!adminSession?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

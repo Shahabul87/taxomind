@@ -81,6 +81,134 @@ export const RechartsBarChart = dynamic(
   }
 );
 
+export const RechartsPieChart = dynamic(
+  () => import('recharts').then(mod => mod.PieChart),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsRadarChart = dynamic(
+  () => import('recharts').then(mod => mod.RadarChart),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsResponsiveContainer = dynamic(
+  () => import('recharts').then(mod => mod.ResponsiveContainer),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsRadar = dynamic(
+  () => import('recharts').then(mod => mod.Radar),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsPolarGrid = dynamic(
+  () => import('recharts').then(mod => mod.PolarGrid),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsPolarAngleAxis = dynamic(
+  () => import('recharts').then(mod => mod.PolarAngleAxis),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsPolarRadiusAxis = dynamic(
+  () => import('recharts').then(mod => mod.PolarRadiusAxis),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsCartesianGrid = dynamic(
+  () => import('recharts').then(mod => mod.CartesianGrid),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsXAxis = dynamic(
+  () => import('recharts').then(mod => mod.XAxis),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsYAxis = dynamic(
+  () => import('recharts').then(mod => mod.YAxis),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsTooltip = dynamic(
+  () => import('recharts').then(mod => mod.Tooltip),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsLegend = dynamic(
+  () => import('recharts').then(mod => mod.Legend),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsLine = dynamic(
+  () => import('recharts').then(mod => mod.Line),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsBar = dynamic(
+  () => import('recharts').then(mod => mod.Bar),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsPie = dynamic(
+  () => import('recharts').then(mod => mod.Pie),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
+export const RechartsCell = dynamic(
+  () => import('recharts').then(mod => mod.Cell),
+  {
+    loading: () => <LoadingSpinner />,
+    ssr: false,
+  }
+);
+
 // ============================================
 // PDF & DOCUMENT COMPONENTS
 // ============================================
@@ -217,11 +345,9 @@ export const Confetti = dynamic(
 /**
  * Helper function to lazy load any component
  * @param importFunc - Dynamic import function
- * @param options - Loading and SSR options
  */
 export const lazyLoad = (
-  importFunc: () => Promise<any>,
-  options = { loading: LoadingSpinner, ssr: false }
+  importFunc: () => Promise<{ default: React.ComponentType<Record<string, unknown>> }>
 ) => {
   // Next.js dynamic requires options to be an object literal at compile time
   // Return the dynamic function directly with inline options
@@ -267,6 +393,22 @@ const LazyComponents = {
   PieChart,
   RechartsLineChart,
   RechartsBarChart,
+  RechartsPieChart,
+  RechartsRadarChart,
+  RechartsResponsiveContainer,
+  RechartsRadar,
+  RechartsPolarGrid,
+  RechartsPolarAngleAxis,
+  RechartsPolarRadiusAxis,
+  RechartsCartesianGrid,
+  RechartsXAxis,
+  RechartsYAxis,
+  RechartsTooltip,
+  RechartsLegend,
+  RechartsLine,
+  RechartsBar,
+  RechartsPie,
+  RechartsCell,
   
   // Documents
   PDFGenerator,

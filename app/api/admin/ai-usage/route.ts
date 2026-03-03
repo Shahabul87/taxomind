@@ -22,7 +22,10 @@ export async function GET(request: Request) {
       (session.user.role !== AdminRole.ADMIN &&
         session.user.role !== AdminRole.SUPERADMIN)
     ) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
