@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -19,7 +20,7 @@ export async function POST(
     
     if (!user?.id) {
 
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
     
     // Check if user is admin - admins are now in AdminAccount table
@@ -29,7 +30,7 @@ export async function POST(
     });
 
     if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
-      return new NextResponse("Forbidden - Admin access required", { status: 403 });
+      return ApiResponses.forbidden("Forbidden - Admin access required");
     }
     
     const { courseId } = await params;
@@ -51,7 +52,7 @@ export async function POST(
     });
     
     if (!course) {
-      return new NextResponse("Course not found or access denied", { status: 404 });
+      return ApiResponses.notFound("Course not found or access denied");
     }
     
     // Generate report content
@@ -82,7 +83,7 @@ export async function POST(
       logger.error("[ANALYTICS_REPORT] Error stack:", error.stack);
     }
     
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

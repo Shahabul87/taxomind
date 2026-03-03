@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 
 // TODO: Implement user progress tracking when UserProgress model is ready
@@ -11,7 +12,7 @@ export async function PUT(
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     return NextResponse.json({ error: "User progress tracking not yet implemented" }, { status: 501 });
@@ -28,7 +29,7 @@ export async function GET(
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     return NextResponse.json({ error: "User progress tracking not yet implemented" }, { status: 501 });

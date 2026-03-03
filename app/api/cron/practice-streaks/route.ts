@@ -191,22 +191,34 @@ export async function GET(request: NextRequest) {
       allUserBestStreaks.map(s => [s.userId, s._max.currentStreak ?? 0])
     );
 
-    for (const { userId } of usersWithStreakGoals) {
-      const bestStreak = bestStreakMap.get(userId) ?? 0;
+    // Process streak goals in batches of 10 for efficiency
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < usersWithStreakGoals.length; i += BATCH_SIZE) {
+      const batch = usersWithStreakGoals.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(async ({ userId }) => {
+          const bestStreak = bestStreakMap.get(userId) ?? 0;
+          const goalResults = await practiceGoalStore.updateStreakGoals(userId, bestStreak);
+          return { userId, goalResults };
+        })
+      );
 
-      // Update all streak goals for this user
-      const goalResults = await practiceGoalStore.updateStreakGoals(userId, bestStreak);
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const { userId, goalResults } = result.value;
+          streakGoalsUpdated += goalResults.length;
+          streakGoalsCompleted += goalResults.filter((g) => g.wasCompleted).length;
 
-      streakGoalsUpdated += goalResults.length;
-      streakGoalsCompleted += goalResults.filter((g) => g.wasCompleted).length;
-
-      // Log completed goals
-      const completed = goalResults.filter((g) => g.wasCompleted);
-      if (completed.length > 0) {
-        logger.info(
-          `[CRON] User ${userId} completed ${completed.length} streak goal(s): ` +
-          completed.map((g) => g.goal.title).join(', ')
-        );
+          const completed = goalResults.filter((g) => g.wasCompleted);
+          if (completed.length > 0) {
+            logger.info(
+              `[CRON] User ${userId} completed ${completed.length} streak goal(s): ` +
+              completed.map((g) => g.goal.title).join(', ')
+            );
+          }
+        } else {
+          logger.error(`[CRON] Failed to update streak goals for user in batch`, result.reason);
+        }
       }
     }
 

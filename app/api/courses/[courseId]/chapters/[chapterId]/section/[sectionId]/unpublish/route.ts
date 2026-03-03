@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ export async function PATCH(
     const user = await currentUser();
 
     if (!user?.id) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return ApiResponses.unauthorized();
       }
 
     const userId = user?.id;
@@ -28,7 +29,7 @@ export async function PATCH(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const unpublishedSection = await db.section.update({
@@ -64,6 +65,6 @@ export async function PATCH(
     return NextResponse.json(unpublishedSection);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 }); 
+    return ApiResponses.internal(); 
   }
 }

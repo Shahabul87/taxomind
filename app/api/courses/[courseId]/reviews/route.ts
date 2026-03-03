@@ -4,6 +4,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 const ReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -17,7 +18,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     const user = await currentUser();
 
     if (!user?.id) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return ApiResponses.unauthorized();
       }
 
     const userId = user.id;
@@ -25,7 +26,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     const body = await req.json();
     const parsed = ReviewSchema.safeParse(body);
     if (!parsed.success) {
-      return new NextResponse(parsed.error.errors[0]?.message || "Invalid input", { status: 400 });
+      return ApiResponses.badRequest(parsed.error.errors[0]?.message || "Invalid input");
     }
     const { rating, comment } = parsed.data;
 
@@ -37,7 +38,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     });
 
     if (!course) {
-      return new NextResponse("Course not found", { status: 404 });
+      return ApiResponses.notFound("Course not found");
     }
 
     // Check if user has already reviewed this course
@@ -49,7 +50,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     });
 
     if (existingReview) {
-      return new NextResponse("You have already reviewed this course", { status: 400 });
+      return ApiResponses.badRequest("You have already reviewed this course");
     }
 
     // Create the review
@@ -74,7 +75,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     return NextResponse.json(review);
   } catch (error) {
     logger.error("[COURSE_REVIEW_CREATE]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -212,6 +213,6 @@ export async function GET(req: Request, props: { params: Promise<{ courseId: str
     return NextResponse.json({ items, total, page, pageSize, ratingCounts });
   } catch (error) {
     logger.error('[COURSE_REVIEWS_GET]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    return ApiResponses.internal();
   }
 }

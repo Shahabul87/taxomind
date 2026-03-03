@@ -39,60 +39,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
-    // For demo purposes, allow access if no session (development mode)
     if (!session?.user) {
-      // Return mock data for development
-      return NextResponse.json({
-        success: true,
-        data: {
-          logs: [
-            {
-              id: "audit-1",
-              action: "CREATE",
-              entityType: "COURSE",
-              entityId: "course-123",
-              entityName: "Advanced JavaScript",
-              severity: "INFO",
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-1", name: "Acme Corporation", slug: "acme-corp" },
-              user: { id: "user-1", name: "John Doe", email: "john@acme.com" }
-            },
-            {
-              id: "audit-2",
-              action: "UPDATE",
-              entityType: "USER",
-              entityId: "user-456",
-              entityName: "Jane Smith",
-              severity: "WARNING",
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-2", name: "Tech University", slug: "tech-university" },
-              user: { id: "user-2", name: "Admin User", email: "admin@techuni.edu" }
-            }
-          ],
-          summary: {
-            totalLogs: 2,
-            actionBreakdown: [
-              { action: "CREATE", count: 1 },
-              { action: "UPDATE", count: 1 }
-            ],
-            severityBreakdown: [
-              { severity: "INFO", count: 1 },
-              { severity: "WARNING", count: 1 }
-            ],
-            riskScore: 25
-          },
-          pagination: {
-            page: 1,
-            limit: 50,
-            total: 2,
-            totalPages: 1
-          }
-        }
-      });
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, { status: 401 });
     }
-    
+
     if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

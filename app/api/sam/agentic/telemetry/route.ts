@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const querySchema = z.object({
   hours: z.coerce.number().int().min(1).max(168).optional().default(24),
@@ -17,9 +18,16 @@ const querySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

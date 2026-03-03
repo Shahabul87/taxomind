@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ export async function PATCH(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const ownCourse = await db.course.findUnique({
@@ -23,7 +24,7 @@ export async function PATCH(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const chapter = await db.chapter.findUnique({
@@ -37,7 +38,7 @@ export async function PATCH(
     // NOTE: We intentionally don't require sections to be published, allowing instructors
     // to publish chapters directly without having to first publish individual sections
     if (!chapter || !chapter.title || !chapter.description || !chapter.learningOutcomes) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     const updatedChapter = await db.chapter.update({
@@ -48,6 +49,6 @@ export async function PATCH(
     return NextResponse.json(updatedChapter);
   } catch (error) {
 
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

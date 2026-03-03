@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -15,7 +16,7 @@ export async function PATCH(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the user owns the course
@@ -27,7 +28,7 @@ export async function PATCH(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Fetch the chapter to ensure it exists and has the required fields
@@ -38,7 +39,7 @@ export async function PATCH(
     });
 
     if (!chapterData) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return ApiResponses.unauthorized();
       }
 
       const section = await db.section.findUnique({
@@ -49,7 +50,7 @@ export async function PATCH(
 
     // Check for the presence of required fields in the chapter
     if (!section?.title || !section.videoUrl) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     // Publish the chapter
@@ -65,6 +66,6 @@ export async function PATCH(
     return new NextResponse(JSON.stringify(publishedSection), { status: 200, headers: {"Content-Type": "application/json"} });
   } catch (error) {
 
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

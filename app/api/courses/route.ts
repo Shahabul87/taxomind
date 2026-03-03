@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/api-responses';
 import { logCourseCreation } from '@/lib/audit/course-audit';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -412,6 +413,6 @@ export const GET = async (req: Request): Promise<NextResponse> => {
     });
   } catch (error) {
     logger.error("[COURSES_API]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 };

@@ -5,6 +5,7 @@ import { VideoAccessTier } from "@prisma/client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -35,7 +36,7 @@ export async function POST(
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const body = await req.json();
@@ -49,7 +50,7 @@ export async function POST(
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Create the video with proper fields
@@ -72,10 +73,10 @@ export async function POST(
     return NextResponse.json(video);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse(error.errors[0].message, { status: 400 });
+      return ApiResponses.badRequest(error.errors[0].message);
     }
     logger.error("[VIDEOS]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -88,7 +89,7 @@ export async function PATCH(
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const body = await req.json();
@@ -103,7 +104,7 @@ export async function PATCH(
     });
 
     if (!video) {
-      return new NextResponse("Video not found", { status: 404 });
+      return ApiResponses.notFound("Video not found");
     }
 
     const updated = await db.video.update({
@@ -114,10 +115,10 @@ export async function PATCH(
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse(error.errors[0].message, { status: 400 });
+      return ApiResponses.badRequest(error.errors[0].message);
     }
     logger.error("[VIDEOS_PATCH]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -137,6 +138,6 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
     return NextResponse.json(videos);
   } catch (error) {
     logger.error("[VIDEOS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

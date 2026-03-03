@@ -67,11 +67,13 @@ export async function GET(req: Request) {
             isPublished: true,
             isFree: true,
           },
+          take: 50,
         },
         reviews: {
           select: {
             rating: true,
           },
+          take: 100,
         },
         _count: {
           select: {

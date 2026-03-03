@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function GET(req: Request, props: { params: Promise<{ videoId: string }> }) {
   const params = await props.params;
@@ -10,7 +11,7 @@ export async function GET(req: Request, props: { params: Promise<{ videoId: stri
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const video = await db.video.findUnique({
@@ -20,12 +21,12 @@ export async function GET(req: Request, props: { params: Promise<{ videoId: stri
     });
 
     if (!video) {
-      return new NextResponse("Video not found", { status: 404 });
+      return ApiResponses.notFound("Video not found");
     }
 
     return NextResponse.json(video);
   } catch (error) {
     logger.error("[VIDEO_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

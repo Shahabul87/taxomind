@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +22,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = user.id;
@@ -36,7 +37,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const attachment = await db.attachment.create({
@@ -59,6 +60,6 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
         { status: 400 }
       );
     }
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

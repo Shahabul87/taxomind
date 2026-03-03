@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from 'zod';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 const SectionUpdateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -33,7 +34,7 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the user owns the course before proceeding
@@ -45,7 +46,7 @@ export async function DELETE(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the chapter exists before attempting to delete
@@ -56,7 +57,7 @@ export async function DELETE(
     });
 
     if (!chapterExists) {
-      return new NextResponse("Not Found", { status: 404 });
+      return ApiResponses.notFound();
     }
 
     // Delete the chapter
@@ -90,7 +91,7 @@ export async function DELETE(
     return NextResponse.json(deletedChapter);
   } catch (error) {
 
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -105,7 +106,7 @@ export async function PATCH(
     const { videoUrl, ...values } = SectionUpdateSchema.parse(body);
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the current user owns the course
@@ -117,7 +118,7 @@ export async function PATCH(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const chapterData = await db.chapter.findUnique({
@@ -127,7 +128,7 @@ export async function PATCH(
     })
 
     if (!chapterData) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return ApiResponses.unauthorized();
       }
 
     // Update chapter with new values including videoUrl
@@ -145,7 +146,7 @@ export async function PATCH(
     return new NextResponse(JSON.stringify(updatedSection), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
 
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function PATCH(
   req: Request,
@@ -12,7 +13,7 @@ export async function PATCH(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { courseId, chapterId, sectionId, explanationId } = await params;
@@ -27,7 +28,7 @@ export async function PATCH(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Prepare update data with explicit field mapping (prevents mass assignment)
@@ -52,7 +53,7 @@ export async function PATCH(
     return NextResponse.json(codeExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -65,7 +66,7 @@ export async function DELETE(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { courseId, chapterId, sectionId, explanationId } = await params;
@@ -79,7 +80,7 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Delete code explanation
@@ -93,7 +94,7 @@ export async function DELETE(
     return NextResponse.json(codeExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -106,7 +107,7 @@ export async function GET(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { courseId, chapterId, sectionId, explanationId } = await params;
@@ -120,7 +121,7 @@ export async function GET(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Get specific code explanation
@@ -132,12 +133,12 @@ export async function GET(
     });
 
     if (!codeExplanation) {
-      return new NextResponse("Code explanation not found", { status: 404 });
+      return ApiResponses.notFound("Code explanation not found");
     }
 
     return NextResponse.json(codeExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

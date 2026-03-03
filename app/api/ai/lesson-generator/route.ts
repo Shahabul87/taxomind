@@ -305,6 +305,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         content: mockContent,
+        isFallback: true,
         warning: 'AI service temporarily unavailable, using template response'
       });
     }

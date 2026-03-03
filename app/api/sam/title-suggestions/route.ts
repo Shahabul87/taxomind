@@ -28,6 +28,7 @@ import {
   type StepApiSource,
   type StepSafetyWarning,
 } from '@/lib/sam/course-creation/step-api-utils';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export const runtime = 'nodejs';
 
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
 
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const body = await req.json();

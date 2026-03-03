@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+const activityPostSchema = z.object({
+  activityType: z.string().min(1),
+  action: z.string().min(1),
+  entityType: z.string().optional(),
+  entityId: z.string().optional(),
+  courseId: z.string().optional(),
+  chapterId: z.string().optional(),
+  sectionId: z.string().optional(),
+  duration: z.number().min(0).optional(),
+  progress: z.number().min(0).max(100).optional(),
+  score: z.number().optional(),
+  metadata: z.record(z.unknown()).optional(),
+  sessionId: z.string().optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -173,6 +189,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const parsed = activityPostSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parsed.error.errors },
+        { status: 400 }
+      );
+    }
     const {
       activityType,
       action,
@@ -186,7 +209,7 @@ export async function POST(req: NextRequest) {
       score,
       metadata,
       sessionId
-    } = body;
+    } = parsed.data;
 
     // Create new activity record
     const activity = await db.realtime_activities.create({

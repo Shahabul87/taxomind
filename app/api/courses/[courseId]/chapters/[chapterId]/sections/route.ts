@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
+
+const sectionCreateSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  position: z.number().int().min(0).optional(),
+  contentType: z.string().optional(),
+  estimatedDuration: z.string().optional(),
+  bloomsLevel: z.string().optional(),
+  generatedContent: z.any().optional(),
+});
 
 export async function POST(
   req: Request,
@@ -14,13 +26,39 @@ export async function POST(
   const params = await props.params;
   try {
     const session = await auth();
-    const { title, description, position, contentType, estimatedDuration, bloomsLevel, generatedContent } = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
-    // Verify the chapter exists and belongs to the user
+    const body = await req.json();
+    const parsed = sectionCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parsed.error.errors },
+        { status: 400 }
+      );
+    }
+    const { title, description, position, contentType, estimatedDuration, bloomsLevel, generatedContent } = parsed.data;
+
+    // Verify course ownership
+    const course = await db.course.findUnique({
+      where: { id: params.courseId },
+      select: { userId: true },
+    });
+
+    if (!course) {
+      return ApiResponses.notFound("Course not found");
+    }
+
+    if (course.userId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'You do not own this course' } },
+        { status: 403 }
+      );
+    }
+
+    // Verify the chapter exists and belongs to the course
     const chapter = await db.chapter.findUnique({
       where: {
         id: params.chapterId,
@@ -29,7 +67,7 @@ export async function POST(
     });
 
     if (!chapter) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound("Chapter not found");
     }
 
     // Get the position for the new section
@@ -73,6 +111,6 @@ export async function POST(
     return NextResponse.json(section);
   } catch (error) {
     logger.error("[SECTIONS]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

@@ -12,6 +12,7 @@ import type {
   BloomsLevel,
   QuestionGenerationMode,
 } from "@prisma/client";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -170,7 +171,7 @@ export async function POST(
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Parse and validate request body
@@ -323,7 +324,7 @@ export async function GET(
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify section ownership

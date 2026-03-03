@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { deleteFile } from "@/lib/google-drive";
 import { logger } from "@/lib/logger";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export const runtime = 'nodejs';
 
@@ -16,7 +17,7 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = user.id;
@@ -29,7 +30,7 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Fetch attachment to get fileId before deletion
@@ -62,6 +63,6 @@ export async function DELETE(
     return NextResponse.json(attachment);
   } catch (error) {
     logger.error('[Attachment] Delete failed', { error });
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

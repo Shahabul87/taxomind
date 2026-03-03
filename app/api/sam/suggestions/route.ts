@@ -4,6 +4,7 @@ import { generateSamSuggestion } from "@/lib/sam/ai-provider";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export const runtime = 'nodejs';
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     const user = await currentUser();
     
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const body: SamSuggestionRequest = await req.json();

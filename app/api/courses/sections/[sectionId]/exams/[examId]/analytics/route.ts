@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function GET(
   req: NextRequest,
@@ -12,13 +13,13 @@ export async function GET(
     const user = await currentUser();
     
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { examId } = await params;
 
     if (!examId) {
-      return new NextResponse("Exam ID is required", { status: 400 });
+      return ApiResponses.badRequest("Exam ID is required");
     }
 
     // Get user's attempts with detailed analytics
@@ -180,7 +181,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error("[EXAM_ANALYTICS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

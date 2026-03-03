@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -22,7 +22,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = session.user.id;
@@ -38,7 +38,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the chapter exists and belongs to the course
@@ -50,7 +50,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     });
 
     if (!chapter) {
-      return new NextResponse("Chapter not found", { status: 404 });
+      return ApiResponses.notFound("Chapter not found");
     }
 
     // Update positions - scoped to chapterId to prevent IDOR
@@ -63,11 +63,11 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
       )
     );
 
-    return new NextResponse("Success", { status: 200 });
+    return ApiResponses.ok({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse("Invalid input", { status: 400 });
+      return ApiResponses.badRequest("Invalid input");
     }
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

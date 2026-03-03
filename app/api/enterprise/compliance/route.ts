@@ -32,57 +32,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
-    // For demo purposes, allow access if no session (development mode)
     if (!session?.user) {
-      // Return mock data for development
-      return NextResponse.json({
-        success: true,
-        data: {
-          events: [
-            {
-              id: "compliance-1",
-              eventType: "DATA_ACCESS",
-              complianceFramework: "GDPR",
-              status: "COMPLIANT",
-              severity: "LOW",
-              details: { description: "User data access logged" },
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-1", name: "Acme Corporation", slug: "acme-corp" }
-            },
-            {
-              id: "compliance-2",
-              eventType: "DATA_EXPORT",
-              complianceFramework: "CCPA",
-              status: "UNDER_REVIEW",
-              severity: "MEDIUM",
-              details: { description: "Data export request pending review" },
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-2", name: "Tech University", slug: "tech-university" }
-            }
-          ],
-          summary: {
-            totalEvents: 2,
-            statusBreakdown: [
-              { status: "COMPLIANT", count: 1 },
-              { status: "UNDER_REVIEW", count: 1 }
-            ],
-            severityBreakdown: [
-              { severity: "LOW", count: 1 },
-              { severity: "MEDIUM", count: 1 }
-            ],
-            frameworkBreakdown: [
-              { framework: "GDPR", count: 1 },
-              { framework: "CCPA", count: 1 }
-            ],
-            recentCritical: [],
-            complianceScore: 85
-          }
-        }
-      });
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, { status: 401 });
     }
-    
+
     if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

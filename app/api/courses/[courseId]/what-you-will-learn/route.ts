@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -14,7 +15,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     const { whatYouWillLearn } = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const course = await db.course.findUnique({
@@ -25,7 +26,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
 
     const updatedCourse = await db.course.update({
@@ -41,7 +42,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     return NextResponse.json(updatedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -53,7 +54,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     const { value } = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const course = await db.course.findUnique({
@@ -69,7 +70,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
 
     // Add the new objective to the existing array
@@ -89,6 +90,6 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
     return NextResponse.json(updatedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

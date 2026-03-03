@@ -16,7 +16,7 @@ import { logger } from '@/lib/logger';
 // Production needs higher limits for concurrent users; dev uses conservative defaults
 const isProduction = process.env.NODE_ENV === 'production';
 const CONNECTION_POOL_CONFIG = {
-  connection_limit: parseInt(process.env.DATABASE_CONNECTION_LIMIT || (isProduction ? '100' : '20')),
+  connection_limit: parseInt(process.env.DATABASE_CONNECTION_LIMIT || '20'),
   pool_timeout: parseInt(process.env.DATABASE_POOL_TIMEOUT || (isProduction ? '10' : '2')),
   idle_in_transaction_session_timeout: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '10'),
   statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '30'),
@@ -76,8 +76,8 @@ class DatabaseMetrics {
         p50,
         p95,
         p99,
-        max: Math.max(...this.queryTimes, 0),
-        avg: this.queryTimes.reduce((a, b) => a + b, 0) / this.queryTimes.length || 0,
+        max: count > 0 ? Math.max(...activeTimes) : 0,
+        avg: count > 0 ? activeTimes.reduce((a, b) => a + b, 0) / count : 0,
       },
     };
   }

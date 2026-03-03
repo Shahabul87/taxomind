@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 type AggregatedResource = {
   id: string;
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const course = await db.course.findUnique({

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export async function DELETE(req: Request, props: RouteParams) {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the section exists and belongs to the course/chapter
@@ -46,12 +47,12 @@ export async function DELETE(req: Request, props: RouteParams) {
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Check if user is the course owner
     if (section.chapter.course.userId !== session.user.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the video exists and belongs to the section
@@ -63,7 +64,7 @@ export async function DELETE(req: Request, props: RouteParams) {
     });
 
     if (!video) {
-      return new NextResponse("Video not found", { status: 404 });
+      return ApiResponses.notFound("Video not found");
     }
 
     // Delete the video
@@ -76,7 +77,7 @@ export async function DELETE(req: Request, props: RouteParams) {
     return NextResponse.json({ success: true, message: "Video deleted" });
   } catch (error) {
     logger.error("[VIDEO_DELETE]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -86,7 +87,7 @@ export async function GET(req: Request, props: RouteParams) {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const video = await db.video.findUnique({
@@ -97,13 +98,13 @@ export async function GET(req: Request, props: RouteParams) {
     });
 
     if (!video) {
-      return new NextResponse("Video not found", { status: 404 });
+      return ApiResponses.notFound("Video not found");
     }
 
     return NextResponse.json(video);
   } catch (error) {
     logger.error("[VIDEO_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -114,7 +115,7 @@ export async function PATCH(req: Request, props: RouteParams) {
     const body = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify the section exists and get course owner info
@@ -136,12 +137,12 @@ export async function PATCH(req: Request, props: RouteParams) {
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Check if user is the course owner
     if (section.chapter.course.userId !== session.user.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Update the video
@@ -164,6 +165,6 @@ export async function PATCH(req: Request, props: RouteParams) {
     return NextResponse.json(video);
   } catch (error) {
     logger.error("[VIDEO_PATCH]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

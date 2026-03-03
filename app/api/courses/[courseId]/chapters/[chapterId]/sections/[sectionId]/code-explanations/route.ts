@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function POST(
   req: Request,
@@ -13,21 +14,21 @@ export async function POST(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { courseId, chapterId, sectionId } = await params;
     const { codeBlocks } = await req.json();
 
     if (!codeBlocks || !Array.isArray(codeBlocks) || codeBlocks.length === 0) {
-      return new NextResponse("At least one code block is required", { status: 400 });
+      return ApiResponses.badRequest("At least one code block is required");
     }
 
     // Validate each code block
     for (const block of codeBlocks) {
       // Title is always required
       if (!block.title) {
-        return new NextResponse("Each code block must have a title", { status: 400 });
+        return ApiResponses.badRequest("Each code block must have a title");
       }
 
       // For main code blocks (no groupId): require code
@@ -35,7 +36,7 @@ export async function POST(
       const isLineExplanation = block.groupId || block.lineStart !== undefined;
 
       if (!isLineExplanation && !block.code) {
-        return new NextResponse("Main code blocks must have code", { status: 400 });
+        return ApiResponses.badRequest("Main code blocks must have code");
       }
 
       // Note: explanation text is optional - teachers can add it later
@@ -50,7 +51,7 @@ export async function POST(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Create code explanations for each block
@@ -84,7 +85,7 @@ export async function POST(
     return NextResponse.json(createdExplanations);
   } catch (error) {
     logger.error("[CODE_EXPLANATIONS_POST]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -97,7 +98,7 @@ export async function GET(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const { courseId, chapterId, sectionId } = await params;
@@ -111,7 +112,7 @@ export async function GET(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Get all code explanations for this section
@@ -133,6 +134,6 @@ export async function GET(
     return NextResponse.json(codeExplanations);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

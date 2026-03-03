@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function PATCH(
   req: Request,
@@ -12,7 +13,7 @@ export async function PATCH(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify ownership of the course
@@ -24,7 +25,7 @@ export async function PATCH(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if exam exists and belongs to the section
@@ -36,7 +37,7 @@ export async function PATCH(
     });
 
     if (!exam) {
-      return new NextResponse("Exam not found", { status: 404 });
+      return ApiResponses.notFound("Exam not found");
     }
 
     // Update exam to unpublished
@@ -52,6 +53,6 @@ export async function PATCH(
     return NextResponse.json(unpublishedExam);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

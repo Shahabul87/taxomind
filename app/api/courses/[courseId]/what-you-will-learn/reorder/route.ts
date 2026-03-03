@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -17,7 +18,7 @@ export async function PATCH(
     const { fromIndex, toIndex } = await req.json();
     
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
     
     if (
@@ -26,7 +27,7 @@ export async function PATCH(
       fromIndex < 0 || 
       toIndex < 0
     ) {
-      return new NextResponse("Invalid indices", { status: 400 });
+      return ApiResponses.badRequest("Invalid indices");
     }
     
     const course = await db.course.findUnique({
@@ -41,13 +42,13 @@ export async function PATCH(
     });
     
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
     
     const objectives = course.whatYouWillLearn || [];
     
     if (fromIndex >= objectives.length || toIndex >= objectives.length) {
-      return new NextResponse("Invalid indices", { status: 400 });
+      return ApiResponses.badRequest("Invalid indices");
     }
     
     // Perform the reordering
@@ -68,6 +69,6 @@ export async function PATCH(
     return NextResponse.json(updatedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

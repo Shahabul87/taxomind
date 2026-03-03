@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -17,7 +18,7 @@ export async function PATCH(
     const { value } = await req.json();
     
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
     
     const course = await db.course.findUnique({
@@ -32,7 +33,7 @@ export async function PATCH(
     });
     
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
     
     // Find the index of the objective from its ID
@@ -41,7 +42,7 @@ export async function PATCH(
     const objectiveIndex = parseInt(objectiveIdParts[objectiveIdParts.length - 1]);
     
     if (isNaN(objectiveIndex) || objectiveIndex < 0 || !course.whatYouWillLearn || objectiveIndex >= course.whatYouWillLearn.length) {
-      return new NextResponse("Objective not found", { status: 404 });
+      return ApiResponses.notFound("Objective not found");
     }
     
     // Update the objective at the specified index
@@ -61,7 +62,7 @@ export async function PATCH(
     return NextResponse.json(updatedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -75,7 +76,7 @@ export async function DELETE(
     const session = await auth();
     
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
     
     const course = await db.course.findUnique({
@@ -90,7 +91,7 @@ export async function DELETE(
     });
     
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
     
     // Find the index of the objective from its ID
@@ -99,7 +100,7 @@ export async function DELETE(
     const objectiveIndex = parseInt(objectiveIdParts[objectiveIdParts.length - 1]);
     
     if (isNaN(objectiveIndex) || objectiveIndex < 0 || !course.whatYouWillLearn || objectiveIndex >= course.whatYouWillLearn.length) {
-      return new NextResponse("Objective not found", { status: 404 });
+      return ApiResponses.notFound("Objective not found");
     }
     
     // Remove the objective at the specified index
@@ -119,6 +120,6 @@ export async function DELETE(
     return NextResponse.json(updatedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

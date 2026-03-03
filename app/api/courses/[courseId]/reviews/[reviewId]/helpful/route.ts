@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 type Params = { params: Promise<{ courseId: string; reviewId: string }> };
 
@@ -10,7 +11,7 @@ export async function POST(req: Request, props: Params) {
   const params = await props.params;
   try {
     const user = await currentUser();
-    if (!user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    if (!user?.id) return ApiResponses.unauthorized();
 
     const { courseId, reviewId } = params;
 
@@ -19,7 +20,7 @@ export async function POST(req: Request, props: Params) {
       where: { id: reviewId, courseId },
       select: { id: true },
     });
-    if (!review) return new NextResponse('Review not found', { status: 404 });
+    if (!review) return ApiResponses.notFound("Review not found");
 
     // Create vote (idempotent)
     await db.courseReviewHelpfulVote.upsert({
@@ -32,7 +33,7 @@ export async function POST(req: Request, props: Params) {
     return NextResponse.json({ reviewId, helpfulCount, viewerHasVoted: true });
   } catch (error) {
     logger.error('[REVIEW_HELPFUL_POST]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -40,7 +41,7 @@ export async function DELETE(req: Request, props: Params) {
   const params = await props.params;
   try {
     const user = await currentUser();
-    if (!user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    if (!user?.id) return ApiResponses.unauthorized();
 
     const { courseId, reviewId } = params;
 
@@ -49,7 +50,7 @@ export async function DELETE(req: Request, props: Params) {
       where: { id: reviewId, courseId },
       select: { id: true },
     });
-    if (!review) return new NextResponse('Review not found', { status: 404 });
+    if (!review) return ApiResponses.notFound("Review not found");
 
     // Remove vote (idempotent)
     try {
@@ -64,7 +65,7 @@ export async function DELETE(req: Request, props: Params) {
     return NextResponse.json({ reviewId, helpfulCount, viewerHasVoted: false });
   } catch (error) {
     logger.error('[REVIEW_HELPFUL_DELETE]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

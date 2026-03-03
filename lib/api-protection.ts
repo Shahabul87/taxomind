@@ -25,6 +25,11 @@ export class ForbiddenError extends Error {
   }
 }
 
+/**
+ * @deprecated Use direct `auth()` from `@/auth` instead. This function uses a legacy admin
+ * fallback pattern that will be removed in a future release. Each auth system (admin/user)
+ * should be checked independently.
+ */
 export async function requireAuth() {
   logger.debug("[requireAuth] Checking authentication...");
 
@@ -35,7 +40,7 @@ export async function requireAuth() {
   // If no regular session, try admin session
   if (!user) {
     try {
-      logger.debug("[requireAuth] Trying admin session...");
+      logger.warn("[requireAuth] Falling back to admin session — this legacy pattern is deprecated. Use direct auth() checks instead.");
       const adminSession = await adminAuth();
       if (adminSession?.user) {
         logger.debug("[requireAuth] Admin session found", {

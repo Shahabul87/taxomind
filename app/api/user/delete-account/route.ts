@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import * as bcrypt from 'bcryptjs';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
+import { preflightUserDeletion } from '@/lib/api/user-deletion-guard';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +39,16 @@ export async function POST(req: NextRequest) {
       if (!passwordValid) {
         return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
       }
+    }
+
+    // Preflight check: ensure no critical records would be lost
+    const preflight = await preflightUserDeletion(user.id);
+    if (!preflight.canDelete) {
+      return NextResponse.json({
+        error: 'Account cannot be deleted due to existing records',
+        blockers: preflight.blockers,
+        warnings: preflight.warnings,
+      }, { status: 409 });
     }
 
     const timestamp = Date.now();

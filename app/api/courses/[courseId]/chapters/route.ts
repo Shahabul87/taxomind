@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
 
     if (!user?.id) {
 
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = user.id;
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
 
     if (!courseOwner) {
 
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Get last chapter position with logging
@@ -140,14 +141,14 @@ export async function POST(request: NextRequest, props: { params: Promise<{ cour
     if (error instanceof Error) {
       if (error.message.includes('connect') || error.message.includes('timeout')) {
         logger.error("[CHAPTERS_CREATE] Database connection error detected");
-        return new NextResponse("Database connection error", { status: 503 });
+        return ApiResponses.serviceUnavailable("Database connection error");
       }
       if (error.message.includes('auth') || error.message.includes('unauthorized')) {
         logger.error("[CHAPTERS_CREATE] Authentication error detected");
-        return new NextResponse("Authentication error", { status: 401 });
+        return ApiResponses.unauthorized();
       }
     }
     
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

@@ -471,6 +471,8 @@ const nextConfig = {
     // Content Security Policy (enforcing mode)
     // Next.js requires 'unsafe-inline' for its runtime inline scripts and styles in production.
     // This cannot be removed without implementing nonce-based CSP (requires custom Document).
+    // TODO: Implement nonce-based CSP to eliminate 'unsafe-inline' for scripts and styles.
+    // See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
     securityHeaders.push({
       key: 'Content-Security-Policy',
       value: [

@@ -7,6 +7,7 @@ import { AIErrorHandler } from "@/lib/error-handler";
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -227,7 +228,7 @@ export async function POST(req: NextRequest) {
 
     if (!user?.id) {
 
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if user is admin - admins are now in AdminAccount table
@@ -239,7 +240,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
-      return new NextResponse("Forbidden - Admin access required", { status: 403 });
+      return ApiResponses.forbidden("Forbidden - Admin access required");
     }
 
     // Parse request body
@@ -248,15 +249,15 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!courseRequirements.courseTitle || !courseRequirements.courseShortOverview) {
-      return new NextResponse("Course title and overview are required", { status: 400 });
+      return ApiResponses.badRequest("Course title and overview are required");
     }
 
     if (!courseRequirements.targetAudience) {
-      return new NextResponse("Target audience is required", { status: 400 });
+      return ApiResponses.badRequest("Target audience is required");
     }
 
     if (courseRequirements.chapterCount < 1 || courseRequirements.sectionsPerChapter < 1) {
-      return new NextResponse("Invalid chapter or section count", { status: 400 });
+      return ApiResponses.badRequest("Invalid chapter or section count");
     }
 
     // Warm up user AI preferences cache before generation starts.
@@ -300,16 +301,16 @@ export async function POST(req: NextRequest) {
 
       // Return appropriate HTTP status based on error type
       if (error.message.includes('Rate limit') || error.message.includes('429')) {
-        return new NextResponse(errorMessage, { status: 429 });
+        return ApiResponses.tooManyRequests(errorMessage);
       }
       if (error.message.includes('Unauthorized') || error.message.includes('401')) {
-        return new NextResponse(errorMessage, { status: 401 });
+        return ApiResponses.unauthorized(errorMessage);
       }
       if (error.message.includes('Network') || error.message.includes('timeout')) {
-        return new NextResponse(errorMessage, { status: 503 });
+        return ApiResponses.serviceUnavailable(errorMessage);
       }
     }
 
-    return new NextResponse(errorMessage, { status: 500 });
+    return ApiResponses.internal(errorMessage);
   }
 }

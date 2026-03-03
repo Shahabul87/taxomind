@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function DELETE(
   req: Request,
@@ -12,7 +13,7 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify ownership of the course
@@ -24,7 +25,7 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if exam exists and belongs to the section
@@ -40,12 +41,12 @@ export async function DELETE(
     });
 
     if (!exam) {
-      return new NextResponse("Exam not found", { status: 404 });
+      return ApiResponses.notFound("Exam not found");
     }
 
     // Prevent deletion if exam has user attempts
     if (exam.UserExamAttempt && exam.UserExamAttempt.length > 0) {
-      return new NextResponse("Cannot delete exam with existing user attempts", { status: 400 });
+      return ApiResponses.badRequest("Cannot delete exam with existing user attempts");
     }
 
     // Delete exam and its questions in a transaction
@@ -68,7 +69,7 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: "Exam deleted successfully" });
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -81,7 +82,7 @@ export async function GET(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Verify ownership of the course
@@ -93,7 +94,7 @@ export async function GET(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Get exam with questions
@@ -117,12 +118,12 @@ export async function GET(
     });
 
     if (!exam) {
-      return new NextResponse("Exam not found", { status: 404 });
+      return ApiResponses.notFound("Exam not found");
     }
 
     return NextResponse.json({ success: true, exam });
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

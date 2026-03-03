@@ -279,6 +279,8 @@ model SAMPoints {
 
   @@index([userId, awardedAt])
   @@index([category, awardedAt])
+  @@index([userId, courseId, awardedAt])
+  @@index([courseId, awardedAt])
   @@map("sam_points")
 }
 

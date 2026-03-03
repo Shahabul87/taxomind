@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { PredictiveAnalytics } from "@/lib/predictive-analytics";
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'heavy');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 export async function GET(req: Request, props: { params: Promise<{ sectionId: string }> }) {
   const params = await props.params;
@@ -10,7 +11,7 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const section = await db.section.findUnique({
@@ -32,12 +33,12 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     return NextResponse.json(section);
   } catch (error) {
     logger.error("[SECTION_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

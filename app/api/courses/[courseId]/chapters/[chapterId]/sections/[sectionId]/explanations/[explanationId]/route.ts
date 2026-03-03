@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -16,7 +17,7 @@ export async function PATCH(
     const { title, code, explanation } = await req.json();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const courseOwner = await db.course.findUnique({
@@ -27,7 +28,7 @@ export async function PATCH(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const updatedExplanation = await db.codeExplanation.update({
@@ -45,7 +46,7 @@ export async function PATCH(
     return NextResponse.json(updatedExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -58,7 +59,7 @@ export async function DELETE(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const courseOwner = await db.course.findUnique({
@@ -69,7 +70,7 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const deletedExplanation = await db.codeExplanation.delete({
@@ -82,7 +83,7 @@ export async function DELETE(
     return NextResponse.json(deletedExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -95,7 +96,7 @@ export async function GET(
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const courseOwner = await db.course.findUnique({
@@ -106,7 +107,7 @@ export async function GET(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const explanation = await db.codeExplanation.findUnique({
@@ -119,6 +120,6 @@ export async function GET(
     return NextResponse.json(explanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

@@ -1,18 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function PATCH(req: Request, props: { params: Promise<{ courseId: string }> }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;
   try {
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user?.id) {
-        return new NextResponse("Unauthorized", { status: 401 });
+        return ApiResponses.unauthorized();
       }
 
     const userId = user?.id;
@@ -25,7 +30,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
 
     const unpublishedCourse = await db.course.update({
@@ -41,6 +46,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     return NextResponse.json(unpublishedCourse);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

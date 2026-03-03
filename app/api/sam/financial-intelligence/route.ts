@@ -428,7 +428,7 @@ async function handleProfitabilityAnalysis(
         },
       },
       include: {
-        User: true,
+        User: { select: { id: true, name: true, email: true } },
       },
       take: 500,
     });
@@ -638,66 +638,72 @@ async function calculateDailyRevenue(
   organizationId: string,
   dateRange: { start: Date; end: Date }
 ) {
-  // Simplified daily revenue calculation
-  const days = Math.ceil(
-    (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  
-  const dailyRevenue = [];
-  for (let i = 0; i < Math.min(days, 30); i++) {
-    const date = new Date(dateRange.end);
-    date.setDate(date.getDate() - i);
-    
-    const revenue = await db.purchase.count({
-      where: {
-        createdAt: {
-          gte: new Date(date.setHours(0, 0, 0, 0)),
-          lt: new Date(date.setHours(23, 59, 59, 999)),
-        },
-      },
-    }) * 50; // Average price
-    
-    dailyRevenue.push({
-      date: date.toISOString().split("T")[0],
-      revenue,
-    });
+  // Batch query: group purchases by date in a single query
+  const thirtyDaysAgo = new Date(dateRange.end);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const start = dateRange.start > thirtyDaysAgo ? dateRange.start : thirtyDaysAgo;
+
+  const purchases = await db.purchase.findMany({
+    where: {
+      createdAt: { gte: start, lte: dateRange.end },
+    },
+    select: { createdAt: true },
+    take: 10000,
+  });
+
+  // Group by date
+  const dailyMap = new Map<string, number>();
+  for (const p of purchases) {
+    const dateKey = p.createdAt.toISOString().split("T")[0];
+    dailyMap.set(dateKey, (dailyMap.get(dateKey) ?? 0) + 50);
   }
-  
-  return dailyRevenue.reverse();
+
+  // Fill in all days in range
+  const dailyRevenue = [];
+  const current = new Date(start);
+  while (current <= dateRange.end) {
+    const dateKey = current.toISOString().split("T")[0];
+    dailyRevenue.push({ date: dateKey, revenue: dailyMap.get(dateKey) ?? 0 });
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dailyRevenue;
 }
 
 async function calculateWeeklyRevenue(
   organizationId: string,
   dateRange: { start: Date; end: Date }
 ) {
-  // Simplified weekly revenue calculation
-  const weeks = Math.ceil(
-    (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24 * 7)
-  );
-  
+  // Batch query: group purchases by week in a single query
+  const twelveWeeksAgo = new Date(dateRange.end);
+  twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);
+  const start = dateRange.start > twelveWeeksAgo ? dateRange.start : twelveWeeksAgo;
+
+  const purchases = await db.purchase.findMany({
+    where: {
+      createdAt: { gte: start, lte: dateRange.end },
+    },
+    select: { createdAt: true },
+    take: 10000,
+  });
+
+  // Group by week number
+  const weeklyMap = new Map<number, number>();
+  for (const p of purchases) {
+    const weekNum = Math.floor((dateRange.end.getTime() - p.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 7));
+    weeklyMap.set(weekNum, (weeklyMap.get(weekNum) ?? 0) + 50);
+  }
+
+  const totalWeeks = Math.min(12, Math.ceil((dateRange.end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7)));
   const weeklyRevenue = [];
-  for (let i = 0; i < Math.min(weeks, 12); i++) {
-    const weekEnd = new Date(dateRange.end);
-    weekEnd.setDate(weekEnd.getDate() - i * 7);
-    const weekStart = new Date(weekEnd);
-    weekStart.setDate(weekStart.getDate() - 7);
-    
-    const revenue = await db.purchase.count({
-      where: {
-        createdAt: {
-          gte: weekStart,
-          lt: weekEnd,
-        },
-      },
-    }) * 50; // Average price
-    
+  for (let i = totalWeeks - 1; i >= 0; i--) {
     weeklyRevenue.push({
-      week: `Week ${weeks - i}`,
-      revenue,
+      week: `Week ${totalWeeks - i}`,
+      revenue: weeklyMap.get(i) ?? 0,
     });
   }
-  
-  return weeklyRevenue.reverse();
+
+  return weeklyRevenue;
 }
 
 function getOptimizationRecommendations(category: string): string[] {
@@ -783,6 +789,7 @@ async function calculateProfitabilityByCategory(
   dateRange: { start: Date; end: Date }
 ) {
   const categories = await db.category.findMany({
+    take: 100,
     include: {
       courses: {
         include: {

@@ -29,44 +29,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
-    // For demo purposes, allow access if no session (development mode)
     if (!session?.user) {
-      // Return mock data for development
-      return NextResponse.json({
-        success: true,
-        data: {
-          analytics: [
-            {
-              id: "analytics-1",
-              metricType: "USER_ENGAGEMENT",
-              metricCategory: "daily_active_users",
-              value: 1250,
-              recordedAt: new Date().toISOString(),
-              organization: { id: "demo-org-1", name: "Acme Corporation" }
-            },
-            {
-              id: "analytics-2", 
-              metricType: "CONTENT_PERFORMANCE",
-              metricCategory: "course_completion_rate",
-              value: 0.78,
-              recordedAt: new Date().toISOString(),
-              organization: { id: "demo-org-2", name: "Tech University" }
-            }
-          ],
-          summary: {
-            totalRecords: 2,
-            uniqueOrganizations: 2,
-            metricTypes: [
-              { type: "USER_ENGAGEMENT", count: 1, totalValue: 1250, avgValue: 1250 },
-              { type: "CONTENT_PERFORMANCE", count: 1, totalValue: 0.78, avgValue: 0.78 }
-            ]
-          }
-        }
-      });
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, { status: 401 });
     }
-    
+
     if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

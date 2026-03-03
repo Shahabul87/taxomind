@@ -9,6 +9,7 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { executeProfile } from '@/lib/sam/prompt-registry';
 import type { ChapterContentInput } from '@/lib/sam/prompt-registry/profiles/chapter-content';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
     // Auth — supports both user (teacher) and admin
     const session = await getCombinedSession();
     if (!session.userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Parse and validate

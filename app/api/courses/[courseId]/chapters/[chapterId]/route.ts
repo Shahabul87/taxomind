@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { queueChapterReindex } from '@/lib/sam/memory-lifecycle-service';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt and database connections
 export const runtime = 'nodejs';
@@ -17,7 +18,7 @@ export async function DELETE(
     const userId = user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Await params to get courseId and chapterId
@@ -32,7 +33,7 @@ export async function DELETE(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Find the chapter to be deleted
@@ -44,7 +45,7 @@ export async function DELETE(
     });
 
     if (!chapter) {
-      return new NextResponse("Chapter not found", { status: 404 });
+      return ApiResponses.notFound("Chapter not found");
     }
 
     // Delete the chapter
@@ -92,14 +93,14 @@ export async function DELETE(
     // Enhanced error handling for production
     if (error instanceof Error) {
       if (error.message.includes('connect') || error.message.includes('timeout')) {
-        return new NextResponse("Database connection error", { status: 503 });
+        return ApiResponses.serviceUnavailable("Database connection error");
       }
       if (error.message.includes('auth') || error.message.includes('unauthorized')) {
-        return new NextResponse("Authentication error", { status: 401 });
+        return ApiResponses.unauthorized();
       }
     }
     
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -112,7 +113,7 @@ export async function PATCH(
     const userId = user?.id;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const rawValues = await req.json();
@@ -130,7 +131,7 @@ export async function PATCH(
     });
 
     if (!courseOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Explicit field mapping to ensure all chapter fields are properly updated
@@ -194,14 +195,14 @@ export async function PATCH(
     // Enhanced error handling for production
     if (error instanceof Error) {
       if (error.message.includes('connect') || error.message.includes('timeout')) {
-        return new NextResponse("Database connection error", { status: 503 });
+        return ApiResponses.serviceUnavailable("Database connection error");
       }
       if (error.message.includes('auth') || error.message.includes('unauthorized')) {
-        return new NextResponse("Authentication error", { status: 401 });
+        return ApiResponses.unauthorized();
       }
     }
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

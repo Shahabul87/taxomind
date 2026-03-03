@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -18,7 +19,7 @@ export async function POST(
 
     // Check if the user is authenticated
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the current user owns the course
@@ -30,7 +31,7 @@ export async function POST(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the specified chapter exists within the course
@@ -41,7 +42,7 @@ export async function POST(
     });
 
     if (!chapterData) {
-      return new NextResponse("Chapter not found", { status: 404 });
+      return ApiResponses.notFound("Chapter not found");
     }
 
     // Check if the specified section exists within the chapter
@@ -52,12 +53,12 @@ export async function POST(
     });
 
     if (!sectionData) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Validate required fields for blog creation
     if (!title || !url || !author || !category) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     // Create a new blog entry in the database
@@ -80,7 +81,7 @@ export async function POST(
     });
   } catch (error) {
     logger.error("[POST ERROR] Courses/Chapter/Section ID:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -95,12 +96,12 @@ export async function PATCH(
 
     // Check if the user is authenticated
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Validate required fields for blog update
     if (!blogId || !title || !url) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     // Retrieve all blogs associated with the given section
@@ -125,7 +126,7 @@ export async function PATCH(
 
     // If the blog doesn't exist or doesn't match, return an error
     if (!blog) {
-      return new NextResponse("Unauthorized or Not Found", { status: 404 });
+      return ApiResponses.notFound("Unauthorized or Not Found");
     }
 
     // Update the blog information in the database
@@ -148,7 +149,7 @@ export async function PATCH(
     });
   } catch (error) {
     logger.error("[PATCH ERROR] Blog Update:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -162,7 +163,7 @@ export async function DELETE(
     const { blogId } = await req.json(); // Extract blogId from the request payload
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Fetch all blogs associated with the sectionId
@@ -186,7 +187,7 @@ export async function DELETE(
     const blogToDelete = blogs.find((blog) => blog.id === blogId);
 
     if (!blogToDelete) {
-      return new NextResponse("Unauthorized or Not Found", { status: 404 });
+      return ApiResponses.notFound("Unauthorized or Not Found");
     }
 
     // Delete the blog
@@ -199,7 +200,7 @@ export async function DELETE(
     return NextResponse.json(deletedBlog);
   } catch (error) {
     logger.error("[DELETE_BLOG_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

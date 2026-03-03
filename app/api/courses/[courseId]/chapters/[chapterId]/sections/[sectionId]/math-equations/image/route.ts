@@ -4,6 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -23,24 +24,24 @@ export async function POST(
     const { courseId, chapterId, sectionId } = await params;
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
-      return new NextResponse("No file uploaded", { status: 400 });
+      return ApiResponses.badRequest("No file uploaded");
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      return new NextResponse("File must be an image", { status: 400 });
+      return ApiResponses.badRequest("File must be an image");
     }
 
     // Validate file size (4MB limit)
     if (file.size > 4 * 1024 * 1024) {
-      return new NextResponse("File size must be less than 4MB", { status: 400 });
+      return ApiResponses.badRequest("File size must be less than 4MB");
     }
 
     const bytes = await file.arrayBuffer();
@@ -70,6 +71,6 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     logger.error("[MATH_EQUATION_IMAGE_UPLOAD]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

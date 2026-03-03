@@ -16,6 +16,7 @@ import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -67,7 +68,7 @@ export async function POST(
   try {
     const user = await currentUser();
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Create user-scoped AI engines

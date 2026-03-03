@@ -186,17 +186,22 @@ async function getUserRank(userId: string, type: string, period: string, courseI
     pointsWhere.userId = { in: scopedUserIds };
   }
 
-  const leaderboard = await db.sAMPoints.groupBy({
+  // Efficient rank calculation: aggregate user's points, then count users with more points
+  const userPointsAgg = await db.sAMPoints.aggregate({
+    where: { ...pointsWhere, userId },
+    _sum: { points: true },
+  });
+  const points = userPointsAgg._sum.points ?? 0;
+
+  // Count distinct users and users with more points for rank
+  const allUsersAgg = await db.sAMPoints.groupBy({
     by: ['userId'],
     where: pointsWhere,
     _sum: { points: true },
-    orderBy: { _sum: { points: 'desc' } },
   });
-
-  const totalUsers = leaderboard.length;
-  const userIndex = leaderboard.findIndex((entry) => entry.userId === userId);
-  const rank = userIndex >= 0 ? userIndex + 1 : null;
-  const points = userIndex >= 0 ? leaderboard[userIndex]._sum.points ?? 0 : 0;
+  const totalUsers = allUsersAgg.length;
+  const usersAbove = allUsersAgg.filter((entry) => (entry._sum.points ?? 0) > points).length;
+  const rank = points > 0 ? usersAbove + 1 : null;
 
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -274,64 +279,60 @@ async function buildLeaderboard(options: {
 
   const ids = pointsAgg.map((row) => row.userId);
 
-  const users = await db.user.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      samLevel: true,
-    },
-    take: 500,
-  });
-
-  const streaks = await db.sAMStreak.findMany({
-    where: { userId: { in: ids } },
-    select: { userId: true, currentStreak: true },
-    take: 500,
-  });
-
-  const badgesAgg = await db.sAMBadge.groupBy({
-    by: ['userId'],
-    where: { userId: { in: ids } },
-    _count: { _all: true },
-  });
-
+  // Parallelize independent queries for performance
   const activityWhere: Prisma.LearningActivityLogWhereInput = {
     userId: { in: ids },
     ...(courseId ? { courseId } : {}),
     ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
   };
 
-  const activityAgg = await db.learningActivityLog.groupBy({
-    by: ['userId'],
-    where: activityWhere,
-    _sum: { duration: true },
-  });
-
-  const chatAgg = await db.sAMInteraction.groupBy({
-    by: ['userId'],
-    where: {
-      userId: { in: ids },
-      interactionType: 'CHAT_MESSAGE',
-      ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-      ...(courseId ? { courseId } : {}),
-    },
-    _count: { _all: true },
-  });
-
-  const contentAgg = await db.sAMPoints.groupBy({
-    by: ['userId'],
-    where: {
-      userId: { in: ids },
-      category: 'CONTENT_CREATION',
-      ...(periodStart ? { awardedAt: { gte: periodStart } } : {}),
-      ...(courseId ? { courseId } : {}),
-    },
-    _count: { _all: true },
-  });
-
-  const examAttempts = await db.userExamAttempt.findMany({
+  const [users, streaks, badgesAgg, activityAgg, chatAgg, contentAgg, examAttempts] = await Promise.all([
+    db.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        samLevel: true,
+      },
+      take: 500,
+    }),
+    db.sAMStreak.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, currentStreak: true },
+      take: 500,
+    }),
+    db.sAMBadge.groupBy({
+      by: ['userId'],
+      where: { userId: { in: ids } },
+      _count: { _all: true },
+    }),
+    db.learningActivityLog.groupBy({
+      by: ['userId'],
+      where: activityWhere,
+      _sum: { duration: true },
+    }),
+    db.sAMInteraction.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: ids },
+        interactionType: 'CHAT_MESSAGE',
+        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        ...(courseId ? { courseId } : {}),
+      },
+      _count: { _all: true },
+    }),
+    db.sAMPoints.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: ids },
+        category: 'CONTENT_CREATION',
+        ...(periodStart ? { awardedAt: { gte: periodStart } } : {}),
+        ...(courseId ? { courseId } : {}),
+      },
+      _count: { _all: true },
+    }),
+    db.userExamAttempt.findMany({
     where: {
       userId: { in: ids },
       ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
@@ -368,7 +369,8 @@ async function buildLeaderboard(options: {
       },
     },
     take: 500,
-  });
+  }),
+  ]);
 
   const userMap = new Map(users.map((user) => [user.id, user]));
   const streakMap = new Map(streaks.map((item) => [item.userId, item.currentStreak]));
@@ -574,26 +576,28 @@ export async function POST(request: NextRequest) {
           toUserId: targetUserId,
         };
 
-        const [fromUser, toUser] = await Promise.all([
-          db.user.findUnique({ where: { id: user.id }, select: { samActiveChallenges: true } }),
-          db.user.findUnique({ where: { id: targetUserId }, select: { samActiveChallenges: true } }),
-        ]);
+        await db.$transaction(async (tx) => {
+          const [fromUser, toUser] = await Promise.all([
+            tx.user.findUnique({ where: { id: user.id }, select: { samActiveChallenges: true } }),
+            tx.user.findUnique({ where: { id: targetUserId }, select: { samActiveChallenges: true } }),
+          ]);
 
-        await db.user.update({
-          where: { id: user.id },
-          data: {
-            samActiveChallenges: [...(Array.isArray(fromUser?.samActiveChallenges) ? fromUser?.samActiveChallenges : []), challengePayload],
-          },
-        });
-
-        if (toUser) {
-          await db.user.update({
-            where: { id: targetUserId },
+          await tx.user.update({
+            where: { id: user.id },
             data: {
-              samActiveChallenges: [...(Array.isArray(toUser.samActiveChallenges) ? toUser.samActiveChallenges : []), challengePayload],
+              samActiveChallenges: [...(Array.isArray(fromUser?.samActiveChallenges) ? fromUser?.samActiveChallenges : []), challengePayload],
             },
           });
-        }
+
+          if (toUser) {
+            await tx.user.update({
+              where: { id: targetUserId },
+              data: {
+                samActiveChallenges: [...(Array.isArray(toUser.samActiveChallenges) ? toUser.samActiveChallenges : []), challengePayload],
+              },
+            });
+          }
+        });
 
         return NextResponse.json({
           success: true,

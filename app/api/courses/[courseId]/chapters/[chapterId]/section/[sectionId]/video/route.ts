@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -18,7 +19,7 @@ export async function POST(
 
     // Check if the user is authenticated
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the current user owns the course
@@ -30,7 +31,7 @@ export async function POST(
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Check if the specified chapter exists within the course
@@ -41,7 +42,7 @@ export async function POST(
     });
 
     if (!chapterData) {
-      return new NextResponse("Chapter not found", { status: 404 });
+      return ApiResponses.notFound("Chapter not found");
     }
 
     // Check if the specified section exists within the chapter
@@ -52,12 +53,12 @@ export async function POST(
     });
 
     if (!sectionData) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Validate required fields for video creation
     if (!title || !url || !duration || !rating) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     // Create a new video entry in the database
@@ -82,7 +83,7 @@ export async function POST(
     });
   } catch (error) {
     logger.error("[POST ERROR] Courses/Chapter/Section ID:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -97,12 +98,12 @@ export async function PATCH(
 
     // Check if the user is authenticated
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Validate required fields for video update
     if (!videoId || !title || !url) {
-      return new NextResponse("Missing required fields", { status: 400 });
+      return ApiResponses.badRequest("Missing required fields");
     }
 
     // Retrieve all videos associated with the given section
@@ -127,7 +128,7 @@ export async function PATCH(
 
     // If the video doesn't exist or doesn't match, return an error
     if (!video) {
-      return new NextResponse("Unauthorized or Not Found", { status: 404 });
+      return ApiResponses.notFound("Unauthorized or Not Found");
     }
 
     // Update the video information in the database
@@ -151,7 +152,7 @@ export async function PATCH(
     });
   } catch (error) {
     logger.error("[PATCH ERROR] Video Update:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -165,7 +166,7 @@ export async function DELETE(
     const { videoId } = await req.json(); // Extract videoId from the request payload
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // Fetch all videos associated with the sectionId
@@ -189,7 +190,7 @@ export async function DELETE(
     const videoToDelete = videos.find((video) => video.id === videoId);
 
     if (!videoToDelete) {
-      return new NextResponse("Unauthorized or Not Found", { status: 404 });
+      return ApiResponses.notFound("Unauthorized or Not Found");
     }
 
     // Delete the video
@@ -202,7 +203,7 @@ export async function DELETE(
     return NextResponse.json(deletedVideo);
   } catch (error) {
     logger.error("[DELETE_VIDEO_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

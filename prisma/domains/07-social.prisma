@@ -418,6 +418,7 @@ model CollaborationContribution {
 
   @@index([sessionId, userId])
   @@index([contributionType])
+  @@index([userId, timestamp])
 }
 
 model CollaborationReaction {

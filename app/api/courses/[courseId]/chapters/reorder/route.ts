@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -22,7 +22,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = user.id;
@@ -37,7 +37,7 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
     });
 
     if (!ownCourse) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     await db.$transaction(
@@ -49,11 +49,11 @@ export async function PUT(req: Request, props: { params: Promise<{ courseId: str
       )
     );
 
-    return new NextResponse("Success", { status: 200 });
+    return ApiResponses.ok({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new NextResponse("Invalid input", { status: 400 });
+      return ApiResponses.badRequest("Invalid input");
     }
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }

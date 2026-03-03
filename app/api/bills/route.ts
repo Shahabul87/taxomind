@@ -81,9 +81,8 @@ export async function GET(req: Request) {
       orderBy: {
         dueDate: 'asc',
       },
+      take: 200,
     });
-
-    //console.log("All bills found:", bills);
     return NextResponse.json(bills);
   } catch (error) {
     logger.error("[BILLS_GET]", error);

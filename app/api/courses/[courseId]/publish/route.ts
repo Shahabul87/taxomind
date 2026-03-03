@@ -4,6 +4,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -46,7 +47,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     const user = await currentUser();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const userId = user?.id;
@@ -90,7 +91,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     });
 
     if (!course) {
-      return new NextResponse("Not found", { status: 404 });
+      return ApiResponses.notFound();
     }
 
     // Define sections as individual items for tracking completion
@@ -112,7 +113,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     const isPublishable = completedSections >= minSectionsRequired;
 
     if (!isPublishable) {
-      return new NextResponse("At least 2 sections must be completed before publishing", { status: 401 });
+      return ApiResponses.unauthorized("At least 2 sections must be completed before publishing");
     }
 
     // === COGNITIVE QUALITY GATE ===
@@ -226,7 +227,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ courseId: s
     });
   } catch (error) {
     logger.error("[COURSE_PUBLISH]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 

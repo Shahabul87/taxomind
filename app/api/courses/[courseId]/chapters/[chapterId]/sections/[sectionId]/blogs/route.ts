@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -17,7 +18,7 @@ export async function POST(
     const { title, blogUrl, description, rating, thumbnail, siteName, author } = await req.json();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     // First verify the section exists
@@ -28,7 +29,7 @@ export async function POST(
     });
 
     if (!section) {
-      return new NextResponse("Section not found", { status: 404 });
+      return ApiResponses.notFound("Section not found");
     }
 
     // Create the blog with all fields
@@ -51,7 +52,7 @@ export async function POST(
     return NextResponse.json(blog);
   } catch (error) {
     logger.error("[BLOGS]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 }
 
@@ -71,6 +72,6 @@ export async function GET(req: Request, props: { params: Promise<{ sectionId: st
     return NextResponse.json(blogs);
   } catch (error) {
     logger.error("[BLOGS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

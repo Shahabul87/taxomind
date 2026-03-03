@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ApiResponses } from '@/lib/api/api-responses';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -16,7 +17,7 @@ export async function POST(
     const { title, code, explanation } = await req.json();
 
     if (!user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const sectionOwner = await db.section.findUnique({
@@ -29,7 +30,7 @@ export async function POST(
     });
 
     if (!sectionOwner) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return ApiResponses.unauthorized();
     }
 
     const codeExplanation = await db.codeExplanation.create({
@@ -44,6 +45,6 @@ export async function POST(
     return NextResponse.json(codeExplanation);
   } catch (error) {
 
-    return new NextResponse("Internal Error", { status: 500 });
+    return ApiResponses.internal();
   }
 } 

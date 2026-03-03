@@ -40,64 +40,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     
-    // For demo purposes, allow access if no session (development mode)
     if (!session?.user) {
-      // Return mock data for development
-      return NextResponse.json({
-        success: true,
-        data: {
-          events: [
-            {
-              id: "security-1",
-              eventType: "UNAUTHORIZED_ACCESS",
-              severity: "HIGH",
-              source: "Authentication System",
-              description: "Multiple failed login attempts detected",
-              details: { ip: "192.168.1.100", attempts: 5 },
-              affectedUsers: ["user-123"],
-              mitigationActions: ["IP blocked", "User notified"],
-              status: "RESOLVED",
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-1", name: "Acme Corporation", slug: "acme-corp" }
-            },
-            {
-              id: "security-2",
-              eventType: "SUSPICIOUS_ACTIVITY",
-              severity: "MEDIUM",
-              source: "Content Access",
-              description: "Unusual content access pattern detected",
-              details: { pattern: "bulk_download", volume: "500MB" },
-              affectedUsers: ["user-456"],
-              mitigationActions: [],
-              status: "INVESTIGATING",
-              createdAt: new Date().toISOString(),
-              organization: { id: "demo-org-2", name: "Tech University", slug: "tech-university" }
-            }
-          ],
-          summary: {
-            totalEvents: 2,
-            statusBreakdown: [
-              { status: "RESOLVED", count: 1 },
-              { status: "INVESTIGATING", count: 1 }
-            ],
-            severityBreakdown: [
-              { severity: "HIGH", count: 1 },
-              { severity: "MEDIUM", count: 1 }
-            ],
-            eventTypeBreakdown: [
-              { eventType: "UNAUTHORIZED_ACCESS", count: 1 },
-              { eventType: "SUSPICIOUS_ACTIVITY", count: 1 }
-            ],
-            recentCritical: [],
-            openCritical: 0,
-            securityScore: 78
-          }
-        }
-      });
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }, { status: 401 });
     }
-    
+
     if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
