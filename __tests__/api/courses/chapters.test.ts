@@ -142,6 +142,7 @@ describe('GET /api/courses/[courseId]/chapters', () => {
       where: {
         courseId: 'course-99',
         isPublished: true,
+        OR: [{ status: null }, { status: 'ready' }],
       },
       select: {
         id: true,

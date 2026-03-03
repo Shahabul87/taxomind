@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import type { AdminRole } from "@/types/admin-role";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Schema for updating admin profile
 const UpdateProfileSchema = z.object({
@@ -112,15 +113,7 @@ export async function GET() {
     console.error("[ADMIN_PROFILE_GET] Unexpected error:", error);
     console.error("[ADMIN_PROFILE_GET] Error stack:", error instanceof Error ? error.stack : "No stack");
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch admin profile",
-        details: error instanceof Error ? error.message : "Unknown error",
-        errorType: error?.constructor?.name || "Unknown",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_PROFILE_GET');
   }
 }
 
@@ -244,14 +237,7 @@ export async function PATCH(req: Request) {
     }
 
     // Handle other errors
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update profile",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_PROFILE_PATCH');
   }
 }
 

@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     health.status = 'unhealthy';
     health.services.database = {
       status: 'down',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Database connection failed',
     };
   }
 
@@ -192,7 +192,7 @@ export async function GET(req: NextRequest) {
       health.status = health.status === 'unhealthy' ? 'unhealthy' : 'degraded';
       health.services.redis = {
         status: 'down',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Redis connection failed',
       };
     }
   }

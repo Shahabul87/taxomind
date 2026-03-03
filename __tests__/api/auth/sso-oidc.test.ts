@@ -110,7 +110,8 @@ describe('POST /api/auth/sso/oidc', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Failed to initiate OIDC authentication');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 });
 

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -42,13 +43,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json({ alerts }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch alerts',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'MONITORING_ALERTS_GET');
   }
 }
 
@@ -82,12 +77,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200 }
     );
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to resolve alert',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'MONITORING_ALERTS_POST');
   }
 }

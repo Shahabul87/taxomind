@@ -135,7 +135,7 @@ describe('/api/cron/session-notifications route', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error).toBe('db failed');
+    expect(body.error).toBe('Internal server error');
     expect(mockLogger.error).toHaveBeenCalled();
   });
 });

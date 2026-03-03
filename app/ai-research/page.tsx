@@ -401,9 +401,9 @@ export default function AIResearchPage() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
-              {globalStats.map((stat, index) => (
+              {globalStats.map((stat) => (
                 <motion.div
-                  key={index}
+                  key={stat.label}
                   className="group relative bg-white dark:bg-slate-800/50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300"
                   whileHover={{ y: -2 }}
                 >

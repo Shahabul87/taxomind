@@ -3,6 +3,7 @@ import { withAuth, type APIAuthContext, createSuccessResponse, ApiError } from "
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import type {
   StudentAnalytics,
   BloomsAnalysis,
@@ -229,15 +230,8 @@ export const POST = withAuth(async (
     return response;
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Student profile analytics error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'STUDENT_PROFILE');
   }
 });
 

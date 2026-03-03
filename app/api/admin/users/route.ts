@@ -4,6 +4,7 @@ import { AdminRole } from "@/types/admin-role";
 import { withRole } from "@/lib/api-protection";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Input validation schema for GET
 const GetUsersSchema = z.object({
@@ -605,35 +606,25 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
     console.error(`[DELETE /api/admin/users] [${requestId}] INTERNAL_ERROR: Caught exception:`, error);
     console.error(`[DELETE /api/admin/users] [${requestId}] Error stack:`, error instanceof Error ? error.stack : "No stack trace");
 
-    // Check for specific database errors
-    let errorMessage = "An error occurred while deleting the user";
-    let errorCode = "INTERNAL_ERROR";
-
-    if (error instanceof Error) {
-      // Prisma foreign key constraint error
-      if (error.message.includes("Foreign key constraint")) {
-        errorMessage = "Cannot delete user due to existing related records. Please delete related data first.";
-        errorCode = "CONSTRAINT_ERROR";
-      }
+    // Check for specific database errors - return user-friendly message for known cases
+    if (error instanceof Error && error.message.includes("Foreign key constraint")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "CONSTRAINT_ERROR",
+            message: "Cannot delete user due to existing related records. Please delete related data first.",
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            requestId,
+            version: "1.0.0",
+          },
+        },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: errorCode,
-          message: errorMessage,
-          details: process.env.NODE_ENV === "development" ? {
-            error: error instanceof Error ? error.message : String(error),
-          } : undefined
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          requestId,
-          version: "1.0.0",
-        },
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_USERS_DELETE');
   }
 });

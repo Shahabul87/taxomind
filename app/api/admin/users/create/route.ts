@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { AdminRole } from "@/types/admin-role";
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 const CreateUserSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -121,13 +122,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Handle other errors
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to create user",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_USERS_CREATE');
   }
 }

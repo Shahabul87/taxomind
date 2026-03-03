@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { ensureToolingInitialized } from '@/lib/sam/agentic-tooling';
 import {
   getPendingConfirmations as getOrchestrationConfirmations,
@@ -72,15 +73,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Error fetching confirmations:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch confirmations',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_AGENTIC_TOOLS_CONFIRMATIONS_GET');
   }
 }
 

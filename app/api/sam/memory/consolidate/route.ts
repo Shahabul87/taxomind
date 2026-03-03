@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 
 // ============================================================================
 // TYPES
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (error) {
       job.status = 'failed';
-      job.errors = [error instanceof Error ? error.message : 'Unknown error'];
+      job.errors = [safeErrorMessage(error)];
       job.completedAt = new Date();
       job.processingTimeMs = Date.now() - startTime;
 

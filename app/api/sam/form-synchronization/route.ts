@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,11 +57,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error in SAM form synchronization:', error);
-    return NextResponse.json({ 
-      error: 'Failed to synchronize form data',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'SAM_FORM_SYNCHRONIZATION');
   }
 }
 

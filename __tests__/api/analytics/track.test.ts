@@ -142,7 +142,7 @@ describe('/api/analytics/track route', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('TRACKING_ERROR');
+    expect(body.error).toBe('Internal server error');
   });
 
   it('OPTIONS returns CORS headers', async () => {

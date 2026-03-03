@@ -8,6 +8,7 @@ import { OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { executeProfile } from '@/lib/sam/prompt-registry';
 import type { ChapterContentInput } from '@/lib/sam/prompt-registry/profiles/chapter-content';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -237,12 +238,6 @@ export async function POST(request: NextRequest) {
     if (accessResponse) return accessResponse;
 
     logger.error('[CHAPTER_CONTENT] Error generating chapter content:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : 'Something went wrong',
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'CHAPTER_CONTENT');
   }
 }

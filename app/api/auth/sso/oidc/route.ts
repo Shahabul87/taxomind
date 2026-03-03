@@ -3,6 +3,7 @@ import { oidcProviderManager, type OIDCConfiguration } from '@/lib/auth/oidc-pro
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
  * OIDC SSO Authentication Endpoints
@@ -64,11 +65,8 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     logger.error('[OIDC] Authentication initiation failed:', error);
-    
-    return NextResponse.json(
-      { error: 'Failed to initiate OIDC authentication', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+
+    return safeErrorResponse(error, 500, 'SSO_OIDC_POST');
   }
 }
 
@@ -131,11 +129,8 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     logger.error('[OIDC] Configuration retrieval failed:', error);
-    
-    return NextResponse.json(
-      { error: 'Failed to retrieve OIDC configuration', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+
+    return safeErrorResponse(error, 500, 'SSO_OIDC_GET');
   }
 }
 
@@ -179,11 +174,8 @@ export async function PUT(request: NextRequest) {
     
   } catch (error) {
     logger.error('[OIDC] Configuration update failed:', error);
-    
-    return NextResponse.json(
-      { error: 'Failed to update OIDC configuration', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+
+    return safeErrorResponse(error, 500, 'SSO_OIDC_PUT');
   }
 }
 
@@ -223,11 +215,8 @@ export async function DELETE(request: NextRequest) {
     
   } catch (error) {
     logger.error('[OIDC] Configuration removal failed:', error);
-    
-    return NextResponse.json(
-      { error: 'Failed to remove OIDC configuration', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+
+    return safeErrorResponse(error, 500, 'SSO_OIDC_DELETE');
   }
 }
 

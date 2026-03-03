@@ -87,7 +87,7 @@ export const ChapterContent = ({
                 {domNode.children
                   .filter((child: any) => child.type === 'tag' && child.name === 'li')
                   .map((child: any, index: number) => (
-                    <li key={index}>{parse(getContent(child))}</li>
+                    <li key={`ul-${index}-${getContent(child).slice(0, 20)}`}>{parse(getContent(child))}</li>
                   ))}
               </ul>
             );
@@ -97,7 +97,7 @@ export const ChapterContent = ({
                 {domNode.children
                   .filter((child: any) => child.type === 'tag' && child.name === 'li')
                   .map((child: any, index: number) => (
-                    <li key={index}>{parse(getContent(child))}</li>
+                    <li key={`ol-${index}-${getContent(child).slice(0, 20)}`}>{parse(getContent(child))}</li>
                   ))}
               </ol>
             );

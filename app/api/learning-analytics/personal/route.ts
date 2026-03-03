@@ -141,57 +141,87 @@ function getTimeFilter(timeframe: string): Date {
 }
 
 async function generatePersonalAnalytics(userId: string, timeFilter: Date): Promise<LearningAnalytics> {
-  // Get ALL user's course enrollments (not filtered by timeframe)
-  // Timeframe filter only applies to activity data, not enrollment date
+  // Query 1: Course structure with progress (bounded at every level)
   const courseEnrollments = await db.purchase.findMany({
-    where: {
-      userId: userId,
-    },
+    where: { userId },
+    take: 100,
     include: {
       Course: {
-        include: {
+        select: {
+          id: true,
+          title: true,
           chapters: {
-            include: {
+            take: 50,
+            select: {
+              id: true,
               sections: {
-                include: {
+                take: 200,
+                select: {
+                  id: true,
                   user_progress: {
-                    where: {
-                      userId: userId
-                    }
+                    where: { userId },
+                    select: { isCompleted: true, updatedAt: true },
                   },
-                  exams: {
-                    include: {
-                      UserExamAttempt: {
-                        where: {
-                          userId: userId,
-                          startedAt: {
-                            gte: timeFilter
-                          }
-                        },
-                        include: {
-                          UserAnswer: {
-                            include: {
-                              ExamQuestion: {
-                                select: {
-                                  bloomsLevel: true,
-                                  difficulty: true
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                },
+              },
+            },
+          },
+        },
+      },
     },
-    take: 100,
   });
+
+  // Query 2: Exam attempts with answers (separate bounded query)
+  const examAttempts = await db.userExamAttempt.findMany({
+    where: {
+      userId,
+      startedAt: { gte: timeFilter },
+    },
+    take: 500,
+    select: {
+      id: true,
+      status: true,
+      scorePercentage: true,
+      timeSpent: true,
+      startedAt: true,
+      UserAnswer: {
+        select: {
+          isCorrect: true,
+          ExamQuestion: {
+            select: {
+              bloomsLevel: true,
+              difficulty: true,
+            },
+          },
+        },
+      },
+      Exam: {
+        select: {
+          sectionId: true,
+          Section: {
+            select: {
+              Chapter: {
+                select: {
+                  courseId: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Build a map of courseId -> exam attempts for efficient lookup
+  const examsByCourse = new Map<string, typeof examAttempts>();
+  for (const attempt of examAttempts) {
+    const courseId = attempt.Exam?.Section?.Chapter?.courseId;
+    if (courseId) {
+      const existing = examsByCourse.get(courseId) ?? [];
+      existing.push(attempt);
+      examsByCourse.set(courseId, existing);
+    }
+  }
 
   // Calculate overview metrics
   const totalCourses = courseEnrollments.length;
@@ -209,10 +239,10 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
   courseEnrollments.forEach(enrollment => {
     const course = enrollment.Course;
     const allSections = course.chapters.flatMap(ch => ch.sections);
-    const completedSections = allSections.filter(section => 
+    const completedSections = allSections.filter(section =>
       section.user_progress.some(p => p.isCompleted)
     ).length;
-    
+
     const progress = allSections.length > 0 ? (completedSections / allSections.length) * 100 : 0;
     const isActive = progress > 0 && progress < 100;
     const isCompleted = progress === 100;
@@ -220,14 +250,11 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
     if (isActive) activeCourses++;
     if (isCompleted) completedCourses++;
 
-    // Collect exam attempts
-    const examAttempts = course.chapters.flatMap(ch => 
-      ch.sections.flatMap(s => s.exams.flatMap(e => e.UserExamAttempt))
-    );
+    // Get exam attempts for this course from pre-built map
+    const courseExamAttempts = examsByCourse.get(course.id) ?? [];
+    allExamAttempts.push(...courseExamAttempts);
 
-    allExamAttempts.push(...examAttempts);
-
-    examAttempts.forEach(attempt => {
+    courseExamAttempts.forEach(attempt => {
       if (attempt.status === 'SUBMITTED') {
         totalExamsCompleted++;
         totalScore += attempt.scorePercentage || 0;
@@ -249,7 +276,7 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
 
     // Calculate last activity
     const lastActivity = Math.max(
-      ...examAttempts.map(a => new Date(a.startedAt).getTime()),
+      ...courseExamAttempts.map(a => new Date(a.startedAt).getTime()),
       ...allSections.flatMap(s => s.user_progress.map(p => new Date(p.updatedAt).getTime())),
       new Date(enrollment.createdAt).getTime()
     );
@@ -261,8 +288,8 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
       lastActivity: new Date(lastActivity).toISOString(),
       totalSections: allSections.length,
       completedSections,
-      averageScore: examAttempts.length > 0 ? 
-        examAttempts.reduce((sum, a) => sum + (a.scorePercentage || 0), 0) / examAttempts.length : 0,
+      averageScore: courseExamAttempts.length > 0 ?
+        courseExamAttempts.reduce((sum, a) => sum + (a.scorePercentage || 0), 0) / courseExamAttempts.length : 0,
       estimatedTimeToComplete: Math.max(0, (allSections.length - completedSections) * 30), // 30 min per section
       difficulty: 'intermediate' as const // Would be determined from course metadata
     });

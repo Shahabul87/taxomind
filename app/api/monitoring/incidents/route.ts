@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { auth } from '@/auth';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -38,13 +39,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ incidents }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch incidents',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'MONITORING_INCIDENTS_GET');
   }
 }
 
@@ -97,12 +92,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 200 }
     );
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to update incident',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'MONITORING_INCIDENTS_POST');
   }
 }

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@/auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -58,12 +59,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ metrics }, { status: 200 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch metrics',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'MONITORING_METRICS');
   }
 }

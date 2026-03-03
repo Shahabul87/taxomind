@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // DELETE - Logout a specific session
 export async function DELETE(
@@ -78,12 +79,6 @@ export async function DELETE(
 
   } catch (error) {
     console.error("Session deletion error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to delete session",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SESSION_DELETE');
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
  * Ultra simple reply endpoint - just create a reply with whatever is provided
@@ -133,9 +134,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error("[SIMPLE_REPLY] Error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error creating reply" },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SIMPLE_REPLY');
   }
 } 

@@ -3,6 +3,7 @@ import { withAuth, type APIAuthContext, createSuccessResponse, createErrorRespon
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -114,9 +115,7 @@ interface CourseAnalytics {
   };
 }
 
-// Simple in-memory cache for analytics data
-const analyticsCache = new Map<string, { data: CourseAnalytics; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+// Redis-backed distributed cache for analytics data (works across Railway instances)
 
 // POST endpoint for comprehensive course analytics (OPTIMIZED)
 export const POST = withAuth(async (
@@ -135,17 +134,20 @@ export const POST = withAuth(async (
 
     const { courseId, timeframe, includeDetailed, page, pageSize } = parseResult.data;
 
-    // Check cache first for performance
+    // Check Redis cache first for performance (works across Railway instances)
     const cacheKey = `${courseId}-${timeframe}-${includeDetailed}-${page}-${pageSize}-${context.user.id}`;
-    const cached = analyticsCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    const cached = await redisCache.get<{ data: CourseAnalytics; timestamp: number }>(cacheKey, {
+      prefix: CACHE_PREFIXES.ANALYTICS,
+      tags: ['teacher-analytics', `course:${courseId}`],
+    });
+    if (cached.hit && cached.value) {
       const cachedResponse = createSuccessResponse({
         success: true,
-        analytics: cached.data,
+        analytics: cached.value.data,
         metadata: {
           courseId,
           timeframe,
-          generatedAt: new Date(cached.timestamp).toISOString(),
+          generatedAt: new Date(cached.value.timestamp).toISOString(),
           cached: true
         }
       });
@@ -182,18 +184,12 @@ export const POST = withAuth(async (
       pageSize
     );
 
-    // Cache the results
-    analyticsCache.set(cacheKey, { data: analytics, timestamp: Date.now() });
-
-    // Clean old cache entries periodically
-    if (analyticsCache.size > 100) {
-      const now = Date.now();
-      for (const [key, value] of analyticsCache.entries()) {
-        if (now - value.timestamp > CACHE_TTL) {
-          analyticsCache.delete(key);
-        }
-      }
-    }
+    // Cache the results in Redis (TTL handles expiry automatically)
+    await redisCache.set(cacheKey, { data: analytics, timestamp: Date.now() }, {
+      prefix: CACHE_PREFIXES.ANALYTICS,
+      ttl: CACHE_TTL.MEDIUM,
+      tags: ['teacher-analytics', `course:${courseId}`],
+    });
 
     const response = createSuccessResponse({
       success: true,

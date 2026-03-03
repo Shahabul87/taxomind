@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import type {
   CreatorAnalytics,
   CoursePerformanceItem,
@@ -89,14 +90,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     logger.error('Creator analytics error:', error);
-    const message = error instanceof Error ? error.message : 'Something went wrong';
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? message : 'Something went wrong'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'CREATOR_ANALYTICS');
   }
 }
 

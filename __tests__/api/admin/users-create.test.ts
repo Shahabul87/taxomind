@@ -168,6 +168,7 @@ describe('POST /api/admin/users/create', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toBe('Failed to create user');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });

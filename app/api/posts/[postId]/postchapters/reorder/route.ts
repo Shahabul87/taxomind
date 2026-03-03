@@ -2,6 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function PUT(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -50,12 +51,6 @@ export async function PUT(req: Request, props: { params: Promise<{ postId: strin
     return new NextResponse("Success", { status: 200 });
   } catch (error) {
     logger.error("[REORDER ERROR]", error);
-
-    // Extract error message if available, otherwise return a generic message
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    return new NextResponse(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return safeErrorResponse(error, 500, 'POSTCHAPTER_REORDER');
   }
 }

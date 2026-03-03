@@ -245,17 +245,24 @@ export class ContentGovernanceService {
       take: 5 // Limit to prevent too many escalations
     });
 
-    // Create escalation approvals
-    const escalationApprovals = await Promise.all(
-      admins.map(admin => db.contentVersionApproval.create({
-        data: {
-          workflowId: workflow.id,
-          approverId: admin.id,
-          status: ApprovalStatus.PENDING,
-          comments: `Escalated by ${user.name}: ${reason}`
-        }
+    // Create escalation approvals (batch insert instead of N+1)
+    await db.contentVersionApproval.createMany({
+      data: admins.map(admin => ({
+        workflowId: workflow.id,
+        approverId: admin.id,
+        status: ApprovalStatus.PENDING,
+        comments: `Escalated by ${user.name}: ${reason}`
       }))
-    );
+    });
+
+    // Fetch created approvals for downstream notification use
+    const escalationApprovals = await db.contentVersionApproval.findMany({
+      where: {
+        workflowId: workflow.id,
+        approverId: { in: admins.map(a => a.id) },
+        status: ApprovalStatus.PENDING,
+      }
+    });
 
     // Send escalation notifications
     await this.sendApprovalNotifications(

@@ -146,25 +146,24 @@ jest.mock('../../chapter-templates', () => ({
   getMinimumSectionsForDifficulty: jest.fn().mockReturnValue(1),
 }));
 
-jest.mock('../../category-prompts', () => ({
-  getCategoryEnhancers: jest.fn().mockReturnValue([{
+jest.mock('../../category-prompts', () => {
+  const enhancer = {
     categoryId: 'programming',
     displayName: 'Programming',
     systemPromptAdditions: '',
     qualityHeuristics: [],
-  }]),
-  blendEnhancers: jest.fn().mockReturnValue({
-    categoryId: 'programming',
-    displayName: 'Programming',
-    systemPromptAdditions: '',
-    qualityHeuristics: [],
-  }),
-  composeCategoryPrompt: jest.fn().mockReturnValue({
-    systemPromptAdditions: '',
-    qualityHeuristics: [],
-    tokenEstimate: { system: 0, perChapter: 0, total: 0 },
-  }),
-}));
+  };
+  return {
+    getCategoryEnhancers: jest.fn().mockReturnValue([enhancer]),
+    getCategoryEnhancersWithAIFallback: jest.fn().mockResolvedValue([enhancer]),
+    blendEnhancers: jest.fn().mockReturnValue(enhancer),
+    composeCategoryPrompt: jest.fn().mockReturnValue({
+      systemPromptAdditions: '',
+      qualityHeuristics: [],
+      tokenEstimate: { system: 0, perChapter: 0, total: 0 },
+    }),
+  };
+});
 
 jest.mock('../../course-creation-controller', () => ({
   advanceCourseStage: jest.fn().mockResolvedValue(undefined),

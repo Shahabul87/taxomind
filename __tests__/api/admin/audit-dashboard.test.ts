@@ -187,7 +187,8 @@ describe('GET /api/admin/audit-dashboard', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Failed to fetch');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });
 
@@ -259,6 +260,7 @@ describe('POST /api/admin/audit-dashboard', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Failed to execute');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });

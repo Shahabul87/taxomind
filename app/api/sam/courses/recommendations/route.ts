@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { db } from '@/lib/db';
 
 // ============================================================================
@@ -456,13 +457,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    logger.error('Error generating course recommendations:', {
-      message: errorMessage,
-      error,
-    });
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid query parameters', details: error.errors },
@@ -470,14 +464,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // In development, return more detailed error info
-    const isDev = process.env.NODE_ENV === 'development';
-    return NextResponse.json(
-      {
-        error: 'Failed to generate recommendations',
-        ...(isDev && { message: errorMessage }),
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_COURSE_RECOMMENDATIONS');
   }
 }

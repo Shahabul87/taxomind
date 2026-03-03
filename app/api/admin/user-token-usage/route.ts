@@ -5,6 +5,7 @@ import { adminAuth } from "@/auth.admin";
 import { AdminRole } from "@/types/admin-role";
 import { logger } from "@/lib/logger";
 import { SubscriptionTier } from "@prisma/client";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = "force-dynamic";
@@ -528,24 +529,6 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    logger.error("[ADMIN_USER_TOKEN_USAGE_GET_ERROR]", {
-      message: errorMessage,
-      stack: errorStack,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to fetch user token usage data",
-          details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
-        },
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_USER_TOKEN_USAGE');
   }
 }

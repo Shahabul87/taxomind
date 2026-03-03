@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { ContentVersioningService } from "@/lib/content-versioning";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function POST(
   request: NextRequest,
@@ -56,9 +57,6 @@ export async function POST(
 
   } catch (error) {
     logger.error("Template apply error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to apply template" },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'TEMPLATE_APPLY');
   }
 }

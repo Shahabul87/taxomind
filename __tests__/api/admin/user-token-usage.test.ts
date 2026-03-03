@@ -161,6 +161,7 @@ describe('GET /api/admin/user-token-usage', () => {
     const res = await GET(req);
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error.code).toBe('INTERNAL_ERROR');
+    expect(data.success).toBe(false);
+    expect(typeof data.error).toBe('string');
   });
 });

@@ -197,7 +197,8 @@ describe('GET /api/admin/ai-settings', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.code).toBe('INTERNAL_ERROR');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });
 
@@ -287,6 +288,7 @@ describe('PUT /api/admin/ai-settings', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.code).toBe('INTERNAL_ERROR');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });

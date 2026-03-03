@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { logCourseUpdate, logCourseDeletion } from '@/lib/audit/course-audit';
 import { queueCourseReindex } from '@/lib/sam/memory-lifecycle-service';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 const UpdateCourseSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200, "Title must be at most 200 characters").optional(),
@@ -136,11 +137,7 @@ export async function DELETE(
       logger.error("[COURSE_DELETE] Error stack:", error.stack);
     }
     
-    return NextResponse.json({ 
-      error: "Internal Error", 
-      details: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'COURSE_DELETE');
   }
 }
 

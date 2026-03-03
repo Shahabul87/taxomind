@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import axios from 'axios';
 
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Configuration for safe scraping
 const axiosConfig = {
@@ -84,10 +85,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     logger.error('[METADATA_EXTRACTION] Main error:', error);
-    return NextResponse.json(
-      { error: 'Failed to extract profile metadata', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'PROFILE_METADATA');
   }
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // POST - Request data export (GDPR compliance)
 export async function POST(req: NextRequest) {
@@ -80,13 +81,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Data export request error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to create export request",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'EXPORT_DATA_CREATE');
   }
 }
 
@@ -135,12 +130,6 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error("Export request fetch error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch export requests",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'EXPORT_DATA_FETCH');
   }
 }

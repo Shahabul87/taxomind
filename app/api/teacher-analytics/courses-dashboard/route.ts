@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
  * GET /api/teacher-analytics/courses-dashboard
@@ -152,14 +153,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('[Teacher Analytics API] Error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch analytics',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'TEACHER_COURSES_DASHBOARD');
   }
 }
 

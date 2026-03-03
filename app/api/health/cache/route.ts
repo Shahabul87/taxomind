@@ -4,6 +4,7 @@ import { type CacheMetrics } from '@/lib/cache/redis-cache';
 import { getQueryPerformanceMetrics } from '@/lib/db/query-optimizer';
 import { logger } from '@/lib/logger';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const runtime = 'nodejs';
 
@@ -149,24 +150,7 @@ export const GET = withAdminAuth(async (request, context) => {
     });
   } catch (error) {
     logger.error('Cache health check failed:', error);
-
-    return NextResponse.json(
-      {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-        cache: {
-          connected: false,
-          status: 'error',
-          metrics: null,
-        },
-        queryOptimization: {
-          metrics: null,
-          summary: null,
-        },
-      },
-      { status: 503 }
-    );
+    return safeErrorResponse(error, 503, 'HEALTH_CACHE_GET');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });
 
@@ -230,12 +214,7 @@ export const POST = withAdminAuth(async (request, context) => {
     return NextResponse.json(result);
   } catch (error) {
     logger.error('Cache test operation failed:', error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'HEALTH_CACHE_POST');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });
 

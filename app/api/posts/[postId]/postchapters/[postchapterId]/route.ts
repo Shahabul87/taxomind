@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 const PostChapterUpdateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -141,14 +142,7 @@ export async function PATCH(
       headers: { "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    // Use a type guard to check for a message on the error object
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-    logger.error("[PATCH ERROR] Post/PostChapterSection:", errorMessage);
-    // Provide a more descriptive error response
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error", details: errorMessage }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    logger.error("[PATCH ERROR] Post/PostChapterSection:", error);
+    return safeErrorResponse(error, 500, 'POSTCHAPTER_PATCH');
   }
 }

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { sendPushToUser, isPushAvailable } from '@/lib/sam/notifications';
 import { logger } from '@/lib/logger';
 import { withCronAuth } from '@/lib/api/cron-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
  * Cron job to send push notifications for upcoming study sessions
@@ -141,12 +142,6 @@ export async function GET(req: NextRequest) {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
 
-    return Response.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SESSION_NOTIFICATIONS_CRON');
   }
 }

@@ -7,6 +7,7 @@ import {
   HttpStatus,
 } from "@/lib/api-utils";
 import { withAdminAuth } from "@/lib/api/with-api-auth";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const POST = withAdminAuth(async (request, context) => {
   try {
@@ -196,11 +197,7 @@ export const POST = withAdminAuth(async (request, context) => {
   } catch (error) {
     console.error("[FIX_DASHBOARD_TABLE]", error);
 
-    return errorResponse(
-      ErrorCodes.INTERNAL_ERROR,
-      error instanceof Error ? error.message : "Failed to create table",
-      HttpStatus.INTERNAL_ERROR
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_FIX_DASHBOARD_TABLE_POST');
   }
 }, { rateLimit: { requests: 5, window: 60000 }, auditLog: true });
 
@@ -238,10 +235,6 @@ export const GET = withAdminAuth(async (request, context) => {
   } catch (error) {
     console.error("[CHECK_DASHBOARD_TABLE]", error);
 
-    return errorResponse(
-      ErrorCodes.INTERNAL_ERROR,
-      error instanceof Error ? error.message : "Failed to check table",
-      HttpStatus.INTERNAL_ERROR
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_FIX_DASHBOARD_TABLE_GET');
   }
 }, { rateLimit: { requests: 5, window: 60000 }, auditLog: true });

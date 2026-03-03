@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(
   _req: NextRequest,
@@ -31,9 +32,6 @@ export async function GET(
 
     return NextResponse.json({ success: true, qualityHistory: history });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 },
-    );
+    return safeErrorResponse(error, 500, 'QUALITY_HISTORY');
   }
 }

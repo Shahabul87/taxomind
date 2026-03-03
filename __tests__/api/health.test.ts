@@ -134,7 +134,7 @@ describe('/api/health route', () => {
     expect(res.status).toBe(503);
     expect(body.status).toBe('unhealthy');
     expect(body.services.database.status).toBe('down');
-    expect(body.services.database.error).toContain('db unavailable');
+    expect(body.services.database.error).toBe('Database connection failed');
   });
 
   it('HEAD returns 200 for liveness probe', async () => {

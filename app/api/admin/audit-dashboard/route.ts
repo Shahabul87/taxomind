@@ -8,6 +8,7 @@ import { currentUser } from '@/lib/auth';
 import { auditLogger, AuditEventType, AuditSeverity } from '@/lib/compliance/audit-logger';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -104,13 +105,7 @@ export const GET = withAdminAuth(async (request, context) => {
 
   } catch (error) {
     console.error('Audit dashboard API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch audit dashboard data',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_AUDIT_DASHBOARD_GET');
   }
 }, {
   rateLimit: { requests: 30, window: 60000 },
@@ -161,13 +156,7 @@ export const POST = withAdminAuth(async (request, context) => {
 
   } catch (error) {
     console.error('Audit dashboard action error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to execute audit action',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_AUDIT_DASHBOARD_POST');
   }
 }, {
   rateLimit: { requests: 10, window: 60000 },

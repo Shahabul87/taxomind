@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { rateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-limit';
 import { getMockStudentData } from '@/lib/mocks/analytics-mock-data';
 import { z } from 'zod';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 /**
  * Zod schema for validating query parameters
@@ -218,27 +219,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse>> 
       duration: `${duration.toFixed(2)}ms`,
     });
 
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to fetch analytics data',
-          details:
-            process.env.NODE_ENV === 'development'
-              ? {
-                  message: error instanceof Error ? error.message : 'Unknown error',
-                }
-              : undefined,
-        },
-      },
-      {
-        status: 500,
-        headers: {
-          'X-Request-ID': requestId,
-        },
-      }
-    );
+    return safeErrorResponse(error, 500, 'ANALYTICS_STUDENT');
   }
 }
 

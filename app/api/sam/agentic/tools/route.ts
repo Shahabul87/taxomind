@@ -9,6 +9,7 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { z } from 'zod';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import {
   InvokeToolInputSchema,
   type ToolDefinition,
@@ -81,15 +82,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Error listing tools:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
-    return NextResponse.json(
-      {
-        error: 'Failed to list tools',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_AGENTIC_TOOLS_LIST');
   }
 }
 
@@ -176,14 +169,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Error invoking tool:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
-    return NextResponse.json(
-      {
-        error: 'Failed to invoke tool',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_AGENTIC_TOOLS_INVOKE');
   }
 }

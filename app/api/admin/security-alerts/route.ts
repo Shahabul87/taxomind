@@ -8,6 +8,7 @@ import { currentUser } from '@/lib/auth';
 import { AdminRole } from '@prisma/client';
 import { authAuditHelpers } from '@/lib/audit/auth-audit';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -32,13 +33,7 @@ export const GET = withAdminAuth(async (request, context) => {
 
   } catch (error) {
     console.error('Security alerts API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to retrieve security alerts',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_SECURITY_ALERTS_GET');
   }
 }, {
   rateLimit: { requests: 30, window: 60000 },
@@ -81,13 +76,7 @@ export const POST = withAdminAuth(async (request, context) => {
 
   } catch (error) {
     console.error('Security action API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to execute security action',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_SECURITY_ALERTS_POST');
   }
 }, {
   rateLimit: { requests: 10, window: 60000 },

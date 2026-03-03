@@ -83,9 +83,9 @@ export const PostCard = ({ post }: PostCardProps) => {
         {/* Categories */}
         {categories && categories.length > 0 && (
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
-            {categories.slice(0, 2).map((category: string, index: number) => (
-              <div 
-                key={index} 
+            {categories.slice(0, 2).map((category: string) => (
+              <div
+                key={category}
                 className="px-2 py-1 rounded-md text-xs font-medium bg-gray-900/70 text-gray-300 backdrop-blur-sm border border-gray-800/50"
               >
                 {category}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(
   req: NextRequest,
@@ -134,13 +135,6 @@ export async function GET(
     );
   } catch (error: unknown) {
     console.error('Error fetching similar courses:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch similar courses',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SIMILAR_COURSES');
   }
 }

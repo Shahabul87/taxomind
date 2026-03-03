@@ -1,3 +1,4 @@
+import 'server-only';
 import { google, Auth } from 'googleapis';
 import { logger } from '@/lib/logger';
 

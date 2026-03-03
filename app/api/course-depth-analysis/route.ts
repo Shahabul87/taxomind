@@ -5,6 +5,7 @@ import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-prov
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import {
   createEnhancedDepthAnalysisEngine,
   deterministicRubricEngine,
@@ -675,10 +676,7 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     logger.error('Error checking saved analysis:', error);
-    return NextResponse.json({
-      error: 'Failed to check saved analysis',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'DEPTH_ANALYSIS_CHECK');
   }
 }
 
@@ -1972,11 +1970,7 @@ Use this exact JSON structure:
       statusCode = 429;
     }
     
-    return NextResponse.json({
-      error: errorMessage,
-      details: error instanceof Error ? error.message : 'Unknown error',
-      retryable: [529, 503, 429].includes(error.status)
-    }, { status: statusCode });
+    return safeErrorResponse(error, statusCode, 'DEPTH_ANALYSIS');
   }
 }
 

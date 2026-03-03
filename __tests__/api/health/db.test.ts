@@ -50,6 +50,6 @@ describe('/api/health/db route', () => {
 
     expect(res.status).toBe(500);
     expect(body.success).toBe(false);
-    expect(body.error.message).toContain('db down');
+    expect(body.error).toBe('Internal server error');
   });
 });

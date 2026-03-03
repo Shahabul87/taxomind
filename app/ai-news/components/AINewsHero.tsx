@@ -210,11 +210,11 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
             variants={itemVariants}
             className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto"
           >
-            {quickStats.map((stat, index) => {
+            {quickStats.map((stat) => {
               const Icon = stat.icon;
               return (
                 <motion.div
-                  key={index}
+                  key={stat.label}
                   className="group relative bg-white dark:bg-slate-800/50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300"
                   whileHover={{ y: -2 }}
                 >
@@ -241,11 +241,11 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
               { label: "Real-time Updates", icon: Zap },
               { label: "AI-Curated", icon: Sparkles },
               { label: "Multi-Source", icon: Globe },
-            ].map((feature, index) => {
+            ].map((feature) => {
               const Icon = feature.icon;
               return (
                 <div
-                  key={index}
+                  key={feature.label}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm"
                 >
                   <Icon className="w-3.5 h-3.5" />

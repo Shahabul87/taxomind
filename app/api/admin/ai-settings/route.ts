@@ -13,6 +13,7 @@ import {
   refreshPlatformSettingsCache,
 } from "@/lib/sam/ai-provider";
 import { PLATFORM_AI_DEFAULTS } from "@/lib/ai/platform-settings-cache";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = "force-dynamic";
@@ -218,15 +219,7 @@ export async function GET() {
     });
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_GET_ERROR]", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch AI settings",
-        code: "INTERNAL_ERROR",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_AI_SETTINGS_GET');
   }
 }
 
@@ -320,14 +313,6 @@ export async function PUT(request: Request) {
     }
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_PUT_ERROR]", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to update AI settings",
-        code: "INTERNAL_ERROR",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_AI_SETTINGS_PUT');
   }
 }

@@ -4,6 +4,7 @@ import { rateLimit, getClientIdentifier, getRateLimitHeaders } from '@/lib/rate-
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -177,24 +178,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     );
   } catch (error) {
     logger.error('[ANALYTICS] Error tracking event:', error);
-
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'TRACKING_ERROR',
-          message: 'Failed to track event',
-          details:
-            process.env.NODE_ENV === 'development'
-              ? { message: errorMessage }
-              : undefined,
-        },
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ANALYTICS_TRACK');
   }
 }
 

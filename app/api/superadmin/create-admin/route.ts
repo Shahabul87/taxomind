@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import { adminEmailExists } from "@/data/admin";
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 const CreateAdminSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -151,13 +152,6 @@ export async function POST(req: Request) {
     }
 
     // Handle other errors
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to create admin",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SUPERADMIN_CREATE_ADMIN');
   }
 }

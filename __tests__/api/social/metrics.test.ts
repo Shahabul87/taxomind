@@ -79,6 +79,7 @@ describe('/api/social/metrics route', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Error communicating');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 });

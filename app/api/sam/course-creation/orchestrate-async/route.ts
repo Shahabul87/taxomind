@@ -16,6 +16,7 @@ import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 import { z } from 'zod';
 import { getQueueManager } from '@/lib/queue/queue-manager';
 import type { CourseCreationJobData } from '@/lib/queue/course-creation-types';
@@ -306,8 +307,10 @@ export async function GET(request: NextRequest) {
         }
       } catch (error) {
         if (!closed) {
-          const msg = error instanceof Error ? error.message : 'Unknown error';
-          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: msg })}\n\n`));
+          logger.error('[ORCHESTRATE_ASYNC] SSE relay error:', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ message: safeErrorMessage(error) })}\n\n`));
         }
       } finally {
         clearInterval(heartbeat);

@@ -264,9 +264,9 @@ export function MFASetupClient({ mfaInfo, userEmail }: MFASetupClientProps) {
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {backupCodes.map((code, index) => (
+                  {backupCodes.map((code) => (
                     <div
-                      key={index}
+                      key={code}
                       className="flex items-center justify-between p-2 bg-white border rounded font-mono text-sm"
                     >
                       <span>{code}</span>

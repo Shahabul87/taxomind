@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -21,7 +22,7 @@ export const GET = withAdminAuth(async (request, context) => {
     try {
       userCount = await db.user.count();
     } catch (error) {
-      userError = error instanceof Error ? error.message : 'Unknown error';
+      userError = 'Failed to count users';
     }
 
     // Check if User table exists
@@ -51,18 +52,6 @@ export const GET = withAdminAuth(async (request, context) => {
     });
   } catch (error) {
     console.error('Database health check failed:', error);
-
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: error instanceof Error ? error.message : 'Database connection failed',
-        type: error instanceof Error ? error.constructor.name : 'Unknown',
-        details: process.env.NODE_ENV === 'development' ? error : undefined
-      },
-      environment: {
-        NODE_ENV: process.env.NODE_ENV,
-        databaseUrl: process.env.DATABASE_URL ? 'Set (hidden)' : 'Not set',
-      }
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'HEALTH_DB');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

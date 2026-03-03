@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_PRODUCTION = process.env.NODE_ENV !== 'development';
 
 /**
  * Extract a safe error message from an unknown error.

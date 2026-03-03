@@ -24,6 +24,7 @@ import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 import { z } from 'zod';
 import { orchestrateExamEvaluation } from '@/lib/sam/exam-evaluation/orchestrator';
 
@@ -140,9 +141,11 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('[EVAL_ORCHESTRATE_ROUTE] Stream error:', msg);
-          sendSSE('error', { message: msg, canRetry: false });
+          logger.error('[EVAL_ORCHESTRATE_ROUTE] Stream error:', {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+          sendSSE('error', { message: safeErrorMessage(error), canRetry: false });
         } finally {
           try {
             controller.close();
@@ -162,10 +165,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[EVAL_ORCHESTRATE_ROUTE] Error:', msg);
+    logger.error('[EVAL_ORCHESTRATE_ROUTE] Error:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return new Response(
-      JSON.stringify({ success: false, error: msg }),
+      JSON.stringify({ success: false, error: safeErrorMessage(error) }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

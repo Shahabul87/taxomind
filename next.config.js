@@ -477,7 +477,7 @@ const nextConfig = {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https: blob:",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https: wss:",
+        "connect-src 'self' wss://*.taxomind.com wss://localhost:*",
         "frame-src 'self' https://www.youtube.com",
         "report-uri /api/security/csp-report",
       ].join('; '),

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import type {
   QuestionType,
   QuestionDifficulty,
@@ -305,15 +306,8 @@ export async function POST(
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
     logger.error('Exam creation error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'EXAM_CREATE');
   }
 }
 
@@ -402,14 +396,7 @@ export async function GET(
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Something went wrong';
     logger.error('Exam fetch error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'EXAM_FETCH');
   }
 }

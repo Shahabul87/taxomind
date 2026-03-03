@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { validateFetchUrl } from '@/lib/utils/url-validator';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(request: NextRequest) {
   const user = await currentUser();
@@ -253,7 +254,7 @@ export async function GET(request: NextRequest) {
         favicon: null,
         image: null,
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: "Failed to fetch article metadata"
       }, { status: 200 }); // Return 200 even for errors to handle gracefully on client
     }
   }

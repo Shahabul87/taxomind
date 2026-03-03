@@ -89,8 +89,8 @@ describe('/api/health/cache route', () => {
     const body = await res.json();
 
     expect(res.status).toBe(503);
-    expect(body.status).toBe('unhealthy');
-    expect(body.error).toContain('redis down');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 
   it('POST supports cache set action', async () => {

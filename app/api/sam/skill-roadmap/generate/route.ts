@@ -13,6 +13,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithMetadata, handleAIAccessError, getResolvedProviderName, withSubscriptionGate } from '@/lib/sam/ai-provider';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 import { db } from '@/lib/db';
 import {
   buildComprehensiveRoadmapPrompt,
@@ -421,10 +422,12 @@ You MUST ensure difficulty increases progressively (never decreases).`,
           controller.enqueue(sseEvent('done', { timestamp: Date.now() }));
           controller.close();
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('[SkillRoadmap] Generation error:', message);
+          logger.error('[SkillRoadmap] Generation error:', {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
           controller.enqueue(sseEvent('error', {
-            message: `Roadmap generation failed: ${message}`,
+            message: `Roadmap generation failed: ${safeErrorMessage(error)}`,
           }));
           controller.close();
         }

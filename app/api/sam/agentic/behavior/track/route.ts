@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import {
   initializeProactiveInterventions,
@@ -225,17 +226,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[BEHAVIOR_TRACK] Error tracking behavior:', {
-      error: errorMessage,
-    });
-    return NextResponse.json(
-      {
-        error: 'Failed to track behavior',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_AGENTIC_BEHAVIOR_TRACK');
   }
 }
 

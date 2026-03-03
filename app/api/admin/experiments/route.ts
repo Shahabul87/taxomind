@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/admin';
 import { EXPERIMENTS, getExperimentStats } from '@/lib/sam/course-creation/experiments';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET() {
   try {
@@ -26,9 +27,6 @@ export async function GET() {
 
     return NextResponse.json({ success: true, experiments: results });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 },
-    );
+    return safeErrorResponse(error, 500, 'ADMIN_EXPERIMENTS');
   }
 }

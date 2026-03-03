@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Optimized endpoint for deleting nested replies at any depth
 export async function DELETE(req: NextRequest) {
@@ -119,23 +120,11 @@ export async function DELETE(req: NextRequest) {
       });
     } catch (dbError) {
       logger.error("[DELETE_NESTED_REPLY] Database error during transaction:", dbError);
-      return NextResponse.json(
-        { 
-          error: "Database error deleting reply",
-          details: dbError instanceof Error ? dbError.message : String(dbError)
-        },
-        { status: 500 }
-      );
+      return safeErrorResponse(dbError, 500, 'DELETE_NESTED_REPLY_DB');
     }
   } catch (error) {
     logger.error("[DELETE_NESTED_REPLY] Error:", error);
-    return NextResponse.json(
-      { 
-        error: "Error deleting reply",
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'DELETE_NESTED_REPLY');
   }
 }
 

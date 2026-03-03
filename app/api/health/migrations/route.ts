@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -59,14 +60,6 @@ export const GET = withAdminAuth(async (request, context) => {
     });
   } catch (error) {
     console.error('Migration check failed:', error);
-
-    return NextResponse.json({
-      success: false,
-      error: {
-        message: error instanceof Error ? error.message : 'Migration check failed',
-        type: error instanceof Error ? error.constructor.name : 'Unknown',
-        hint: 'Run: npx prisma migrate deploy'
-      }
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'HEALTH_MIGRATIONS');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

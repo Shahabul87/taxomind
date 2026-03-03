@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { logger } from '@/lib/logger';
 import { withAdminAuth } from '@/lib/api/with-api-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const GET = withAdminAuth(async (request, context) => {
   try {
@@ -68,12 +69,6 @@ export const GET = withAdminAuth(async (request, context) => {
   } catch (error) {
     logger.error('[MONITOR] Error:', error);
     
-    return NextResponse.json({
-      system: {
-        status: 'error',
-        timestamp: new Date().toISOString()
-      },
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'MONITOR');
   }
 }, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

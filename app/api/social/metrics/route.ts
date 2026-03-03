@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export async function GET(req: NextRequest) {
   try {
@@ -62,16 +63,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(data);
     } catch (fetchError) {
       logger.error("Error fetching from Facebook metrics API:", fetchError);
-      return NextResponse.json({ 
-        error: "Error communicating with Facebook API service",
-        details: fetchError instanceof Error ? fetchError.message : String(fetchError)
-      }, { status: 500 });
+      return safeErrorResponse(fetchError, 500, 'SOCIAL_METRICS_FACEBOOK');
     }
   } catch (error) {
     logger.error("API error in social metrics route:", error);
-    return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) }, 
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SOCIAL_METRICS');
   }
 } 

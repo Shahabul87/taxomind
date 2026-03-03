@@ -153,7 +153,8 @@ describe('GET /api/admin/profile', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Failed to fetch');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });
 
@@ -251,6 +252,7 @@ describe('PATCH /api/admin/profile', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toContain('Failed to update');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });

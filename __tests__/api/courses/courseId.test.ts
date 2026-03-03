@@ -250,9 +250,8 @@ describe('DELETE /api/courses/[courseId]', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toBe('Internal Error');
-    expect(body.details).toBe('Connection lost');
-    expect(body.timestamp).toBeDefined();
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 
   it('returns 500 when db.course.delete throws', async () => {
@@ -262,10 +261,11 @@ describe('DELETE /api/courses/[courseId]', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toBe('Internal Error');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 
-  it('returns "Unknown error" detail when thrown error is not an Error instance', async () => {
+  it('returns generic error when thrown error is not an Error instance', async () => {
     (db.course.findUnique as jest.Mock).mockReset();
     (db.course.findUnique as jest.Mock).mockRejectedValueOnce('string error');
 
@@ -273,7 +273,8 @@ describe('DELETE /api/courses/[courseId]', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.details).toBe('Unknown error');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 });
 

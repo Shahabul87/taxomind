@@ -1,54 +1,32 @@
-"use client";
+import { ReactNode } from "react";
+import { CourseProviders } from "./_components/course-providers";
 
-import { ReactNode, useEffect } from 'react';
-import { useParams, usePathname } from 'next/navigation';
-import { CommerceProvider } from '@/components/commerce/commerce-context';
-import { PresenceTrackingProvider } from '@/components/sam/presence';
-import { initAnalyticsDomBridge } from '@/lib/analytics/dom-bridge';
-
-// SAM Context Tracker - Automatically syncs page context with SAM
-import { SAMContextTracker } from '@/components/sam/SAMContextTracker';
+interface CourseDetailLayoutProps {
+  children: ReactNode;
+  params: Promise<{
+    courseId: string;
+    chapterId?: string;
+    sectionId?: string;
+  }>;
+}
 
 /**
- * Layout for course detail pages
- * Provides commerce + analytics + presence tracking context for course pages
+ * Server layout for course detail pages.
+ * Extracts params server-side and passes them to client providers.
  */
-export default function CourseDetailLayout({
+export default async function CourseDetailLayout({
   children,
-}: {
-  children: ReactNode;
-}) {
-  const params = useParams();
-  const pathname = usePathname();
-
-  // Extract IDs from params (can be string or string[])
-  const courseId = typeof params?.courseId === 'string' ? params.courseId : undefined;
-  const chapterId = typeof params?.chapterId === 'string' ? params.chapterId : undefined;
-  const sectionId = typeof params?.sectionId === 'string' ? params.sectionId : undefined;
-
-  // Only enable studying mode on actual learning pages
-  const isLearningPage = pathname?.includes('/learn');
-
-  useEffect(() => {
-    // Initialize DOM analytics bridge (idempotent)
-    initAnalyticsDomBridge();
-  }, []);
+  params,
+}: CourseDetailLayoutProps) {
+  const { courseId, chapterId, sectionId } = await params;
 
   return (
-    <CommerceProvider>
-      <PresenceTrackingProvider
-        courseId={courseId}
-        chapterId={chapterId}
-        sectionId={sectionId}
-        autoStudyingMode={isLearningPage}
-      >
-        {/* SAM Context Tracker - Invisible, syncs page context with course info */}
-        <SAMContextTracker />
-
-        <div className="min-h-screen">
-          {children}
-        </div>
-      </PresenceTrackingProvider>
-    </CommerceProvider>
+    <CourseProviders
+      courseId={courseId}
+      chapterId={chapterId}
+      sectionId={sectionId}
+    >
+      {children}
+    </CourseProviders>
   );
 }

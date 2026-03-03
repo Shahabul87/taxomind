@@ -86,7 +86,8 @@ describe('/api/auth-dynamic-test route', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.authenticated).toBe(false);
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 
   it('GET returns 500 when authenticator throws', async () => {
@@ -97,6 +98,7 @@ describe('/api/auth-dynamic-test route', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error).toBe('auth crash');
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('Internal server error');
   });
 });

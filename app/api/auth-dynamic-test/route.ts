@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 export const runtime = 'nodejs';
 
@@ -30,10 +31,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     logger.error("[AUTH_TEST] Error:", error);
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'AUTH_DYNAMIC_TEST_GET');
   }
 }
 
@@ -66,10 +64,6 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     logger.error("[AUTH_TEST] Error:", error);
-    return NextResponse.json({
-      authenticated: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return safeErrorResponse(error, 500, 'AUTH_DYNAMIC_TEST_POST');
   }
 } 

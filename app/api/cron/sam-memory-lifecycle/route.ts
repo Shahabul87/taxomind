@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import { withCronAuth, verifyCronAuth } from '@/lib/api/cron-auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import {
   getMemoryLifecycleManager,
   startMemoryLifecycle,
@@ -125,17 +126,7 @@ export async function GET(request: NextRequest) {
       durationMs: duration,
     });
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'LIFECYCLE_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        },
-        durationMs: duration,
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_MEMORY_LIFECYCLE');
   }
 }
 
@@ -449,17 +440,7 @@ export async function POST(request: NextRequest) {
       durationMs: duration,
     });
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'LIFECYCLE_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        },
-        durationMs: duration,
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_MEMORY_LIFECYCLE');
   }
 }
 

@@ -18,6 +18,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
@@ -314,9 +315,10 @@ export async function POST(req: NextRequest) {
             });
           }
         } catch (error) {
-          const msg = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('[APPROVE_RESUME_API] Stream error:', msg);
-          sendSSE('error', { message: msg, courseId });
+          logger.error('[APPROVE_RESUME_API] Stream error:', {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          sendSSE('error', { message: safeErrorMessage(error), courseId });
         } finally {
           clearInterval(heartbeat);
           try {

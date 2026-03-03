@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { getStore } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
@@ -78,9 +79,6 @@ export async function POST(
       },
     });
   } catch (error) {
-    logger.error('Error claiming challenge reward:', error);
-
-    const errorMessage = error instanceof Error ? error.message : 'Failed to claim reward';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return safeErrorResponse(error, 500, 'SAM_PRACTICE_CHALLENGE_CLAIM');
   }
 }

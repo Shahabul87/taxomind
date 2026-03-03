@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { logger } from '@/lib/logger';
 import { BlogStatisticsSchema } from '@/lib/validations/blog';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -184,34 +185,6 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
     });
   } catch (error) {
     logger.error('[BLOG_STATISTICS] Error fetching blog statistics:', error);
-
-    // Type guard for Error objects
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-
-    logger.error('[BLOG_STATISTICS] Error details:', {
-      message: errorMessage,
-      stack: errorStack,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'BLOG_STATISTICS_FETCH_ERROR',
-          message: 'Failed to fetch blog statistics',
-          details:
-            process.env.NODE_ENV === 'development'
-              ? { message: errorMessage }
-              : undefined,
-        },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          cached: false,
-        },
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'BLOG_STATISTICS');
   }
 }

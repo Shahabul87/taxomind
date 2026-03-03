@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { db } from '@/lib/db';
 import type { CourseInsightData, CourseInsight, CourseInsightMetric } from '@/components/sam/course-insights';
 
@@ -229,19 +230,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[SAM Course Insights] Error:', error);
-    console.error('[SAM Course Insights] Stack:', error instanceof Error ? error.stack : 'No stack');
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to generate course insights',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'SAM_COURSE_INSIGHTS');
   }
 }
 

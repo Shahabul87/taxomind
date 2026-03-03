@@ -58,6 +58,20 @@ jest.mock('@/lib/sam/course-creation/course-creation-controller', () => ({
   storeReflectionInGoal: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock course-initializer (creates course record + goal in DB)
+let dbIdCounterInit = 0;
+jest.mock('@/lib/sam/course-creation/course-initializer', () => ({
+  initializeCourseRecord: jest.fn().mockImplementation(async () => {
+    dbIdCounterInit++;
+    return {
+      courseId: `course-${dbIdCounterInit}`,
+      goalId: 'goal-1',
+      planId: 'plan-1',
+      stepIds: ['step-1', 'step-2', 'step-3'],
+    };
+  }),
+}));
+
 // Mock quality integration (Phase 1: SAM validation inside retry loops)
 jest.mock('@/lib/sam/course-creation/quality-integration', () => ({
   validateChapterWithSAM: jest.fn().mockResolvedValue({
@@ -335,6 +349,7 @@ jest.mock('@/lib/sam/course-creation/category-prompts', () => {
   return {
     getCategoryEnhancer: jest.fn().mockReturnValue(enhancer),
     getCategoryEnhancers: jest.fn().mockReturnValue([enhancer]),
+    getCategoryEnhancersWithAIFallback: jest.fn().mockResolvedValue([enhancer]),
     blendEnhancers: jest.fn().mockImplementation((primary: unknown) => primary),
     composeCategoryPrompt: jest.fn().mockReturnValue({
       expertiseBlock: '',
@@ -407,8 +422,16 @@ function setupDBMocks() {
     dbIdCounter++;
     return { id: `cat-${dbIdCounter}` };
   });
+  (db.course.findUnique as jest.Mock).mockImplementation(async () => ({
+    id: 'course-1',
+    qualityHistory: [],
+  }));
   (db.course.update as jest.Mock).mockImplementation(async () => ({ id: 'course-updated' }));
   (db.chapter.update as jest.Mock).mockImplementation(async () => ({ id: 'chapter-updated' }));
+  (db.sAMExecutionPlan.findUnique as jest.Mock).mockImplementation(async () => ({
+    id: 'plan-1',
+    schedule: {},
+  }));
   (db.sAMExecutionPlan.update as jest.Mock).mockImplementation(async () => ({}));
 }
 
@@ -633,13 +656,15 @@ describe('orchestrateCourseCreation', () => {
       '@/lib/sam/course-creation/course-planner'
     ) as { planCourseBlueprint: jest.Mock };
 
-    const { storeBlueprintInGoal } = jest.requireMock(
-      '@/lib/sam/course-creation/course-creation-controller'
-    ) as { storeBlueprintInGoal: jest.Mock };
+    // storeBlueprintInGoal is now called inside initializeCourseRecord (course-initializer.ts),
+    // which is mocked. Verify that planCourseBlueprint was called and that initializeCourseRecord
+    // was invoked (which internally stores the blueprint in the goal).
+    const { initializeCourseRecord } = jest.requireMock(
+      '@/lib/sam/course-creation/course-initializer'
+    ) as { initializeCourseRecord: jest.Mock };
 
     expect(planCourseBlueprint).toHaveBeenCalledTimes(1);
-    expect(storeBlueprintInGoal).toHaveBeenCalledTimes(1);
-    expect(storeBlueprintInGoal).toHaveBeenCalledWith('goal-1', expect.any(Object));
+    expect(initializeCourseRecord).toHaveBeenCalledTimes(1);
   });
 
   it('calls evaluateChapterOutcome after each completed chapter', async () => {

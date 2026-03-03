@@ -436,6 +436,7 @@ describe('DELETE /api/admin/users', () => {
     const body = await res.json();
 
     expect(res.status).toBe(500);
-    expect(body.error.code).toBe('INTERNAL_ERROR');
+    expect(body.success).toBe(false);
+    expect(typeof body.error).toBe('string');
   });
 });

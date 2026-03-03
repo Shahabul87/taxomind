@@ -481,7 +481,7 @@ export default function CourseSuccessPage({
                     badge: "Final Goal",
                   },
                 ].map((step, index) => (
-                  <div key={index} className="relative flex gap-4">
+                  <div key={step.title} className="relative flex gap-4">
                     {/* Timeline Line */}
                     {index !== 3 && (
                       <div className="absolute left-5 top-12 w-0.5 h-16 bg-gradient-to-b from-slate-200 to-slate-100 dark:from-slate-700 dark:to-slate-800" />

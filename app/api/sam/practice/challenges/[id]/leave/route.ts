@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { getStore } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
@@ -61,9 +62,6 @@ export async function POST(
       message: 'Successfully left the challenge',
     });
   } catch (error) {
-    logger.error('Error leaving challenge:', error);
-
-    const errorMessage = error instanceof Error ? error.message : 'Failed to leave challenge';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return safeErrorResponse(error, 500, 'SAM_PRACTICE_CHALLENGE_LEAVE');
   }
 }

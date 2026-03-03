@@ -14,6 +14,7 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithMetadata, resolveAIModelInfo, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
+import { safeErrorMessage } from '@/lib/api/safe-error';
 import { getCategoryEnhancers, blendEnhancers, composeCategoryPrompt } from '@/lib/sam/course-creation/category-prompts';
 import { sanitizeCourseContext } from '@/lib/sam/course-creation/helpers';
 import {
@@ -416,9 +417,11 @@ export async function POST(request: NextRequest) {
         });
 
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error';
-        logger.error('[BLUEPRINT_ROUTE] Error:', { runId, error: msg });
-        sendSSE('error', { success: false, error: msg });
+        logger.error('[BLUEPRINT_ROUTE] Error:', {
+          runId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        sendSSE('error', { success: false, error: safeErrorMessage(error) });
       } finally {
         clearInterval(heartbeat);
         try { controller.close(); } catch { /* already closed */ }

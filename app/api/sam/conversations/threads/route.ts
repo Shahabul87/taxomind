@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/auth';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { getConversationThreadingService } from '@/lib/sam/services/conversation-threading';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 
 // =============================================================================
 // VALIDATION
@@ -106,8 +107,6 @@ export async function POST(request: NextRequest) {
       data: thread,
     });
   } catch (error) {
-    logger.error('[Threads API] POST error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to create thread';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return safeErrorResponse(error, 500, 'SAM_CONVERSATIONS_THREADS_CREATE');
   }
 }

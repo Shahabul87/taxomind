@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { safeErrorResponse } from '@/lib/api/safe-error';
 import { db } from '@/lib/db';
 import {
   createEnhancedDepthAnalysisEngine,
@@ -364,9 +365,6 @@ export async function GET(req: NextRequest) {
         );
     }
   } catch (error: unknown) {
-    logger.error('[EnhancedDepthAnalysis] GET error:', error);
-    console.error('[EnhancedDepthAnalysis] GET error details:', error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid parameters', details: error.errors } },
@@ -374,25 +372,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-    logger.error('[EnhancedDepthAnalysis] Error details:', {
-      message: errorMessage,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to retrieve depth analysis data',
-          ...(process.env.NODE_ENV !== 'production' && {
-            details: { errorMessage },
-          }),
-        }
-      },
-      { status: 500 }
-    );
+    return safeErrorResponse(error, 500, 'ENHANCED_DEPTH_ANALYSIS_GET');
   }
 }
 
