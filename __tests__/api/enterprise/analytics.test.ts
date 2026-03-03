@@ -62,22 +62,24 @@ describe('/api/enterprise/analytics route', () => {
     });
   });
 
-  it('GET returns demo data when no session', async () => {
+  it('GET returns 401 when no session', async () => {
     mockAuth.mockResolvedValue(null);
     const req = new NextRequest('http://localhost:3000/api/enterprise/analytics');
     const res = await GET(req);
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(Array.isArray(body.data.analytics)).toBe(true);
+    expect(res.status).toBe(401);
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
-  it('GET returns 401 for non-admin users', async () => {
+  it('GET returns 403 for non-admin users', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } });
     const req = new NextRequest('http://localhost:3000/api/enterprise/analytics');
     const res = await GET(req);
-    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(res.status).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
   });
 
   it('GET returns enterprise analytics for admin', async () => {

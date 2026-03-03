@@ -57,25 +57,25 @@ describe('GET /api/enterprise/compliance', () => {
       .mockResolvedValueOnce([{ complianceFramework: 'GDPR', _count: 2 }]);
   });
 
-  it('returns demo data when unauthenticated', async () => {
+  it('returns 401 when unauthenticated', async () => {
     mockAuth.mockResolvedValue(null);
 
     const res = await GET(getRequest());
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(body.data.events).toHaveLength(2);
+    expect(res.status).toBe(401);
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
-  it('returns 401 for non-admin session', async () => {
+  it('returns 403 for non-admin session', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } });
 
     const res = await GET(getRequest());
     const body = await res.json();
 
-    expect(res.status).toBe(401);
-    expect(body.error).toBe('Unauthorized');
+    expect(res.status).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
   });
 
   it('returns filtered compliance events and summary for admin', async () => {
@@ -136,6 +136,16 @@ describe('POST /api/enterprise/compliance', () => {
 
   it('returns 401 when user is not admin', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1', role: 'USER' } });
+
+    const res = await POST(postRequest({}) as never);
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 when no session exists', async () => {
+    mockAuth.mockResolvedValue(null);
 
     const res = await POST(postRequest({}) as never);
     const body = await res.json();

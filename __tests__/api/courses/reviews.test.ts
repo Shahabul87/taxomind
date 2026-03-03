@@ -176,8 +176,8 @@ describe('POST /api/courses/[courseId]/reviews', () => {
     );
 
     expect(res.status).toBe(400);
-    const text = await res.text();
-    expect(text).toContain('at least 10');
+    const text = await res.json();
+    expect(JSON.stringify(text)).toContain('at least 10');
   });
 
   it('returns 400 when comment is empty string', async () => {
@@ -202,8 +202,8 @@ describe('POST /api/courses/[courseId]/reviews', () => {
     );
 
     expect(res.status).toBe(404);
-    const text = await res.text();
-    expect(text).toContain('Course not found');
+    const text = await res.json();
+    expect(JSON.stringify(text)).toContain('Course not found');
   });
 
   // ----------------------------
@@ -224,8 +224,8 @@ describe('POST /api/courses/[courseId]/reviews', () => {
     );
 
     expect(res.status).toBe(400);
-    const text = await res.text();
-    expect(text).toContain('already reviewed');
+    const text = await res.json();
+    expect(JSON.stringify(text)).toContain('already reviewed');
   });
 
   it('checks for existing review with correct userId and courseId', async () => {
@@ -362,8 +362,8 @@ describe('POST /api/courses/[courseId]/reviews', () => {
     );
 
     expect(res.status).toBe(500);
-    const text = await res.text();
-    expect(text).toContain('Internal Error');
+    const text = await res.json();
+    expect(JSON.stringify(text)).toContain('Internal Server Error');
   });
 });
 
@@ -801,8 +801,8 @@ describe('GET /api/courses/[courseId]/reviews', () => {
       const res = await GET(createGetRequest(), createParams());
 
       expect(res.status).toBe(500);
-      const text = await res.text();
-      expect(text).toContain('Internal Error');
+      const text = await res.json();
+      expect(JSON.stringify(text)).toContain('Internal Server Error');
     });
 
     it('returns 500 on database error in paginated mode', async () => {

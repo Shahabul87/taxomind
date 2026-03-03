@@ -218,7 +218,7 @@ describe('/api/enterprise/compliance Integration Tests', () => {
       expect(Array.isArray(data.data.summary.recentCritical)).toBe(true);
     });
 
-    it('should deny access to non-admin users', async () => {
+    it('should deny access to non-admin users with 403', async () => {
       mockUserSession(testData.users.teacher.id);
 
       const request = ApiTestHelpers.createMockRequest({
@@ -230,11 +230,13 @@ describe('/api/enterprise/compliance Integration Tests', () => {
       });
 
       const response = await GET(request);
+      const data = await response.json();
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
+      expect(data.error.code).toBe('FORBIDDEN');
     });
 
-    it('should return demo data when no session', async () => {
+    it('should return 401 when no session', async () => {
       mockNoSession();
 
       const request = ApiTestHelpers.createMockRequest({
@@ -245,11 +247,9 @@ describe('/api/enterprise/compliance Integration Tests', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      // Route returns demo data for unauthenticated users in dev mode
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.data).toHaveProperty('events');
-      expect(data.data).toHaveProperty('summary');
+      expect(response.status).toBe(401);
+      expect(data.success).toBe(false);
+      expect(data.error.code).toBe('UNAUTHORIZED');
     });
 
     it('should support query parameter filtering', async () => {
@@ -440,8 +440,10 @@ describe('/api/enterprise/compliance Integration Tests', () => {
       });
 
       const response = await POST(request);
+      const data = await response.json();
 
       expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
     });
 
     it('should validate required fields', async () => {

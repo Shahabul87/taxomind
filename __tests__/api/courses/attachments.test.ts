@@ -53,10 +53,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(401);
-      expect(text).toBe('Unauthorized');
+      expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
     });
 
     it('returns 401 when user has no id', async () => {
@@ -66,10 +66,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(401);
-      expect(text).toBe('Unauthorized');
+      expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
     });
   });
 
@@ -86,10 +86,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(401);
-      expect(text).toBe('Unauthorized');
+      expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
     });
 
     it('checks course ownership with correct courseId and userId', async () => {
@@ -459,10 +459,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(500);
-      expect(text).toBe('Internal Error');
+      expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
     });
 
     it('returns 500 on unexpected database error during attachment creation', async () => {
@@ -479,10 +479,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(500);
-      expect(text).toBe('Internal Error');
+      expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
     });
 
     it('returns 500 on non-Error thrown values', async () => {
@@ -493,10 +493,10 @@ describe('POST /api/courses/[courseId]/attachments', () => {
         createPostRequest({ url: 'https://example.com/file.pdf' }),
         createParams()
       );
-      const text = await res.text();
+      const text = await res.json();
 
       expect(res.status).toBe(500);
-      expect(text).toBe('Internal Error');
+      expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
     });
   });
 });

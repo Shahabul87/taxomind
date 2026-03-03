@@ -846,8 +846,8 @@ describe('GET /api/courses', () => {
     const res = await GET(createGetRequest());
 
     expect(res.status).toBe(500);
-    const text = await res.text();
-    expect(text).toBe('Internal Error');
+    const text = await res.json();
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 if count query fails', async () => {

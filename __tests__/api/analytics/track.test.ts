@@ -17,7 +17,7 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-import { OPTIONS, POST } from '@/app/api/analytics/track/route';
+import { POST } from '@/app/api/analytics/track/route';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { rateLimit } from '@/lib/rate-limit';
@@ -145,11 +145,5 @@ describe('/api/analytics/track route', () => {
     expect(body.error).toEqual({ code: 'INTERNAL_ERROR', message: 'Internal server error' });
   });
 
-  it('OPTIONS returns CORS headers', async () => {
-    const req = new NextRequest('http://localhost:3000/api/analytics/track', { method: 'OPTIONS' });
-    const res = await OPTIONS(req);
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get('Access-Control-Allow-Methods')).toBe('POST, OPTIONS');
-  });
+  // OPTIONS function was removed from the route - CORS is now handled by middleware
 });

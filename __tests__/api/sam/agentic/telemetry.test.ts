@@ -10,6 +10,10 @@ jest.mock('@/lib/sam/telemetry', () => ({
   getSAMTelemetryService: jest.fn(),
 }));
 
+jest.mock('@/lib/sam/middleware/rate-limiter', () => ({
+  withRateLimit: jest.fn().mockResolvedValue(null),
+}));
+
 import { GET } from '@/app/api/sam/agentic/telemetry/route';
 import { auth } from '@/auth';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';

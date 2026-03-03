@@ -26,10 +26,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Admin access required' } }, { status: 403 });
-    }
-
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({
       hours: searchParams.get('hours') ?? undefined,

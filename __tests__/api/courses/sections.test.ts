@@ -40,6 +40,9 @@ function createProps(courseId = 'course-1', chapterId = 'chapter-1') {
 describe('POST /api/courses/[courseId]/chapters/[chapterId]/sections', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The route now verifies course ownership before checking chapter existence.
+    // Default: return a course owned by user-1.
+    (db.course.findUnique as jest.Mock).mockResolvedValue({ userId: 'user-1' });
   });
 
   // -----------------------------------------------------------------------
@@ -50,45 +53,67 @@ describe('POST /api/courses/[courseId]/chapters/[chapterId]/sections', () => {
     mockAuth.mockResolvedValue(null);
 
     const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when session has no user', async () => {
     mockAuth.mockResolvedValue({ user: null });
 
     const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when session user has no id', async () => {
     mockAuth.mockResolvedValue({ user: { name: 'No ID' } });
 
     const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   // -----------------------------------------------------------------------
   // Chapter validation
   // -----------------------------------------------------------------------
 
+  it('returns 404 when course does not exist', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+    (db.course.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
+    const text = await res.json();
+
+    expect(res.status).toBe(404);
+    expect(text.error?.message ?? text.message ?? text).toBe('Course not found');
+  });
+
+  it('returns 403 when user does not own the course', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
+    (db.course.findUnique as jest.Mock).mockResolvedValue({ userId: 'other-user' });
+
+    const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
+  });
+
   it('returns 404 when chapter does not exist', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } });
     (db.chapter.findUnique as jest.Mock).mockResolvedValue(null);
 
     const res = await POST(createPostRequest({ title: 'Sec' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(404);
-    expect(text).toBe('Not found');
+    expect(text.error?.message ?? text.message ?? text).toBe('Chapter not found');
   });
 
   it('verifies chapter with correct chapterId and courseId', async () => {
@@ -451,10 +476,10 @@ describe('POST /api/courses/[courseId]/chapters/[chapterId]/sections', () => {
     );
 
     const res = await POST(createPostRequest({ title: 'Err' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 on non-Error thrown values', async () => {
@@ -462,10 +487,10 @@ describe('POST /api/courses/[courseId]/chapters/[chapterId]/sections', () => {
     (db.chapter.findUnique as jest.Mock).mockRejectedValue('string error');
 
     const res = await POST(createPostRequest({ title: 'Err' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 when section create fails', async () => {
@@ -477,10 +502,10 @@ describe('POST /api/courses/[courseId]/chapters/[chapterId]/sections', () => {
     );
 
     const res = await POST(createPostRequest({ title: 'Fail' }), createProps());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   // -----------------------------------------------------------------------

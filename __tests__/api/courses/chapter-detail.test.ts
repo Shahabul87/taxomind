@@ -59,20 +59,20 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     mockCurrentUser.mockResolvedValue(null);
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user has no id', async () => {
     mockCurrentUser.mockResolvedValue({ name: 'No ID User' });
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user does not own the course', async () => {
@@ -80,10 +80,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     (db.course.findFirst as jest.Mock).mockResolvedValue(null);
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 404 when chapter is not found', async () => {
@@ -95,10 +95,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     (db.chapter.findUnique as jest.Mock).mockResolvedValue(null);
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(404);
-    expect(text).toBe('Chapter not found');
+    expect(text.error?.message ?? text.message ?? text).toBe('Chapter not found');
   });
 
   it('deletes a chapter and returns the deleted chapter', async () => {
@@ -243,10 +243,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     );
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 503 on database timeout errors', async () => {
@@ -256,10 +256,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     );
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 401 on authentication-related errors', async () => {
@@ -269,10 +269,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     );
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Authentication error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 500 on generic unexpected errors', async () => {
@@ -282,10 +282,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     );
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 on non-Error thrown values', async () => {
@@ -293,10 +293,10 @@ describe('DELETE /api/courses/[courseId]/chapters/[chapterId]', () => {
     (db.course.findFirst as jest.Mock).mockRejectedValue('string error');
 
     const res = await DELETE(createDeleteRequest(), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 });
 
@@ -316,10 +316,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Updated' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user has no id', async () => {
@@ -329,10 +329,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Updated' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user does not own the course', async () => {
@@ -343,10 +343,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Updated' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('updates a chapter title and returns success response', async () => {
@@ -646,10 +646,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Fail' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 503 on database timeout errors', async () => {
@@ -662,10 +662,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Timeout' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 401 on authentication-related errors', async () => {
@@ -678,10 +678,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'AuthErr' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Authentication error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 500 on generic unexpected errors', async () => {
@@ -694,10 +694,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'Generic Err' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 on non-Error thrown values', async () => {
@@ -708,10 +708,10 @@ describe('PATCH /api/courses/[courseId]/chapters/[chapterId]', () => {
       createPatchRequest({ title: 'StrErr' }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('handles updating with an empty body (no fields to update)', async () => {

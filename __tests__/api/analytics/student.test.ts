@@ -23,7 +23,7 @@ jest.mock('@/lib/mocks/analytics-mock-data', () => ({
   })),
 }));
 
-import { GET, OPTIONS } from '@/app/api/analytics/student/route';
+import { GET } from '@/app/api/analytics/student/route';
 import { currentUser } from '@/lib/auth';
 import { getMockStudentData } from '@/lib/mocks/analytics-mock-data';
 import { rateLimit } from '@/lib/rate-limit';
@@ -104,9 +104,5 @@ describe('/api/analytics/student route', () => {
     expect(body.metadata.isDemo).toBe(true);
   });
 
-  it('OPTIONS returns CORS headers', async () => {
-    const res = await OPTIONS();
-    expect(res.status).toBe(200);
-    expect(res.headers.get('Access-Control-Allow-Methods')).toBe('GET, OPTIONS');
-  });
+  // OPTIONS function was removed from the route - CORS is now handled by middleware
 });

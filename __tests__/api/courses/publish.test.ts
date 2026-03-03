@@ -125,10 +125,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
     mockCurrentUser.mockResolvedValue(null);
 
     const res = await PublishPATCH(createRequest({}), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user has no id', async () => {
@@ -146,10 +146,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
     (db.course.findUnique as jest.Mock).mockResolvedValue(null);
 
     const res = await PublishPATCH(createRequest({}), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(404);
-    expect(text).toBe('Not found');
+    expect(text.error?.message ?? text.message ?? text).toBe('Not Found');
   });
 
   it('queries course scoped to the authenticated userId', async () => {
@@ -182,10 +182,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
     (db.course.findUnique as jest.Mock).mockResolvedValue(course);
 
     const res = await PublishPATCH(createRequest({}), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toContain('At least 2 sections must be completed');
+    expect(text.error?.message ?? text.message ?? '').toContain('At least 2 sections must be completed');
   });
 
   it('allows publishing when exactly 2 sections are completed', async () => {
@@ -689,10 +689,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
     );
 
     const res = await PublishPATCH(createRequest({}), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 when course update throws', async () => {
@@ -704,10 +704,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
       createRequest({ skipQualityGate: true }),
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 when courseCognitiveQuality.create throws', async () => {
@@ -716,10 +716,10 @@ describe('PATCH /api/courses/[courseId]/publish', () => {
     );
 
     const res = await PublishPATCH(createRequest({}), createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 });
 
@@ -759,10 +759,10 @@ describe('PATCH /api/courses/[courseId]/unpublish', () => {
       method: 'PATCH',
     });
     const res = await UnpublishPATCH(req, createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user has no id', async () => {
@@ -787,10 +787,10 @@ describe('PATCH /api/courses/[courseId]/unpublish', () => {
       method: 'PATCH',
     });
     const res = await UnpublishPATCH(req, createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(404);
-    expect(text).toBe('Not found');
+    expect(text.error?.message ?? text.message ?? text).toBe('Not Found');
   });
 
   it('queries course scoped to the authenticated userId', async () => {
@@ -867,10 +867,10 @@ describe('PATCH /api/courses/[courseId]/unpublish', () => {
       method: 'PATCH',
     });
     const res = await UnpublishPATCH(req, createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 on unexpected database error during update', async () => {
@@ -882,9 +882,9 @@ describe('PATCH /api/courses/[courseId]/unpublish', () => {
       method: 'PATCH',
     });
     const res = await UnpublishPATCH(req, createParams());
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 });

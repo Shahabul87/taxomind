@@ -54,26 +54,25 @@ describe('/api/enterprise/organizations route', () => {
     auditLog.create.mockResolvedValue({ id: 'audit-1' });
   });
 
-  it('GET returns demo organizations when no active session is found', async () => {
+  it('GET returns 401 when no active session is found', async () => {
     mockAuth.mockResolvedValueOnce(null);
 
     const res = await GET(new NextRequest('http://localhost:3000/api/enterprise/organizations'));
     const body = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(body.success).toBe(true);
-    expect(body.data).toHaveLength(3);
-    expect(body.data[0].id).toBe('demo-org-1');
+    expect(res.status).toBe(401);
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe('UNAUTHORIZED');
   });
 
-  it('GET rejects non-admin sessions', async () => {
+  it('GET rejects non-admin sessions with 403', async () => {
     mockAuth.mockResolvedValueOnce({ user: { id: 'user-1', role: 'USER' } });
 
     const res = await GET(new NextRequest('http://localhost:3000/api/enterprise/organizations'));
     const body = await res.json();
 
-    expect(res.status).toBe(401);
-    expect(body.error).toBe('Unauthorized');
+    expect(res.status).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
   });
 
   it('GET returns enriched organization list for admin users', async () => {

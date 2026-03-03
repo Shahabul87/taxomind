@@ -215,10 +215,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Test' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user has no id', async () => {
@@ -228,10 +228,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Test' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 401 when user does not own the course', async () => {
@@ -242,10 +242,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Test' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Unauthorized');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('creates a chapter with automatic position when no chapters exist', async () => {
@@ -415,10 +415,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Fail' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 503 on database timeout errors', async () => {
@@ -431,10 +431,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Timeout' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(503);
-    expect(text).toBe('Database connection error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Database connection error');
   });
 
   it('returns 401 on authentication-related errors', async () => {
@@ -447,10 +447,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'AuthErr' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(401);
-    expect(text).toBe('Authentication error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Unauthorized');
   });
 
   it('returns 500 on generic unexpected errors', async () => {
@@ -463,10 +463,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'Generic Err' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('returns 500 on non-Error thrown values', async () => {
@@ -477,10 +477,10 @@ describe('POST /api/courses/[courseId]/chapters', () => {
       createPostRequest({ title: 'StrErr' }) as never,
       createParams()
     );
-    const text = await res.text();
+    const text = await res.json();
 
     expect(res.status).toBe(500);
-    expect(text).toBe('Internal Error');
+    expect(text.error?.message ?? text.message ?? text).toBe('Internal Server Error');
   });
 
   it('uses the correct courseId from route params for ownership check', async () => {

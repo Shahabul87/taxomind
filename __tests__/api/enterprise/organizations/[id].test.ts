@@ -33,13 +33,15 @@ describe('/api/enterprise/organizations/[id] route', () => {
     auditLog.create.mockResolvedValue({ id: 'audit-1' });
   });
 
-  it('GET returns 401 for non-admin users', async () => {
+  it('GET returns 403 for non-admin users', async () => {
     mockAuth.mockResolvedValueOnce({ user: { id: 'user-1', role: 'USER' } });
 
     const req = new NextRequest('http://localhost:3000/api/enterprise/organizations/org-1');
     const res = await GET(req, { params: Promise.resolve({ id: 'org-1' }) });
+    const body = await res.json();
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
+    expect(body.error.code).toBe('FORBIDDEN');
   });
 
   it('GET returns 404 when organization is not found', async () => {
