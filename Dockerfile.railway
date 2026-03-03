@@ -110,14 +110,14 @@ ENV SKIP_ENV_VALIDATION=true
 #
 # V8 heap limits — tuned for Railway's ~8 GB container with Turbopack:
 #   Turbopack (native Rust) uses ~4-6 GB outside V8's heap (mmap).
-#   --max-old-space-size=2048: 2 GB for V8 heap. The finalization phase after
-#     Turbopack compiles can spike beyond 1 GB, causing OOM.
-#   --max-semi-space-size=16: V8 default (16 MB). Setting this to 4 MB caused
-#     "Committing semi space failed" during page optimization.
-#   History: old-space 6144->4096->2048->1024->2048; semi-space 4->16 (restored).
+#   --max-old-space-size=3072: 3 GB for V8 heap. The finalization phase after
+#     Turbopack compiles can spike beyond 2 GB, causing OOM at 2048.
+#   --max-semi-space-size=32: 32 MB for young generation. 16 MB caused
+#     "Committing semi space failed" during page optimization with larger codebase.
+#   History: old-space 6144->4096->2048->1024->2048->3072; semi-space 4->16->32.
 # - EXPERIMENTAL_CPUS=1: Single worker to minimize total memory
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
-ENV NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=16"
+ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=32"
 ENV EXPERIMENTAL_CPUS=1
 ENV UV_THREADPOOL_SIZE=4
 
@@ -129,7 +129,7 @@ RUN npx prisma generate
 # Webpack/Turbopack reuses compilation cache between builds — only changed
 # modules recompile. This turns a 5-8 min full build into 1-3 min incremental.
 RUN --mount=type=cache,id=s/a5806e45-63e0-4877-a422-d32ba4db7551-nextjs,target=/app/.next/cache \
-    NODE_OPTIONS="--max-old-space-size=2048 --max-semi-space-size=16" \
+    NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=32" \
     EXPERIMENTAL_CPUS=1 \
     NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm run build:railway
