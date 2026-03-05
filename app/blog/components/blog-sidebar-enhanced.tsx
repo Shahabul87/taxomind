@@ -2,28 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  TrendingUp,
-  User,
   Eye,
-  Hash,
-  Users,
-  Rocket,
-  Sparkles,
   ChevronRight,
-  Flame,
-  Crown,
-  Zap,
   BookMarked,
+  Send,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { BlogPost, BlogStatistics } from "./types";
+
+// ============================================================================
+// Shared editorial styles
+// ============================================================================
+
+const fonts = {
+  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
+  body: "'Libre Baskerville', 'Georgia', serif",
+  mono: "'JetBrains Mono', 'Courier New', monospace",
+};
+
+const colors = {
+  cream: "#f5f0e8",
+  ink: "#1a1a1a",
+  accent: "#8b1a1a",
+  muted: "#5c5c5c",
+  rule: "#c4b9a8",
+  lightRule: "#d8d0c4",
+  warmBg: "#eee7db",
+};
 
 // ============================================================================
 // Types
@@ -46,109 +53,143 @@ interface Author {
 }
 
 // ============================================================================
-// Trending Posts Widget
+// Section Header
 // ============================================================================
 
-function TrendingWidget({ posts }: { posts: BlogPost[] }) {
-  const gradients = [
-    "from-rose-500 via-pink-500 to-fuchsia-500",
-    "from-violet-500 via-purple-500 to-indigo-500",
-    "from-cyan-500 via-teal-500 to-emerald-500",
-    "from-amber-500 via-orange-500 to-red-500",
-    "from-blue-500 via-indigo-500 to-violet-500",
-  ];
-
-  if (posts.length === 0) {
-    return null;
-  }
-
+function SidebarSectionHeader({ title }: { title: string }) {
   return (
-    <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl hover:shadow-slate-300/50 dark:hover:shadow-slate-800/50">
-      {/* Decorative gradient border effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-      <CardHeader className="relative pb-4 border-b border-slate-200/60 dark:border-slate-700/60">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
-            <div className="relative">
-              <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-full" />
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-                <Flame className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-              Trending Now
-            </span>
-          </h3>
-          <Badge className="bg-gradient-to-r from-violet-500 to-indigo-600 text-white border-0 px-3 py-1.5 text-xs font-bold shadow-lg shadow-violet-500/25 animate-pulse">
-            <Zap className="w-3 h-3 mr-1" />
-            Hot
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="relative p-0">
-        <ul className="divide-y divide-slate-200/60 dark:divide-slate-700/60">
-          {posts.slice(0, 5).map((post, index) => (
-            <li key={post.id} className="group/item">
-              <Link href={`/blog/${post.id}`} aria-label={`Read: ${post.title}`}>
-                <div className="relative px-5 py-4 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-indigo-50/50 dark:hover:from-violet-950/20 dark:hover:to-indigo-950/20">
-                  {/* Hover indicator */}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover/item:h-8 bg-gradient-to-b from-violet-500 to-indigo-600 rounded-r-full transition-all duration-300" />
-
-                  <div className="flex gap-4 items-start">
-                    {/* Animated rank badge */}
-                    <div className="relative flex-shrink-0">
-                      <div className={cn(
-                        "w-11 h-11 rounded-xl bg-gradient-to-br text-white flex items-center justify-center font-bold text-lg shadow-lg transition-all duration-300 group-hover/item:scale-110 group-hover/item:rotate-3",
-                        gradients[index]
-                      )}>
-                        {index + 1}
-                      </div>
-                      {index === 0 && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                          <Crown className="w-3 h-3 text-yellow-900" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover/item:text-violet-600 dark:group-hover/item:text-violet-400 transition-colors duration-300 mb-2 leading-tight">
-                        {post.title}
-                      </h4>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                        {post.user.name && (
-                          <>
-                            <span className="flex items-center gap-1.5">
-                              <User className="w-3 h-3" />
-                              <span className="truncate max-w-[80px]">{post.user.name}</span>
-                            </span>
-                            <span className="text-slate-300 dark:text-slate-600">|</span>
-                          </>
-                        )}
-                        <span className="flex items-center gap-1.5 font-medium text-violet-600 dark:text-violet-400">
-                          <Eye className="w-3 h-3" />
-                          {post.views.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Arrow indicator */}
-                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover/item:text-violet-500 group-hover/item:translate-x-1 transition-all duration-300 flex-shrink-0 mt-1" />
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <div style={{ marginBottom: 16 }}>
+      <h3 style={{
+        fontFamily: fonts.headline,
+        fontSize: 18,
+        fontWeight: 700,
+        color: colors.ink,
+        marginBottom: 8,
+      }}>
+        {title}
+      </h3>
+      <div style={{
+        height: 2,
+        background: colors.ink,
+        width: "100%",
+      }} />
+      <div style={{
+        height: 1,
+        background: colors.ink,
+        width: "100%",
+        marginTop: 2,
+      }} />
+    </div>
   );
 }
 
 // ============================================================================
-// Newsletter Widget
+// Trending Posts Widget — "Most Read"
+// ============================================================================
+
+function TrendingWidget({ posts }: { posts: BlogPost[] }) {
+  if (posts.length === 0) return null;
+
+  return (
+    <div style={{
+      background: colors.cream,
+      border: `1px solid ${colors.rule}`,
+      padding: 20,
+    }}>
+      <SidebarSectionHeader title="Most Read" />
+
+      <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {posts.slice(0, 5).map((post, index) => (
+          <li
+            key={post.id}
+            style={{
+              borderBottom: index < Math.min(posts.length, 5) - 1 ? `1px dotted ${colors.rule}` : "none",
+            }}
+          >
+            <Link
+              href={`/blog/${post.id}`}
+              className="group"
+              style={{ textDecoration: "none", display: "flex", gap: 12, padding: "12px 0" }}
+              aria-label={`Read: ${post.title}`}
+            >
+              {/* Rank Number */}
+              <span style={{
+                fontFamily: fonts.headline,
+                fontSize: 28,
+                fontWeight: 700,
+                color: index === 0 ? colors.accent : colors.lightRule,
+                lineHeight: 1,
+                flexShrink: 0,
+                width: 28,
+                textAlign: "center",
+              }}>
+                {index + 1}
+              </span>
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h4
+                  style={{
+                    fontFamily: fonts.headline,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: colors.ink,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    marginBottom: 4,
+                    transition: "color 0.2s",
+                  }}
+                  className="group-hover:!text-[#8b1a1a]"
+                >
+                  {post.title}
+                </h4>
+                <div style={{
+                  fontFamily: fonts.mono,
+                  fontSize: 10,
+                  color: colors.muted,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}>
+                  {post.user.name && (
+                    <>
+                      <span style={{ fontFamily: fonts.body, fontStyle: "italic", fontSize: 11 }}>
+                        {post.user.name}
+                      </span>
+                      <span style={{ color: colors.rule }}>|</span>
+                    </>
+                  )}
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <Eye style={{ width: 10, height: 10 }} />
+                    {post.views.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <ChevronRight
+                style={{
+                  width: 14,
+                  height: 14,
+                  color: colors.rule,
+                  flexShrink: 0,
+                  marginTop: 2,
+                  transition: "color 0.2s, transform 0.2s",
+                }}
+                className="group-hover:!text-[#8b1a1a] group-hover:translate-x-0.5"
+              />
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+// ============================================================================
+// Newsletter Widget — "The Dispatch"
 // ============================================================================
 
 function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
@@ -159,17 +200,14 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-
     setIsSubmitting(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSubscribed(true);
     setIsSubmitting(false);
   };
 
-  // Format subscriber count intelligently
   const formatSubscribers = (count?: number) => {
-    if (!count || count < 100) return null; // Don&apos;t show if too low
+    if (!count || count < 100) return null;
     if (count >= 10000) return `${Math.floor(count / 1000)}K+`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K+`;
     return `${count}+`;
@@ -178,205 +216,222 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
   const displayCount = formatSubscribers(subscriberCount);
 
   return (
-    <Card className="group relative overflow-hidden bg-gradient-to-br from-violet-50 via-indigo-50 to-purple-50 dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-violet-200/50 dark:border-violet-800/50 shadow-xl shadow-violet-200/30 dark:shadow-violet-900/30 rounded-2xl transition-all duration-500 hover:shadow-2xl">
-      {/* Animated background orbs */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-400/20 to-violet-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+    <div style={{
+      background: colors.warmBg,
+      border: `1px solid ${colors.rule}`,
+      padding: 20,
+    }}>
+      <SidebarSectionHeader title="The Dispatch" />
 
-      <CardContent className="relative p-6">
-        {isSubscribed ? (
-          <div className="text-center py-4 animate-fade-in">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
-              <Sparkles className="w-8 h-8 text-white animate-pulse" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              You&apos;re In!
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              Welcome to our community. Check your inbox for a confirmation.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="text-center mb-5">
-              <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 mb-4 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-300">
-                <Rocket className="w-7 h-7 text-white" />
-                <div className="absolute inset-0 rounded-2xl bg-white/20 animate-ping opacity-75" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Stay Updated
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                Get the latest articles and insights delivered to your inbox weekly.
-              </p>
-            </div>
+      {isSubscribed ? (
+        <div style={{ textAlign: "center", padding: "16px 0" }}>
+          <p style={{
+            fontFamily: fonts.headline,
+            fontSize: 20,
+            fontWeight: 700,
+            color: colors.ink,
+            marginBottom: 8,
+          }}>
+            Welcome Aboard
+          </p>
+          <p style={{
+            fontFamily: fonts.body,
+            fontSize: 13,
+            color: colors.muted,
+            lineHeight: 1.6,
+          }}>
+            You&apos;re now subscribed. Check your inbox for a confirmation.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p style={{
+            fontFamily: fonts.body,
+            fontSize: 13,
+            color: colors.muted,
+            lineHeight: 1.7,
+            marginBottom: 16,
+          }}>
+            Get the latest articles and insights delivered to your inbox every week. No spam, unsubscribe anytime.
+          </p>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <label htmlFor="newsletter-email-enhanced" className="sr-only">
-                Email address
-              </label>
-              <div className="relative">
-                <Input
-                  id="newsletter-email-enhanced"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  autoComplete="email"
-                  aria-label="Email address"
-                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-violet-200/50 dark:border-violet-700/50 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-violet-400/20 h-12 pl-4 pr-4 text-base transition-all duration-300"
-                  required
-                />
-              </div>
-              <Button
+          <form onSubmit={handleSubmit}>
+            <label htmlFor="newsletter-email-editorial" className="sr-only">
+              Email address
+            </label>
+            <div style={{ display: "flex", gap: 0 }}>
+              <input
+                id="newsletter-email-editorial"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your email address"
+                autoComplete="email"
+                aria-label="Email address"
+                required
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  fontFamily: fonts.body,
+                  fontSize: 13,
+                  color: colors.ink,
+                  background: colors.cream,
+                  border: `1px solid ${colors.rule}`,
+                  borderRight: "none",
+                  outline: "none",
+                }}
+              />
+              <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 group/btn"
+                style={{
+                  padding: "10px 16px",
+                  fontFamily: fonts.mono,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: colors.cream,
+                  background: colors.ink,
+                  border: `1px solid ${colors.ink}`,
+                  cursor: isSubmitting ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 0.2s",
+                }}
               >
                 {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Subscribing...
-                  </div>
+                  <span>...</span>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform duration-300" />
-                    Subscribe Now
+                    <Send style={{ width: 12, height: 12 }} />
+                    Subscribe
                   </>
                 )}
-              </Button>
-            </form>
+              </button>
+            </div>
+          </form>
 
-            {displayCount && (
-              <p className="text-xs text-center mt-4 text-slate-500 dark:text-slate-400">
-                Join <span className="font-semibold text-violet-600 dark:text-violet-400">{displayCount}</span> subscribers. No spam, unsubscribe anytime.
-              </p>
-            )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+          {displayCount && (
+            <p style={{
+              fontFamily: fonts.mono,
+              fontSize: 10,
+              color: colors.muted,
+              marginTop: 10,
+              textAlign: "center",
+            }}>
+              Join <span style={{ fontWeight: 600, color: colors.accent }}>{displayCount}</span> readers
+            </p>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
 // ============================================================================
-// Popular Topics Widget (Dynamic)
+// Popular Topics Widget — "Sections"
 // ============================================================================
 
 function PopularTopicsWidget({
   categories,
   statistics,
-  onCategorySelect
+  onCategorySelect,
 }: {
   categories: { id: string; name: string; count: number }[];
   statistics?: BlogStatistics | null;
   onCategorySelect?: (categoryId: string) => void;
 }) {
-  // Combine actual categories with popular categories from statistics
   const getTopics = () => {
-    // Filter out "all" and get actual categories with posts
     const actualCategories = categories
       .filter(c => c.id !== "all" && c.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
-    // If we have popular categories from statistics, merge them
     if (statistics?.popularCategories && statistics.popularCategories.length > 0) {
       const statsCategories = statistics.popularCategories.slice(0, 8);
       const merged = [...actualCategories];
-
       statsCategories.forEach(sc => {
         if (!merged.find(m => m.name.toLowerCase() === sc.category.toLowerCase())) {
           merged.push({ id: sc.category.toLowerCase(), name: sc.category, count: sc.count });
         }
       });
-
       return merged.slice(0, 8);
     }
-
     return actualCategories;
   };
 
   const topics = getTopics();
-
-  // Don&apos;t render if no topics
-  if (topics.length === 0) {
-    return null;
-  }
-
-  const gradients = [
-    "hover:from-rose-500/10 hover:to-pink-500/10 hover:border-rose-300 dark:hover:border-rose-700",
-    "hover:from-violet-500/10 hover:to-purple-500/10 hover:border-violet-300 dark:hover:border-violet-700",
-    "hover:from-cyan-500/10 hover:to-teal-500/10 hover:border-cyan-300 dark:hover:border-cyan-700",
-    "hover:from-amber-500/10 hover:to-orange-500/10 hover:border-amber-300 dark:hover:border-amber-700",
-    "hover:from-emerald-500/10 hover:to-green-500/10 hover:border-emerald-300 dark:hover:border-emerald-700",
-    "hover:from-blue-500/10 hover:to-indigo-500/10 hover:border-blue-300 dark:hover:border-blue-700",
-    "hover:from-fuchsia-500/10 hover:to-pink-500/10 hover:border-fuchsia-300 dark:hover:border-fuchsia-700",
-    "hover:from-lime-500/10 hover:to-green-500/10 hover:border-lime-300 dark:hover:border-lime-700",
-  ];
+  if (topics.length === 0) return null;
 
   return (
-    <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl">
-      {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-2xl" />
+    <div style={{
+      background: colors.cream,
+      border: `1px solid ${colors.rule}`,
+      padding: 20,
+    }}>
+      <SidebarSectionHeader title="Sections" />
 
-      <CardHeader className="relative">
-        <h3 className="font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <Hash className="w-5 h-5 text-white" />
-          </div>
-          <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-            Popular Topics
-          </span>
-        </h3>
-      </CardHeader>
-
-      <CardContent className="relative">
-        <div className="flex flex-wrap gap-2">
-          {topics.map((topic, index) => (
-            <button
-              key={topic.id}
-              onClick={() => onCategorySelect?.(topic.id)}
-              className={cn(
-                "group/tag relative px-3 py-2 rounded-xl text-sm font-medium",
-                "bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-800/50",
-                "border border-slate-200/80 dark:border-slate-600/80",
-                "text-slate-700 dark:text-slate-300",
-                "transition-all duration-300 hover:scale-105 hover:shadow-md",
-                gradients[index % gradients.length]
-              )}
-            >
-              <span className="relative z-10 flex items-center gap-1.5">
-                {topic.name}
-                {topic.count > 0 && (
-                  <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
-                    ({topic.count})
-                  </span>
-                )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {topics.map((topic) => (
+          <button
+            key={topic.id}
+            onClick={() => onCategorySelect?.(topic.id)}
+            className="group"
+            style={{
+              padding: "6px 12px",
+              fontFamily: fonts.mono,
+              fontSize: 11,
+              fontWeight: 500,
+              color: colors.ink,
+              background: "transparent",
+              border: `1px solid ${colors.rule}`,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.ink;
+              e.currentTarget.style.color = colors.cream;
+              e.currentTarget.style.borderColor = colors.ink;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = colors.ink;
+              e.currentTarget.style.borderColor = colors.rule;
+            }}
+          >
+            {topic.name}
+            {topic.count > 0 && (
+              <span style={{
+                fontSize: 10,
+                opacity: 0.6,
+              }}>
+                ({topic.count})
               </span>
-            </button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
 // ============================================================================
-// Top Contributors Widget (Dynamic)
+// Top Contributors Widget — "Our Columnists"
 // ============================================================================
 
 function TopContributorsWidget({
   posts,
-  statistics
 }: {
   posts: BlogPost[];
   statistics?: BlogStatistics | null;
 }) {
-  // Extract unique authors from posts
   const getAuthors = (): Author[] => {
     const authorMap = new Map<string, Author>();
-
     posts.forEach(post => {
       if (post.user.name) {
         const existing = authorMap.get(post.user.name);
@@ -392,89 +447,77 @@ function TopContributorsWidget({
         }
       }
     });
-
     return Array.from(authorMap.values())
       .sort((a, b) => b.articleCount - a.articleCount)
       .slice(0, 5);
   };
 
   const authors = getAuthors();
-
-  // Don&apos;t render if no real authors
-  if (authors.length === 0) {
-    return null;
-  }
-
-  const avatarGradients = [
-    "from-rose-500 to-pink-600",
-    "from-violet-500 to-purple-600",
-    "from-cyan-500 to-teal-600",
-    "from-amber-500 to-orange-600",
-    "from-emerald-500 to-green-600",
-  ];
+  if (authors.length === 0) return null;
 
   return (
-    <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl">
-      {/* Decorative elements */}
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-2xl" />
+    <div style={{
+      background: colors.cream,
+      border: `1px solid ${colors.rule}`,
+      padding: 20,
+    }}>
+      <SidebarSectionHeader title="Our Columnists" />
 
-      <CardHeader className="relative">
-        <h3 className="font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-            <Users className="w-5 h-5 text-white" />
-          </div>
-          <span className="bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
-            Top Contributors
-          </span>
-        </h3>
-      </CardHeader>
-
-      <CardContent className="relative space-y-3">
+      <div>
         {authors.map((author, index) => (
           <div
             key={author.id}
-            className="group/author flex items-center gap-3 p-2 -mx-2 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-indigo-50/50 dark:hover:from-violet-950/20 dark:hover:to-indigo-950/20 cursor-pointer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "10px 0",
+              borderBottom: index < authors.length - 1 ? `1px dotted ${colors.rule}` : "none",
+            }}
           >
-            <div className="relative">
-              <Avatar className="w-11 h-11 ring-2 ring-white dark:ring-slate-700 shadow-md group-hover/author:ring-violet-300 dark:group-hover/author:ring-violet-700 transition-all duration-300">
-                {author.image ? (
-                  <AvatarImage src={author.image} alt={author.name} />
-                ) : null}
-                <AvatarFallback className={cn(
-                  "bg-gradient-to-br text-white font-bold",
-                  avatarGradients[index % avatarGradients.length]
-                )}>
-                  {author.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              {index === 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-slate-700">
-                  <Crown className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </div>
+            <Avatar className="w-10 h-10" style={{ border: `1px solid ${colors.rule}` }}>
+              {author.image ? (
+                <AvatarImage src={author.image} alt={author.name} />
+              ) : null}
+              <AvatarFallback style={{
+                background: colors.warmBg,
+                color: colors.ink,
+                fontFamily: fonts.headline,
+                fontWeight: 700,
+                fontSize: 14,
+              }}>
+                {author.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
 
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover/author:text-violet-600 dark:group-hover/author:text-violet-400 transition-colors">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: fonts.headline,
+                fontSize: 14,
+                fontWeight: 600,
+                color: colors.ink,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}>
                 {author.name}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <BookMarked className="w-3 h-3" />
+              <p style={{
+                fontFamily: fonts.mono,
+                fontSize: 10,
+                color: colors.muted,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}>
+                <BookMarked style={{ width: 10, height: 10 }} />
                 {author.articleCount} {author.articleCount === 1 ? "article" : "articles"}
               </p>
             </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 px-3 text-xs font-medium border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-300 opacity-0 group-hover/author:opacity-100"
-            >
-              View
-            </Button>
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -491,21 +534,14 @@ export function BlogSidebarEnhanced({
   variant = "desktop",
 }: BlogSidebarProps) {
   return (
-    <div className={cn("space-y-6", className)}>
-      {/* Trending Posts */}
+    <div className={cn("space-y-5", className)}>
       <TrendingWidget posts={trendingPosts} />
-
-      {/* Newsletter */}
       <NewsletterWidget subscriberCount={statistics?.totalReaders} />
-
-      {/* Popular Topics - Dynamic */}
       <PopularTopicsWidget
         categories={categories}
         statistics={statistics}
         onCategorySelect={onCategorySelect}
       />
-
-      {/* Top Contributors - Dynamic from actual posts */}
       <TopContributorsWidget
         posts={trendingPosts}
         statistics={statistics}

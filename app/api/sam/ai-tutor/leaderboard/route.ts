@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'global'; // 'global' | 'class' | 'friends'
     const period = searchParams.get('period') || 'all_time'; // 'daily' | 'weekly' | 'monthly' | 'all_time'
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const courseId = searchParams.get('courseId');
 
     let leaderboardData;

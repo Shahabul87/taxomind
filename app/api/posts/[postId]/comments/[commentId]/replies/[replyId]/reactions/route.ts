@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 import { currentUser } from '@/lib/auth';
+import { z } from 'zod';
+
+const ReplyReactionBodySchema = z.object({
+  type: z.string().min(1, 'Reaction type is required'),
+});
 
 // Helper function for safer error responses
 const createSafeErrorResponse = (message: string, status = 500) => {
@@ -33,18 +38,18 @@ export async function POST(
       return createSafeErrorResponse("Authentication error. Please sign in again.", 401);
     }
 
-    // Safely parse the request body
-    let type;
+    // Safely parse and validate the request body
+    let type: string;
     try {
       const body = await req.json();
-      type = body.type;
+      const validationResult = ReplyReactionBodySchema.safeParse(body);
+      if (!validationResult.success) {
+        return createSafeErrorResponse("Invalid request body: reaction type is required", 400);
+      }
+      type = validationResult.data.type;
     } catch (parseError) {
       logger.error("[NESTED_REPLY_REACTIONS_POST] JSON Parse Error:", parseError);
       return createSafeErrorResponse("Invalid request format", 400);
-    }
-
-    if (!type) {
-      return createSafeErrorResponse("Reaction type is required", 400);
     }
 
     // Get the params

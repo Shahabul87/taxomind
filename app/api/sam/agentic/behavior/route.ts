@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import { createBehaviorMonitor } from '@sam-ai/agentic';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Lazy initialize behavior monitor using TaxomindContext stores
 let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
@@ -97,6 +98,9 @@ const GetEventsQuerySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -155,6 +159,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {

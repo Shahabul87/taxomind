@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
-  const { courseId } = await params;
-  const { searchParams } = new URL(req.url);
-  const format = (searchParams.get('format') || 'json').toLowerCase();
-
   try {
+    const { courseId } = await params;
+    const { searchParams } = new URL(req.url);
+    const format = (searchParams.get('format') || 'json').toLowerCase();
+
     const course = await db.course.findUnique({
       where: { id: courseId },
       include: {
@@ -74,6 +74,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
 
     return NextResponse.json({ courseId, syllabus });
   } catch (err) {
+    console.error('[COURSE_SYLLABUS]', err);
     return NextResponse.json({ error: 'Failed to generate syllabus' }, { status: 500 });
   }
 }

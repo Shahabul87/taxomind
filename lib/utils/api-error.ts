@@ -2,13 +2,10 @@ import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
 /**
- * Returns the error message in development, generic message in production.
- * Prevents leaking internal error details to clients.
+ * Returns a generic error message to prevent leaking internal details to clients.
+ * Internal error details should only be logged server-side.
  */
-export function safeErrorMessage(error: unknown): string {
-  if (process.env.NODE_ENV === 'development') {
-    return error instanceof Error ? error.message : String(error);
-  }
+export function safeErrorMessage(_error: unknown): string {
   return 'Internal server error';
 }
 

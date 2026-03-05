@@ -492,7 +492,7 @@ export const AIEnhancedCourseInput = () => {
                     <div className="flex flex-wrap gap-2">
                       {watchedValues.learningGoals.map((goal, index) => (
                         <Badge
-                          key={index}
+                          key={`goal-${goal.slice(0, 20)}-${index}`}
                           variant="secondary"
                           className="px-3 py-1 cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => removeLearningGoal(index)}
@@ -587,7 +587,7 @@ export const AIEnhancedCourseInput = () => {
                           <span className="font-medium text-green-800 dark:text-green-200">Learning Outcomes:</span>
                           <ul className="mt-1 space-y-1">
                             {aiGeneratedData.whatYouWillLearn.slice(0, 3).map((outcome, index) => (
-                              <li key={index} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
+                              <li key={`outcome-${index}`} className="text-sm text-green-700 dark:text-green-300 flex items-start gap-2">
                                 <CheckCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
                                 {outcome}
                               </li>

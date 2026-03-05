@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
     if (execution.error) {
       summary.error = {
         code: execution.error.code,
-        message: execution.error.message,
+        message: 'Tool execution failed',
         retryable: execution.error.retryable,
       };
     }

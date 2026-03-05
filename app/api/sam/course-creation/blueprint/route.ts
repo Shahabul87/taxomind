@@ -50,6 +50,7 @@ export const maxDuration = 300;
 // =============================================================================
 
 export async function POST(request: NextRequest) {
+  try {
   // --- Pre-stream validation ---
   const rateLimitResponse = await withRateLimit(request, 'ai');
   if (rateLimitResponse) return rateLimitResponse;
@@ -438,4 +439,8 @@ export async function POST(request: NextRequest) {
       'X-Run-Id': runId,
     },
   });
+  } catch (error) {
+    console.error('[BLUEPRINT_ROUTE] Unhandled error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

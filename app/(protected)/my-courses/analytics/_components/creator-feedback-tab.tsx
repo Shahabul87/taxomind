@@ -118,8 +118,8 @@ export function CreatorFeedbackTab({ feedback }: CreatorFeedbackTabProps) {
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-3 sm:space-y-4">
-            {feedback.slice(0, 10).map((item, index) => (
-              <div key={index} className="border border-slate-200/50 dark:border-slate-700/50 rounded-lg p-3 sm:p-4">
+            {feedback.slice(0, 10).map((item) => (
+              <div key={item.id || item.learnerName} className="border border-slate-200/50 dark:border-slate-700/50 rounded-lg p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-xs sm:text-sm text-slate-900 dark:text-slate-100">

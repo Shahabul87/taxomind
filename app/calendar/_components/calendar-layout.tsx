@@ -15,7 +15,7 @@ interface CalendarLayoutProps {
 
 export const CalendarLayout = ({ userId }: CalendarLayoutProps) => {
   const searchParams = useSearchParams();
-  const { settings } = useSettingsStore();
+  const settings = useSettingsStore(state => state.settings);
   const { syncSettings, isInitialized } = useSettingsSync();
 
   // Only sync settings when initialized

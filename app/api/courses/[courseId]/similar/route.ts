@@ -11,7 +11,7 @@ export async function GET(
     const { courseId } = await context.params;
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get('categoryId');
-    const limit = parseInt(searchParams.get('limit') || '6', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '6', 10), 100);
 
     // Get the current course to access its details
     const currentCourse = await db.course.findUnique({

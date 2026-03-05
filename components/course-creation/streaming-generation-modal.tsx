@@ -381,7 +381,7 @@ export const StreamingGenerationModal = ({
               </h4>
               {stages.map((stage, index) => (
                 <div
-                  key={index}
+                  key={stage.name || `stage-${index}`}
                   className={cn(
                     "p-3 rounded-lg border transition-all duration-200",
                     getStageBackground(stage)
@@ -428,7 +428,7 @@ export const StreamingGenerationModal = ({
                 <div className="space-y-1 font-mono text-xs">
                   {generationLog.map((log, index) => (
                     <div
-                      key={index}
+                      key={`log-${index}`}
                       className={cn(
                         "text-gray-700 dark:text-gray-300",
                         log.includes('✅') && "text-green-600 dark:text-green-400",

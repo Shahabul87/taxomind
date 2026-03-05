@@ -57,11 +57,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json(
-    {
-      success: true,
-      workersInitialized,
-    },
-    { status: 200 }
-  );
+  try {
+    return NextResponse.json(
+      {
+        success: true,
+        workersInitialized,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('[QUEUE_INIT_GET]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

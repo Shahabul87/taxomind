@@ -3,6 +3,11 @@ import { withAuth, type APIAuthContext, createSuccessResponse, createErrorRespon
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
+
+const CommentReactBodySchema = z.object({
+  type: z.enum(['like', 'love', 'laugh', 'angry']),
+});
 
 export const PATCH = withAuth(async (
   request: NextRequest, 
@@ -12,12 +17,13 @@ export const PATCH = withAuth(async (
   const params = await props.params;
   try {
 
-    const { type } = await request.json();
-    const { commentId } = params;
-
-    if (!type || !['like', 'love', 'laugh', 'angry'].includes(type)) {
+    const body = await request.json();
+    const validationResult = CommentReactBodySchema.safeParse(body);
+    if (!validationResult.success) {
       return createErrorResponse(ApiError.badRequest("Invalid reaction type"));
     }
+    const { type } = validationResult.data;
+    const { commentId } = params;
 
     const comment = await db.comment.findUnique({
       where: { id: commentId },

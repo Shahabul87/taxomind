@@ -330,7 +330,7 @@ function CreateTemplateForm({ onSubmit }: { onSubmit: (data: any) => void }) {
         </div>
         
         {formData.stages.map((stage, index) => (
-          <div key={index} className="border rounded p-3 mb-3">
+          <div key={`stage-${stage.name || index}`} className="border rounded p-3 mb-3">
             <div className="flex justify-between items-start mb-2">
               <h4 className="font-medium">Stage {index + 1}</h4>
               {formData.stages.length > 1 && (

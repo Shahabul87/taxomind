@@ -246,7 +246,7 @@ export function SAMAnalyticsDashboard({ courseId }: SAMAnalyticsDashboardProps) 
               </CardHeader>
               <CardContent className="space-y-3">
                 {personalizedInsights.strengths.map((strength, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                  <div key={`strength-${index}`} className="flex items-start gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
                     <p className="text-sm">{strength}</p>
                   </div>
@@ -264,7 +264,7 @@ export function SAMAnalyticsDashboard({ courseId }: SAMAnalyticsDashboardProps) 
               </CardHeader>
               <CardContent className="space-y-3">
                 {personalizedInsights.areasForImprovement.map((area, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                  <div key={`improvement-${index}`} className="flex items-start gap-3">
                     <div className="w-2 h-2 rounded-full bg-yellow-500 mt-1.5" />
                     <p className="text-sm">{area}</p>
                   </div>
@@ -283,7 +283,7 @@ export function SAMAnalyticsDashboard({ courseId }: SAMAnalyticsDashboardProps) 
             </CardHeader>
             <CardContent className="space-y-3">
               {personalizedInsights.recommendations.map((recommendation, index) => (
-                <div key={index} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start gap-3">
+                <div key={`rec-${index}`} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                   <p className="text-sm">{recommendation}</p>
                 </div>

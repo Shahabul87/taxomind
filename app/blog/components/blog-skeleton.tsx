@@ -1,77 +1,93 @@
 /**
- * Blog Loading Skeletons
- * Provides visual feedback during data loading
+ * Blog Loading Skeletons — Broadsheet Editorial Style
  */
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/**
- * Skeleton for Blog Card
- * Matches the structure of MyPostCard
- */
+const colors = {
+  cream: "#f5f0e8",
+  rule: "#c4b9a8",
+  warmBg: "#eee7db",
+};
+
 export function BlogCardSkeleton() {
   return (
-    <Card className="relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 h-full flex flex-col">
+    <div style={{
+      background: colors.cream,
+      border: `1px solid ${colors.rule}`,
+      display: "flex",
+      flexDirection: "column",
+      height: "100%",
+    }}>
       {/* Image Skeleton */}
-      <div className="relative h-40 sm:h-44 w-full bg-slate-100 dark:bg-slate-700">
-        <Skeleton className="w-full h-full" />
-
-        {/* Category Badge Skeleton */}
-        <div className="absolute top-2 left-2">
-          <Skeleton className="h-6 w-20 rounded-lg" />
-        </div>
-
-        {/* Reading Time Badge Skeleton */}
-        <div className="absolute top-2 right-2">
-          <Skeleton className="h-6 w-16 rounded-lg" />
-        </div>
+      <div style={{ height: 200, width: "100%", background: colors.warmBg }}>
+        <Skeleton className="w-full h-full rounded-none" style={{ background: colors.warmBg }} />
       </div>
 
       {/* Content Skeleton */}
-      <div className="flex-1 p-3 space-y-3">
-        {/* Date */}
-        <Skeleton className="h-3 w-24" />
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Category & Time */}
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Skeleton className="h-3 w-16 rounded-none" style={{ background: colors.warmBg }} />
+          <Skeleton className="h-3 w-14 rounded-none" style={{ background: colors.warmBg }} />
+        </div>
 
         {/* Title */}
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-4/5" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <Skeleton className="h-5 w-full rounded-none" style={{ background: colors.warmBg }} />
+          <Skeleton className="h-5 w-4/5 rounded-none" style={{ background: colors.warmBg }} />
         </div>
 
         {/* Description */}
-        <div className="space-y-1">
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-3/4" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Skeleton className="h-3 w-full rounded-none" style={{ background: colors.warmBg }} />
+          <Skeleton className="h-3 w-3/4 rounded-none" style={{ background: colors.warmBg }} />
         </div>
 
-        {/* Stats Row */}
-        <div className="flex items-center gap-2 pt-2">
-          <Skeleton className="h-12 flex-1 rounded-lg" />
-          <Skeleton className="h-12 flex-1 rounded-lg" />
+        {/* Divider */}
+        <div style={{ borderTop: `1px dotted ${colors.rule}`, paddingTop: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Skeleton className="h-3 w-24 rounded-none" style={{ background: colors.warmBg }} />
+            <Skeleton className="h-3 w-20 rounded-none" style={{ background: colors.warmBg }} />
+          </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-/**
- * Skeleton for Hero Section
- */
 export function HeroSkeleton() {
   return (
-    <div className="relative min-h-[85vh] flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
-      <div className="relative z-10 flex-1 flex items-center">
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <Skeleton className="h-12 w-32 mx-auto" />
-            <Skeleton className="h-16 w-full mx-auto" />
-            <Skeleton className="h-6 w-3/4 mx-auto" />
-
-            <div className="flex justify-center gap-4 pt-4">
-              <Skeleton className="h-12 w-40" />
-              <Skeleton className="h-12 w-40" />
-            </div>
+    <div style={{
+      minHeight: "80vh",
+      background: colors.cream,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+    }}>
+      <div style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+      }}>
+        <div style={{
+          maxWidth: 800,
+          width: "100%",
+          textAlign: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
+        }}>
+          <Skeleton className="h-8 w-48 rounded-none" style={{ background: colors.warmBg }} />
+          <Skeleton className="h-12 w-full rounded-none" style={{ background: colors.warmBg }} />
+          <Skeleton className="h-4 w-3/4 rounded-none" style={{ background: colors.warmBg }} />
+          <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
+            <Skeleton className="h-10 w-36 rounded-none" style={{ background: colors.warmBg }} />
+            <Skeleton className="h-10 w-36 rounded-none" style={{ background: colors.warmBg }} />
           </div>
         </div>
       </div>
@@ -79,51 +95,47 @@ export function HeroSkeleton() {
   );
 }
 
-/**
- * Skeleton for Sidebar
- */
 export function SidebarSkeleton() {
   return (
-    <div className="space-y-4">
-      <Skeleton className="h-8 w-32" />
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Card key={i} className="p-4">
-          <div className="flex gap-3">
-            <Skeleton className="h-16 w-16 rounded-lg flex-shrink-0" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-3 w-2/3" />
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ background: colors.cream, border: `1px solid ${colors.rule}`, padding: 20 }}>
+        <Skeleton className="h-5 w-28 rounded-none mb-3" style={{ background: colors.warmBg }} />
+        <div style={{ height: 2, background: colors.rule, marginBottom: 16 }} />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} style={{
+            display: "flex",
+            gap: 12,
+            padding: "12px 0",
+            borderBottom: i < 5 ? `1px dotted ${colors.rule}` : "none",
+          }}>
+            <Skeleton className="h-7 w-7 rounded-none" style={{ background: colors.warmBg }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+              <Skeleton className="h-3 w-full rounded-none" style={{ background: colors.warmBg }} />
+              <Skeleton className="h-3 w-2/3 rounded-none" style={{ background: colors.warmBg }} />
             </div>
           </div>
-        </Card>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-/**
- * Full Blog Page Loading State
- */
 export function BlogPageSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <div style={{ minHeight: "100vh", background: colors.cream }}>
       <HeroSkeleton />
-
-      <div className="container mx-auto px-4 py-12">
-        {/* Filter Bar Skeleton */}
-        <div className="mb-8 space-y-4">
-          <div className="flex gap-4">
-            <Skeleton className="h-12 flex-1" />
-            <Skeleton className="h-12 w-32" />
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 16px" }}>
+        <div style={{ marginBottom: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 16 }}>
+            <Skeleton className="h-10 flex-1 rounded-none" style={{ background: colors.warmBg }} />
+            <Skeleton className="h-10 w-28 rounded-none" style={{ background: colors.warmBg }} />
           </div>
-          <div className="flex gap-2">
+          <div style={{ display: "flex", gap: 8 }}>
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-8 w-24" />
+              <Skeleton key={i} className="h-8 w-20 rounded-none" style={{ background: colors.warmBg }} />
             ))}
           </div>
         </div>
-
-        {/* Grid Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <BlogCardSkeleton key={i} />

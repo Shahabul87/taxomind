@@ -2,16 +2,32 @@ import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { randomUUID } from "crypto";
+import { z } from 'zod';
+
+const PostChapterBodySchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  isPublished: z.boolean().optional().default(false),
+  isFree: z.boolean().optional().default(false),
+});
 
 export async function POST(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
   try {
     const user = await currentUser();
-    const { title, description, isPublished = false, isFree = false } = await req.json();
-
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const body = await req.json();
+    const validationResult = PostChapterBodySchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { title, description, isPublished, isFree } = validationResult.data;
 
     const userId = user.id;
 

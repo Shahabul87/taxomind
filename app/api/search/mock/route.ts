@@ -39,16 +39,16 @@ const mockResults = [
 ];
 
 export async function GET(request: NextRequest) {
-  // Simulate network delay (shorter for better UX)
-  await new Promise(resolve => setTimeout(resolve, 200));
-
   // Always use JSON content type
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store, max-age=0'
   };
-  
+
   try {
+    // Simulate network delay (shorter for better UX)
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     // Get search query from URL
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';

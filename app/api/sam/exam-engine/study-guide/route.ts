@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
     const examId = searchParams.get('examId');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
 
     // Get user's study guides
     const where: { userId: string; examId?: string } = { userId: user.id };

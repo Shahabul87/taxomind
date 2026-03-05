@@ -6,6 +6,10 @@ jest.mock('@/auth.admin', () => ({
   adminAuth: jest.fn(),
 }));
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn(),
+}));
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -17,12 +21,14 @@ jest.mock('@/lib/logger', () => ({
 
 import { GET } from '@/app/api/db-check/route';
 import { adminAuth } from '@/auth.admin';
+import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 import { NextRequest, NextResponse } from 'next/server';
 
 const mockAdminAuth = adminAuth as jest.Mock;
 const mockDevOnlyGuard = devOnlyGuard as jest.Mock;
+const mockCurrentUser = currentUser as jest.Mock;
 
 function ensureModel(modelName: string, methods: string[]) {
   if (!(db as Record<string, unknown>)[modelName]) {
@@ -44,6 +50,7 @@ describe('/api/db-check route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDevOnlyGuard.mockReturnValue(null);
+    mockCurrentUser.mockResolvedValue({ id: 'admin-1', role: 'ADMIN' });
     mockAdminAuth.mockResolvedValue({ user: { id: 'admin-1', role: 'ADMIN' } });
     course.count.mockResolvedValue(5);
     blog.count.mockResolvedValue(2);
@@ -59,6 +66,7 @@ describe('/api/db-check route', () => {
   });
 
   it('returns 401 for non-admin', async () => {
+    mockCurrentUser.mockResolvedValue(null);
     mockAdminAuth.mockResolvedValue(null);
     const req = new NextRequest('http://localhost:3000/api/db-check');
     const res = await GET(req);

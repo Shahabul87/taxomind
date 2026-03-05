@@ -293,7 +293,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'trends': {
-        const limit = parseInt(searchParams.get('limit') ?? '10');
+        const limit = Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
 
         // Check if user has access to the course
         const courseData = await fetchCourseData(courseId, session.user.id);

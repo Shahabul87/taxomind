@@ -244,7 +244,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
           {showObjectiveSuggestions && (
             <div className="space-y-2.5 sm:space-y-3 max-h-64 overflow-y-auto">
               {objectiveSuggestions.map((objective, index) => (
-                <div key={index} className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
+                <div key={`obj-${objective.bloomsLevel}-${index}`} className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
                   <div className="flex items-start justify-between mb-2 gap-2">
                     <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 flex-1 break-words">
                       {objective.text}
@@ -345,7 +345,7 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
                 {Array.isArray(bloomsRecommendations.recommendations?.recommendations) && bloomsRecommendations.recommendations.recommendations.map((level: string, index: number) => {
                   const levelInfo = BLOOMS_LEVELS.find(l => l.value === level);
                   return (
-                    <div key={index} className="p-2 sm:p-2.5 backdrop-blur-sm bg-white/60 dark:bg-slate-800/60 rounded border border-white/20 flex items-center justify-between gap-2">
+                    <div key={level} className="p-2 sm:p-2.5 backdrop-blur-sm bg-white/60 dark:bg-slate-800/60 rounded border border-white/20 flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="text-[10px] xs:text-xs font-medium text-slate-700 dark:text-slate-300 break-words">{levelInfo?.label}</div>
                         <div className="text-[9px] xs:text-[10px] text-slate-500 dark:text-slate-400 break-words">{levelInfo?.description}</div>
@@ -368,8 +368,8 @@ export function SamLearningDesignAssistance({ formData, onUpdateFormData, classN
               {bloomsRecommendations.recommendations?.warnings && bloomsRecommendations.recommendations.warnings.length > 0 && (
                 <div className="space-y-2">
                   <span className="text-[10px] xs:text-xs font-medium text-amber-600 dark:text-amber-400">Considerations</span>
-                  {bloomsRecommendations.recommendations.warnings.map((warning: any, index: number) => (
-                    <div key={index} className={cn(
+                  {bloomsRecommendations.recommendations.warnings.map((warning: { severity: string; message: string }, index: number) => (
+                    <div key={`warning-${index}`} className={cn(
                       "p-2 rounded border",
                       warning.severity === 'high' ? "bg-red-50/50 border-red-200 dark:bg-red-900/20 dark:border-red-700" :
                       warning.severity === 'medium' ? "bg-yellow-50/50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-700" :

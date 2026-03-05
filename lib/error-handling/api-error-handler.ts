@@ -71,10 +71,7 @@ export class ApiErrorHandler {
   }
 
   private formatPrismaError(error: Prisma.PrismaClientKnownRequestError): Record<string, any> {
-    const details: Record<string, any> = {
-      code: error.code,
-      meta: error.meta
-    };
+    const details: Record<string, any> = {};
 
     switch (error.code) {
       case 'P2002':
@@ -117,7 +114,14 @@ export class ApiErrorHandler {
       details = this.formatPrismaError(error);
     } else {
       errorCode = errorType;
-      message = error.message || 'An unexpected error occurred';
+      // Use safe generic messages based on error type to avoid leaking internals
+      const safeMessages: Record<string, string> = {
+        [ErrorType.AUTHENTICATION]: 'Authentication required',
+        [ErrorType.AUTHORIZATION]: 'Insufficient permissions',
+        [ErrorType.NETWORK]: 'Network error occurred',
+        [ErrorType.API]: 'An unexpected error occurred',
+      };
+      message = safeMessages[errorType] || 'An unexpected error occurred';
     }
 
     // Log the error

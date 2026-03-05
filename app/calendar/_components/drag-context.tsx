@@ -9,7 +9,7 @@ interface DragContextProps {
 }
 
 export const DragContext = ({ children, onEventMove }: DragContextProps) => {
-  const { setDraggedEvent } = useCalendarStore();
+  const setDraggedEvent = useCalendarStore(state => state.setDraggedEvent);
 
   const handleDragStart = (event: DragStartEvent) => {
     setDraggedEvent(event.active.data.current);

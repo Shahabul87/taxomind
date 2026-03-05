@@ -1049,7 +1049,7 @@ export function AssessmentManagement({
             <Label>Learning Objectives</Label>
             <div className="space-y-2">
               {createAssessmentForm.learningObjectives.map((objective, index) => (
-                <div key={index} className="flex items-center space-x-2">
+                <div key={`objective-${index}`} className="flex items-center space-x-2">
                   <Input
                     value={objective}
                     onChange={(e) => handleArrayFieldChange('learningObjectives', index, e.target.value)}

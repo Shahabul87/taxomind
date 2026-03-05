@@ -46,6 +46,7 @@ async function getUsersData(): Promise<UserData[]> {
       orderBy: {
         createdAt: "desc",
       },
+      take: 200,
     });
 
     // Transform data for response

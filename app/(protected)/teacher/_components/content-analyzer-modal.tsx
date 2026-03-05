@@ -324,8 +324,8 @@ export function ContentAnalyzerModal({
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {analysis.keyTopics.map((topic: string, index: number) => (
-                    <Badge key={index} variant="secondary">{topic}</Badge>
+                  {analysis.keyTopics.map((topic: string) => (
+                    <Badge key={topic} variant="secondary">{topic}</Badge>
                   ))}
                 </div>
               </CardContent>
@@ -356,7 +356,7 @@ export function ContentAnalyzerModal({
               <CardContent>
                 <ul className="space-y-1">
                   {analysis.learningObjectives.map((objective: string, index: number) => (
-                    <li key={index} className="flex items-start space-x-2">
+                    <li key={`obj-${index}`} className="flex items-start space-x-2">
                       <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5" />
                       <span className="text-sm">{objective}</span>
                     </li>
@@ -374,7 +374,7 @@ export function ContentAnalyzerModal({
               <CardContent>
                 <ul className="space-y-1">
                   {analysis.studyQuestions.map((question: string, index: number) => (
-                    <li key={index} className="flex items-start space-x-2">
+                    <li key={`question-${index}`} className="flex items-start space-x-2">
                       <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5" />
                       <span className="text-sm">{question}</span>
                     </li>
@@ -393,7 +393,7 @@ export function ContentAnalyzerModal({
                 <div className="space-y-2">
                   {suggestions.map((suggestion: string, index: number) => (
                     <Button
-                      key={index}
+                      key={`suggestion-${index}`}
                       variant="outline"
                       size="sm"
                       className="text-xs"

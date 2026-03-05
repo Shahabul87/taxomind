@@ -4,6 +4,14 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { isRateLimited, getRateLimitMessage } from "@/lib/rate-limit";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const NestedReplyBodySchema = z.object({
+  postId: z.string(),
+  commentId: z.string(),
+  parentReplyId: z.string().optional(),
+  content: z.string().min(1, 'Content is required'),
+});
 
 /**
  * Universal endpoint for nested replies at any depth.
@@ -32,26 +40,16 @@ export async function POST(req: NextRequest) {
     let body;
     try {
       body = await req.json();
-
     } catch (err) {
       logger.error("[NESTED_REPLIES] Error parsing request:", err);
       return createErrorResponse(new ApiError("Invalid request format", 400));
     }
 
-    const { postId, commentId, parentReplyId, content } = body;
-
-    // Validate required fields
-    if (!content) {
-      return createErrorResponse(new ApiError("Content is required", 400));
+    const validationResult = NestedReplyBodySchema.safeParse(body);
+    if (!validationResult.success) {
+      return createErrorResponse(new ApiError("Invalid request body", 400));
     }
-    
-    if (!postId) {
-      return createErrorResponse(new ApiError("Post ID is required", 400));
-    }
-    
-    if (!commentId) {
-      return createErrorResponse(new ApiError("Comment ID is required", 400));
-    }
+    const { postId, commentId, parentReplyId, content } = validationResult.data;
 
     // First verify the post exists
     const post = await db.post.findUnique({

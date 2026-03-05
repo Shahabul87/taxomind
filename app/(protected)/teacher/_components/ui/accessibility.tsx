@@ -150,8 +150,8 @@ export function SkipNavigation({ links, className }: SkipNavigationProps) {
       <div className="fixed top-0 left-0 z-50 bg-white border border-gray-300 p-2 shadow-lg">
         <p className="text-sm font-semibold mb-2">Skip to:</p>
         <ul className="space-y-1">
-          {links.map((link, index) => (
-            <li key={index}>
+          {links.map((link) => (
+            <li key={link.href}>
               <a
                 href={link.href}
                 className="text-blue-600 hover:text-blue-800 text-sm underline focus:ring-2 focus:ring-blue-500 focus:outline-none"

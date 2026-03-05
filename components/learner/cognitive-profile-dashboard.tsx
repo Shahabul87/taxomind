@@ -311,9 +311,9 @@ export function CognitiveProfileDashboard({ userId }: CognitiveProfileDashboardP
             🎯 Recommended Next Steps
           </h3>
           <div className="space-y-3">
-            {profile.recommendations.map((rec, index) => (
+            {profile.recommendations.map((rec) => (
               <div
-                key={index}
+                key={rec.title}
                 className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50"
               >
                 <div className="flex-1">

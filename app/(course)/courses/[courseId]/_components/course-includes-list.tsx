@@ -98,7 +98,7 @@ export const CourseIncludesList = ({
       <div className="space-y-2.5">
         {visibleIncludes.map((item: IncludeItem, index: number) => (
           <motion.div
-            key={index}
+            key={item.label}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 + index * 0.05 }}

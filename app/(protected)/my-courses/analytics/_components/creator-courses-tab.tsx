@@ -140,8 +140,8 @@ export function CreatorCoursesTab({ courses }: CreatorCoursesTabProps) {
 
                 {course.tags.length > 0 && (
                   <div className="mt-2 sm:mt-3 flex flex-wrap gap-1">
-                    {course.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5">
+                    {course.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-[9px] sm:text-xs px-1.5 sm:px-2 py-0.5">
                         {tag}
                       </Badge>
                     ))}

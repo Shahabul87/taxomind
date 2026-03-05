@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
 // ============================================================================
 
 export async function GET(request: NextRequest) {
+  try {
   if (!QUEUE_ENABLED) {
     return NextResponse.json(
       { success: false, error: 'Queue processing is disabled', code: 'QUEUE_DISABLED' },
@@ -328,4 +329,8 @@ export async function GET(request: NextRequest) {
       'X-Accel-Buffering': 'no',
     },
   });
+  } catch (error) {
+    console.error('[ORCHESTRATE_ASYNC_GET] Unhandled error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

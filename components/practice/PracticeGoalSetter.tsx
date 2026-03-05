@@ -53,7 +53,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import confetti from 'canvas-confetti';
+// canvas-confetti is dynamically imported in triggerCelebration() to reduce bundle size
 
 // ============================================================================
 // TYPES
@@ -145,7 +145,8 @@ function getGoalTypeLabel(type: GoalType) {
   return labels[type] ?? type;
 }
 
-function triggerCelebration() {
+async function triggerCelebration() {
+  const confetti = (await import('canvas-confetti')).default;
   const duration = 3000;
   const end = Date.now() + duration;
 

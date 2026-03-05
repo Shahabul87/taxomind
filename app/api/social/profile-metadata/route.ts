@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             linkId: link.id, 
             platform: link.platform,
             username: extractUsernameFromUrl(link.url),
-            error: `Failed to extract metadata: ${error instanceof Error ? error.message : String(error)}` 
+            error: 'Failed to extract metadata'
           };
         }
       })
@@ -120,7 +120,7 @@ async function extractProfileMetadata(url: string, platform: string): Promise<Pr
     return {
       platform: platformLower,
       username,
-      error: `Extraction failed: ${error instanceof Error ? error.message : String(error)}`
+      error: 'Extraction failed'
     };
   }
 }

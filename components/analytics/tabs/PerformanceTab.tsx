@@ -152,9 +152,9 @@ export function PerformanceTab({ analytics, performance }: PerformanceTabProps) 
                   </CardHeader>
                   <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                     <div className="grid gap-3 sm:gap-4">
-                      {performance.insights.map((insight: any, index: number) => (
+                      {performance.insights.map((insight: { type: string; title?: string; message?: string; priority?: string }, index: number) => (
                         <motion.div
-                          key={index}
+                          key={`insight-${index}`}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}

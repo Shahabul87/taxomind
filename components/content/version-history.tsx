@@ -214,7 +214,7 @@ export function VersionHistory({ contentType, contentId, onVersionSelect }: Vers
                             <div className="font-medium text-muted-foreground mb-1">Changes:</div>
                             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                               {version.changeLog.map((change, index) => (
-                                <li key={index}>{change}</li>
+                                <li key={`${version.id}-change-${index}`}>{change}</li>
                               ))}
                             </ul>
                           </div>

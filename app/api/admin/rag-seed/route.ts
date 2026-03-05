@@ -39,15 +39,15 @@ const SeedRequestSchema = z.discriminatedUnion('mode', [
 // ============================================================================
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'Admin access required' } },
-      { status: 403 },
-    );
-  }
-
   try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Admin access required' } },
+        { status: 403 },
+      );
+    }
+
     const [totalPublished, indexedCount] = await Promise.all([
       db.course.count({ where: { isPublished: true } }),
       db.sAMVectorEmbedding.groupBy({
@@ -91,15 +91,15 @@ export async function GET() {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'Admin access required' } },
-      { status: 403 },
-    );
-  }
-
   try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Admin access required' } },
+        { status: 403 },
+      );
+    }
+
     const body = await req.json();
     const parsed = SeedRequestSchema.safeParse(body);
 
@@ -161,8 +161,11 @@ export async function POST(req: NextRequest) {
         const chunksIndexed = await indexCourseForRAG(course.id);
         results.push({ courseId: course.id, title: course.title, chunksIndexed });
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        results.push({ courseId: course.id, title: course.title, chunksIndexed: 0, error: msg });
+        logger.error('[RAG_SEED] Failed to index course', {
+          courseId: course.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        results.push({ courseId: course.id, title: course.title, chunksIndexed: 0, error: 'Indexing failed' });
       }
     }
 

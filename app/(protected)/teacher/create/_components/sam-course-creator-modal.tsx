@@ -1157,7 +1157,7 @@ export const SamCourseCreatorModal = ({
                         <div className="space-y-1">
                           {titleSuggestions.slice(0, 3).map((suggestion, index) => (
                             <button
-                              key={index}
+                              key={`title-${index}`}
                               onClick={() => setFormData(prev => ({ ...prev, courseTitle: suggestion }))}
                               className="w-full text-left p-2 text-sm bg-white dark:bg-gray-800 rounded border border-blue-200 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                             >
@@ -1259,7 +1259,7 @@ export const SamCourseCreatorModal = ({
                         <div className="space-y-2">
                           {overviewSuggestions.slice(0, 2).map((suggestion, index) => (
                             <button
-                              key={index}
+                              key={`overview-${index}`}
                               onClick={() => setFormData(prev => ({ ...prev, courseShortOverview: suggestion }))}
                               className="w-full text-left p-3 text-sm bg-white dark:bg-gray-800 rounded border border-green-200 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
                             >
@@ -1510,7 +1510,7 @@ export const SamCourseCreatorModal = ({
                   <div className="space-y-2">
                     <Label>Current Objectives:</Label>
                     {formData.courseGoals.map((goal, index) => (
-                      <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div key={`goal-${goal.slice(0, 20)}-${index}`} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                         <Target className="h-4 w-4 text-green-500 flex-shrink-0" />
                         <span className="flex-1 text-sm">{goal}</span>
                         <Button
@@ -1702,7 +1702,7 @@ export const SamCourseCreatorModal = ({
                   {formData.prerequisites.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {formData.prerequisites.map((prereq, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
+                        <Badge key={`prereq-${prereq.slice(0, 20)}-${index}`} variant="secondary" className="text-xs px-2 py-1">
                           {prereq}
                           <button
                             onClick={() => removePrerequisite(index)}
@@ -1759,7 +1759,7 @@ export const SamCourseCreatorModal = ({
                     {formData.realWorldApplications.length > 0 && (
                       <div className="mt-2 space-y-1 max-h-24 overflow-y-auto">
                         {formData.realWorldApplications.map((app, index) => (
-                          <div key={index} className="flex items-center gap-2 text-xs p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                          <div key={`app-${app.slice(0, 20)}-${index}`} className="flex items-center gap-2 text-xs p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
                             <span className="flex-1">{app}</span>
                             <button
                               onClick={() => removeApplication(index)}
@@ -1800,7 +1800,7 @@ export const SamCourseCreatorModal = ({
                     {formData.careerOutcomes.length > 0 && (
                       <div className="mt-2 space-y-1 max-h-24 overflow-y-auto">
                         {formData.careerOutcomes.map((outcome, index) => (
-                          <div key={index} className="flex items-center gap-2 text-xs p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                          <div key={`outcome-${outcome.slice(0, 20)}-${index}`} className="flex items-center gap-2 text-xs p-2 bg-green-50 dark:bg-green-900/20 rounded">
                             <span className="flex-1">{outcome}</span>
                             <button
                               onClick={() => removeOutcome(index)}
@@ -1843,7 +1843,7 @@ export const SamCourseCreatorModal = ({
                     {formData.toolsAndTechnologies.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                         {formData.toolsAndTechnologies.map((tool, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                          <Badge key={`tool-${tool}-${index}`} variant="outline" className="text-xs">
                             {tool}
                             <button
                               onClick={() => removeTool(index)}
@@ -1884,7 +1884,7 @@ export const SamCourseCreatorModal = ({
                     {formData.commonChallenges.length > 0 && (
                       <div className="mt-2 space-y-1 max-h-24 overflow-y-auto">
                         {formData.commonChallenges.map((challenge, index) => (
-                          <div key={index} className="flex items-center gap-2 text-xs p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
+                          <div key={`challenge-${challenge.slice(0, 20)}-${index}`} className="flex items-center gap-2 text-xs p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
                             <span className="flex-1">{challenge}</span>
                             <button
                               onClick={() => removeChallenge(index)}
@@ -1925,7 +1925,7 @@ export const SamCourseCreatorModal = ({
                   {formData.successMetrics.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {formData.successMetrics.map((metric, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
+                        <div key={`metric-${metric.slice(0, 20)}-${index}`} className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded">
                           <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
                           <span className="flex-1 text-sm">{metric}</span>
                           <button

@@ -134,7 +134,7 @@ export function TemplatePreview({ templateData, onClose, className }: TemplatePr
             )}
           >
             {block.content?.items?.map((item: string, index: number) => (
-              <li key={index} className="text-gray-700">
+              <li key={`item-${index}`} className="text-gray-700">
                 {item}
               </li>
             )) || <li className="text-gray-500 italic">No items provided</li>}

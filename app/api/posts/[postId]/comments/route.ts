@@ -141,12 +141,12 @@ export const POST = withAuth(async (
     return createSuccessResponse(comment, 201);
   } catch (error) {
     const duration = Date.now() - startTime;
+    console.error('[COMMENT_POST]', error);
     logger.error('[COMMENT_POST] Error creating comment', {
-      error: error instanceof Error ? error.message : 'Unknown error',
       userId: context.user.id,
       duration,
     });
-    return createErrorResponse(ApiError.internal('Failed to create comment'));
+    return createErrorResponse(ApiError.internal('Internal server error'));
   }
 });
 
@@ -347,11 +347,11 @@ export const GET = withAuth(async (
     });
   } catch (error) {
     const duration = Date.now() - startTime;
+    console.error('[COMMENTS_GET]', error);
     logger.error('[COMMENTS_GET] Error fetching comments', {
-      error: error instanceof Error ? error.message : 'Unknown error',
       duration,
     });
-    return createErrorResponse(ApiError.internal('Failed to fetch comments'));
+    return createErrorResponse(ApiError.internal('Internal server error'));
   }
 });
 

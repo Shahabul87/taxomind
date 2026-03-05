@@ -8,7 +8,7 @@
  * - Telemetry tracking
  */
 
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithMetadata } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
 // SAM imports
@@ -123,6 +123,7 @@ export class SAMExamGeneratorService {
   private discouragingDetector = createDiscouragingLanguageDetector();
   private accessibilityChecker = createAccessibilityChecker();
   private bloomsAligner = createBloomsAligner();
+  private resolvedModel = 'unknown';
 
   /**
    * Generate exam questions with full SAM validation pipeline
@@ -179,7 +180,7 @@ export class SAMExamGeneratorService {
     const prompt = this.buildGenerationPrompt(request, bloomsDistribution);
 
     try {
-      const responseText = await runSAMChatWithPreference({
+      const result = await runSAMChatWithMetadata({
         userId: request.userId,
         capability: 'analysis',
         maxTokens: 6000,
@@ -189,13 +190,16 @@ export class SAMExamGeneratorService {
         extended: true,
       });
 
-      if (!responseText) {
+      if (!result.content) {
         throw new Error('Empty response from AI model');
       }
 
+      // Track the resolved model for metadata
+      this.resolvedModel = result.model;
+
       // Parse JSON response
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-      const jsonString = jsonMatch ? jsonMatch[0] : responseText;
+      const jsonMatch = result.content.match(/\[[\s\S]*\]/);
+      const jsonString = jsonMatch ? jsonMatch[0] : result.content;
       const parsed = JSON.parse(jsonString);
 
       if (!Array.isArray(parsed)) {
@@ -373,7 +377,7 @@ Response Format - JSON array with this structure:
           studentLevel: request.targetAudience,
         },
         generationMetadata: {
-          model: 'claude-sonnet-4-5-20250929',
+          model: this.resolvedModel,
           timestamp: new Date().toISOString(),
         },
       };
@@ -803,7 +807,7 @@ Response Format - JSON array with this structure:
   ): ExamGenerationMetadata {
     return {
       generatedAt: new Date().toISOString(),
-      model: 'claude-sonnet-4-5-20250929',
+      model: this.resolvedModel,
       processingTimeMs: Date.now() - startTime,
       bloomsDistributionUsed: bloomsDistribution,
       validationEnabled: {

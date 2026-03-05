@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { devOnlyGuard } from "@/lib/api/dev-only-guard";
 import { adminAuth } from "@/auth.admin";
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -44,10 +45,10 @@ export async function GET() {
     return NextResponse.json(envCheck);
   } catch (error: unknown) {
     // SECURITY: Don't expose stack traces in error responses
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('[ENV_CHECK] Error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({
       error: true,
-      message: process.env.NODE_ENV === 'development' ? message : 'Internal server error',
+      message: 'Internal server error',
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }

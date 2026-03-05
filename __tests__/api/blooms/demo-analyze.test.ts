@@ -2,15 +2,31 @@ jest.mock('@/lib/api/dev-only-guard', () => ({
   devOnlyGuard: jest.fn(),
 }));
 
+jest.mock('@/lib/auth', () => ({
+  currentUser: jest.fn(),
+}));
+
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 import { POST } from '@/app/api/blooms/demo-analyze/route';
 import { devOnlyGuard } from '@/lib/api/dev-only-guard';
+import { currentUser } from '@/lib/auth';
 
 const mockDevOnlyGuard = devOnlyGuard as jest.Mock;
+const mockCurrentUser = currentUser as jest.Mock;
 
 describe('/api/blooms/demo-analyze route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDevOnlyGuard.mockReturnValue(null);
+    mockCurrentUser.mockResolvedValue({ id: 'user-1', role: 'USER' });
   });
 
   it('returns blocked response when devOnlyGuard blocks request', async () => {

@@ -81,5 +81,10 @@ export async function POST(request: NextRequest) {
 
 // Only allow POST
 export async function GET() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  try {
+    return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  } catch (error) {
+    console.error('[ERROR_LOG_GET]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

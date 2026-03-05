@@ -3,6 +3,17 @@ import { withAdminAuth, type APIAuthContext, createSuccessResponse, createErrorR
 import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const GenerateContentBodySchema = z.object({
+  sectionId: z.string(),
+  chapterId: z.string(),
+  courseId: z.string(),
+  contentType: z.string().optional(),
+  enhancement: z.string().optional(),
+  customPrompt: z.string().optional(),
+  context: z.record(z.unknown()).optional(),
+});
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -19,15 +30,19 @@ export const POST = withAdminAuth(async (
   try {
     // Admin access already verified by withAdminAuth wrapper
     const body = await request.json();
-    const { 
-      sectionId, 
-      chapterId, 
-      courseId, 
-      contentType, 
-      enhancement, 
-      customPrompt, 
-      context: requestContext 
-    } = body;
+    const validationResult = GenerateContentBodySchema.safeParse(body);
+    if (!validationResult.success) {
+      return createErrorResponse(new ApiError('Invalid request body', 400));
+    }
+    const {
+      sectionId,
+      chapterId,
+      courseId,
+      contentType,
+      enhancement,
+      customPrompt,
+      context: requestContext
+    } = validationResult.data;
 
     // Verify section ownership through course
     const course = await db.course.findUnique({

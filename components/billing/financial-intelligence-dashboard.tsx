@@ -457,7 +457,7 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
           <CardContent>
             <div className="space-y-4">
               {financialData.recommendations.slice(0, 3).map((rec, index) => (
-                <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div key={`rec-${rec.category}-${index}`} className="flex items-start gap-3 p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <div className={cn("p-2 rounded-full", {
                     'bg-red-100 dark:bg-red-900/30': rec.priority === 'high',
                     'bg-yellow-100 dark:bg-yellow-900/30': rec.priority === 'medium',
@@ -610,8 +610,8 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {financialData.revenue.revenueBySource.map((source, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              {financialData.revenue.revenueBySource.map((source) => (
+                <div key={source.source} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <div>
                     <p className="font-medium text-sm">{source.source}</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -691,8 +691,8 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {financialData.costs.costCategories.map((category, index) => (
-                  <div key={index} className="space-y-2">
+                {financialData.costs.costCategories.map((category) => (
+                  <div key={category.category} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">{category.category}</span>
                       <div className="text-right">
@@ -882,7 +882,7 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
           <CardContent>
             <div className="space-y-4">
               {financialData.pricing.recommendations.map((rec, index) => (
-                <div key={index} className="flex items-start gap-3 p-4 rounded-lg border">
+                <div key={`pricing-rec-${index}`} className="flex items-start gap-3 p-4 rounded-lg border">
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                     <Lightbulb className="w-4 h-4 text-blue-600" />
                   </div>
@@ -998,8 +998,8 @@ export const FinancialIntelligenceDashboard = ({ organizationId, className }: Fi
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {financialData.forecasts.scenarios.map((scenario, index) => (
-                <div key={index} className={cn("p-4 rounded-lg border", {
+              {financialData.forecasts.scenarios.map((scenario) => (
+                <div key={scenario.scenario} className={cn("p-4 rounded-lg border", {
                   'bg-green-50 dark:bg-green-900/20 border-green-200': scenario.scenario === 'Best Case',
                   'bg-blue-50 dark:bg-blue-900/20 border-blue-200': scenario.scenario === 'Most Likely',
                   'bg-red-50 dark:bg-red-900/20 border-red-200': scenario.scenario === 'Worst Case'

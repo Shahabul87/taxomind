@@ -424,11 +424,12 @@ async function syncStudySessions(
         stats.eventsCreated++;
       }
     } catch (error) {
+      console.error('[LEARNING_SYNC] Study session sync error', error);
       stats.eventsFailed++;
       stats.errors.push({
         entityId: session.id,
         entityType: 'STUDY_SESSION',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       });
     }
   }
@@ -548,11 +549,12 @@ async function syncTodos(
         stats.eventsCreated++;
       }
     } catch (error) {
+      console.error('[LEARNING_SYNC] Todo sync error', error);
       stats.eventsFailed++;
       stats.errors.push({
         entityId: todo.id,
         entityType: 'DAILY_TODO',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       });
     }
   }
@@ -663,10 +665,14 @@ async function syncGoalMilestones(
       }
     } catch (error) {
       stats.eventsFailed++;
+      logger.error('[LEARNING_SYNC] Failed to sync milestone', {
+        milestoneId: milestone.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       stats.errors.push({
         entityId: milestone.id,
         entityType: 'GOAL_MILESTONE',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to sync calendar event',
       });
     }
   }
@@ -818,10 +824,15 @@ async function syncActivities(
       }
     } catch (error) {
       stats.eventsFailed++;
+      logger.error('[LEARNING_SYNC] Failed to sync activity', {
+        activityId: activity.id,
+        activityType: activity.type,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
       stats.errors.push({
         entityId: activity.id,
         entityType: activity.type,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to sync calendar event',
       });
     }
   }

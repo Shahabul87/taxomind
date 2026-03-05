@@ -157,8 +157,8 @@ function SkillTooltip({ active, payload, label }: CustomTooltipProps) {
     <div className="bg-background border rounded-lg shadow-lg p-3 min-w-[180px]">
       <p className="font-medium text-sm mb-2">{label}</p>
       <div className="space-y-1.5 text-sm">
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center justify-between gap-3">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-1.5">
               <div
                 className="w-3 h-3 rounded-full"

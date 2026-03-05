@@ -6,18 +6,11 @@ import Image from "next/image";
 import {
   Clock,
   MessageCircle,
-  User,
   Eye,
-  Play,
   ArrowRight,
-  Calendar,
   BookOpen,
-  Flame,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { sanitizeHtml } from "@/lib/validations/blog";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ============================================================================
 // Types
@@ -43,6 +36,25 @@ interface BlogCardProps {
 }
 
 // ============================================================================
+// Shared editorial styles
+// ============================================================================
+
+const fonts = {
+  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
+  body: "'Libre Baskerville', 'Georgia', serif",
+  mono: "'JetBrains Mono', 'Courier New', monospace",
+};
+
+const colors = {
+  cream: "#f5f0e8",
+  ink: "#1a1a1a",
+  accent: "#8b1a1a",
+  muted: "#5c5c5c",
+  rule: "#c4b9a8",
+  lightRule: "#d8d0c4",
+};
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 
@@ -50,9 +62,21 @@ const formatDate = (dateString: string | Date) => {
   try {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
-      month: "short",
+      month: "long",
       day: "numeric",
       year: "numeric",
+    });
+  } catch {
+    return "Recent";
+  }
+};
+
+const formatDateShort = (dateString: string | Date) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   } catch {
     return "Recent";
@@ -88,223 +112,38 @@ const formatViewCount = (views: number | undefined) => {
   return views.toString();
 };
 
-const getCategoryGradient = (category: string | null) => {
-  if (!category) return "from-slate-500 to-slate-600";
-
-  const categoryLower = category.toLowerCase();
-
-  if (
-    categoryLower.includes("tutorial") ||
-    categoryLower.includes("guide") ||
-    categoryLower.includes("how-to")
-  ) {
-    return "from-emerald-500 to-teal-500";
-  }
-  if (
-    categoryLower.includes("news") ||
-    categoryLower.includes("announcement") ||
-    categoryLower.includes("update")
-  ) {
-    return "from-purple-500 to-pink-500";
-  }
-  if (
-    categoryLower.includes("insight") ||
-    categoryLower.includes("opinion") ||
-    categoryLower.includes("analysis")
-  ) {
-    return "from-orange-500 to-red-500";
-  }
-  if (
-    categoryLower.includes("technology") ||
-    categoryLower.includes("programming") ||
-    categoryLower.includes("development")
-  ) {
-    return "from-blue-500 to-indigo-500";
-  }
-  if (
-    categoryLower.includes("design") ||
-    categoryLower.includes("ui") ||
-    categoryLower.includes("ux")
-  ) {
-    return "from-pink-500 to-rose-500";
-  }
-
-  return "from-cyan-500 to-blue-500";
-};
-
 // ============================================================================
-// Grid View Card
+// Grid View Card — Newspaper Column Article
 // ============================================================================
 
 function GridCard({ post, priority = false }: BlogCardProps) {
-  const categoryGradient = getCategoryGradient(post.category);
-  const isHot = (post.views || 0) > 100;
-
   return (
     <Link
       href={`/blog/${post.id}`}
       prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/10 dark:hover:shadow-violet-500/5 hover:border-violet-300/50 dark:hover:border-violet-600/50 hover:-translate-y-1"
+      className="group flex flex-col h-full"
+      style={{ textDecoration: "none" }}
     >
-      {/* Hover Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-violet-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10" />
-
-      {/* Image Container */}
-      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
-        {post.imageUrl ? (
-          <Image
-            src={post.imageUrl}
-            alt={post.title}
-            fill
-            className="object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-110"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            quality={80}
-            loading={priority ? "eager" : "lazy"}
-            priority={priority}
-            placeholder="blur"
-            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-violet-100 via-indigo-50 to-purple-100 dark:from-violet-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/30">
-              <BookOpen className="w-8 h-8 text-white" />
-            </div>
-          </div>
-        )}
-
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/0 via-transparent to-pink-600/0 opacity-0 group-hover:from-violet-600/20 group-hover:to-indigo-600/20 group-hover:opacity-100 transition-all duration-500" />
-
-        {/* Top Badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 z-20">
-          {post.category && (
-            <Badge
-              className={cn(
-                "px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-md shadow-lg border border-white/20 bg-gradient-to-r",
-                categoryGradient
-              )}
-            >
-              {post.category}
-            </Badge>
-          )}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/70 text-white backdrop-blur-md border border-white/10 shadow-lg">
-            <Clock className="w-3 h-3" />
-            <span className="text-[11px] font-semibold">
-              {getReadingTime(post.description, post.readingTime)}
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom Stats on Image */}
-        <div className="absolute bottom-3 left-3 right-3 z-20 flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/20 backdrop-blur-md border border-white/20">
-            <Eye className="w-3.5 h-3.5 text-white" />
-            <span className="text-white text-xs font-bold">
-              {formatViewCount(post.views)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/20 backdrop-blur-md border border-white/20">
-            <MessageCircle className="w-3.5 h-3.5 text-white" />
-            <span className="text-white text-xs font-bold">
-              {getCommentCount(post.comments)}
-            </span>
-          </div>
-          {isHot && (
-            <div className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white">
-              <Flame className="w-3 h-3" />
-              <span className="text-[10px] font-bold">Hot</span>
-            </div>
-          )}
-        </div>
-
-        {/* Play/Read Button Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/10">
-          <div className="relative">
-            <div className="absolute inset-0 bg-violet-500 rounded-full blur-xl opacity-50 animate-pulse" />
-            <div className="relative p-4 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
-              <Play className="h-6 w-6 fill-current" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 p-4 relative z-20 flex flex-col">
-        {/* Date */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-2">
-          <Calendar className="w-3 h-3" />
-          {formatDate(post.createdAt)}
-        </div>
-
-        {/* Title */}
-        <h3 className="text-base sm:text-lg font-bold mb-2 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-300">
-          {post.title}
-        </h3>
-
-        {/* Description */}
-        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">
-          {getCleanDescription(post.description)}
-        </p>
-
-        {/* Author & Stats Footer */}
-        <div className="mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
-          <div className="flex items-center justify-between">
-            {post.user?.name ? (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-7 h-7 ring-2 ring-white dark:ring-slate-700 shadow-sm">
-                  {post.user.image ? (
-                    <AvatarImage src={post.user.image} alt={post.user.name} />
-                  ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold">
-                    {post.user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate max-w-[100px]">
-                  {post.user.name}
-                </span>
-              </div>
-            ) : (
-              <div className="w-1" />
-            )}
-            <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 text-xs font-semibold group-hover:gap-2 transition-all duration-300">
-              Read more
-              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform duration-300" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-// ============================================================================
-// List View Card
-// ============================================================================
-
-function ListCard({ post, priority = false }: BlogCardProps) {
-  const categoryGradient = getCategoryGradient(post.category);
-  const isHot = (post.views || 0) > 100;
-
-  return (
-    <Link
-      href={`/blog/${post.id}`}
-      prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/10 dark:hover:shadow-violet-500/5 hover:border-violet-300/50 dark:hover:border-violet-600/50"
-    >
-      {/* Hover Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-violet-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10" />
-
-      <div className="relative flex flex-col sm:flex-row">
-        {/* Image Container */}
-        <div className="relative w-full sm:w-72 md:w-80 h-48 sm:h-auto sm:min-h-[200px] flex-shrink-0 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
+      <article
+        style={{
+          background: colors.cream,
+          border: `1px solid ${colors.rule}`,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          transition: "box-shadow 0.3s, transform 0.3s",
+        }}
+        className="hover:shadow-lg hover:-translate-y-0.5"
+      >
+        {/* Image */}
+        <div style={{ position: "relative", height: 200, width: "100%", overflow: "hidden" }}>
           {post.imageUrl ? (
             <Image
               src={post.imageUrl}
               alt={post.title}
               fill
-              className="object-cover transition-all duration-700 group-hover:scale-105 group-hover:brightness-110"
-              sizes="(max-width: 640px) 100vw, 320px"
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               quality={80}
               loading={priority ? "eager" : "lazy"}
               priority={priority}
@@ -312,242 +151,556 @@ function ListCard({ post, priority = false }: BlogCardProps) {
               blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-violet-100 via-indigo-50 to-purple-100 dark:from-violet-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
-              <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/30">
-                <BookOpen className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          )}
-
-          {/* Category Badge */}
-          {post.category && (
-            <Badge
-              className={cn(
-                "absolute top-3 left-3 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-md shadow-lg border border-white/20 bg-gradient-to-r",
-                categoryGradient
-              )}
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "linear-gradient(135deg, #e8e0d4 0%, #d8d0c4 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              {post.category}
-            </Badge>
-          )}
-
-          {/* Hot Badge */}
-          {isHot && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg">
-              <Flame className="w-3 h-3" />
-              <span className="text-[10px] font-bold">Hot</span>
+              <BookOpen style={{ width: 32, height: 32, color: colors.muted, opacity: 0.5 }} />
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-5 sm:p-6 flex flex-col relative z-20">
-          {/* Meta Row */}
-          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-3 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatDate(post.createdAt)}
-            </div>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
+        <div style={{ flex: 1, padding: "16px 16px 12px", display: "flex", flexDirection: "column" }}>
+          {/* Category & Reading Time */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}>
+            {post.category && (
+              <span style={{
+                fontFamily: fonts.mono,
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                color: colors.accent,
+              }}>
+                {post.category}
+              </span>
+            )}
+            <span style={{
+              fontFamily: fonts.mono,
+              fontSize: 10,
+              color: colors.muted,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}>
+              <Clock style={{ width: 10, height: 10 }} />
               {getReadingTime(post.description, post.readingTime)}
-            </div>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
-            <div className="flex items-center gap-1.5 font-medium text-violet-600 dark:text-violet-400">
-              <Eye className="w-3.5 h-3.5" />
-              {formatViewCount(post.views)} views
-            </div>
+            </span>
           </div>
 
-          {/* Title */}
-          <h3 className="text-lg sm:text-xl font-bold mb-3 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-300">
+          {/* Headline */}
+          <h3
+            style={{
+              fontFamily: fonts.headline,
+              fontSize: 18,
+              fontWeight: 700,
+              lineHeight: 1.3,
+              color: colors.ink,
+              marginBottom: 8,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              transition: "color 0.2s",
+            }}
+            className="group-hover:!text-[#8b1a1a]"
+          >
             {post.title}
           </h3>
 
           {/* Description */}
-          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 sm:line-clamp-3 mb-4 leading-relaxed">
+          <p style={{
+            fontFamily: fonts.body,
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: colors.muted,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            marginBottom: 12,
+          }}>
             {getCleanDescription(post.description)}
           </p>
 
-          {/* Footer */}
-          <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
-            {post.user?.name ? (
-              <div className="flex items-center gap-3">
-                <Avatar className="w-9 h-9 ring-2 ring-white dark:ring-slate-700 shadow-md">
-                  {post.user.image ? (
-                    <AvatarImage src={post.user.image} alt={post.user.name} />
-                  ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-sm font-bold">
-                    {post.user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {post.user.name}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Author
-                  </p>
+          {/* Divider */}
+          <div style={{
+            marginTop: "auto",
+            borderTop: `1px dotted ${colors.rule}`,
+            paddingTop: 10,
+          }}>
+            {/* Byline & Stats */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div>
+                {post.user?.name && (
+                  <span style={{
+                    fontFamily: fonts.body,
+                    fontSize: 11,
+                    fontStyle: "italic",
+                    color: colors.muted,
+                  }}>
+                    By {post.user.name}
+                  </span>
+                )}
+                <div style={{
+                  fontFamily: fonts.mono,
+                  fontSize: 10,
+                  color: colors.muted,
+                  marginTop: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}>
+                  <span>{formatDateShort(post.createdAt)}</span>
+                  <span style={{ color: colors.rule }}>|</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <Eye style={{ width: 10, height: 10 }} />
+                    {formatViewCount(post.views)}
+                  </span>
+                  <span style={{ color: colors.rule }}>|</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    <MessageCircle style={{ width: 10, height: 10 }} />
+                    {getCommentCount(post.comments)}
+                  </span>
                 </div>
               </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center">
-                  <User className="w-4 h-4 text-slate-400" />
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Anonymous
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                <MessageCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {getCommentCount(post.comments)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 text-sm font-semibold group-hover:gap-2 transition-all duration-300">
-                Read more
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-              </div>
+              <ArrowRight
+                style={{
+                  width: 14,
+                  height: 14,
+                  color: colors.accent,
+                  opacity: 0,
+                  transition: "opacity 0.3s, transform 0.3s",
+                }}
+                className="group-hover:!opacity-100 group-hover:translate-x-0.5"
+              />
             </div>
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }
 
 // ============================================================================
-// Featured Card (Large)
+// List View Card — Newspaper Horizontal Article
 // ============================================================================
 
-function FeaturedCard({ post, priority = true }: BlogCardProps) {
-  const categoryGradient = getCategoryGradient(post.category);
-
+function ListCard({ post, priority = false }: BlogCardProps) {
   return (
     <Link
       href={`/blog/${post.id}`}
       prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/20 dark:hover:shadow-violet-500/10"
+      className="group block"
+      style={{ textDecoration: "none" }}
     >
-      {/* Image Container */}
-      <div className="relative h-64 sm:h-80 w-full overflow-hidden">
-        {post.imageUrl ? (
-          <Image
-            src={post.imageUrl}
-            alt={post.title}
-            fill
-            className="object-cover transition-all duration-700 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 50vw"
-            quality={85}
-            priority={priority}
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 flex items-center justify-center">
-            <BookOpen className="w-20 h-20 text-white/80" />
-          </div>
-        )}
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
-
-        {/* Content Overlay */}
-        <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-end">
-          {/* Category */}
-          {post.category && (
-            <Badge
-              className={cn(
-                "w-fit mb-4 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-lg border border-white/20 bg-gradient-to-r",
-                categoryGradient
-              )}
-            >
-              {post.category}
-            </Badge>
+      <article
+        style={{
+          background: colors.cream,
+          border: `1px solid ${colors.rule}`,
+          display: "flex",
+          flexDirection: "row",
+          transition: "box-shadow 0.3s",
+        }}
+        className="hover:shadow-lg flex-col sm:flex-row"
+      >
+        {/* Image */}
+        <div
+          style={{
+            position: "relative",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+          className="w-full sm:w-64 md:w-72 h-48 sm:h-auto sm:min-h-[180px]"
+        >
+          {post.imageUrl ? (
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, 300px"
+              quality={80}
+              loading={priority ? "eager" : "lazy"}
+              priority={priority}
+              placeholder="blur"
+              blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
+            />
+          ) : (
+            <div style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 180,
+              background: "linear-gradient(135deg, #e8e0d4 0%, #d8d0c4 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <BookOpen style={{ width: 28, height: 28, color: colors.muted, opacity: 0.5 }} />
+            </div>
           )}
+        </div>
 
-          {/* Title */}
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 leading-tight group-hover:text-violet-200 transition-colors duration-300">
+        {/* Content */}
+        <div style={{
+          flex: 1,
+          padding: "20px 24px",
+          display: "flex",
+          flexDirection: "column",
+        }}>
+          {/* Meta Row */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 10,
+            fontFamily: fonts.mono,
+            fontSize: 10,
+            textTransform: "uppercase",
+            letterSpacing: "0.1em",
+          }}>
+            {post.category && (
+              <span style={{ color: colors.accent, fontWeight: 600 }}>
+                {post.category}
+              </span>
+            )}
+            <span style={{ color: colors.rule }}>|</span>
+            <span style={{ color: colors.muted }}>{formatDate(post.createdAt)}</span>
+            <span style={{ color: colors.rule }}>|</span>
+            <span style={{ color: colors.muted, display: "flex", alignItems: "center", gap: 3 }}>
+              <Clock style={{ width: 10, height: 10 }} />
+              {getReadingTime(post.description, post.readingTime)}
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h3
+            style={{
+              fontFamily: fonts.headline,
+              fontSize: 22,
+              fontWeight: 700,
+              lineHeight: 1.25,
+              color: colors.ink,
+              marginBottom: 8,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              transition: "color 0.2s",
+            }}
+            className="group-hover:!text-[#8b1a1a]"
+          >
             {post.title}
           </h3>
 
           {/* Description */}
-          <p className="text-sm sm:text-base text-slate-200 line-clamp-2 mb-4 max-w-2xl">
+          <p style={{
+            fontFamily: fonts.body,
+            fontSize: 14,
+            lineHeight: 1.7,
+            color: colors.muted,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            marginBottom: 14,
+          }}>
             {getCleanDescription(post.description)}
           </p>
 
-          {/* Meta */}
-          <div className="flex items-center gap-4 text-sm text-slate-300">
-            {post.user?.name && (
-              <div className="flex items-center gap-2">
-                <Avatar className="w-8 h-8 ring-2 ring-white/30">
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold">
-                    {post.user.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-medium">{post.user.name}</span>
-              </div>
-            )}
-            <span className="text-slate-400">|</span>
-            <span className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              {formatViewCount(post.views)}
-            </span>
-            <span className="text-slate-400">|</span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {getReadingTime(post.description, post.readingTime)}
+          {/* Footer */}
+          <div style={{
+            marginTop: "auto",
+            borderTop: `1px dotted ${colors.rule}`,
+            paddingTop: 10,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              fontFamily: fonts.mono,
+              fontSize: 11,
+              color: colors.muted,
+            }}>
+              {post.user?.name && (
+                <span style={{ fontFamily: fonts.body, fontStyle: "italic" }}>
+                  By {post.user.name}
+                </span>
+              )}
+              <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <Eye style={{ width: 12, height: 12 }} />
+                {formatViewCount(post.views)} views
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <MessageCircle style={{ width: 12, height: 12 }} />
+                {getCommentCount(post.comments)}
+              </span>
+            </div>
+            <span style={{
+              fontFamily: fonts.body,
+              fontSize: 12,
+              fontStyle: "italic",
+              color: colors.accent,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              transition: "gap 0.3s",
+            }}
+            className="group-hover:gap-2"
+            >
+              Continue reading
+              <ArrowRight style={{ width: 12, height: 12 }} />
             </span>
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }
 
 // ============================================================================
-// Compact Card
+// Featured Card — Lead Story
+// ============================================================================
+
+function FeaturedCard({ post, priority = true }: BlogCardProps) {
+  return (
+    <Link
+      href={`/blog/${post.id}`}
+      prefetch={true}
+      className="group block"
+      style={{ textDecoration: "none" }}
+    >
+      <article
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          border: `1px solid ${colors.rule}`,
+          transition: "box-shadow 0.3s",
+        }}
+        className="hover:shadow-xl"
+      >
+        {/* Image Container */}
+        <div style={{ position: "relative", height: 320, width: "100%", overflow: "hidden" }}>
+          {post.imageUrl ? (
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              quality={85}
+              priority={priority}
+            />
+          ) : (
+            <div style={{
+              width: "100%",
+              height: "100%",
+              background: "linear-gradient(135deg, #d8d0c4 0%, #c4b9a8 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <BookOpen style={{ width: 48, height: 48, color: colors.muted, opacity: 0.4 }} />
+            </div>
+          )}
+
+          {/* Gradient Overlay */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to top, rgba(26,26,26,0.9) 0%, rgba(26,26,26,0.4) 40%, transparent 70%)",
+          }} />
+
+          {/* Content over image */}
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "24px",
+          }}>
+            {/* Category label */}
+            {post.category && (
+              <span style={{
+                fontFamily: fonts.mono,
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                color: "#e8c8a0",
+                borderBottom: "1px solid rgba(232,200,160,0.4)",
+                paddingBottom: 2,
+                marginBottom: 10,
+                display: "inline-block",
+              }}>
+                {post.category}
+              </span>
+            )}
+
+            {/* Headline */}
+            <h3 style={{
+              fontFamily: fonts.headline,
+              fontSize: 26,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              color: "#f5f0e8",
+              marginBottom: 8,
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}>
+              {post.title}
+            </h3>
+
+            {/* Description */}
+            <p style={{
+              fontFamily: fonts.body,
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "rgba(245,240,232,0.75)",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              marginBottom: 12,
+              maxWidth: "90%",
+            }}>
+              {getCleanDescription(post.description)}
+            </p>
+
+            {/* Meta */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              fontFamily: fonts.mono,
+              fontSize: 10,
+              color: "rgba(245,240,232,0.6)",
+            }}>
+              {post.user?.name && (
+                <>
+                  <span style={{ fontFamily: fonts.body, fontStyle: "italic", color: "rgba(245,240,232,0.8)" }}>
+                    By {post.user.name}
+                  </span>
+                  <span style={{ opacity: 0.3 }}>|</span>
+                </>
+              )}
+              <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <Eye style={{ width: 10, height: 10 }} />
+                {formatViewCount(post.views)}
+              </span>
+              <span style={{ opacity: 0.3 }}>|</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <Clock style={{ width: 10, height: 10 }} />
+                {getReadingTime(post.description, post.readingTime)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+// ============================================================================
+// Compact Card — Brief / Sidebar Item
 // ============================================================================
 
 function CompactCard({ post }: BlogCardProps) {
   return (
     <Link
       href={`/blog/${post.id}`}
-      className="group flex gap-4 p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all duration-300"
+      className="group flex gap-3 py-3"
+      style={{
+        textDecoration: "none",
+        borderBottom: `1px dotted ${colors.rule}`,
+      }}
     >
-      {/* Image */}
-      <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden">
+      {/* Thumbnail */}
+      <div style={{
+        position: "relative",
+        width: 64,
+        height: 64,
+        flexShrink: 0,
+        overflow: "hidden",
+      }}>
         {post.imageUrl ? (
           <Image
             src={post.imageUrl}
             alt={post.title}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-110"
-            sizes="80px"
+            sizes="64px"
             quality={60}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-violet-500" />
+          <div style={{
+            width: "100%",
+            height: "100%",
+            background: `linear-gradient(135deg, ${colors.cream} 0%, #d8d0c4 100%)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <BookOpen style={{ width: 20, height: 20, color: colors.muted, opacity: 0.5 }} />
           </div>
         )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-2 mb-1 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h4
+          style={{
+            fontFamily: fonts.headline,
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: 1.3,
+            color: colors.ink,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            marginBottom: 4,
+            transition: "color 0.2s",
+          }}
+          className="group-hover:!text-[#8b1a1a]"
+        >
           {post.title}
         </h4>
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span className="flex items-center gap-1">
-            <Eye className="w-3 h-3" />
+        <div style={{
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          color: colors.muted,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <Eye style={{ width: 10, height: 10 }} />
             {formatViewCount(post.views)}
           </span>
-          <span>|</span>
-          <span>{formatDate(post.createdAt)}</span>
+          <span style={{ color: colors.rule }}>|</span>
+          <span>{formatDateShort(post.createdAt)}</span>
         </div>
       </div>
     </Link>

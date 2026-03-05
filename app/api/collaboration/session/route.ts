@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const PostBodySchema = z.object({
+  courseId: z.string(),
+  chapterId: z.string(),
+  sectionId: z.string(),
+  title: z.string().optional(),
+  sessionType: z.string().optional(),
+});
+
+const PutBodySchema = z.object({
+  sessionId: z.string(),
+  action: z.string(),
+  data: z.record(z.unknown()).optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -126,14 +141,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { courseId, chapterId, sectionId, title, sessionType } = body;
-
-    if (!courseId || !chapterId || !sectionId) {
+    const validationResult = PostBodySchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Missing required parameters" },
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
+    const { courseId, chapterId, sectionId, title, sessionType } = validationResult.data;
 
     // Check if user is enrolled in the course
     const enrollment = await db.enrollment.findUnique({
@@ -202,14 +217,14 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { sessionId, action, data } = body;
-
-    if (!sessionId || !action) {
+    const validationResult = PutBodySchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Missing required parameters" },
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
+    const { sessionId, action, data } = validationResult.data;
 
     // Verify user is participant in the session
     const participant = await db.collaborationParticipant.findFirst({

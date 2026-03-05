@@ -287,7 +287,7 @@ export function TeacherEmpowermentDashboard({
                     <h4 className="font-semibold mb-2">Key Recommendations:</h4>
                     <ul className="space-y-1">
                       {insights.recommendations.map((rec: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-2">
+                        <li key={`rec-${index}`} className="flex items-start space-x-2">
                           <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{rec}</span>
                         </li>
@@ -309,8 +309,8 @@ export function TeacherEmpowermentDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {insights.alerts.map((alert: any, index: number) => (
-                <div key={index} className={cn(
+              {insights.alerts.map((alert: { type: string; title?: string; message?: string }, index: number) => (
+                <div key={`alert-${index}`} className={cn(
                   "flex items-start space-x-3 p-3 rounded-lg",
                   alert.type === 'warning' ? 'bg-yellow-50 border border-yellow-200' : 'bg-blue-50 border border-blue-200'
                 )}>
@@ -466,8 +466,8 @@ export function TeacherEmpowermentDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {lessonPlans.map((plan, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+              {lessonPlans.map((plan) => (
+                <div key={plan.title} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-3">
                     <BookOpen className="w-5 h-5 text-gray-500" />
                     <div>
@@ -551,8 +551,8 @@ export function TeacherEmpowermentDashboard({
               { name: 'Elena Rodriguez', score: 78, engagement: 82, status: 'average' },
               { name: 'John Smith', score: 65, engagement: 45, status: 'at_risk' },
               { name: 'Lisa Brown', score: 72, engagement: 60, status: 'needs_support' }
-            ].map((student, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+            ].map((student) => (
+              <div key={student.name} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-xs font-medium">{student.name.split(' ').map(n => n[0]).join('')}</span>
@@ -770,7 +770,7 @@ export function TeacherEmpowermentDashboard({
             <Label>Learning Objectives</Label>
             <div className="space-y-2">
               {lessonPlanForm.learningObjectives.map((objective, index) => (
-                <div key={index} className="flex items-center space-x-2">
+                <div key={`objective-${index}`} className="flex items-center space-x-2">
                   <Input
                     value={objective}
                     onChange={(e) => handleArrayFieldChange('learningObjectives', index, e.target.value)}

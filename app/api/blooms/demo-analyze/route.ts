@@ -3,6 +3,7 @@ import { z } from "zod";
 import { BloomsAligner } from "@sam-ai/pedagogy";
 import { devOnlyGuard } from "@/lib/api/dev-only-guard";
 import { logger } from "@/lib/logger";
+import { currentUser } from "@/lib/auth";
 
 // Request schema
 const RequestSchema = z.object({
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
     // Demo route — dev/staging only
     const blocked = devOnlyGuard();
     if (blocked) return blocked;
+
+    // Authentication check
+    const user = await currentUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const body = await req.json();
 

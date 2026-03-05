@@ -79,7 +79,11 @@ export async function POST(request: NextRequest) {
           results.created++;
         }
       } catch (error) {
-        results.errors.push(`Template "${templateData.name || 'unnamed'}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+        logger.error('[TEMPLATE_IMPORT] Failed to import template', {
+          templateName: templateData.name || 'unnamed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        results.errors.push(`Template "${templateData.name || 'unnamed'}": Import failed`);
       }
     }
 

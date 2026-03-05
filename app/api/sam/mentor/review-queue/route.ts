@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const dueOnly = searchParams.get('dueOnly') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     // Get review entries from SAMInteraction
     const interactions = await db.sAMInteraction.findMany({

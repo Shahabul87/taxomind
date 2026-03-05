@@ -455,7 +455,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
             onValueChange={(value) => handleAnswerChange(question.id, value)}
           >
             {question.options?.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
+              <div key={`${question.id}-opt-${index}`} className="flex items-center space-x-2">
                 <RadioGroupItem value={option} id={`${question.id}-${index}`} />
                 <Label htmlFor={`${question.id}-${index}`} className="flex-1 cursor-pointer">
                   <MathText text={option} />

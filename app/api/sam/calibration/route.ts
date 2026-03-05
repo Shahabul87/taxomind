@@ -31,16 +31,16 @@ async function resolveSampleStore() {
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const apiKey = searchParams.get('apiKey');
-  const action = searchParams.get('action') ?? 'run';
-
-  const expectedKey = process.env.SAM_CRON_API_KEY ?? process.env.CRON_API_KEY;
-  if (!expectedKey || apiKey !== expectedKey) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const { searchParams } = new URL(req.url);
+    const apiKey = searchParams.get('apiKey');
+    const action = searchParams.get('action') ?? 'run';
+
+    const expectedKey = process.env.SAM_CRON_API_KEY ?? process.env.CRON_API_KEY;
+    if (!expectedKey || apiKey !== expectedKey) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const sampleStore = await resolveSampleStore();
     const calibrator = createEvaluationCalibrator({
       sampleStore,

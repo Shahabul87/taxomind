@@ -38,6 +38,7 @@ export default async function MyGroupsPage() {
     orderBy: {
       joinedAt: "desc",
     },
+    take: 100,
   });
 
   // Separate groups into owned and joined groups

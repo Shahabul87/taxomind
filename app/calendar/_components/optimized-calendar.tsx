@@ -24,7 +24,7 @@ export const OptimizedCalendar = memo(({
   selectedDate,
   onEventClick
 }: OptimizedCalendarProps) => {
-  const { view } = useCalendarStore();
+  const view = useCalendarStore(state => state.view);
 
   return (
     <ViewTransition view={view}>

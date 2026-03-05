@@ -305,7 +305,7 @@ export const EnhancedCourseInputSection = () => {
                     <div className="flex flex-wrap gap-1">
                       {titleSuggestions.map((suggestion, index) => (
                         <Button
-                          key={index}
+                          key={`title-sug-${index}`}
                           type="button"
                           variant="outline"
                           size="sm"
@@ -514,7 +514,7 @@ export const EnhancedCourseInputSection = () => {
                     <div className="flex flex-wrap gap-2">
                       {watchedValues.learningGoals.map((goal, index) => (
                         <Badge
-                          key={index}
+                          key={`goal-${goal.slice(0, 20)}-${index}`}
                           variant="secondary"
                           className="px-3 py-1 cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => removeLearningGoal(index)}

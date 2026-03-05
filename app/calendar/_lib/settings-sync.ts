@@ -4,7 +4,10 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
 export const useSettingsSync = () => {
-  const { settings, setSettings, isInitialized, setInitialized } = useSettingsStore();
+  const settings = useSettingsStore(state => state.settings);
+  const setSettings = useSettingsStore(state => state.setSettings);
+  const isInitialized = useSettingsStore(state => state.isInitialized);
+  const setInitialized = useSettingsStore(state => state.setInitialized);
 
   // Initial fetch of settings
   useEffect(() => {

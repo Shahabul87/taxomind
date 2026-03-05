@@ -249,6 +249,7 @@ export const getCourseStats = cache(async (courseId: string) => {
       db.courseReview.findMany({
         where: { courseId },
         select: { rating: true },
+        take: 100,
       }),
     ]);
 

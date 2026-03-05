@@ -24,7 +24,11 @@ import { AIExamAssistant } from "../ai-exam-assistant";
 import { EnhancedAIExamAssistant } from "../enhanced-ai-exam-assistant";
 import { BloomsTaxonomyGuide } from "../blooms-taxonomy-guide";
 import { SimpleQuestionValidation } from "./SimpleQuestionValidation";
-import { CognitiveAnalyticsDashboard } from "../cognitive-analytics-dashboard";
+import dynamic from "next/dynamic";
+const CognitiveAnalyticsDashboard = dynamic(
+  () => import("../cognitive-analytics-dashboard").then(mod => ({ default: mod.CognitiveAnalyticsDashboard })),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-64"><div className="animate-pulse text-sm text-muted-foreground">Loading analytics...</div></div> }
+);
 import { SAMQualityIndicator } from "./SAMQualityIndicator";
 import { ExamAnalyticsPanel } from "./ExamAnalyticsPanel";
 import { Question, CourseContext, ValidationResult } from "./types";

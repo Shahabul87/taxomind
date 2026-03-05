@@ -95,8 +95,8 @@ export function CreatorEngagementTab({ engagementMetrics }: CreatorEngagementTab
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="space-y-2.5 sm:space-y-3">
-                {engagementMetrics.mostPopularSections.map((section, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 rounded-lg">
+                {engagementMetrics.mostPopularSections.map((section) => (
+                  <div key={section.sectionTitle} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 rounded-lg">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm sm:text-base text-slate-900 dark:text-slate-100 truncate">
                         {section.sectionTitle}
@@ -126,8 +126,8 @@ export function CreatorEngagementTab({ engagementMetrics }: CreatorEngagementTab
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="space-y-2.5 sm:space-y-3">
-                {engagementMetrics.dropoffPoints.map((section, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 rounded-lg">
+                {engagementMetrics.dropoffPoints.map((section) => (
+                  <div key={section.sectionTitle} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 border border-slate-200/50 dark:border-slate-700/50 rounded-lg">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm sm:text-base text-slate-900 dark:text-slate-100 truncate">
                         {section.sectionTitle}

@@ -40,12 +40,12 @@ const AiTutorChatSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const user = await currentUser();
-  if (!user?.id) {
-    return apiErrors.unauthorized();
-  }
-
   try {
+    const user = await currentUser();
+    if (!user?.id) {
+      return apiErrors.unauthorized();
+    }
+
     const rawBody = await request.json();
     const parseResult = AiTutorChatSchema.safeParse(rawBody);
 

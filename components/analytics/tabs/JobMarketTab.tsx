@@ -753,8 +753,8 @@ export function JobMarketTab({ user, analytics }: JobMarketTabProps) {
               { label: 'Strong Competitive Edge', count: displayData.filter(c => c.competitivenessScore >= 80).length, color: 'emerald' },
               { label: 'Moderate Position', count: displayData.filter(c => c.competitivenessScore >= 60 && c.competitivenessScore < 80).length, color: 'amber' },
               { label: 'Needs Development', count: displayData.filter(c => c.competitivenessScore < 60).length, color: 'red' }
-            ].map((item, index) => (
-              <div key={index} className={`flex items-center justify-between p-2.5 sm:p-3 bg-${item.color}-50/50 dark:bg-${item.color}-900/20 rounded-lg border border-${item.color}-200/50 dark:border-${item.color}-700/50`}>
+            ].map((item) => (
+              <div key={item.label} className={`flex items-center justify-between p-2.5 sm:p-3 bg-${item.color}-50/50 dark:bg-${item.color}-900/20 rounded-lg border border-${item.color}-200/50 dark:border-${item.color}-700/50`}>
                 <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words flex-1">{item.label}</span>
                 <Badge variant="secondary" className={`bg-${item.color}-100/80 text-${item.color}-700 border-${item.color}-200/50 dark:bg-${item.color}-900/80 dark:text-${item.color}-300 dark:border-${item.color}-700/50 text-xs flex-shrink-0 ml-2`}>
                   {item.count} course{item.count !== 1 ? 's' : ''}

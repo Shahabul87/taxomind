@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
-    const limit = parseInt(searchParams.get('limit') ?? '50', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 100);
 
     // Build date filter
     const dateFilter: Record<string, unknown> = {};

@@ -556,7 +556,7 @@ async function checkRedisHealth(): Promise<ServiceStatus> {
   } catch (error) {
     return {
       status: "down",
-      error: error instanceof Error ? error.message : "Connection failed",
+      error: "Connection failed",
     };
   }
 }

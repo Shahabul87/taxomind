@@ -3,6 +3,16 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { safeErrorResponse } from '@/lib/api/safe-error';
+import { z } from 'zod';
+
+const ReorderBodySchema = z.object({
+  list: z.array(
+    z.object({
+      id: z.string(),
+      position: z.number(),
+    })
+  ).min(1, 'List must be a non-empty array'),
+});
 
 export async function PUT(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -14,18 +24,16 @@ export async function PUT(req: Request, props: { params: Promise<{ postId: strin
     }
     const userId = user.id;
 
-    // Parse request body and validate `list`
-    const { list } = await req.json();
-    if (!Array.isArray(list) || list.length === 0) {
-      return new NextResponse("Invalid data: 'list' must be a non-empty array", { status: 400 });
+    // Parse request body and validate with Zod
+    const body = await req.json();
+    const validationResult = ReorderBodySchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
+        { status: 400 }
+      );
     }
-
-    // Check that each item has `id` and `position` properties
-    for (const item of list) {
-      if (typeof item.id !== "string" || typeof item.position !== "number") {
-        return new NextResponse("Each item must have a valid 'id' (string) and 'position' (number)", { status: 400 });
-      }
-    }
+    const { list } = validationResult.data;
 
     // Verify the post belongs to the current user
     const post = await db.post.findFirst({

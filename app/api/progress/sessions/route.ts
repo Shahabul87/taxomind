@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Return mock data since learningSession model doesn't exist

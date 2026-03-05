@@ -3,15 +3,30 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { CalendarSync } from "@/app/calendar/_lib/calendar-sync";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const CalendarSyncBodySchema = z.object({
+  provider: z.string(),
+  action: z.string(),
+  eventId: z.string().optional(),
+});
 
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const { provider, action, eventId } = await req.json();
-
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const body = await req.json();
+    const validationResult = CalendarSyncBodySchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: validationResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const { provider, action, eventId } = validationResult.data;
 
     const user = await db.user.findUnique({
       where: { id: session.user.id },

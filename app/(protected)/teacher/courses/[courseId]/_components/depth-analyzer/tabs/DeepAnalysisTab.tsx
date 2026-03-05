@@ -7,9 +7,16 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Layers, FileText, Video, AlertCircle, XCircle, ArrowRight, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getScoreColor, DOK_LABELS } from "../utils";
-import { MultiFrameworkRadar } from "../components/MultiFrameworkRadar";
+import dynamic from "next/dynamic";
+const MultiFrameworkRadar = dynamic(
+  () => import("../components/MultiFrameworkRadar").then(mod => ({ default: mod.MultiFrameworkRadar })),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-64"><div className="animate-pulse text-sm text-muted-foreground">Loading framework analysis...</div></div> }
+);
 import { AlignmentMatrix } from "../components/AlignmentMatrix";
-import { EvidenceTracker } from "../components/EvidenceTracker";
+const EvidenceTracker = dynamic(
+  () => import("../components/EvidenceTracker").then(mod => ({ default: mod.EvidenceTracker })),
+  { ssr: false, loading: () => <div className="flex items-center justify-center h-64"><div className="animate-pulse text-sm text-muted-foreground">Loading evidence tracker...</div></div> }
+);
 import type {
   DeepContentAnalysisData,
   TranscriptAnalysisData,

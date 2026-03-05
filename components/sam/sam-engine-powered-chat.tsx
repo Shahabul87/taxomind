@@ -720,7 +720,7 @@ export function SAMEnginePoweredChat({
                   </CardHeader>
                   <CardContent className="py-2 px-3">
                     {msg.insights.map((insight, index) => (
-                      <div key={index} className="text-xs text-muted-foreground">
+                      <div key={`insight-${index}`} className="text-xs text-muted-foreground">
                         {renderInsight(insight)}
                       </div>
                     ))}
@@ -736,7 +736,7 @@ export function SAMEnginePoweredChat({
               {msg.suggestions.map((suggestion, index) => {
                 const isString = typeof suggestion === 'string';
                 return (
-                  <Card key={index} className="p-2">
+                  <Card key={`suggestion-${index}`} className="p-2">
                     <p className="text-xs font-medium">
                       {isString ? suggestion : suggestion.title}
                     </p>
@@ -756,7 +756,7 @@ export function SAMEnginePoweredChat({
             <div className="mt-2 flex flex-wrap gap-2">
               {msg.actions.map((action, index) => (
                 <Button
-                  key={index}
+                  key={`action-${action.label}-${index}`}
                   size="sm"
                   variant="outline"
                   onClick={() => handleAction(action)}

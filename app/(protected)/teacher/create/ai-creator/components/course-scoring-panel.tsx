@@ -500,7 +500,7 @@ Return ONLY valid JSON array, no other text.`,
         {showTitleSuggestions && (
           <div className="space-y-2.5 sm:space-y-3">
             {titleSuggestions.map((suggestion, index) => (
-                <div key={index} className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
+                <div key={`title-${index}`} className="p-2.5 sm:p-3 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 rounded-lg border border-white/20 shadow-lg hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200">
                   <div className="flex items-start justify-between mb-2 gap-2">
                     <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 flex-1 break-words">
                       {suggestion.title}

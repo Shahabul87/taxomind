@@ -163,7 +163,8 @@ export default function CognitiveJourneySection() {
 
   useEffect(() => {
     if (isInView) {
-      setTimeout(() => setShowPyramid(true), prefersReducedMotion ? 100 : 500);
+      const timer = setTimeout(() => setShowPyramid(true), prefersReducedMotion ? 100 : 500);
+      return () => clearTimeout(timer);
     }
   }, [isInView, prefersReducedMotion]);
 

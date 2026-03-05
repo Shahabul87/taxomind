@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-      throw new Error(`Database query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error('Database query failed');
     }
 
     if (!user) {

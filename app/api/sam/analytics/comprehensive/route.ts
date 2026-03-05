@@ -29,7 +29,7 @@ function createAnalyticsDatabaseAdapter() {
           } : undefined,
         },
         orderBy: { createdAt: 'desc' },
-        take: params.limit || 1000,
+        take: Math.min(params.limit || 1000, 500),
       });
 
       return interactions.map(i => ({

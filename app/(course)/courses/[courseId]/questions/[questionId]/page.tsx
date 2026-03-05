@@ -40,7 +40,7 @@ export default async function QuestionDetailPage({ params }: Props): Promise<JSX
   const hasInstructorAnswer = question.answers.some((a) => a.isInstructor);
   // Fetch user's votes on answers to prefill userVote
   const answerIds = question.answers.map((a) => a.id);
-  const userAnswerVotes = await db.answerVote.findMany({ where: { userId: user.id, answerId: { in: answerIds } } });
+  const userAnswerVotes = await db.answerVote.findMany({ where: { userId: user.id, answerId: { in: answerIds } }, take: 100 });
   const userVotesMap = new Map(userAnswerVotes.map(v => [v.answerId, v.value]));
 
   return (

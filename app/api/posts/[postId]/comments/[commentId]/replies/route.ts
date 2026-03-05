@@ -178,12 +178,12 @@ export const POST = withAuth(async (
     return createSuccessResponse(reply, 201);
   } catch (error) {
     const duration = Date.now() - startTime;
+    console.error('[REPLY_POST]', error);
     logger.error('[REPLY_POST] Error creating reply', {
-      error: error instanceof Error ? error.message : 'Unknown error',
       userId: context.user.id,
       duration,
     });
-    return createErrorResponse(ApiError.internal('Failed to create reply'));
+    return createErrorResponse(ApiError.internal('Internal server error'));
   }
 });
 
@@ -266,11 +266,11 @@ export const GET = withAuth(async (
     return createSuccessResponse(replies, 200);
   } catch (error) {
     const duration = Date.now() - startTime;
+    console.error('[REPLIES_GET]', error);
     logger.error('[REPLIES_GET] Error fetching replies', {
-      error: error instanceof Error ? error.message : 'Unknown error',
       duration,
     });
-    return createErrorResponse(ApiError.internal('Failed to fetch replies'));
+    return createErrorResponse(ApiError.internal('Internal server error'));
   }
 });
 

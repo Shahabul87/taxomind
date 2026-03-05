@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
 export const SettingsPanel = () => {
-  const { settings, resetSettings } = useSettingsStore();
+  const settings = useSettingsStore(state => state.settings);
+  const resetSettings = useSettingsStore(state => state.resetSettings);
   const { syncSettings } = useSettingsSync();
 
   useEffect(() => {

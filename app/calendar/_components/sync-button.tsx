@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw, Check, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,13 @@ export const SyncButton = ({
 }: SyncButtonProps) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncComplete, setSyncComplete] = useState(false);
+  const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, []);
 
   const handleSync = async () => {
     try {
@@ -69,7 +76,8 @@ export const SyncButton = ({
       toast.error(error instanceof Error ? error.message : "Failed to sync calendar");
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setSyncComplete(false), 2000);
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = setTimeout(() => setSyncComplete(false), 2000);
     }
   };
   

@@ -93,5 +93,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  return GET(req);
+  try {
+    return await GET(req);
+  } catch (error) {
+    console.error('[SAM_PROACTIVE_CRON_POST]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

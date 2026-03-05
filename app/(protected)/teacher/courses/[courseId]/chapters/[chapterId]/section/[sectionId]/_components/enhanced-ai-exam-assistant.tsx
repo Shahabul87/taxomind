@@ -87,12 +87,29 @@ function transformSAMQuestionToQuestionItem(samQuestion: SAMQuestion) {
   };
 }
 
+interface TransformedQuestion {
+  id: string;
+  type: 'multiple-choice' | 'true-false' | 'short-answer';
+  difficulty: 'easy' | 'medium' | 'hard';
+  bloomsLevel: string;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
+  points: number;
+  cognitiveLoad?: number;
+  timeEstimate?: number;
+  bloomsAlignment?: number;
+  safetyScore?: number;
+  qualityScore?: number;
+}
+
 interface EnhancedAIExamAssistantProps {
   sectionTitle: string;
   chapterTitle?: string;
   courseTitle?: string;
   learningObjectives?: string[];
-  onGenerate: (questions: any[]) => void;
+  onGenerate: (questions: TransformedQuestion[]) => void;
   trigger?: React.ReactNode;
   disabled?: boolean;
 }
@@ -295,7 +312,7 @@ export const EnhancedAIExamAssistant = ({
       } else {
         throw new Error('No questions were generated. Please try again.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Enhanced AI exam generation error:', error);
       toast.error(`Failed to generate exam questions. Please try again.`);
     } finally {
@@ -436,7 +453,7 @@ export const EnhancedAIExamAssistant = ({
                   <Users className="h-4 w-4" />
                   Target Audience
                 </Label>
-                <Select value={targetAudience} onValueChange={(value: any) => setTargetAudience(value)}>
+                <Select value={targetAudience} onValueChange={(value: "beginner" | "intermediate" | "advanced") => setTargetAudience(value)}>
                   <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select audience" />
                   </SelectTrigger>
@@ -451,7 +468,7 @@ export const EnhancedAIExamAssistant = ({
               {/* Assessment Purpose */}
               <div className="space-y-2">
                 <Label className="text-gray-700 dark:text-gray-300 font-medium">Assessment Purpose</Label>
-                <Select value={assessmentPurpose} onValueChange={(value: any) => setAssessmentPurpose(value)}>
+                <Select value={assessmentPurpose} onValueChange={(value: "formative" | "summative" | "diagnostic") => setAssessmentPurpose(value)}>
                   <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select purpose" />
                   </SelectTrigger>

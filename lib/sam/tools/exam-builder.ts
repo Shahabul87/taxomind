@@ -171,6 +171,7 @@ const STEP_ORDER: ExamCollectionStep[] = [
 // In-memory state store with TTL cleanup
 const conversationStates = new Map<string, ExamCollectionState>();
 const STATE_TTL_MS = 30 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 function cleanupOldStates(): void {
   const now = Date.now();
@@ -182,8 +183,23 @@ function cleanupOldStates(): void {
   }
 }
 
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupOldStates, 5 * 60 * 1000);
+// Store interval reference for cleanup (e.g., in tests or graceful shutdown)
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+if (typeof setInterval !== 'undefined' && !cleanupIntervalId) {
+  cleanupIntervalId = setInterval(cleanupOldStates, CLEANUP_INTERVAL_MS);
+  // Prevent the interval from keeping the process alive during shutdown
+  if (cleanupIntervalId && typeof cleanupIntervalId === 'object' && 'unref' in cleanupIntervalId) {
+    cleanupIntervalId.unref();
+  }
+}
+
+/** Stop the cleanup interval (useful for tests and graceful shutdown) */
+export function stopExamBuilderCleanup(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
 }
 
 // =============================================================================

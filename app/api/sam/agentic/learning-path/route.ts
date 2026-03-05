@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'due-for-review': {
-        const limit = parseInt(searchParams.get('limit') ?? '10', 10);
+        const limit = Math.min(parseInt(searchParams.get('limit') ?? '10', 10), 100);
         const tracker = getSkillTracker();
         const dueForReview = await tracker.getConceptsDueForReview(user.id, limit);
 

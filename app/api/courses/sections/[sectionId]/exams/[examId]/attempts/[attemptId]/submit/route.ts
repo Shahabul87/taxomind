@@ -450,12 +450,13 @@ export async function POST(
     }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('Exam submission error:', error);
+    logger.error('Exam submission error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong'
+        message: 'Something went wrong'
       },
       { status: 500 }
     );

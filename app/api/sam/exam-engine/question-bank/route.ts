@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
     const bloomsLevel = searchParams.get('bloomsLevel') as BloomsLevel | null;
     const difficulty = searchParams.get('difficulty') as QuestionDifficulty | null;
     const questionType = searchParams.get('questionType') as QuestionType | null;
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Check course access if courseId provided

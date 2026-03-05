@@ -359,7 +359,7 @@ export function AdaptiveAssessmentViewer({
             {currentQuestion.type === 'multiple_choice' && (
               <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
                 {currentQuestion.options?.map((option, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                  <div key={`${currentQuestion.text}-opt-${index}`} className="flex items-center space-x-2">
                     <RadioGroupItem value={option} id={`option-${index}`} />
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       {option}
@@ -430,7 +430,7 @@ export function AdaptiveAssessmentViewer({
               <CardContent>
                 <div className="space-y-2">
                   {currentQuestion.hints.slice(0, hintsUsed).map((hint, index) => (
-                    <div key={index} className="p-2 bg-yellow-100 rounded text-sm">
+                    <div key={`hint-${index}`} className="p-2 bg-yellow-100 rounded text-sm">
                       <strong>Hint {index + 1}:</strong> {hint}
                     </div>
                   ))}
@@ -578,8 +578,8 @@ export function AdaptiveAssessmentViewer({
                   <span>Strengths:</span>
                 </h4>
                 <div className="flex flex-wrap gap-1">
-                  {adaptiveMetrics.strengthAreas.map((area, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
+                  {adaptiveMetrics.strengthAreas.map((area) => (
+                    <Badge key={area} variant="secondary" className="text-xs">
                       {area}
                     </Badge>
                   ))}
@@ -594,8 +594,8 @@ export function AdaptiveAssessmentViewer({
                   <span>Focus Areas:</span>
                 </h4>
                 <div className="flex flex-wrap gap-1">
-                  {adaptiveMetrics.improvementAreas.map((area, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
+                  {adaptiveMetrics.improvementAreas.map((area) => (
+                    <Badge key={area} variant="outline" className="text-xs">
                       {area}
                     </Badge>
                   ))}
@@ -656,7 +656,7 @@ export function AdaptiveAssessmentViewer({
                 <h4 className="font-semibold mb-2">Recommended Next Steps:</h4>
                 <ul className="space-y-1">
                   {adaptiveMetrics.recommendedActions.map((action, index) => (
-                    <li key={index} className="text-sm flex items-center space-x-2">
+                    <li key={`action-${index}`} className="text-sm flex items-center space-x-2">
                       <ChevronRight className="w-4 h-4 text-blue-500" />
                       <span>{action}</span>
                     </li>

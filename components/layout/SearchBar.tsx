@@ -198,9 +198,9 @@ export function SearchBar({
                         </button>
                       </div>
                       <div className="space-y-1">
-                        {recentSearches.map((search, index) => (
+                        {recentSearches.map((search) => (
                           <button
-                            key={index}
+                            key={search}
                             onClick={() => {
                               setQuery(search);
                               onSearch?.(search);

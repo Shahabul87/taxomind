@@ -178,9 +178,9 @@ export function DashboardView({ user, analytics, performance, className }: Dashb
               {performance.insights && performance.insights.length > 0 && (
                 <div className="mt-6 space-y-3">
                   <h4 className="font-medium text-card-foreground">AI Insights</h4>
-                  {performance.insights.map((insight: any, index: number) => (
-                    <div 
-                      key={index}
+                  {performance.insights.map((insight: { type: string; title?: string; message?: string; priority?: string }, index: number) => (
+                    <div
+                      key={`insight-${index}`}
                       className={cn(
                         "p-4 rounded-lg border transition-colors",
                         insight.type === 'success' ? "bg-muted/50 border-border" :

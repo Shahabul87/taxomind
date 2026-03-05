@@ -18,7 +18,7 @@ import {
 
 // Import new Coursera-style components
 import { CoursesNavbarResizable } from "@/components/layout/CoursesNavbarResizable";
-import { EnhancedHero } from "./EnhancedHero";
+import { EnhancedHero } from "./BrutalistHero";
 import { EnhancedCourseCard } from "./enhanced-course-card";
 
 // SAM AI Recommendations

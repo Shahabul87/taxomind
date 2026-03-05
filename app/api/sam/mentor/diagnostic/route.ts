@@ -538,7 +538,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
 
     // Get diagnostic sessions from SAMInteraction
     const interactions = await db.sAMInteraction.findMany({

@@ -8,7 +8,6 @@ import { SerializedCourseWithRelations } from "@/types/course";
 
 // Force dynamic rendering - this page MUST NOT be statically generated
 export const dynamic = 'force-dynamic';
-export const revalidate = 30;
 
 const CoursesPage = async () => {
   try {

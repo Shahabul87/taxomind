@@ -70,7 +70,7 @@ export async function POST(req: Request) {
           logger.error('[STREAMING] Error in blueprint generation:', error);
           const errorMessage: StreamMessage = {
             type: 'error',
-            data: { error: error instanceof Error ? error.message : 'Unknown error' },
+            data: { error: 'An unexpected error occurred' },
             progress: 0,
             message: 'Failed to generate course blueprint'
           };
@@ -228,7 +228,7 @@ async function generateBlueprintWithStreaming(
     logger.error('[STREAMING] Generation error:', error);
     sendUpdate({
       type: 'error',
-      data: { error: error instanceof Error ? error.message : 'Unknown error' },
+      data: { error: 'An unexpected error occurred' },
       progress: 0,
       message: 'Failed to generate course blueprint'
     });

@@ -598,7 +598,7 @@ describe('GET /api/posts/[postId]/comments', () => {
 
     expect(res.status).toBe(500);
     expect(body.error.code).toBe('INTERNAL_ERROR');
-    expect(body.error.message).toBe('Failed to fetch comments');
+    expect(body.error.message).toBe('Internal server error');
   });
 
   it('clamps page to minimum of 1 for negative values', async () => {

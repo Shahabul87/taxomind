@@ -46,7 +46,8 @@ interface HealthStatus {
 }
 
 export async function GET(req: NextRequest) {
-  const health: HealthStatus = {
+  try {
+    const health: HealthStatus = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -259,9 +260,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
+    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
 
-  return NextResponse.json(health, { status: statusCode });
+    return NextResponse.json(health, { status: statusCode });
+  } catch (error) {
+    console.error('[HEALTH_CHECK]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
 // Liveness probe - simple check that the application is running

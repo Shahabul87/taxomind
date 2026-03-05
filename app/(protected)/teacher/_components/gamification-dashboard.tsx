@@ -276,8 +276,8 @@ export function GamificationDashboard({
           <CardContent>
             <p className="text-indigo-800 mb-4">{motivationMessage.message}</p>
             <div className="flex flex-wrap gap-2">
-              {motivationMessage.actions?.map((action: string, index: number) => (
-                <Badge key={index} variant="secondary" className="text-xs">
+              {motivationMessage.actions?.map((action: string) => (
+                <Badge key={action} variant="secondary" className="text-xs">
                   {action}
                 </Badge>
               ))}

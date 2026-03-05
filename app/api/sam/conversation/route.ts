@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId') || undefined;
     const chapterId = searchParams.get('chapterId') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
     const conversations = await getSAMConversations(session.user.id, {
       courseId,

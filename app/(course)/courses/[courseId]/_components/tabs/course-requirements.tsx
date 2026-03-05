@@ -41,7 +41,7 @@ export const CourseRequirements = ({ course }: CourseRequirementsProps): JSX.Ele
       <div className="space-y-2">
         {requirements.map((requirement: string, index: number) => (
           <motion.div
-            key={index}
+            key={`req-${index}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 * index }}

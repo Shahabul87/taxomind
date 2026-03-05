@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

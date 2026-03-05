@@ -203,7 +203,7 @@ export function EnterpriseOverviewTab({
               <div className="space-y-3">
                 {performance.insights.slice(0, 3).map((insight, index) => (
                   <div
-                    key={index}
+                    key={`insight-${index}`}
                     className={cn(
                       "p-4 rounded-lg border-l-4",
                       insight.type === "success" &&

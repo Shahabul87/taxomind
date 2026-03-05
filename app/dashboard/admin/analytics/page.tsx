@@ -75,6 +75,7 @@ async function getAnalyticsStats(timeRangeHours: number = 168): Promise<Analytic
           select: { price: true, categoryId: true },
         },
       },
+      take: 500,
     }),
     // Previous period enrollments for comparison
     db.enrollment.findMany({
@@ -89,6 +90,7 @@ async function getAnalyticsStats(timeRangeHours: number = 168): Promise<Analytic
           select: { price: true },
         },
       },
+      take: 500,
     }),
     // Current active users (users who registered or logged in recently)
     db.user.count({
@@ -148,11 +150,13 @@ async function getAnalyticsStats(timeRangeHours: number = 168): Promise<Analytic
           },
         },
       },
+      take: 500,
     }),
     // Recent learning sessions for avg time
     db.learningSession.findMany({
       where: { createdAt: { gte: startDate } },
       select: { duration: true },
+      take: 500,
     }),
     // Previous sessions
     db.learningSession.findMany({
@@ -160,6 +164,7 @@ async function getAnalyticsStats(timeRangeHours: number = 168): Promise<Analytic
         createdAt: { gte: previousStartDate, lt: startDate },
       },
       select: { duration: true },
+      take: 500,
     }),
   ]);
 

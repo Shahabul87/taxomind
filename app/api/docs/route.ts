@@ -3,12 +3,12 @@ import { swaggerSpec } from '@/lib/swagger'
 import { logger } from '@/lib/logger'
 
 export async function GET() {
-  // Only expose API docs in development
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
-
   try {
+    // Only expose API docs in development
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     return NextResponse.json(swaggerSpec)
   } catch (error) {
     logger.error('[DOCS] GET Error', error);

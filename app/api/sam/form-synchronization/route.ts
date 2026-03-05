@@ -116,7 +116,6 @@ async function handleChapterSync(courseId: string, chaptersData: any[], userId: 
       logger.error(`Error creating chapter "${chapterData.title}":`, error);
       results.push({
         error: `Failed to create chapter: ${chapterData.title}`,
-        details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }

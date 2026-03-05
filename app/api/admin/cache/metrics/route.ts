@@ -204,7 +204,7 @@ async function getCacheKeys() {
             ttl: -1,
             size: 0,
             type: getKeyType(key),
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: 'Failed to inspect key'
           };
         }
       })
@@ -223,7 +223,7 @@ async function getCacheKeys() {
 
 async function getCacheHealth() {
   if (!redis) {
-    return { 
+    return {
       status: 'unhealthy',
       error: "Redis not available",
       timestamp: new Date().toISOString()
@@ -233,7 +233,7 @@ async function getCacheHealth() {
   try {
     // Test Redis connection
     const pingResult = redis ? await redis.ping() : 'Redis not available';
-    
+
     return {
       status: 'healthy',
       ping: pingResult,
@@ -242,9 +242,10 @@ async function getCacheHealth() {
       environment: process.env.NODE_ENV || 'development'
     };
   } catch (error) {
+    logger.error("Cache health check failed:", error);
     return {
       status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Health check failed',
       timestamp: new Date().toISOString()
     };
   }

@@ -367,7 +367,7 @@ export const PersonalLearningDashboard = ({
             <CardContent>
               <div className="space-y-4">
                 {analytics.recentActivity.slice(0, 8).map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <div key={activity.id || `activity-${index}`} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-gray-900 dark:text-gray-100">
@@ -615,7 +615,7 @@ export const PersonalLearningDashboard = ({
             <CardContent>
               <div className="space-y-4">
                 {analytics.aiRecommendations.map((rec, index) => (
-                  <div key={index} className={cn(
+                  <div key={rec.title || `rec-${index}`} className={cn(
                     "border rounded-lg p-4",
                     rec.priority === 'high' ? "border-red-200 bg-red-50" :
                     rec.priority === 'medium' ? "border-yellow-200 bg-yellow-50" :

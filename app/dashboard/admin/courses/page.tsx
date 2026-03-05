@@ -54,6 +54,7 @@ async function getCourseStats(): Promise<CourseStats> {
       select: {
         createdAt: true,
       },
+      take: 500,
     }),
   ]);
 
@@ -110,6 +111,7 @@ async function getCourses(): Promise<CourseWithStats[]> {
     orderBy: {
       updatedAt: "desc",
     },
+    take: 200,
   });
 
   return courses.map((course) => {
@@ -148,6 +150,7 @@ async function getCategories(): Promise<string[]> {
   const categories = await db.category.findMany({
     select: { name: true },
     orderBy: { name: "asc" },
+    take: 100,
   });
   return categories.map((c) => c.name);
 }

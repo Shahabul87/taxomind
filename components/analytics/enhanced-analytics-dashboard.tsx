@@ -859,8 +859,8 @@ export function EnhancedAnalyticsDashboard({
                   </div>
                   
                   <div className="space-y-2">
-                    {data.realtimeMetrics.currentActivity.map((activity, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 rounded bg-muted">
+                    {data.realtimeMetrics.currentActivity.map((activity) => (
+                      <div key={activity.type} className="flex items-center justify-between p-2 rounded bg-muted">
                         <span className="text-sm">{activity.type}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">{activity.count}</span>
@@ -987,8 +987,8 @@ export function EnhancedAnalyticsDashboard({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.performance.skillProgression.map((skill, index) => (
-                    <div key={index} className="space-y-2">
+                  {data.performance.skillProgression.map((skill) => (
+                    <div key={skill.skill} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{skill.skill}</span>
                         <span className="text-sm text-muted-foreground">{skill.current}% / {skill.target}%</span>

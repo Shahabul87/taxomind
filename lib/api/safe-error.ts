@@ -8,27 +8,13 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
-const IS_PRODUCTION = process.env.NODE_ENV !== 'development';
-
 /**
  * Extract a safe error message from an unknown error.
- * In production, returns a generic message to avoid leaking internals.
- * In development, returns the actual error message.
+ * Always returns a generic message to avoid leaking internals.
+ * Internal error details are logged server-side only.
  */
-export function safeErrorMessage(error: unknown): string {
-  if (IS_PRODUCTION) {
-    return 'Internal server error';
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  return 'Unknown error';
+export function safeErrorMessage(_error: unknown): string {
+  return 'Internal server error';
 }
 
 /**

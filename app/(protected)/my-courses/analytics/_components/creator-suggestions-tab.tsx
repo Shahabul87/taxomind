@@ -140,9 +140,9 @@ export function CreatorSuggestionsTab({ suggestions }: CreatorSuggestionsTabProp
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-3 sm:space-y-4">
-            {suggestions.map((suggestion, index) => (
+            {suggestions.map((suggestion) => (
               <div
-                key={index}
+                key={suggestion.title}
                 className={cn(
                   "border rounded-lg p-3 sm:p-4",
                   priorityStyles[suggestion.priority].card

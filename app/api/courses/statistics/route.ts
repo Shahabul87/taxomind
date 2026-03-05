@@ -220,10 +220,7 @@ export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseSta
         error: {
           code: 'STATISTICS_FETCH_ERROR',
           message: 'Failed to fetch platform statistics',
-          details:
-            process.env.NODE_ENV === 'development'
-              ? { message: errorMessage }
-              : undefined,
+          details: undefined,
         },
         metadata: {
           timestamp: new Date().toISOString(),

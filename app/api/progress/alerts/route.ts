@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     const severity = searchParams.get('severity');
     const alertType = searchParams.get('alertType');
     const unresolved = searchParams.get('unresolved') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Filter mock data based on query params

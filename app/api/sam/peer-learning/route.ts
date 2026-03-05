@@ -267,7 +267,7 @@ export async function GET(req: NextRequest) {
 
     // Support both 'action' (frontend) and 'endpoint' param names
     const endpoint = searchParams.get('endpoint') ?? searchParams.get('action') ?? 'profile';
-    const limit = parseInt(searchParams.get('limit') ?? '10');
+    const limit = Math.min(parseInt(searchParams.get('limit') ?? '10'), 100);
 
     switch (endpoint) {
       case 'profile': {
