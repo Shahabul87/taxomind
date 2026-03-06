@@ -145,6 +145,15 @@ body,
     --surface-muted: 220 14% 96%;
     --brand: 142 76% 46%; /* green from hero */
 
+    /* Blog Newspaper Theme Tokens */
+    --blog-newspaper-bg: 35 30% 94%;
+    --blog-newspaper-ink: 0 0% 10%;
+    --blog-newspaper-accent: 0 68% 33%;
+    --blog-newspaper-muted: 0 0% 36%;
+    --blog-newspaper-rule: 30 15% 72%;
+    --blog-newspaper-light-rule: 30 12% 82%;
+    --blog-newspaper-warm: 33 22% 89%;
+
     /* Coursera-style Hero Section Tokens */
     --hero-primary: 217 91% 60%; /* light blue #3b82f6 */
     --hero-primary-dark: 221 83% 53%; /* darker blue #2563eb */
@@ -197,6 +206,15 @@ body,
     --surface-muted: 230 25% 14%;
     --brand: 142 76% 56%; /* brighter green */
 
+    /* Blog Newspaper Theme Tokens - Dark Mode */
+    --blog-newspaper-bg: 25 20% 10%;
+    --blog-newspaper-ink: 35 20% 90%;
+    --blog-newspaper-accent: 0 60% 55%;
+    --blog-newspaper-muted: 0 0% 65%;
+    --blog-newspaper-rule: 30 12% 28%;
+    --blog-newspaper-light-rule: 30 10% 22%;
+    --blog-newspaper-warm: 25 15% 14%;
+
     /* Coursera-style Hero Section Tokens - Dark Mode */
     --hero-primary: 217 91% 65%; /* brighter blue for dark mode */
     --hero-primary-dark: 221 83% 58%; /* lighter blue */
@@ -215,6 +233,21 @@ body,
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================================
+   Blog Newspaper Font & Color Utilities
+   ============================================================================ */
+.font-blog-headline { font-family: var(--font-crimson, 'Crimson Text', Georgia, serif); }
+.font-blog-serif { font-family: var(--font-libre, 'Libre Baskerville', Georgia, serif); }
+.font-blog-masthead { font-family: var(--font-unifraktur, 'UnifrakturCook', serif); }
+
+.bg-newspaper { background-color: hsl(var(--blog-newspaper-bg)); }
+.text-newspaper-ink { color: hsl(var(--blog-newspaper-ink)); }
+.text-newspaper-accent { color: hsl(var(--blog-newspaper-accent)); }
+.text-newspaper-muted { color: hsl(var(--blog-newspaper-muted)); }
+.border-newspaper-ink { border-color: hsl(var(--blog-newspaper-ink)); }
+.border-newspaper-rule { border-color: hsl(var(--blog-newspaper-rule)); }
+.bg-newspaper-warm { background-color: hsl(var(--blog-newspaper-warm)); }
 
 /* Micro-animations for subtle, elegant feedback */
 @keyframes pop-in {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLearningMode } from "../../../../_components/learning-mode-context";
 import { SectionYouTubePlayer } from "./section-youtube-player";
-import { MathLatexRenderer, initMathJax } from "./math-latex-renderer";
+import { MathLatexRenderer } from "./math-latex-renderer";
 import { CodeSyntaxHighlighter, initPrism } from "./code-syntax-highlighter";
 import { ExamCard } from "./exam-quiz-component";
 import { ExamFeedbackPanel } from "./exam-feedback-panel";
@@ -33,6 +33,8 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  Keyboard,
+  ChevronDown,
   AlertCircle,
   ExternalLink,
   Award,
@@ -46,14 +48,15 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import type { SectionWithProgress, UserProgressData } from "@/types/learning";
+import type { LearningPageSection } from "@/lib/queries/learning-queries";
+import type { user_progress } from "@prisma/client";
 
 interface SectionContentTabsProps {
-  section: SectionWithProgress;
+  section: LearningPageSection;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  userProgress?: UserProgressData | null;
+  userProgress?: user_progress | null;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
 }
@@ -100,12 +103,6 @@ export function SectionContentTabs({
     localStorage.setItem(`section_${sectionId}_tab`, value);
   };
 
-  // Initialize MathJax and Prism for enhanced content rendering
-  useEffect(() => {
-    initMathJax();
-    initPrism();
-  }, []);
-
   // Mark item as completed
   const markItemComplete = async (itemId: string, itemType: string) => {
     if (mode !== "learning") return;
@@ -138,6 +135,13 @@ export function SectionContentTabs({
   const sectionCompletionPercent = userProgress?.progressPercent ?? 0;
 
   const hasContent = Object.values(contentCounts).some((count) => count > 0);
+
+  // Initialize Prism only when code content exists (avoids unnecessary CDN loads)
+  useEffect(() => {
+    if (contentCounts.code > 0) {
+      initPrism();
+    }
+  }, [contentCounts.code]);
 
   // Check if user can access a video based on its access tier
   const canAccessVideo = (accessTier?: string): boolean => {
@@ -321,27 +325,34 @@ export function SectionContentTabs({
             className="space-y-6 data-[state=inactive]:hidden"
           >
             <div className="space-y-6">
-              {/* Section Description */}
-              {section.description && (
-                <div className={cn(
-                  "prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words",
-                  "[&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-800 dark:[&_h2]:text-slate-100 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:pb-1.5 [&_h2]:border-b [&_h2]:border-slate-200/60 dark:[&_h2]:border-slate-700/60",
-                  "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-700 dark:[&_h3]:text-slate-200 [&_h3]:mt-4 [&_h3]:mb-2",
-                  "[&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-slate-600 dark:[&_p]:text-slate-400 [&_p]:mb-3",
-                  "[&_strong]:font-semibold [&_strong]:text-slate-700 dark:[&_strong]:text-slate-200",
-                  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2",
-                  "[&_li]:text-sm [&_li]:text-slate-600 dark:[&_li]:text-slate-400 [&_li]:mb-1.5",
-                  "[&_table]:w-full [&_table]:text-sm [&_table]:border-collapse [&_table]:my-4",
-                  "[&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-slate-700 dark:[&_th]:text-slate-300 [&_th]:border [&_th]:border-slate-200 dark:[&_th]:border-slate-700",
-                  "[&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-slate-700 [&_td]:text-slate-600 dark:[&_td]:text-slate-400",
-                  "[&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 dark:[&_blockquote]:border-indigo-600 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:text-slate-500 dark:[&_blockquote]:text-slate-400",
-                  "[&_code]:text-xs [&_code]:bg-slate-100 dark:[&_code]:bg-slate-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono",
-                  "[&>:first-child]:mt-0",
-                )}>
-                  <MathAwareHtmlRenderer
-                    html={section.description}
-                    className="text-slate-600 dark:text-slate-400"
-                  />
+              {/* Quick Actions — show when there's no additional content to explore */}
+              {!hasContent && (isEnrolled || isTeacher) && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3">
+                    Continue learning
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setActiveTab("practice")}
+                      className="flex items-center gap-3 p-4 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors text-left"
+                    >
+                      <Brain className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Practice</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Test your understanding with AI-generated questions</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("tutor")}
+                      className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors text-left"
+                    >
+                      <MessageCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">AI Tutor</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Ask questions through Socratic dialogue</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -428,36 +439,10 @@ export function SectionContentTabs({
                 </div>
               )}
 
-              {/* Keyboard Shortcuts */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
-                <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <AlertCircle className="h-4 w-4 text-slate-500" />
-                  Keyboard Shortcuts
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-600 dark:text-slate-400">
-                  <div className="flex items-center justify-between">
-                    <span>Play / Pause</span>
-                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Space</kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Next section</span>
-                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">N</kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Previous section</span>
-                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">P</kbd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Toggle sidebar</span>
-                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Ctrl+B</kbd>
-                  </div>
-                </div>
-                {mode === "learning" && sectionCompletionPercent >= 100 && (
-                  <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                    Section complete — certificate available in the Certificate tab.
-                  </p>
-                )}
-              </div>
+              {/* Keyboard Shortcuts — Collapsible */}
+              <KeyboardShortcutsPanel
+                isComplete={mode === "learning" && sectionCompletionPercent >= 100}
+              />
             </div>
           </TabsContent>
 
@@ -1303,5 +1288,52 @@ export function SectionContentTabs({
         </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+/** Collapsible keyboard shortcuts panel */
+function KeyboardShortcutsPanel({ isComplete }: { isComplete: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-lg border border-slate-100 dark:border-slate-700 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-3 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      >
+        <span className="flex items-center gap-2 font-medium">
+          <Keyboard className="h-4 w-4 text-slate-400 dark:text-slate-500" />
+          Keyboard Shortcuts
+        </span>
+        <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="px-4 pb-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+            <div className="flex items-center justify-between">
+              <span>Play / Pause</span>
+              <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Space</kbd>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Next section</span>
+              <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">N</kbd>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Previous section</span>
+              <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">P</kbd>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Toggle sidebar</span>
+              <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Ctrl+B</kbd>
+            </div>
+          </div>
+          {isComplete && (
+            <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              Section complete — certificate available in the Certificate tab.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

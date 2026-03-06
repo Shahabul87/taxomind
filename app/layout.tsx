@@ -98,7 +98,7 @@ const educationalOrgSchema = {
 };
 
 // Editorial Typography - Google Fonts for Blog Pages
-import { Playfair_Display, Source_Serif_4, Inter } from 'next/font/google';
+import { Playfair_Display, Source_Serif_4, Inter, Crimson_Text, Libre_Baskerville, UnifrakturCook } from 'next/font/google';
 
 // Display font for headings - elegant serif with high contrast
 const playfairDisplay = Playfair_Display({
@@ -122,6 +122,30 @@ const inter = Inter({
   display: 'swap',
   variable: '--font-ui',
   weight: ['400', '500', '600', '700'],
+});
+
+// Blog newspaper fonts - self-hosted via next/font (CSP-compliant)
+const crimsonText = Crimson_Text({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-crimson',
+  weight: ['400', '600', '700'],
+  style: ['normal', 'italic'],
+});
+
+const libreBaskerville = Libre_Baskerville({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-libre',
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+});
+
+const unifrakturCook = UnifrakturCook({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-unifraktur',
+  weight: '700',
 });
 
 import { auth } from '@/auth'
@@ -255,6 +279,9 @@ export default async function RootLayout({
         playfairDisplay.variable,
         sourceSerif.variable,
         inter.variable,
+        crimsonText.variable,
+        libreBaskerville.variable,
+        unifrakturCook.variable,
         "min-h-screen",
         "bg-background text-foreground font-sans"
       )}>

@@ -164,6 +164,13 @@ export async function getLearningPageData({
   return course;
 }
 
+/** Inferred type for the full learning page data returned by getLearningPageData */
+export type LearningPageData = NonNullable<Awaited<ReturnType<typeof getLearningPageData>>>;
+/** Inferred chapter type from the learning page query */
+export type LearningPageChapter = LearningPageData['chapters'][number];
+/** Inferred section type from the learning page query */
+export type LearningPageSection = LearningPageChapter['sections'][number];
+
 /**
  * Get user progress for a specific section
  * Only called when needed (not on every page load)

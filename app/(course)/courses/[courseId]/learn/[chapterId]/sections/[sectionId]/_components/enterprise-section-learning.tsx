@@ -7,27 +7,22 @@ import { SectionYouTubePlayer, type SectionYouTubePlayerRef } from "./section-yo
 import { SectionContentTabs } from "./section-content-tabs";
 import { SectionHeader } from "./section-header";
 import { SectionSidebar } from "./section-sidebar";
-import { SectionProgressTracker } from "./section-progress-tracker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
-  BookOpen,
   Clock,
-  Award,
   Target,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  AlertCircle,
   Info,
   PanelLeftClose,
   PanelRightOpen,
   Brain,
   Heart,
-  Sparkles,
+  Award,
   X,
   Lightbulb,
 } from "lucide-react";
@@ -35,7 +30,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useKeyboardNavigation } from "./keyboard-navigation";
 import { useAnalytics, ANALYTICS_EVENTS } from "./learning-analytics-tracker";
-import { SafeHtmlRenderer } from "./safe-html-renderer";
 import { MathAwareHtmlRenderer } from "./math-aware-html-renderer";
 import { DiscussionForum } from "@/components/learning/discussion-forum";
 import {
@@ -51,29 +45,28 @@ import { useEmotionDetection, getEmotionSupportMessage } from "@/hooks/use-emoti
 import { useLearningStyle, getStyleAdaptations } from "@/hooks/use-learning-style";
 import { useSAMPageContext } from "@sam-ai/react";
 
+import type { UserWithRelations } from "@/types/learning";
 import type {
-  UserWithRelations,
-  CourseWithChapters,
-  ChapterWithSections,
-  SectionWithProgress,
-  UserProgressData,
-  NextChapterSection,
-} from "@/types/learning";
+  LearningPageData,
+  LearningPageChapter,
+  LearningPageSection,
+} from "@/lib/queries/learning-queries";
+import type { user_progress } from "@prisma/client";
 
 interface EnterpriseSectionLearningProps {
   user: UserWithRelations | null;
-  course: CourseWithChapters;
-  currentChapter: ChapterWithSections;
-  currentSection: SectionWithProgress;
-  nextSection: SectionWithProgress | null;
-  prevSection: SectionWithProgress | null;
-  nextChapterSection: NextChapterSection | null;
+  course: LearningPageData;
+  currentChapter: LearningPageChapter;
+  currentSection: LearningPageSection;
+  nextSection: LearningPageSection | null;
+  prevSection: LearningPageSection | null;
+  nextChapterSection: { section: LearningPageSection; chapter: LearningPageChapter } | null;
   totalSections: number;
   completedSections: number;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  userProgress?: UserProgressData | null;
+  userProgress?: user_progress | null;
 }
 
 export function EnterpriseSectionLearning({
@@ -339,6 +332,31 @@ export function EnterpriseSectionLearning({
   };
   const totalContent = Object.values(contentCounts).reduce((a, b) => a + b, 0);
 
+  // Calculate display duration: use section duration or estimate from description word count
+  const durationMinutes = currentSection.duration
+    ? Math.floor(currentSection.duration / 60)
+    : 0;
+  const estimatedReadingMinutes = currentSection.description
+    ? Math.max(1, Math.ceil(currentSection.description.replace(/<[^>]*>/g, "").split(/\s+/).length / 200))
+    : 0;
+  const displayMinutes = durationMinutes > 0 ? durationMinutes : estimatedReadingMinutes;
+
+  // Strip leading heading from description if it duplicates the section title
+  const descriptionHtml = (() => {
+    if (!currentSection.description) return null;
+    const html = currentSection.description;
+    const titleNormalized = currentSection.title.trim().toLowerCase().replace(/[^\w\s]/g, "");
+    // Match opening h1-h3 tag at the start of the description
+    const headingMatch = html.match(/^\s*<h[1-3][^>]*>(.*?)<\/h[1-3]>/i);
+    if (headingMatch) {
+      const headingText = headingMatch[1].replace(/<[^>]*>/g, "").trim().toLowerCase().replace(/[^\w\s]/g, "");
+      if (headingText === titleNormalized) {
+        return html.replace(headingMatch[0], "").trim();
+      }
+    }
+    return html;
+  })();
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Section Header */}
@@ -397,7 +415,7 @@ export function EnterpriseSectionLearning({
           <motion.div
             className={cn(
               "space-y-6",
-              sidebarOpen ? "xl:col-span-8" : "xl:col-span-12"
+              sidebarOpen ? "xl:col-span-8" : "xl:col-span-12 xl:max-w-4xl xl:mx-auto"
             )}
             layout
             transition={{ duration: 0.2 }}
@@ -410,18 +428,18 @@ export function EnterpriseSectionLearning({
                     <CardTitle className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight">
                       {currentSection.title}
                     </CardTitle>
-                    {currentSection.description && (
+                    {descriptionHtml && (
                       <MathAwareHtmlRenderer
-                        html={currentSection.description}
+                        html={descriptionHtml}
                         className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words"
                       />
                     )}
                   </div>
                   <div className="flex flex-col gap-2 flex-shrink-0">
-                    {currentSection.duration && (
+                    {displayMinutes > 0 && (
                       <Badge variant="secondary" className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0">
                         <Clock className="h-3 w-3" />
-                        {Math.floor(currentSection.duration / 60)} min
+                        {displayMinutes} min{durationMinutes === 0 ? " read" : ""}
                       </Badge>
                     )}
                     {sectionCompleted && (
@@ -435,7 +453,7 @@ export function EnterpriseSectionLearning({
 
                 {/* Learning Objectives */}
                 {currentSection.learningObjectives && (
-                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                     <h3 className="flex items-center gap-2 text-sm font-medium mb-3 text-slate-900 dark:text-white">
                       <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
                       Learning Objectives
@@ -452,7 +470,7 @@ export function EnterpriseSectionLearning({
                               .map((line) => `<li>${line}</li>`)
                               .join("")}</ul>`
                       }
-                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm [&>ul>li]:leading-relaxed"
+                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm [&>ul>li]:leading-relaxed"
                     />
                   </div>
                 )}

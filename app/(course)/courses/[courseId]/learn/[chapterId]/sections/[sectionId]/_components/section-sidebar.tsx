@@ -19,20 +19,20 @@ import {
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type {
-  CourseWithChapters,
-  ChapterWithSections,
-  SectionWithProgress,
-  UserProgressData,
-} from "@/types/learning";
+  LearningPageData,
+  LearningPageChapter,
+  LearningPageSection,
+} from "@/lib/queries/learning-queries";
+import type { user_progress } from "@prisma/client";
 
 interface SectionSidebarProps {
-  course: CourseWithChapters;
-  currentChapter: ChapterWithSections;
-  currentSection: SectionWithProgress;
+  course: LearningPageData;
+  currentChapter: LearningPageChapter;
+  currentSection: LearningPageSection;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  userProgress?: UserProgressData | null;
+  userProgress?: user_progress | null;
   totalSections: number;
   completedSections: number;
   onToggle: () => void;
@@ -113,6 +113,23 @@ export function SectionSidebar({
               <p className="text-xs text-slate-500 dark:text-slate-400">Left</p>
             </div>
           </div>
+
+          {/* Motivational micro-copy */}
+          {completedSections === 0 && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+              Ready to start? Complete your first section!
+            </p>
+          )}
+          {completedSections > 0 && completedSections < totalSections && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+              {completedSections === 1 ? "Great start!" : `${Math.round(courseProgress)}% done — keep going!`}
+            </p>
+          )}
+          {completedSections === totalSections && totalSections > 0 && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+              Course complete — congratulations!
+            </p>
+          )}
         </CardContent>
       </Card>
 

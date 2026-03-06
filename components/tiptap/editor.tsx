@@ -6,6 +6,8 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import Underline from '@tiptap/extension-underline';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
 // BulletList, OrderedList, and ListItem are already included in StarterKit
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
@@ -103,6 +105,8 @@ export const TipTapEditor = ({
       allowBase64: true,
     }),
     Underline,
+    Subscript,
+    Superscript,
     // Removed BulletList, OrderedList, ListItem - already included in StarterKit
   ];
   

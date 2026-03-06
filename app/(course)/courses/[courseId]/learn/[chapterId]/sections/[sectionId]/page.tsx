@@ -159,18 +159,18 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
       <Suspense fallback={<SectionLoadingSkeleton />}>
         <EnterpriseSectionLearning
           user={user ?? null}
-          course={courseData as any}
-          currentChapter={currentChapter as any}
-          currentSection={currentSection as any}
-          nextSection={nextSection as any}
-          prevSection={prevSection as any}
-          nextChapterSection={nextChapterSection as any}
+          course={courseData}
+          currentChapter={currentChapter}
+          currentSection={currentSection}
+          nextSection={nextSection}
+          prevSection={prevSection}
+          nextChapterSection={nextChapterSection}
           totalSections={totalSections}
           completedSections={completedSections}
           courseId={params.courseId}
           chapterId={params.chapterId}
           sectionId={params.sectionId}
-          userProgress={userProgress as any}
+          userProgress={userProgress}
         />
       </Suspense>
     </LearningModeProvider>

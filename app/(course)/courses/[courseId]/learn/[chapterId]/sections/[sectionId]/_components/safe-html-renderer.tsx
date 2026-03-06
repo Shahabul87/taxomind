@@ -10,7 +10,8 @@ interface SafeHtmlRendererProps {
 const SAFE_ALLOWED_TAGS = [
   "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
   "h1", "h2", "h3", "h4", "h5", "h6", "a", "blockquote",
-  "code", "pre", "span", "div"
+  "code", "pre", "span", "div", "sub", "sup",
+  "table", "thead", "tbody", "tr", "th", "td"
 ];
 
 const SAFE_ALLOWED_TAG_SET = new Set(SAFE_ALLOWED_TAGS);

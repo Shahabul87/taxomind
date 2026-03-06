@@ -12,6 +12,7 @@ import {
   PenSquare,
 } from "lucide-react";
 import type { BlogPost, BlogStatistics } from "./types";
+import { blogFonts, blogColors } from "./types";
 
 /*
   BLOG HERO: THE BROADSHEET
@@ -92,17 +93,12 @@ export function BlogHeroBroadsheet({
 
   return (
     <section
-      className="relative overflow-hidden"
+      className="relative overflow-hidden min-h-[500px] lg:min-h-[700px]"
       style={{
-        background: "#f5f0e8",
-        minHeight: 700,
+        background: blogColors.cream,
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
       }}
     >
-      {/* Google Fonts link via style tag for editorial fonts */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=UnifrakturCook:wght@700&display=swap');
-      `}</style>
 
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -112,26 +108,26 @@ export function BlogHeroBroadsheet({
             hidden: {},
             show: { transition: { staggerChildren: 0.08 } },
           }}
-          className="pt-12 pb-16"
+          className="pt-12 pb-8"
         >
           {/* Masthead */}
           <motion.div variants={fadeUp} className="text-center">
             {/* Top rule */}
             <div
-              style={{ borderTop: "3px double #1a1a1a", marginBottom: 12 }}
+              style={{ borderTop: `3px double ${blogColors.ink}`, marginBottom: 12 }}
             />
             <div
               className="flex items-center justify-between"
               style={{
-                borderBottom: "1px solid #1a1a1a",
+                borderBottom: `1px solid ${blogColors.ink}`,
                 paddingBottom: 8,
               }}
             >
               <span
                 style={{
-                  fontFamily: "'Libre Baskerville', serif",
+                  fontFamily: blogFonts.body,
                   fontSize: 10,
-                  color: "#666",
+                  color: blogColors.muted,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                 }}
@@ -140,18 +136,18 @@ export function BlogHeroBroadsheet({
               </span>
               <span
                 style={{
-                  fontFamily: "'Libre Baskerville', serif",
+                  fontFamily: blogFonts.body,
                   fontSize: 10,
-                  color: "#666",
+                  color: blogColors.muted,
                 }}
               >
                 {EDITION_DATE}
               </span>
               <span
                 style={{
-                  fontFamily: "'Libre Baskerville', serif",
+                  fontFamily: blogFonts.body,
                   fontSize: 10,
-                  color: "#666",
+                  color: blogColors.muted,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                 }}
@@ -162,10 +158,10 @@ export function BlogHeroBroadsheet({
 
             {/* Newspaper name */}
             <h1
+              className="font-blog-masthead"
               style={{
-                fontFamily: "'UnifrakturCook', 'Crimson Text', serif",
                 fontSize: "clamp(3rem, 8vw, 6rem)",
-                color: "#1a1a1a",
+                color: blogColors.ink,
                 lineHeight: 1,
                 margin: "20px 0 8px",
                 letterSpacing: "0.02em",
@@ -178,30 +174,29 @@ export function BlogHeroBroadsheet({
               className="flex items-center justify-center gap-3"
               style={{ marginBottom: 8 }}
             >
-              <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+              <div style={{ flex: 1, height: 1, background: blogColors.ink }} />
               <span
                 style={{
-                  fontFamily: "'Crimson Text', serif",
+                  fontFamily: blogFonts.headline,
                   fontSize: 13,
                   fontStyle: "italic",
-                  color: "#444",
+                  color: blogColors.muted,
                   padding: "0 12px",
                 }}
               >
                 &ldquo;Where Minds Are Forged Through Intelligence&rdquo;
               </span>
-              <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+              <div style={{ flex: 1, height: 1, background: blogColors.ink }} />
             </div>
 
             {/* Sub rule */}
-            <div style={{ borderBottom: "3px double #1a1a1a" }} />
+            <div style={{ borderBottom: `3px double ${blogColors.ink}` }} />
           </motion.div>
 
           {/* Main content - newspaper columns */}
           <div
             className="mt-8 hidden lg:grid"
             style={{
-              display: "grid",
               gridTemplateColumns: "1fr 2px 2.2fr 2px 1fr",
               gap: 0,
             }}
@@ -210,19 +205,19 @@ export function BlogHeroBroadsheet({
             <motion.div variants={fadeUp} style={{ padding: "0 20px 0 0" }}>
               <div
                 style={{
-                  borderBottom: "2px solid #1a1a1a",
+                  borderBottom: `2px solid ${blogColors.ink}`,
                   paddingBottom: 6,
                   marginBottom: 12,
                 }}
               >
                 <span
                   style={{
-                    fontFamily: "'Crimson Text', serif",
+                    fontFamily: blogFonts.headline,
                     fontSize: 11,
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
-                    color: "#1a1a1a",
+                    color: blogColors.ink,
                   }}
                 >
                   By the Numbers
@@ -251,19 +246,19 @@ export function BlogHeroBroadsheet({
                   style={{
                     marginBottom: 16,
                     paddingBottom: 16,
-                    borderBottom: "1px dotted rgba(26,26,26,0.2)",
+                    borderBottom: `1px dotted ${blogColors.rule}`,
                   }}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <stat.icon
                       className="w-3.5 h-3.5"
-                      style={{ color: "#8b1a1a" }}
+                      style={{ color: blogColors.accent }}
                     />
                     <span
                       style={{
-                        fontFamily: "'Libre Baskerville', serif",
+                        fontFamily: blogFonts.body,
                         fontSize: 10,
-                        color: "#666",
+                        color: blogColors.muted,
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
                       }}
@@ -273,10 +268,10 @@ export function BlogHeroBroadsheet({
                   </div>
                   <span
                     style={{
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: 36,
                       fontWeight: 700,
-                      color: "#1a1a1a",
+                      color: blogColors.ink,
                       lineHeight: 1.1,
                     }}
                   >
@@ -288,7 +283,7 @@ export function BlogHeroBroadsheet({
               {/* Small ad box */}
               <div
                 style={{
-                  border: "2px solid #1a1a1a",
+                  border: `2px solid ${blogColors.ink}`,
                   padding: 16,
                   textAlign: "center",
                   marginTop: 8,
@@ -296,10 +291,10 @@ export function BlogHeroBroadsheet({
               >
                 <span
                   style={{
-                    fontFamily: "'Crimson Text', serif",
+                    fontFamily: blogFonts.headline,
                     fontSize: 14,
                     fontStyle: "italic",
-                    color: "#444",
+                    color: blogColors.muted,
                     display: "block",
                     lineHeight: 1.4,
                   }}
@@ -309,9 +304,9 @@ export function BlogHeroBroadsheet({
                 </span>
                 <span
                   style={{
-                    fontFamily: "'Libre Baskerville', serif",
+                    fontFamily: blogFonts.body,
                     fontSize: 9,
-                    color: "#888",
+                    color: blogColors.muted,
                     marginTop: 6,
                     display: "block",
                     textTransform: "uppercase",

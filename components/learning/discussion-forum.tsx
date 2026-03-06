@@ -350,52 +350,81 @@ export function DiscussionForum({ sectionId, userId, isEnrolled }: DiscussionFor
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* New Comment Input */}
-        {isEnrolled && userId && (
-          <div className="space-y-2">
-            <Textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Ask a question or share your thoughts..."
-              rows={3}
-              className="resize-none"
-            />
-            <Button
-              onClick={handlePostComment}
-              disabled={isPosting || !newComment.trim()}
-              className="w-full"
-            >
-              {isPosting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Post Comment
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
-        <Separator />
-
         {/* Discussion List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : discussions.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No discussions yet. Be the first to start a conversation!</p>
+          <div className="text-center py-6 text-muted-foreground">
+            <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <p className="text-sm mb-4">No discussions yet. Be the first to start a conversation!</p>
+            {isEnrolled && userId && (
+              <div className="max-w-md mx-auto space-y-2 text-left">
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Ask a question or share your thoughts..."
+                  rows={3}
+                  className="resize-none"
+                />
+                <Button
+                  onClick={handlePostComment}
+                  disabled={isPosting || !newComment.trim()}
+                  size="sm"
+                  className="w-full"
+                >
+                  {isPosting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Start Discussion
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
+          <>
+          {/* New Comment Input — shown above existing discussions */}
+          {isEnrolled && userId && (
+            <div className="space-y-2">
+              <Textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Ask a question or share your thoughts..."
+                rows={3}
+                className="resize-none"
+              />
+              <Button
+                onClick={handlePostComment}
+                disabled={isPosting || !newComment.trim()}
+                className="w-full"
+              >
+                {isPosting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Post Comment
+                  </>
+                )}
+              </Button>
+              <Separator />
+            </div>
+          )}
           <div className="space-y-4">
             {discussions.map((discussion) => renderDiscussion(discussion))}
           </div>
+          </>
         )}
       </CardContent>
     </Card>

@@ -123,8 +123,8 @@ function isProgrammingCode(content: string): boolean {
     /\b(console|document|window|process|module|require)\b/.test(content) ||
     // Comments
     /\/\/|\/\*/.test(content) ||
-    // HTML tags
-    /<\/?[a-z]+/i.test(content)
+    // HTML tags — require closing > to avoid false-positive on math inequalities like x<y
+    /<\/?[a-z][a-z0-9]*\s*>/i.test(content)
   );
 }
 
@@ -645,7 +645,7 @@ function processMathInHtml(html: string): string {
 
   // Step 4: Process standalone <code>...</code> tags as inline math
   result = result.replace(
-    /<code(?:\s[^>]*)?>([^<]+)<\/code>/g,
+    /<code(?:\s[^>]*)?>([\s\S]+?)<\/code>/g,
     (match, content) => {
       const decoded = decodeHtmlEntities(content.trim());
 
