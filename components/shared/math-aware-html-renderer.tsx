@@ -738,19 +738,66 @@ const ALLOWED_TAGS = [
 const ALLOWED_TAG_SET = new Set(ALLOWED_TAGS);
 
 /**
+ * Decode HTML-entity-encoded tags back to real HTML.
+ *
+ * AI-generated content sometimes gets double-encoded during storage (e.g. via
+ * TipTap serialization or API response escaping), producing:
+ *   &lt;h2&gt;Title&lt;/h2&gt;  instead of  <h2>Title</h2>
+ *   &lt; strong &gt;bold&lt; /strong &gt;
+ *   &amp;lt;p&amp;gt;text&amp;lt;/p&amp;gt;  (double-encoded)
+ *
+ * Only decodes entity patterns that form complete, recognized safe HTML tags.
+ * Unrecognized tag names (e.g. &lt;script&gt;) are left as-is for DOMPurify to handle.
+ */
+function decodeEntityEncodedTags(html: string): string {
+  let result = html;
+
+  // Step 1: Unwrap double-encoded entities: &amp;lt; → &lt;, &amp;gt; → &gt;
+  result = result.replace(/&amp;(lt|gt);/gi, "&$1;");
+
+  // Step 2: Decode entity-encoded opening/closing tags for allowed tags only
+  // Matches: &lt;h2&gt;, &lt;/h2&gt;, &lt; strong &gt;, &lt; / p &gt;, &lt;br/&gt;
+  result = result.replace(
+    /&lt;\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*(?:\/\s*)?&gt;/g,
+    (match, tag: string) => {
+      const normalized = tag.replace(/\s+/g, "");
+      const tagName = normalized.replace(/^\//, "").toLowerCase();
+      if (ALLOWED_TAG_SET.has(tagName)) {
+        return `<${normalized}>`;
+      }
+      return match;
+    },
+  );
+
+  return result;
+}
+
+/**
  * Fix malformed HTML tags with spaces inside them.
  * AI-generated content sometimes produces `< strong >`, `< /p >`, `< h2 >` etc.
  * Browsers and DOMPurify don't recognize these as valid tags, rendering them as text.
+ *
+ * Also decodes entity-encoded tags (&lt;h2&gt; → <h2>) which occur when content
+ * is double-escaped during storage.
  */
 function normalizeHtmlTags(html: string): string {
-  return html.replace(/<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g, (match, tag: string) => {
-    const normalized = tag.replace(/\s+/g, "");
-    const tagName = normalized.replace(/^\//, "").toLowerCase();
-    if (ALLOWED_TAG_SET.has(tagName)) {
-      return `<${normalized}>`;
-    }
-    return match;
-  });
+  // First, decode entity-encoded tags (&lt;h2&gt; → <h2>)
+  let result = decodeEntityEncodedTags(html);
+
+  // Then, fix literal spaced tags (< h2 > → <h2>)
+  result = result.replace(
+    /<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g,
+    (match, tag: string) => {
+      const normalized = tag.replace(/\s+/g, "");
+      const tagName = normalized.replace(/^\//, "").toLowerCase();
+      if (ALLOWED_TAG_SET.has(tagName)) {
+        return `<${normalized}>`;
+      }
+      return match;
+    },
+  );
+
+  return result;
 }
 
 const ALLOWED_ATTR = ["href", "target", "rel", "class", "style"];

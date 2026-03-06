@@ -323,7 +323,21 @@ export function SectionContentTabs({
             <div className="space-y-6">
               {/* Section Description */}
               {section.description && (
-                <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className={cn(
+                  "prose prose-sm dark:prose-invert max-w-none",
+                  "[&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-800 dark:[&_h2]:text-slate-100 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:pb-1.5 [&_h2]:border-b [&_h2]:border-slate-200/60 dark:[&_h2]:border-slate-700/60",
+                  "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-700 dark:[&_h3]:text-slate-200 [&_h3]:mt-4 [&_h3]:mb-2",
+                  "[&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-slate-600 dark:[&_p]:text-slate-400 [&_p]:mb-3",
+                  "[&_strong]:font-semibold [&_strong]:text-slate-700 dark:[&_strong]:text-slate-200",
+                  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2",
+                  "[&_li]:text-sm [&_li]:text-slate-600 dark:[&_li]:text-slate-400 [&_li]:mb-1.5",
+                  "[&_table]:w-full [&_table]:text-sm [&_table]:border-collapse [&_table]:my-4",
+                  "[&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-medium [&_th]:text-slate-700 dark:[&_th]:text-slate-300 [&_th]:border [&_th]:border-slate-200 dark:[&_th]:border-slate-700",
+                  "[&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-slate-700 [&_td]:text-slate-600 dark:[&_td]:text-slate-400",
+                  "[&_blockquote]:border-l-4 [&_blockquote]:border-indigo-300 dark:[&_blockquote]:border-indigo-600 [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:my-3 [&_blockquote]:italic [&_blockquote]:text-slate-500 dark:[&_blockquote]:text-slate-400",
+                  "[&_code]:text-xs [&_code]:bg-slate-100 dark:[&_code]:bg-slate-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-mono",
+                  "[&>:first-child]:mt-0",
+                )}>
                   <MathAwareHtmlRenderer
                     html={section.description}
                     className="text-slate-600 dark:text-slate-400"

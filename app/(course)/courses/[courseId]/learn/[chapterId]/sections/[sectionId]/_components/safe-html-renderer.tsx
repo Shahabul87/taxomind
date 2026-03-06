@@ -16,11 +16,35 @@ const SAFE_ALLOWED_TAGS = [
 const SAFE_ALLOWED_TAG_SET = new Set(SAFE_ALLOWED_TAGS);
 
 /**
+ * Decode HTML-entity-encoded tags back to real HTML for allowed tags only.
+ * Handles double-encoded entities (&amp;lt; → &lt; → <) and
+ * entity-encoded spaced tags (&lt; strong &gt; → <strong>).
+ */
+function decodeEntityEncodedTags(html: string): string {
+  let result = html;
+  result = result.replace(/&amp;(lt|gt);/gi, "&$1;");
+  result = result.replace(
+    /&lt;\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*(?:\/\s*)?&gt;/g,
+    (match, tag: string) => {
+      const normalized = tag.replace(/\s+/g, "");
+      const tagName = normalized.replace(/^\//, "").toLowerCase();
+      if (SAFE_ALLOWED_TAG_SET.has(tagName)) {
+        return `<${normalized}>`;
+      }
+      return match;
+    },
+  );
+  return result;
+}
+
+/**
  * Fix malformed HTML tags with spaces inside them.
  * AI-generated content sometimes produces `< strong >`, `< /p >`, `< h2 >` etc.
+ * Also decodes entity-encoded tags (&lt;h2&gt; → <h2>).
  */
 function normalizeHtmlTags(html: string): string {
-  return html.replace(/<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g, (match, tag: string) => {
+  let result = decodeEntityEncodedTags(html);
+  result = result.replace(/<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g, (match, tag: string) => {
     const normalized = tag.replace(/\s+/g, "");
     const tagName = normalized.replace(/^\//, "").toLowerCase();
     if (SAFE_ALLOWED_TAG_SET.has(tagName)) {
@@ -28,6 +52,7 @@ function normalizeHtmlTags(html: string): string {
     }
     return match;
   });
+  return result;
 }
 
 /**
