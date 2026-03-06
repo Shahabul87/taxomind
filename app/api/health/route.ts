@@ -224,10 +224,7 @@ export async function GET(req: NextRequest) {
       };
       if (!storeInfo.isDistributed && process.env.NODE_ENV === 'production') {
         (health as Record<string, unknown>).rateLimiterWarning =
-          'Non-distributed store in production — fail-closed categories (ai, tools, heavy) will be rejected';
-        if (health.status === 'healthy') {
-          health.status = 'degraded';
-        }
+          'Non-distributed store in production — rate limits are per-instance only. Set REDIS_URL for shared limits.';
       }
     } catch (error) {
       logger.debug('[HEALTH_CHECK] Rate limiter info unavailable:', error);

@@ -231,6 +231,20 @@ class MockRedis {
   on(_event: string, _callback: (channel: string, message: string) => void): void {
     return;
   }
+  // Scan operation (cursor-based key iteration, required by RedisBackedRateLimitStore)
+  async scan(cursor: string, ...args: (string | number)[]): Promise<[string, string[]]> {
+    // Parse MATCH pattern from args: scan "0" "MATCH" "rl:*" "COUNT" 100
+    let pattern = '*';
+    for (let i = 0; i < args.length - 1; i++) {
+      if (String(args[i]).toUpperCase() === 'MATCH') {
+        pattern = String(args[i + 1]);
+      }
+    }
+    const matchingKeys = await this.keys(pattern);
+    // Return cursor "0" (done) and all matching keys in one batch
+    return ['0', matchingKeys];
+  }
+
   // Additional methods for compatibility
   async info(section?: string): Promise<string> {
     return 'redis_version:6.0.0-mock\nused_memory_human:1.0M\nconnected_clients:1';

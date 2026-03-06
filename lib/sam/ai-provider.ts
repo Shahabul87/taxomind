@@ -51,6 +51,9 @@ interface SAMChatOptions {
   extended?: boolean;
   /** Request JSON-guaranteed output from the AI provider */
   responseFormat?: 'json' | 'text';
+  /** Explicit model override — bypasses per-capability user preference.
+   *  Use sparingly: e.g. to swap a reasoning model for its faster counterpart. */
+  model?: string;
 }
 
 interface SAMChatMetadataResult {
@@ -90,6 +93,7 @@ export async function runSAMChatWithPreference(options: SAMChatOptions): Promise
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
     responseFormat: options.responseFormat,
+    model: options.model,
   });
 
   logger.debug('[SAM Chat] Response from provider', {
@@ -120,11 +124,12 @@ export async function runSAMChatWithMetadata(options: SAMChatOptions): Promise<S
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
     responseFormat: options.responseFormat,
+    model: options.model,
   });
 
   // Wrap with OTel span (no-op when ENABLE_OTEL is false)
   const result = await traceAICall(
-    { model: 'pending', provider: 'pending', capability: options.capability },
+    { model: options.model ?? 'pending', provider: 'pending', capability: options.capability },
     chatFn,
   );
 
@@ -163,6 +168,7 @@ export async function runSAMChatWithUsage(options: SAMChatOptions): Promise<SAMC
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
     responseFormat: options.responseFormat,
+    model: options.model,
   });
 
   // Wrap with OTel span (no-op when ENABLE_OTEL is false)
@@ -215,6 +221,7 @@ export async function* runSAMChatStream(options: SAMChatOptions): AsyncGenerator
     temperature: options.temperature ?? 0.7,
     extended: options.extended,
     responseFormat: options.responseFormat,
+    model: options.model,
   });
 }
 
@@ -332,16 +339,14 @@ export function invalidateAllAICaches(): void {
 // ============================================================================
 
 /**
- * Re-export legacy blueprint generator functions and types through the
- * unified AI provider entry point so API routes import from here instead
- * of directly from @/lib/course-blueprint-generator.
+ * Re-export SAM suggestion generator through the unified AI provider entry
+ * point so API routes import from here instead of directly from
+ * @/lib/course-blueprint-generator.
  *
- * The blueprint generator already uses runSAMChatWithPreference internally,
- * so this re-export gives routes a single approved import path.
+ * Note: generateCourseBlueprint and AIGeneratedBlueprint were removed —
+ * the active blueprint pipeline uses /api/sam/course-creation/blueprint
+ * with its own prompt builder in lib/sam/course-creation/blueprint/.
  */
 export {
-  generateCourseBlueprint,
   generateSamSuggestion,
-  type CourseGenerationRequest,
-  type AIGeneratedBlueprint,
 } from '@/lib/course-blueprint-generator';

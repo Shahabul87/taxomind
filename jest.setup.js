@@ -174,6 +174,7 @@ jest.mock('next/server', () => {
         this.method = init.method || 'GET';
         this.headers = new Map(Object.entries(init.headers || {}));
         this.body = init.body;
+        this.cookies = new Map();
         this.nextUrl = {
           pathname: new URL(url).pathname,
           searchParams: new URL(url).searchParams,
@@ -206,7 +207,17 @@ jest.mock('next/server', () => {
         this.body = body;
         this.status = init.status || 200;
         this.statusText = init.statusText || 'OK';
-        this.headers = new Map(Object.entries(init.headers || {}));
+        const rawHeaders = init.headers || {};
+        if (rawHeaders instanceof Map) {
+          this.headers = new Map(rawHeaders);
+        } else if (typeof rawHeaders.forEach === 'function' && typeof rawHeaders.get === 'function') {
+          // Headers instance - use forEach to extract entries
+          const entries = [];
+          rawHeaders.forEach((value, key) => entries.push([key, value]));
+          this.headers = new Map(entries);
+        } else {
+          this.headers = new Map(Object.entries(rawHeaders));
+        }
         this.ok = this.status >= 200 && this.status < 300;
       }
       
@@ -232,6 +243,15 @@ jest.mock('next/server', () => {
       
       text() {
         return Promise.resolve(typeof this.body === 'string' ? this.body : JSON.stringify(this.body));
+      }
+
+      clone() {
+        const cloned = new NextResponse(this.body, {
+          status: this.status,
+          statusText: this.statusText,
+          headers: Object.fromEntries(this.headers),
+        });
+        return cloned;
       }
     },
   };

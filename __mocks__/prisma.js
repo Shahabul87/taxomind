@@ -21,7 +21,7 @@ const mockPrismaClient = () => {
     'discussionThread', 'discussionPost', 'annotation', 'bookmark',
     'flashcard', 'studyGroup', 'assignment', 'submission',
     // Auth-related models
-    'adminAccount', 'loginAttempt', 'userSession', 'trustedDevice',
+    'adminAccount', 'adminTwoFactorConfirmation', 'loginAttempt', 'userSession', 'trustedDevice',
     // SAM-related models
     'samGoal', 'samSubGoal', 'samPlan', 'samToolExecution', 'samMemory',
     'samBehaviorEvent', 'samPattern', 'samIntervention', 'samCheckIn',

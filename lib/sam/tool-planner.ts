@@ -72,7 +72,7 @@ const MODE_TOOL_AFFINITY: Record<string, string[]> = {
   'skill-navigator': ['sam-skill-navigator'],
   'exam-builder': ['sam-exam-builder', 'sam-quiz-grader', 'sam-exam-evaluator'],
   'learning-coach': ['sam-flashcard-generator', 'sam-study-timer'],
-  'blooms-analyzer': ['sam-diagram-generator'],
+  'blooms-analyzer': ['sam-depth-analyzer', 'sam-diagram-generator'],
   'course-architect': ['sam-course-creator', 'sam-course-chapter-generator', 'sam-course-healer', 'sam-memory-recall', 'sam-quality-evaluator', 'sam-course-replanner'],
   'student-analytics': ['sam-student-analytics'],
   'creator-analytics': ['sam-creator-analytics'],
@@ -183,6 +183,20 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
       /\b(generate|create|write)\b.*\b(course|chapter|section)\b.*\b(description|content|objectives)\b/i,
     ],
     defaultInput: { action: 'generate' },
+  },
+  'blooms-analyzer': {
+    toolId: 'sam-depth-analyzer',
+    intentPatterns: [
+      /\b(analyze|evaluate|assess|audit|check|review)\b.*\b(course|content|quality|depth|bloom)/i,
+      /\b(course|content)\b.*\b(quality|analysis|depth|review|audit)\b/i,
+      /\bbloom.?s?\b.*\b(analysis|taxonomy|level|distribution)\b/i,
+      /\b(how|what).*(deep|quality|good|effective)\b.*\b(course|content|material)\b/i,
+      /\bdepth\s*analyz/i,
+      /\bcourse\s*quality\b/i,
+      /\b(find|check|identify)\b.*\b(issues?|gaps?|problems?|weaknesses?)\b.*\b(course|content)\b/i,
+      /\b(is|are)\b.*\b(course|content|material)\b.*\b(good|ready|quality|effective)\b/i,
+    ],
+    defaultInput: { action: 'start' },
   },
 };
 
@@ -300,6 +314,26 @@ function checkAutoInvoke(
             const skillName = match[1].trim().replace(/\s+/g, ' ');
             if (skillName.length >= 2 && skillName.length <= 50) {
               input = { ...input, skillName };
+              break;
+            }
+          }
+        }
+      }
+
+      if (config.toolId === 'sam-depth-analyzer') {
+        // Try to extract the course name from analysis-related patterns
+        const coursePatterns = [
+          /(?:analyze|evaluate|assess|audit|check|review)\s+(?:my\s+)?(?:course\s+)?(?:on\s+|about\s+|for\s+)?["']?([a-z][a-z0-9\s.#+\-]*)["']?/i,
+          /(?:course|content)\s+(?:quality|depth)\s+(?:of|for)\s+["']?([a-z][a-z0-9\s.#+\-]*)["']?/i,
+          /["']([a-z][a-z0-9\s.#+\-]*)["']\s+(?:course|content)\s+(?:quality|analysis|depth)/i,
+        ];
+
+        for (const coursePattern of coursePatterns) {
+          const match = message.match(coursePattern);
+          if (match && match[1]) {
+            const courseName = match[1].trim().replace(/\s+/g, ' ');
+            if (courseName.length >= 2 && courseName.length <= 100) {
+              input = { ...input, courseName };
               break;
             }
           }

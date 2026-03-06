@@ -50,9 +50,14 @@ export type IssueType =
   | 'ASSESSMENT'
   | 'TIME'
   | 'PREREQUISITE'
-  | 'GAP';
+  | 'GAP'
+  | 'READABILITY'
+  | 'FACTUAL'
+  | 'LEARNER_EXPERIENCE'
+  | 'ACCESSIBILITY'
+  | 'PEDAGOGICAL';
 
-export type IssueSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type IssueSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'MODERATE' | 'MINOR' | 'INFO';
 
 export type IssueStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'SKIPPED' | 'WONT_FIX';
 
@@ -139,6 +144,7 @@ export interface AnalysisProgress {
 
 /**
  * AI Analysis Progress Event Types
+ * Extended in V3 to include agentic events (decision, healing, resume, budget)
  */
 export type AIProgressEventType =
   | 'analysis_start'
@@ -149,7 +155,21 @@ export type AIProgressEventType =
   | 'stage_complete'
   | 'progress'
   | 'complete'
-  | 'error';
+  | 'error'
+  // V3 agentic events
+  | 'strategy_planned'
+  | 'chapter_analyzing'
+  | 'chapter_complete'
+  | 'framework_result'
+  | 'cross_chapter_start'
+  | 'flow_issue_found'
+  | 'decision_made'
+  | 'healing_start'
+  | 'healing_complete'
+  | 'post_processing'
+  | 'resume_hydrate'
+  | 'budget_warning'
+  | 'state_change';
 
 export interface AIAnalysisStartData {
   mode: 'ai' | 'rule-based';
@@ -268,4 +288,37 @@ export interface AnalysisProgressState {
   // Final result
   analysisId?: string;
   overallScore?: number;
+
+  // V3 agentic state
+  canResume?: boolean;
+  agenticDecisions?: AgenticDecisionEvent[];
+  healingEvents?: HealingEvent[];
+  completedChapterScores?: ChapterScoreSnapshot[];
+  bloomsDistribution?: BloomsDistribution;
+  frameworks?: string[];
+}
+
+/** Snapshot of a chapter analysis result for real-time UI updates */
+export interface ChapterScoreSnapshot {
+  chapterNumber: number;
+  chapterTitle: string;
+  overallScore: number;
+  issueCount: number;
+  criticalCount: number;
+  bloomsDistribution?: BloomsDistribution;
+}
+
+/** Agentic decision event for UI display */
+export interface AgenticDecisionEvent {
+  action: string;
+  chapterNumber: number;
+  reason?: string;
+}
+
+/** Healing event for UI display */
+export interface HealingEvent {
+  chapterNumber: number;
+  healedSections: string[];
+  issuesAdded: number;
+  scoreChange: number;
 }

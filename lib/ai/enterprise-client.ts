@@ -73,6 +73,9 @@ export interface AIChatOptions {
   capability?: AICapability;
   /** Request JSON-guaranteed output. Supported by OpenAI/DeepSeek. Anthropic falls back to prompt-based. */
   responseFormat?: 'json' | 'text';
+  /** Explicit model override — bypasses per-capability user preference model resolution.
+   *  The model must belong to the resolved provider's model list. */
+  model?: string;
 }
 
 export interface AIChatResponse {
@@ -513,13 +516,15 @@ async function getAdapter(options: {
   userId?: string;
   extended?: boolean;
   capability?: AICapability;
+  /** Explicit model — skips per-capability and per-provider preference resolution */
+  model?: string;
 }): Promise<AIAdapter> {
-  const { provider, userId, extended = false, capability } = options;
+  const { provider, userId, extended = false, capability, model: explicitModel } = options;
 
   const settings = await getPlatformSettings();
 
   // Determine model with resolution order:
-  // per-capability model → per-provider model → platform default → registry default
+  // explicit model → per-capability model → per-provider model → platform default → registry default
   // IMPORTANT: per-capability models are only used if they belong to the target provider's
   // model list. This prevents cross-provider model errors during fallback (e.g. sending
   // "gpt-4o" to DeepSeek when falling back from OpenAI).
@@ -527,7 +532,12 @@ async function getAdapter(options: {
 
   const providerModels = AI_PROVIDERS[provider]?.models ?? [];
 
-  if (userId && settings.allowUserModelSelection) {
+  // 0. Explicit model override (from caller) — highest priority
+  if (explicitModel && providerModels.includes(explicitModel)) {
+    modelOverride = explicitModel;
+  }
+
+  if (!modelOverride && userId && settings.allowUserModelSelection) {
     // 1. Check per-capability model from cached user preferences
     if (capability) {
       const cachedPrefs = getCachedUserPreferences(userId);
@@ -768,6 +778,7 @@ export const aiClient = {
       provider: explicitProvider,
       capability,
       responseFormat,
+      model: explicitModel,
     } = options;
 
     // Auto-detect extended timeout for course generation capability (100s vs 60s).
@@ -818,6 +829,8 @@ export const aiClient = {
         userId,
         extended,
         capability,
+        // Only pass model override for primary provider, not fallback
+        model: isFallback ? undefined : explicitModel,
       });
 
       // Reasoning models (deepseek-reasoner, o1, etc.) use reasoning tokens that

@@ -294,11 +294,15 @@ export async function withSubscriptionGate(
       error: error instanceof Error ? error.message : String(error),
     });
 
-    // High-cost categories fail-closed: deny on infra/DB errors to prevent
-    // subscription bypass. Low-cost categories fail-open since enterprise-client
-    // provides a downstream check.
-    const highCostCategories: SubscriptionCategory[] = ['generation', 'analysis', 'premium-feature'];
-    if (highCostCategories.includes(category)) {
+    // Fail-open for all categories: the enterprise-client (downstream) has
+    // its own rate limiting, circuit breaker, and usage tracking. Blocking
+    // here on transient DB/infra errors (cold starts, connection pool
+    // exhaustion) causes all AI features to return 503, which is worse
+    // than occasionally allowing an over-quota request through.
+    //
+    // Premium-feature is the only exception — it gates access to features
+    // that have no downstream enforcement, so we fail-closed there.
+    if (category === 'premium-feature') {
       return {
         allowed: false,
         response: NextResponse.json(
@@ -312,7 +316,6 @@ export async function withSubscriptionGate(
       };
     }
 
-    // Low-cost categories (chat, tool-execution, read-only): fail-open
     return { allowed: true };
   }
 }

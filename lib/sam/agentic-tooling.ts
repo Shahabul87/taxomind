@@ -52,6 +52,7 @@ import { createCourseChapterGeneratorTool, createCourseHealerTool } from '@/lib/
 import { createMemoryRecallTool } from '@/lib/sam/tools/memory-recall-tool';
 import { createQualityEvaluatorTool } from '@/lib/sam/tools/quality-evaluator-tool';
 import { createCourseReplannerTool } from '@/lib/sam/tools/course-replanner-tool';
+import { createDepthAnalyzerTool } from '@/lib/sam/tools/depth-analyzer';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -306,6 +307,7 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createMemoryRecallTool(),
     createQualityEvaluatorTool(),
     createCourseReplannerTool(),
+    createDepthAnalyzerTool(),
   ];
 
   let standaloneRegistered = 0;

@@ -517,12 +517,21 @@ export async function withRateLimit(
       );
     }
 
-    // Get user ID from session
-    const session = await auth();
-    const userId = session?.user?.id;
-
-    // Use IP as fallback for unauthenticated requests
-    const key = userId ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    // Use IP-based rate limiting. The route handler performs its own auth check,
+    // so calling auth() here would be redundant AND create a fail-closed path
+    // where transient auth errors (cold starts, session edge cases) block all
+    // AI routes with 503. IP-based limiting prevents abuse without this risk.
+    let key: string;
+    try {
+      const session = await auth();
+      key = session?.user?.id ?? req.headers.get('x-forwarded-for') ?? 'anonymous';
+    } catch {
+      // Auth failed (cold start, session unavailable) — fall back to IP.
+      // This is NOT a security issue: the route handler will reject
+      // unauthenticated requests with 401. Rate limiting by IP still
+      // prevents brute-force abuse from a single source.
+      key = req.headers.get('x-forwarded-for') ?? 'anonymous';
+    }
 
     const limiter = rateLimiters[category];
     const result = await limiter.check(key);
@@ -558,24 +567,14 @@ export async function withRateLimit(
 
     return null; // Request allowed
   } catch (error) {
+    // This catch only fires on infrastructure errors in the rate limiter
+    // itself (e.g. bucket store corruption), NOT on auth failures (handled
+    // above). Fail-open for all categories: the route handler's own auth
+    // and subscription gates provide downstream protection against abuse.
     logger.error('[RateLimiter] Error checking rate limit', {
       category,
       error: error instanceof Error ? error.message : String(error),
     });
-
-    // Expensive categories fail-closed: deny on auth/infra errors to prevent
-    // rate limit bypass on costly AI operations. Standard/readonly fail-open.
-    const failClosedCategories: RateLimitCategory[] = ['ai', 'tools', 'heavy'];
-    if (failClosedCategories.includes(category)) {
-      return NextResponse.json(
-        {
-          error: 'Service temporarily unavailable',
-          message: 'Rate limit check failed. Please try again.',
-          code: 'RATE_LIMIT_CHECK_UNAVAILABLE',
-        },
-        { status: 503 },
-      );
-    }
 
     return null;
   }

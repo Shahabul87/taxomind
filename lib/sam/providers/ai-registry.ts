@@ -128,6 +128,27 @@ const REASONING_MODELS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Map reasoning models to their non-reasoning counterparts.
+ * Used by pipelines (e.g. blueprint generation) where reasoning models
+ * are unnecessarily slow — content structuring doesn't need chain-of-thought.
+ */
+const REASONING_TO_STANDARD: Record<string, string> = {
+  'deepseek-reasoner': 'deepseek-chat',
+  'o1':               'gpt-4o',
+  'o1-mini':          'gpt-4o-mini',
+  'o3':               'gpt-4o',
+  'o3-mini':          'gpt-4o-mini',
+};
+
+/**
+ * Get the non-reasoning counterpart of a reasoning model.
+ * Returns the original model ID if it's not a reasoning model.
+ */
+export function getNonReasoningCounterpart(modelId: string): string {
+  return REASONING_TO_STANDARD[modelId] ?? modelId;
+}
+
+/**
  * Check if a model ID is a reasoning model that uses internal reasoning tokens.
  * Reasoning models need: 4x maxTokens scaling, longer timeouts, <think> block stripping.
  */
