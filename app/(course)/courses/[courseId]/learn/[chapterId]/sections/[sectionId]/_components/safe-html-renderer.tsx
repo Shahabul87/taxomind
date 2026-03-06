@@ -16,24 +16,22 @@ const SAFE_ALLOWED_TAGS = [
 const SAFE_ALLOWED_TAG_SET = new Set(SAFE_ALLOWED_TAGS);
 
 /**
- * Decode HTML-entity-encoded tags back to real HTML for allowed tags only.
- * Handles double-encoded entities (&amp;lt; → &lt; → <) and
- * entity-encoded spaced tags (&lt; strong &gt; → <strong>).
+ * Decode HTML-entity-encoded angle brackets back to literal < and >.
+ * Handles double-encoded (&amp;lt;), named (&lt;), and numeric (&#60;, &#x3C;) entities.
+ * Only decodes if the content has entity-encoded HTML structure.
+ * DOMPurify runs after, so this is safe.
  */
 function decodeEntityEncodedTags(html: string): string {
   let result = html;
-  result = result.replace(/&amp;(lt|gt);/gi, "&$1;");
-  result = result.replace(
-    /&lt;\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*(?:\/\s*)?&gt;/g,
-    (match, tag: string) => {
-      const normalized = tag.replace(/\s+/g, "");
-      const tagName = normalized.replace(/^\//, "").toLowerCase();
-      if (SAFE_ALLOWED_TAG_SET.has(tagName)) {
-        return `<${normalized}>`;
-      }
-      return match;
-    },
-  );
+  result = result.replace(/&amp;(lt|gt|#60|#62|#x3[cCeE]);/gi, "&$1;");
+  if (!/(?:&lt;|&#60;|&#x3[cC];)\s*\/?\s*[a-zA-Z]/.test(result)) return result;
+  result = result
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#60;/g, "<")
+    .replace(/&#62;/g, ">")
+    .replace(/&#x3[cC];/g, "<")
+    .replace(/&#x3[eE];/g, ">");
   return result;
 }
 

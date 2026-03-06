@@ -324,7 +324,7 @@ export function SectionContentTabs({
               {/* Section Description */}
               {section.description && (
                 <div className={cn(
-                  "prose prose-sm dark:prose-invert max-w-none",
+                  "prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words",
                   "[&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-800 dark:[&_h2]:text-slate-100 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:pb-1.5 [&_h2]:border-b [&_h2]:border-slate-200/60 dark:[&_h2]:border-slate-700/60",
                   "[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-slate-700 dark:[&_h3]:text-slate-200 [&_h3]:mt-4 [&_h3]:mb-2",
                   "[&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-slate-600 dark:[&_p]:text-slate-400 [&_p]:mb-3",

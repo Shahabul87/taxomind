@@ -738,47 +738,55 @@ const ALLOWED_TAGS = [
 const ALLOWED_TAG_SET = new Set(ALLOWED_TAGS);
 
 /**
- * Decode HTML-entity-encoded tags back to real HTML.
+ * Detect whether content has entity-encoded HTML structure.
+ * Looks for patterns like &lt;h2&gt;, &lt;/p&gt;, &#60;strong&#62; etc.
+ */
+function hasEntityEncodedHtml(html: string): boolean {
+  return /(?:&lt;|&#60;|&#x3[cC];)\s*\/?\s*[a-zA-Z]/.test(html);
+}
+
+/**
+ * Decode all HTML-entity-encoded angle brackets back to literal < and >.
  *
  * AI-generated content sometimes gets double-encoded during storage (e.g. via
  * TipTap serialization or API response escaping), producing:
  *   &lt;h2&gt;Title&lt;/h2&gt;  instead of  <h2>Title</h2>
- *   &lt; strong &gt;bold&lt; /strong &gt;
  *   &amp;lt;p&amp;gt;text&amp;lt;/p&amp;gt;  (double-encoded)
+ *   &#60;strong&#62;bold&#60;/strong&#62;  (numeric entities)
  *
- * Only decodes entity patterns that form complete, recognized safe HTML tags.
- * Unrecognized tag names (e.g. &lt;script&gt;) are left as-is for DOMPurify to handle.
+ * Security: DOMPurify runs AFTER this step and sanitizes the decoded HTML,
+ * so decoding entities here cannot introduce XSS.
  */
 function decodeEntityEncodedTags(html: string): string {
   let result = html;
 
   // Step 1: Unwrap double-encoded entities: &amp;lt; → &lt;, &amp;gt; → &gt;
-  result = result.replace(/&amp;(lt|gt);/gi, "&$1;");
+  result = result.replace(/&amp;(lt|gt|#60|#62|#x3[cCeE]);/gi, "&$1;");
 
-  // Step 2: Decode entity-encoded opening/closing tags for allowed tags only
-  // Matches: &lt;h2&gt;, &lt;/h2&gt;, &lt; strong &gt;, &lt; / p &gt;, &lt;br/&gt;
-  result = result.replace(
-    /&lt;\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*(?:\/\s*)?&gt;/g,
-    (match, tag: string) => {
-      const normalized = tag.replace(/\s+/g, "");
-      const tagName = normalized.replace(/^\//, "").toLowerCase();
-      if (ALLOWED_TAG_SET.has(tagName)) {
-        return `<${normalized}>`;
-      }
-      return match;
-    },
-  );
+  // Step 2: Only decode if content actually has entity-encoded HTML structure.
+  // This avoids breaking intentional entities in content that has no encoded tags.
+  if (!hasEntityEncodedHtml(result)) return result;
+
+  // Step 3: Decode ALL angle-bracket entities (named + numeric).
+  // DOMPurify sanitizes after, so this is safe.
+  result = result
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#60;/g, "<")
+    .replace(/&#62;/g, ">")
+    .replace(/&#x3[cC];/g, "<")
+    .replace(/&#x3[eE];/g, ">");
 
   return result;
 }
 
 /**
- * Fix malformed HTML tags with spaces inside them.
- * AI-generated content sometimes produces `< strong >`, `< /p >`, `< h2 >` etc.
- * Browsers and DOMPurify don't recognize these as valid tags, rendering them as text.
+ * Fix malformed HTML in AI-generated content. Handles:
+ * 1. Entity-encoded tags: &lt;h2&gt; → <h2> (including numeric &#60;h2&#62;)
+ * 2. Double-encoded: &amp;lt;h2&amp;gt; → <h2>
+ * 3. Spaced tags: < strong > → <strong>, < /p > → </p>
  *
- * Also decodes entity-encoded tags (&lt;h2&gt; → <h2>) which occur when content
- * is double-escaped during storage.
+ * DOMPurify runs after this step to sanitize the result.
  */
 function normalizeHtmlTags(html: string): string {
   // First, decode entity-encoded tags (&lt;h2&gt; → <h2>)
@@ -931,6 +939,7 @@ export function MathAwareHtmlRenderer({
   return (
     <Tag
       className={className}
+      style={{ overflowWrap: "break-word", wordBreak: "break-word" }}
       dangerouslySetInnerHTML={{ __html: processedHtml }}
       suppressHydrationWarning
     />

@@ -413,7 +413,7 @@ export function EnterpriseSectionLearning({
                     {currentSection.description && (
                       <MathAwareHtmlRenderer
                         html={currentSection.description}
-                        className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none"
+                        className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words"
                       />
                     )}
                   </div>
