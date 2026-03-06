@@ -235,7 +235,7 @@ Return ONLY this JSON:
 
         const responseText = await runSAMChatWithPreference({
           userId,
-          capability: 'course',
+          capability: 'chat',
           systemPrompt,
           maxTokens: 4000,
           temperature: 0.4,
