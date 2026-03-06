@@ -306,6 +306,7 @@ const buckets = {
 /** Cleanup interval handle */
 let cleanupInterval: NodeJS.Timeout | null = null;
 let productionWarningLogged = false;
+let productionRateLimitWarningLogged = false;
 
 /** Start automatic cleanup of expired buckets */
 function startCleanup(): void {
@@ -499,24 +500,20 @@ export async function withRateLimit(
   category: RateLimitCategory = 'standard'
 ): Promise<NextResponse | null> {
   try {
-    // Production enforcement: fail-closed categories MUST have distributed store
-    const failClosedCategories: RateLimitCategory[] = ['ai', 'tools', 'heavy'];
+    // Production warning: prefer distributed store for multi-instance deployments.
+    // In-memory rate limiting still works per-instance — log a warning but allow
+    // requests to proceed. Hard-blocking all AI features when Redis is unavailable
+    // is too aggressive for single-instance Railway deployments.
     if (
       process.env.NODE_ENV === 'production' &&
       !bucketStore.isDistributed() &&
-      failClosedCategories.includes(category)
+      !productionRateLimitWarningLogged
     ) {
-      logger.error(
-        `[RateLimiter] CRITICAL: In-memory rate limiter used for fail-closed category "${category}" in production. ` +
-        'Rate limits are NOT enforced across instances. Set REDIS_URL to enable distributed rate limiting.',
-      );
-      return NextResponse.json(
-        {
-          error: 'Service temporarily unavailable',
-          message: 'Rate limiting infrastructure is not properly configured. Please try again later.',
-          code: 'RATE_LIMIT_STORE_NOT_DISTRIBUTED',
-        },
-        { status: 503 },
+      productionRateLimitWarningLogged = true;
+      logger.warn(
+        '[RateLimiter] Using in-memory rate limiter in production. ' +
+        'Rate limits are per-instance and NOT shared across multiple server instances. ' +
+        'Set REDIS_URL to enable distributed rate limiting.',
       );
     }
 

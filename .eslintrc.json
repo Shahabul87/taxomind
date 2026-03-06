@@ -53,6 +53,16 @@
     },
     {
       "files": [
+        "__tests__/**/*.ts",
+        "__tests__/**/*.tsx"
+      ],
+      "rules": {
+        "react/display-name": "off",
+        "jsx-a11y/role-has-required-aria-props": "off"
+      }
+    },
+    {
+      "files": [
         "lib/anthropic.ts",
         "lib/openai.ts",
         "lib/sam/providers/*.ts",
