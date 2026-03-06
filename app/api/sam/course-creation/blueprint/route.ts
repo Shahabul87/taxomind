@@ -8,7 +8,7 @@
  *   1. Load difficulty template (pedagogical principles + structural rules)
  *   2. Load domain skill (category-specific teaching methodology, sequencing, quality criteria)
  *   3. Compose system prompt = template + domain skill + Bloom's assignments
- *   4. ONE AI call → parse + post-process (repair, fill, time estimates, prerequisites, assessments, scoring)
+ *   4. ONE AI call → parse + post-process (repair, fill, time estimates, prerequisites, assessments)
  */
 
 import crypto from 'crypto';
@@ -19,7 +19,6 @@ import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { logger } from '@/lib/logger';
 import { safeErrorMessage } from '@/lib/api/safe-error';
 import { getNonReasoningCounterpart } from '@/lib/sam/providers/ai-registry';
-import { scoreBlueprintQuality } from '@/lib/sam/course-creation/blueprint-critic';
 import {
   BlueprintRequestSchema,
   computeBloomsDistribution,
@@ -30,7 +29,6 @@ import {
   computeTimeEstimates,
   computePrerequisiteGraph,
   injectFormativeAssessments,
-  buildRuleBasedBlueprintScore,
   buildHeuristicBlueprint,
 } from '@/lib/sam/course-creation/blueprint';
 import { buildTemplateSystemPrompt } from '@/lib/sam/course-creation/templates';
@@ -40,7 +38,6 @@ import {
   blendEnhancers,
   composeCategoryPrompt,
 } from '@/lib/sam/course-creation/category-prompts';
-import type { CourseContext } from '@/lib/sam/course-creation/types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -231,50 +228,10 @@ export async function POST(request: NextRequest) {
         blueprint = computePrerequisiteGraph(blueprint);
         blueprint = injectFormativeAssessments(blueprint);
 
-        // Rule-based score for frontend display
-        const ctx: CourseContext = {
-          courseTitle: data.courseTitle,
-          courseDescription: data.courseShortOverview,
-          courseCategory: data.category,
-          courseSubcategory: data.subcategory,
-          targetAudience: data.targetAudience,
-          difficulty: data.difficulty.toLowerCase() as CourseContext['difficulty'],
-          courseLearningObjectives: data.courseGoals,
-          totalChapters: data.chapterCount,
-          sectionsPerChapter: data.sectionsPerChapter,
-          bloomsFocus: data.bloomsFocus as CourseContext['bloomsFocus'],
-          learningObjectivesPerChapter: 5,
-          learningObjectivesPerSection: 3,
-        };
-
-        const criticResult = buildRuleBasedBlueprintScore(blueprint, ctx, data.courseGoals);
-        const criticResponse = {
-          verdict: criticResult.verdict,
-          score: scoreBlueprintQuality(criticResult),
-          confidence: criticResult.confidence,
-          reasoning: criticResult.reasoning,
-          dimensions: {
-            objectiveCoverage: criticResult.objectiveCoverage,
-            topicSequencing: criticResult.topicSequencing,
-            bloomsProgression: criticResult.bloomsProgression,
-            scopeCoherence: criticResult.scopeCoherence,
-            northStarAlignment: criticResult.northStarAlignment,
-            specificity: criticResult.specificity,
-          },
-          improvements: criticResult.actionableImprovements,
-        };
-
-        sendSSE('critic-result', {
-          verdict: criticResult.verdict,
-          score: scoreBlueprintQuality(criticResult),
-          confidence: criticResult.confidence,
-        });
-
         sendSSE('progress', { stage: 'complete', message: 'Blueprint ready!', percentage: 100 });
         sendSSE('complete', {
           success: true,
           blueprint,
-          critic: criticResponse,
         });
 
       } catch (error) {

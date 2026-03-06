@@ -34,24 +34,6 @@ export interface BlueprintVersion {
   source: 'ai' | 'edit' | 'rollback';
 }
 
-export interface BlueprintCriticDimensions {
-  objectiveCoverage: number;
-  topicSequencing: number;
-  bloomsProgression: number;
-  scopeCoherence: number;
-  northStarAlignment: number;
-  specificity: number;
-}
-
-export interface BlueprintCriticResult {
-  verdict: 'approve' | 'revise' | 'reject';
-  score: number;
-  confidence: number;
-  reasoning: string;
-  dimensions: BlueprintCriticDimensions;
-  improvements: string[];
-}
-
 export interface TeacherBlueprint {
   chapters: BlueprintChapter[];
   northStarProject?: string;
@@ -59,7 +41,6 @@ export interface TeacherBlueprint {
   confidence: number;        // 0-100
   isEdited: boolean;         // true if teacher modified topics
   riskAreas: string[];
-  criticResult?: BlueprintCriticResult;
   currentVersion?: number;
   versions?: BlueprintVersion[];
 }
