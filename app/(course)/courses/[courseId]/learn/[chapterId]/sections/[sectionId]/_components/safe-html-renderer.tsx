@@ -7,6 +7,29 @@ interface SafeHtmlRendererProps {
   className?: string;
 }
 
+const SAFE_ALLOWED_TAGS = [
+  "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
+  "h1", "h2", "h3", "h4", "h5", "h6", "a", "blockquote",
+  "code", "pre", "span", "div"
+];
+
+const SAFE_ALLOWED_TAG_SET = new Set(SAFE_ALLOWED_TAGS);
+
+/**
+ * Fix malformed HTML tags with spaces inside them.
+ * AI-generated content sometimes produces `< strong >`, `< /p >`, `< h2 >` etc.
+ */
+function normalizeHtmlTags(html: string): string {
+  return html.replace(/<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g, (match, tag: string) => {
+    const normalized = tag.replace(/\s+/g, "");
+    const tagName = normalized.replace(/^\//, "").toLowerCase();
+    if (SAFE_ALLOWED_TAG_SET.has(tagName)) {
+      return `<${normalized}>`;
+    }
+    return match;
+  });
+}
+
 /**
  * Safely renders HTML content by sanitizing it first
  * This prevents XSS attacks while allowing safe HTML formatting
@@ -15,14 +38,10 @@ interface SafeHtmlRendererProps {
  * isomorphic-dompurify works on both server and client
  */
 export function SafeHtmlRenderer({ html, className = "" }: SafeHtmlRendererProps) {
-  // Sanitize the HTML to prevent XSS attacks
-  // isomorphic-dompurify works on both server and client
-  const sanitizedHtml = DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
-      "h1", "h2", "h3", "h4", "h5", "h6", "a", "blockquote",
-      "code", "pre", "span", "div"
-    ],
+  // Normalize malformed tags (e.g. `< strong >` → `<strong>`) then sanitize
+  const normalized = normalizeHtmlTags(html);
+  const sanitizedHtml = DOMPurify.sanitize(normalized, {
+    ALLOWED_TAGS: SAFE_ALLOWED_TAGS,
     ALLOWED_ATTR: ["href", "target", "rel", "class", "style"],
     ALLOW_DATA_ATTR: false,
   });

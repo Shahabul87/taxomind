@@ -2,6 +2,8 @@
 categoryId: language-communication
 displayName: "Language & Communication"
 matchesCategories:
+  - Language
+  - Language & Communication
   - English
   - Spanish
   - French

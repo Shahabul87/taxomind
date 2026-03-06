@@ -2,11 +2,13 @@
  * Course Template Loader
  *
  * Loads difficulty-specific course design templates and composes them
- * into system prompts for single-call blueprint generation.
+ * with domain-specific skill blocks into system prompts for
+ * single-call blueprint generation.
  */
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import type { ComposedCategoryPrompt } from '../category-prompts/types';
 
 type Difficulty = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
@@ -31,14 +33,25 @@ export function loadCourseTemplate(difficulty: Difficulty): string {
 /**
  * Build the full system prompt for blueprint generation:
  * 1. Role preamble (return JSON only)
- * 2. Full template content
- * 3. Bloom's assignments (non-negotiable)
+ * 2. Difficulty template (pedagogical principles + structural rules)
+ * 3. Domain-specific expertise & guidance (from skill files)
+ * 4. Bloom's assignments (non-negotiable)
+ *
+ * The domain skill blocks provide category-specific teaching methodology,
+ * chapter sequencing advice, content type guidance, and quality criteria.
+ * When no skill is matched, the prompt works with just the template.
  */
 export function buildTemplateSystemPrompt(
   difficulty: Difficulty,
   bloomsAssignmentBlock: string,
+  composed?: ComposedCategoryPrompt | null,
 ): string {
   const template = loadCourseTemplate(difficulty);
+
+  // Domain-specific blocks — injected between template and Bloom's assignments
+  const domainSection = composed
+    ? buildDomainSection(composed)
+    : '';
 
   return `You are a Taxomind course architect. You design university-quality course blueprints.
 
@@ -53,7 +66,7 @@ Use the following template as your pedagogical guide. Follow its design principl
 ${template}
 
 ---
-
+${domainSection}
 ## BLOOM'S TAXONOMY ASSIGNMENTS (NON-NEGOTIABLE)
 
 The following Bloom's cognitive levels are PRE-ASSIGNED to each chapter. You MUST use these exact levels — do not reassign or reorder them.
@@ -67,4 +80,25 @@ Each chapter's goal, deliverable, and section topics must align with its assigne
 - ANALYZE: compare, contrast, differentiate, examine
 - EVALUATE: assess, critique, justify, recommend
 - CREATE: design, build, compose, produce`;
+}
+
+/**
+ * Build the domain-specific section from composed category prompt blocks.
+ * Includes: expertise, teaching methodology, chapter sequencing,
+ * content type guidance, and domain-specific Bloom's examples.
+ */
+function buildDomainSection(composed: ComposedCategoryPrompt): string {
+  return `
+${composed.expertiseBlock}
+
+## DOMAIN-SPECIFIC TEACHING GUIDANCE
+
+${composed.chapterGuidanceBlock}
+
+## DOMAIN-SPECIFIC CONTENT & ACTIVITIES
+
+${composed.sectionGuidanceBlock}
+
+---
+`;
 }

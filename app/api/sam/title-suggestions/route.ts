@@ -10,7 +10,8 @@
 import crypto from 'crypto';
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, resolveAIModelInfo, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { getNonReasoningCounterpart } from '@/lib/sam/providers/ai-registry';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -103,10 +104,20 @@ export async function POST(req: Request) {
 
     const runId = crypto.randomUUID();
 
+    // Title generation doesn't benefit from reasoning models — use non-reasoning counterpart
+    const { model: resolvedModel, isReasoningModel } = await resolveAIModelInfo({
+      userId: user.id,
+      capability: 'chat',
+    });
+    const effectiveModel = isReasoningModel
+      ? getNonReasoningCounterpart(resolvedModel)
+      : undefined; // undefined = use default resolved model
+
     const suggestions = await withRetryableTimeout(
-      () => generateTitleSuggestions(user.id, parseResult.data, runId),
-      90_000,
-      'title-suggestions'
+      () => generateTitleSuggestions(user.id, parseResult.data, runId, effectiveModel),
+      30_000,
+      'title-suggestions',
+      0, // no outer retry — retryWithQualityGate handles retries internally
     );
 
     return NextResponse.json(suggestions, {
@@ -145,6 +156,7 @@ async function generateTitleSuggestions(
   userId: string,
   request: z.infer<typeof TitleSuggestionRequestSchema>,
   runId: string,
+  modelOverride?: string,
 ): Promise<TitleSuggestionResponse> {
   const { count = 4, refinementContext } = request;
 
@@ -251,6 +263,7 @@ Return this JSON:
           maxTokens: 1500,
           temperature: 0.5,
           messages: [{ role: 'user', content: prompt }],
+          model: modelOverride,
         });
 
         // === Zod Response Validation (Improvement #1) ===

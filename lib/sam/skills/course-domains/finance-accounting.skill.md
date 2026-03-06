@@ -2,6 +2,8 @@
 categoryId: finance-accounting
 displayName: "Finance & Accounting"
 matchesCategories:
+  - Finance
+  - Finance & Accounting
   - Accounting
   - Investing
   - Financial Planning
@@ -12,7 +14,6 @@ matchesCategories:
   - Personal Finance
   - Budgeting
   - Fintech
-  - Finance
   - Financial Modeling
   - Banking
   - Insurance

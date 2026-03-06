@@ -151,7 +151,7 @@ describe('Category Prompt Enhancers', () => {
       const enhancer = getCategoryEnhancer('artificial-intelligence');
       const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
       for (const level of levels) {
-        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+        expect(Object.prototype.hasOwnProperty.call(enhancer.bloomsInDomain, level)).toBe(true);
       }
     });
   });
@@ -191,7 +191,7 @@ describe('Category Prompt Enhancers', () => {
       const enhancer = getCategoryEnhancer('data-analytics');
       const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
       for (const level of levels) {
-        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+        expect(Object.prototype.hasOwnProperty.call(enhancer.bloomsInDomain, level)).toBe(true);
       }
     });
   });
@@ -204,7 +204,7 @@ describe('Category Prompt Enhancers', () => {
     const allCategories = [
       'education', 'personal-development', 'music', 'lifestyle',
       'artificial-intelligence', 'data-analytics',
-    ] as const;
+    ];
 
     for (const category of allCategories) {
       it(`produces non-empty blocks for "${category}"`, () => {
@@ -315,7 +315,7 @@ describe('Category Prompt Enhancers', () => {
 
       const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
       for (const level of levels) {
-        expect(enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]).toBeDefined();
+        expect(Object.prototype.hasOwnProperty.call(enhancer.bloomsInDomain, level)).toBe(true);
       }
     });
 
@@ -412,7 +412,7 @@ describe('Category Prompt Enhancers', () => {
       const levels = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
       for (const level of levels) {
         // Only check levels that exist in the enhancer's bloomsInDomain
-        if (enhancer.bloomsInDomain[level as keyof typeof enhancer.bloomsInDomain]) {
+        if (Object.prototype.hasOwnProperty.call(enhancer.bloomsInDomain, level)) {
           expect(composed.chapterGuidanceBlock).toContain(`**${level}**`);
         }
       }
@@ -521,6 +521,55 @@ describe('Category Prompt Enhancers', () => {
 
       expect(composed.expertiseBlock).toContain('Cross-Domain Context');
       expect(composed.tokenEstimate.total).toBeGreaterThan(0);
+    });
+  });
+
+  // ========================================================================
+  // Subcategory Focus Injection
+  // ========================================================================
+
+  describe('subcategory focus injection', () => {
+    it('injects SUBCATEGORY FOCUS when subcategory is provided', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      const composed = composeCategoryPrompt(enhancer, undefined, 'Generative AI');
+
+      expect(composed.expertiseBlock).toContain('SUBCATEGORY FOCUS: Generative AI');
+      expect(composed.expertiseBlock).toContain('specifically about **Generative AI**');
+    });
+
+    it('extracts matching progression from chapter sequencing advice', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      const composed = composeCategoryPrompt(enhancer, undefined, 'Generative AI');
+
+      // The AI skill file has "Generative AI / LLM Course (Typical Progression)"
+      // with numbered items including "Prompt Engineering", "How LLMs Work", etc.
+      expect(composed.expertiseBlock).toContain('Recommended Generative AI Chapter Progression');
+      expect(composed.expertiseBlock).toContain('Prompt Engineering');
+    });
+
+    it('does NOT inject subcategory block when subcategory is undefined', () => {
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      const composed = composeCategoryPrompt(enhancer);
+
+      expect(composed.expertiseBlock).not.toContain('SUBCATEGORY FOCUS');
+    });
+
+    it('injects focus even when subcategory term appears in enhancer text', () => {
+      // "Generative AI" appears in the AI skill file text, but we should still inject
+      const enhancer = getCategoryEnhancer('artificial-intelligence');
+      const composed = composeCategoryPrompt(enhancer, undefined, 'Generative AI');
+
+      // Must NOT be suppressed
+      expect(composed.expertiseBlock).toContain('SUBCATEGORY FOCUS: Generative AI');
+    });
+
+    it('works for subcategories without a matching progression section', () => {
+      const enhancer = getCategoryEnhancer('programming');
+      const composed = composeCategoryPrompt(enhancer, undefined, 'IoT');
+
+      expect(composed.expertiseBlock).toContain('SUBCATEGORY FOCUS: IoT');
+      // No matching progression, so just the focus directive
+      expect(composed.expertiseBlock).not.toContain('Recommended IoT Chapter Progression');
     });
   });
 });

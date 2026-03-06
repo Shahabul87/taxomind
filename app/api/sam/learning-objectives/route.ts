@@ -10,7 +10,8 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, resolveAIModelInfo, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { getNonReasoningCounterpart } from '@/lib/sam/providers/ai-registry';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -98,11 +99,21 @@ export async function POST(request: NextRequest) {
     const body = parseResult.data;
     const requestedCount = body.count ?? 5;
 
+    // Objectives generation doesn't benefit from reasoning models — use non-reasoning counterpart
+    const { model: resolvedModel, isReasoningModel } = await resolveAIModelInfo({
+      userId: user.id,
+      capability: 'chat',
+    });
+    const effectiveModel = isReasoningModel
+      ? getNonReasoningCounterpart(resolvedModel)
+      : undefined;
+
     try {
       const result = await withRetryableTimeout(
-        () => generateObjectivesWithRetry(user.id, body, requestedCount, runId),
-        90_000,
-        'learning-objectives'
+        () => generateObjectivesWithRetry(user.id, body, requestedCount, runId, effectiveModel),
+        45_000, // objectives generate multiple scored items + quality gate retry — needs more time than titles
+        'learning-objectives',
+        0, // no outer retry — retryWithQualityGate handles retries internally
       );
       return NextResponse.json(result, {
         headers: { 'X-Run-Id': runId },
@@ -142,6 +153,7 @@ async function generateObjectivesWithRetry(
   data: LearningObjectiveRequest,
   requestedCount: number,
   runId: string,
+  modelOverride?: string,
 ): Promise<ObjectivesResponse> {
   // === Input Sanitization (Improvement #2) ===
   const title = sanitizeForPrompt(data.title, 500);
@@ -240,6 +252,7 @@ Return ONLY this JSON:
           maxTokens: 4000,
           temperature: 0.4,
           messages: [{ role: 'user', content: prompt }],
+          model: modelOverride,
         });
 
         // === Zod Response Validation (Improvement #1) ===

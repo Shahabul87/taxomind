@@ -157,7 +157,10 @@ export function SAMLearningObjectivesGeneratorModal({
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Something went wrong. Please try again.';
+        toast.error(message);
+        return;
       }
 
       const result = await response.json();
@@ -309,7 +312,12 @@ export function SAMLearningObjectivesGeneratorModal({
         }),
       });
 
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Refinement failed. Please try again.';
+        toast.error(message);
+        return;
+      }
       const result = await response.json();
 
       const refinedObjectives: ObjectiveSuggestion[] = (result.objectives || []).map(

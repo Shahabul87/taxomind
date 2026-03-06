@@ -10,7 +10,8 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, resolveAIModelInfo, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { getNonReasoningCounterpart } from '@/lib/sam/providers/ai-registry';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
@@ -103,10 +104,20 @@ export async function POST(req: NextRequest) {
 
     const runId = crypto.randomUUID();
 
+    // Overview generation doesn't benefit from reasoning models — use non-reasoning counterpart
+    const { model: resolvedModel, isReasoningModel } = await resolveAIModelInfo({
+      userId: user.id,
+      capability: 'chat',
+    });
+    const effectiveModel = isReasoningModel
+      ? getNonReasoningCounterpart(resolvedModel)
+      : undefined;
+
     const result = await withRetryableTimeout(
-      () => generateOverviewSuggestions(user.id, parseResult.data, runId),
-      90_000,
-      'overview-suggestions'
+      () => generateOverviewSuggestions(user.id, parseResult.data, runId, effectiveModel),
+      45_000, // overviews generate 150-250 words × 3 + quality gate retry — needs more time than titles
+      'overview-suggestions',
+      0, // no outer retry — retryWithQualityGate handles retries internally
     );
 
     return NextResponse.json(result, {
@@ -133,6 +144,7 @@ async function generateOverviewSuggestions(
   userId: string,
   request: z.infer<typeof OverviewSuggestionRequestSchema>,
   runId: string,
+  modelOverride?: string,
 ): Promise<OverviewSuggestionResponse> {
   const { count = 3, refinementContext } = request;
 
@@ -234,6 +246,7 @@ Return ONLY this JSON:
           maxTokens: 2500,
           temperature: 0.5,
           messages: [{ role: 'user', content: prompt }],
+          model: modelOverride,
         });
 
         // === Zod Response Validation (Improvement #1) ===

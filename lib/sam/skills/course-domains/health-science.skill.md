@@ -2,6 +2,8 @@
 categoryId: health-science
 displayName: "Health & Wellness"
 matchesCategories:
+  - Health
+  - Health & Wellness
   - Fitness
   - Nutrition
   - Mental Health

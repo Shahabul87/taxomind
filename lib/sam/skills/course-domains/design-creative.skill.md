@@ -2,6 +2,7 @@
 categoryId: design-creative
 displayName: "Design & Creative"
 matchesCategories:
+  - Design
   - UI Design
   - UX Design
   - UI/UX Design

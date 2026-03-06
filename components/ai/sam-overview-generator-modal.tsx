@@ -145,7 +145,10 @@ export function SAMOverviewGeneratorModal({
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorBody = await response.json().catch(() => null);
+        const message = errorBody?.error || 'Something went wrong. Please try again.';
+        toast.error(message);
+        return;
       }
 
       const result = await response.json();

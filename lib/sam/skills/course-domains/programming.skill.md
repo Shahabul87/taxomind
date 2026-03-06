@@ -2,6 +2,7 @@
 categoryId: programming
 displayName: "Programming & Software Development"
 matchesCategories:
+  - Technology
   - Programming
   - Computer Science
   - Web Development
@@ -17,6 +18,7 @@ matchesCategories:
   - Backend Development
   - Full Stack
   - App Development
+  - IoT
 
 bloomsInDomain:
   REMEMBER:

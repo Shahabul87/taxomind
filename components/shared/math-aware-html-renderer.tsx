@@ -734,6 +734,25 @@ const ALLOWED_TAGS = [
   "td",
 ];
 
+/** Set of allowed tag names for quick lookup */
+const ALLOWED_TAG_SET = new Set(ALLOWED_TAGS);
+
+/**
+ * Fix malformed HTML tags with spaces inside them.
+ * AI-generated content sometimes produces `< strong >`, `< /p >`, `< h2 >` etc.
+ * Browsers and DOMPurify don't recognize these as valid tags, rendering them as text.
+ */
+function normalizeHtmlTags(html: string): string {
+  return html.replace(/<\s*(\/?\s*[a-zA-Z][a-zA-Z0-9]*)\s*>/g, (match, tag: string) => {
+    const normalized = tag.replace(/\s+/g, "");
+    const tagName = normalized.replace(/^\//, "").toLowerCase();
+    if (ALLOWED_TAG_SET.has(tagName)) {
+      return `<${normalized}>`;
+    }
+    return match;
+  });
+}
+
 const ALLOWED_ATTR = ["href", "target", "rel", "class", "style"];
 
 interface MathTextProps {
@@ -847,8 +866,11 @@ export function MathAwareHtmlRenderer({
   const processedHtml = useMemo(() => {
     if (!html) return "";
 
+    // Step 0: Normalize malformed HTML tags (e.g. `< strong >` → `<strong>`)
+    const normalized = normalizeHtmlTags(html);
+
     // Step 1: Sanitize HTML (security) - always runs even before katex loads
-    const sanitized = DOMPurify.sanitize(html, {
+    const sanitized = DOMPurify.sanitize(normalized, {
       ALLOWED_TAGS,
       ALLOWED_ATTR,
       ALLOW_DATA_ATTR: false,
@@ -883,7 +905,7 @@ export function truncateHtmlWithMath(
   }
 
   const div = document.createElement("div");
-  div.innerHTML = html;
+  div.innerHTML = normalizeHtmlTags(html);
   const textContent = div.textContent || div.innerText || "";
 
   if (textContent.length <= maxLength) {

@@ -1,11 +1,14 @@
 /**
- * Course Blueprint Generation API — Template-Based Single-Call
+ * Course Blueprint Generation API — Skill-Enhanced Single-Call
  *
  * Generates a teacher-reviewable blueprint (chapter titles, section titles,
- * key topics) for Step 4 of the AI course creator wizard.
+ * key topics) for Step 2 of the AI course creator wizard.
  *
- * Architecture: Load difficulty-specific template as system prompt → ONE AI call → parse + post-process.
- * Replaces the previous 3-4 sequential AI call pipeline (North Star → Blueprint → Critic → Retry).
+ * Architecture:
+ *   1. Load difficulty template (pedagogical principles + structural rules)
+ *   2. Load domain skill (category-specific teaching methodology, sequencing, quality criteria)
+ *   3. Compose system prompt = template + domain skill + Bloom's assignments
+ *   4. ONE AI call → parse + post-process (repair, fill, time estimates, prerequisites, assessments, scoring)
  */
 
 import crypto from 'crypto';
@@ -32,6 +35,11 @@ import {
 } from '@/lib/sam/course-creation/blueprint';
 import { buildTemplateSystemPrompt } from '@/lib/sam/course-creation/templates';
 import { buildCourseUserPrompt } from '@/lib/sam/course-creation/templates/user-prompt';
+import {
+  getCategoryEnhancers,
+  blendEnhancers,
+  composeCategoryPrompt,
+} from '@/lib/sam/course-creation/category-prompts';
 import type { CourseContext } from '@/lib/sam/course-creation/types';
 
 export const runtime = 'nodejs';
@@ -111,15 +119,31 @@ export async function POST(request: NextRequest) {
         const bloomsDistribution = computeBloomsDistribution(data.bloomsFocus, data.chapterCount);
         const bloomsAssignmentBlock = formatBloomsAssignments(bloomsDistribution);
         const difficulty = data.difficulty as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-        const systemPrompt = buildTemplateSystemPrompt(difficulty, bloomsAssignmentBlock);
+
+        // Load domain-specific skill for this course category
+        const matchedEnhancers = getCategoryEnhancers(data.category, data.subcategory);
+        const categoryEnhancer = matchedEnhancers.length > 1
+          ? blendEnhancers(matchedEnhancers[0], matchedEnhancers[1])
+          : matchedEnhancers[0];
+        const composed = composeCategoryPrompt(categoryEnhancer, undefined, data.subcategory);
+
+        sendSSE('skill-loaded', {
+          categoryId: categoryEnhancer.categoryId,
+          displayName: categoryEnhancer.displayName,
+          tokenEstimate: composed.tokenEstimate.total,
+        });
+
+        const systemPrompt = buildTemplateSystemPrompt(difficulty, bloomsAssignmentBlock, composed);
         const userPrompt = buildCourseUserPrompt(data);
 
         const totalSections = data.chapterCount * data.sectionsPerChapter;
         const blueprintMaxTokens = Math.min(8192, 2000 + data.chapterCount * 300 + totalSections * 150);
         const BLUEPRINT_TIMEOUT_MS = Math.min(180_000, 60_000 + totalSections * 3000);
 
-        logger.info('[BLUEPRINT_ROUTE] Template-based generation', {
+        logger.info('[BLUEPRINT_ROUTE] Skill-enhanced generation', {
           runId, difficulty, model: effectiveModel ?? resolvedModel,
+          skill: categoryEnhancer.categoryId,
+          skillTokens: composed.tokenEstimate.total,
           chapterCount: data.chapterCount, totalSections,
           maxTokens: blueprintMaxTokens, timeout: BLUEPRINT_TIMEOUT_MS,
         });

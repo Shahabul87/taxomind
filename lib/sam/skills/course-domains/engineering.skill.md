@@ -2,6 +2,8 @@
 categoryId: engineering
 displayName: "Science & Engineering"
 matchesCategories:
+  - Science
+  - Science & Engineering
   - Physics
   - Chemistry
   - Biology

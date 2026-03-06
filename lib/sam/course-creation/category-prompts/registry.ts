@@ -118,30 +118,52 @@ export function getCategoryEnhancer(
   ].filter((t): t is string => Boolean(t));
 
   const enhancers = getOrderedEnhancers();
-  const matchedEnhancers = enhancers.filter((enhancer) =>
+
+  // Pass 1: Exact matches (prevents "Design" from matching "System Design" first)
+  const exactMatches = enhancers.filter((enhancer) =>
+    enhancer.matchesCategories.some((matchCategory) => {
+      const matchNorm = normalize(matchCategory);
+      return searchTerms.some((term) => term === matchNorm);
+    })
+  );
+
+  if (exactMatches.length > 0) {
+    if (exactMatches.length > 1) {
+      const warningKey = `exact::${category}::${subcategory ?? ''}`;
+      if (!conflictWarningKeys.has(warningKey)) {
+        conflictWarningKeys.add(warningKey);
+        logger.warn('[category-registry] Multiple enhancers matched category input; using first by priority order', {
+          category, subcategory, selected: exactMatches[0].categoryId,
+          candidates: exactMatches.map((e) => e.categoryId),
+        });
+      }
+    }
+    return exactMatches[0];
+  }
+
+  // Pass 2: Substring matches (fallback)
+  const substringMatches = enhancers.filter((enhancer) =>
     enhancer.matchesCategories.some((matchCategory) => {
       const matchNorm = normalize(matchCategory);
       return searchTerms.some((term) =>
-        term === matchNorm || term.includes(matchNorm) || matchNorm.includes(term)
+        term.includes(matchNorm) || matchNorm.includes(term)
       );
     })
   );
 
-  if (matchedEnhancers.length > 1) {
+  if (substringMatches.length > 1) {
     const warningKey = `${category}::${subcategory ?? ''}`;
     if (!conflictWarningKeys.has(warningKey)) {
       conflictWarningKeys.add(warningKey);
       logger.warn('[category-registry] Multiple enhancers matched category input; using first by priority order', {
-        category,
-        subcategory,
-        selected: matchedEnhancers[0].categoryId,
-        candidates: matchedEnhancers.map((e) => e.categoryId),
+        category, subcategory, selected: substringMatches[0].categoryId,
+        candidates: substringMatches.map((e) => e.categoryId),
       });
     }
   }
 
-  if (matchedEnhancers.length > 0) {
-    return matchedEnhancers[0];
+  if (substringMatches.length > 0) {
+    return substringMatches[0];
   }
 
   // Fallback to general
@@ -170,35 +192,45 @@ export function getCategoryEnhancers(
   const results: CategoryPromptEnhancer[] = [];
   const seenIds = new Set<string>();
 
-  // Search with category term first
-  const categoryNorm = normalize(category);
-  for (const enhancer of enhancers) {
-    if (seenIds.has(enhancer.categoryId)) continue;
-    for (const matchCategory of enhancer.matchesCategories) {
-      const matchNorm = normalize(matchCategory);
-      if (categoryNorm === matchNorm || categoryNorm.includes(matchNorm) || matchNorm.includes(categoryNorm)) {
-        results.push(enhancer);
-        seenIds.add(enhancer.categoryId);
-        break;
-      }
-    }
-    if (results.length >= maxResults) break;
+  // Two-pass matching: exact matches first, then substring fallback.
+  // This prevents "Design" from matching "System Design" in data-structures-algorithms
+  // before matching the actual "Design" entry in design-creative.
+  const searchTerms: Array<{ term: string; label: string }> = [
+    { term: normalize(category), label: 'category' },
+  ];
+  if (subcategory) {
+    searchTerms.push({ term: normalize(subcategory), label: 'subcategory' });
   }
 
-  // Search with subcategory term if provided and we have room
-  if (subcategory && results.length < maxResults) {
-    const subNorm = normalize(subcategory);
+  // Pass 1: Exact matches only (term === matchNorm)
+  for (const { term } of searchTerms) {
+    if (results.length >= maxResults) break;
     for (const enhancer of enhancers) {
       if (seenIds.has(enhancer.categoryId)) continue;
-      for (const matchCategory of enhancer.matchesCategories) {
-        const matchNorm = normalize(matchCategory);
-        if (subNorm === matchNorm || subNorm.includes(matchNorm) || matchNorm.includes(subNorm)) {
-          results.push(enhancer);
-          seenIds.add(enhancer.categoryId);
-          break;
-        }
+      if (enhancer.matchesCategories.some((mc) => normalize(mc) === term)) {
+        results.push(enhancer);
+        seenIds.add(enhancer.categoryId);
+        if (results.length >= maxResults) break;
       }
+    }
+  }
+
+  // Pass 2: Substring matches (only if we still have room)
+  if (results.length < maxResults) {
+    for (const { term } of searchTerms) {
       if (results.length >= maxResults) break;
+      for (const enhancer of enhancers) {
+        if (seenIds.has(enhancer.categoryId)) continue;
+        for (const matchCategory of enhancer.matchesCategories) {
+          const matchNorm = normalize(matchCategory);
+          if (term.includes(matchNorm) || matchNorm.includes(term)) {
+            results.push(enhancer);
+            seenIds.add(enhancer.categoryId);
+            break;
+          }
+        }
+        if (results.length >= maxResults) break;
+      }
     }
   }
 
@@ -207,11 +239,12 @@ export function getCategoryEnhancers(
   }
 
   if (results.length === maxResults) {
+    const catNorm = normalize(category);
     const remainingMatches = enhancers.filter((enhancer) => {
       if (seenIds.has(enhancer.categoryId)) return false;
       return enhancer.matchesCategories.some((matchCategory) => {
         const matchNorm = normalize(matchCategory);
-        const categoryMatch = categoryNorm === matchNorm || categoryNorm.includes(matchNorm) || matchNorm.includes(categoryNorm);
+        const categoryMatch = catNorm === matchNorm || catNorm.includes(matchNorm) || matchNorm.includes(catNorm);
         const subcategoryMatch = subcategory
           ? (() => {
               const subNorm = normalize(subcategory);
@@ -279,17 +312,83 @@ export function blendEnhancers(
 // =============================================================================
 
 /**
- * Build subcategory-specific context when the subcategory is not already
- * covered by the base enhancer's domain expertise and teaching methodology.
+ * Build subcategory-specific context that ALWAYS injects a strong focus
+ * directive when a subcategory is provided. Also extracts the matching
+ * progression from chapterSequencingAdvice if one exists.
+ *
+ * Previous implementation suppressed the subcategory block if the term appeared
+ * anywhere in the enhancer text — this caused subcategory-specific guidance to be
+ * lost even though a casual mention doesn't constitute coverage.
  */
 function buildSubcategoryContext(
   enhancer: CategoryPromptEnhancer,
   subcategory: string | undefined,
 ): string {
   if (!subcategory) return '';
-  const enhancerText = `${enhancer.domainExpertise} ${enhancer.teachingMethodology}`.toLowerCase();
-  if (enhancerText.includes(normalize(subcategory))) return ''; // Already covered
-  return `\n### Subcategory Focus: ${subcategory}\nThis course focuses on ${subcategory} within ${enhancer.displayName}. Tailor examples, terminology, and applications to this subdomain specifically.`;
+
+  // Extract matching progression section from chapter sequencing advice
+  const progression = extractSubcategoryProgression(enhancer.chapterSequencingAdvice, subcategory);
+
+  let block = `\n### SUBCATEGORY FOCUS: ${subcategory}
+This course is specifically about **${subcategory}** within ${enhancer.displayName}. Every chapter MUST directly serve the ${subcategory} domain. Do NOT include generic ${enhancer.displayName} chapters that don't relate to ${subcategory}.`;
+
+  if (progression) {
+    block += `\n\n### Recommended ${subcategory} Chapter Progression (adapt to course goals)
+${progression}`;
+  }
+
+  return block;
+}
+
+/**
+ * Extract a subcategory-specific progression section from chapter sequencing advice.
+ * Looks for markdown headings (### or **) that fuzzy-match the subcategory name,
+ * then returns the numbered list that follows.
+ */
+function extractSubcategoryProgression(
+  sequencingAdvice: string,
+  subcategory: string,
+): string | null {
+  if (!sequencingAdvice) return null;
+
+  const subNorm = normalize(subcategory);
+  const lines = sequencingAdvice.split('\n');
+  let capturing = false;
+  const captured: string[] = [];
+
+  for (const line of lines) {
+    // Check if this line is a heading that matches the subcategory
+    if (/^#{1,4}\s/.test(line) || /^\*\*[^*]+\*\*/.test(line)) {
+      const headingNorm = normalize(line.replace(/[#*:]/g, '').trim());
+      if (capturing) {
+        // Hit next heading — stop capturing
+        break;
+      }
+      if (headingNorm.includes(subNorm) || subNorm.includes(headingNorm.split('/')[0].trim())) {
+        capturing = true;
+        continue;
+      }
+    } else if (capturing) {
+      if (line.trim() === '') {
+        // Allow blank lines within the section
+        if (captured.length > 0) captured.push('');
+        continue;
+      }
+      if (/^\d+\.|\s*-\s/.test(line.trim())) {
+        captured.push(line);
+      } else if (captured.length > 0) {
+        // Non-list line after list items — stop
+        break;
+      }
+    }
+  }
+
+  // Remove trailing empty lines
+  while (captured.length > 0 && captured[captured.length - 1].trim() === '') {
+    captured.pop();
+  }
+
+  return captured.length > 0 ? captured.join('\n') : null;
 }
 
 /**
