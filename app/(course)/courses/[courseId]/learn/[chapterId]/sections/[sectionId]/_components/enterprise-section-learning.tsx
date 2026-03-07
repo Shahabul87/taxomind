@@ -414,7 +414,7 @@ export function EnterpriseSectionLearning({
           {/* Main Content Column */}
           <motion.div
             className={cn(
-              "space-y-6",
+              "space-y-6 min-w-0",
               sidebarOpen ? "xl:col-span-8" : "xl:col-span-12 xl:max-w-4xl xl:mx-auto"
             )}
             layout
@@ -423,7 +423,7 @@ export function EnterpriseSectionLearning({
             {/* Section Hero — no card boxing, generous breathing room */}
             <section className="pt-2 pb-6">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h1
                     className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight text-slate-900 dark:text-white"
                     style={{ fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)' }}

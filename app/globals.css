@@ -267,6 +267,37 @@ body,
 .learning-accent-border { border-color: hsl(var(--learning-accent)); }
 .learning-surface { background-color: hsl(var(--learning-surface)); }
 
+/* KaTeX overflow containment — prevent math from blowing out containers */
+.prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+.prose .math-inline {
+  display: inline;
+  overflow-wrap: break-word;
+}
+.prose .math-inline > .katex {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.prose .katex {
+  white-space: normal;
+}
+.prose .katex .base {
+  white-space: nowrap;
+}
+.math-inline > .katex {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.math-inline {
+  display: inline;
+  white-space: normal;
+}
+
 /* ============================================================================
    Blog Newspaper Font & Color Utilities
    ============================================================================ */

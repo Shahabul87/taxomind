@@ -222,7 +222,7 @@ export function SectionContentTabs({
   const tabBadgeClass = "ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700";
 
   return (
-    <Card className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="w-full overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
       <CardHeader className="pb-4">
         <CardTitle
           className="text-lg font-semibold text-slate-900 dark:text-white"
