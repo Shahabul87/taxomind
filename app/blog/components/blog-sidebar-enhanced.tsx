@@ -367,13 +367,12 @@ function PopularTopicsWidget({
           <button
             key={topic.id}
             onClick={() => onCategorySelect?.(topic.id)}
-            className="text-newspaper-ink border-newspaper-rule hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] hover:border-[hsl(var(--blog-newspaper-ink))] transition-colors"
+            className="bg-transparent text-newspaper-ink border-newspaper-rule hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] hover:border-[hsl(var(--blog-newspaper-ink))] transition-colors"
             style={{
               padding: "6px 12px",
               fontFamily: fonts.mono,
               fontSize: 11,
               fontWeight: 500,
-              background: "transparent",
               borderWidth: 1,
               borderStyle: "solid",
               cursor: "pointer",

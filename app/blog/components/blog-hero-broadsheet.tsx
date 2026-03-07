@@ -611,13 +611,11 @@ export function BlogHeroBroadsheet({
                     userId ? "/teacher/posts/create" : "/auth/register",
                   )
                 }
-                className="border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
+                className="w-full bg-transparent border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
                 style={{
-                  width: "100%",
                   padding: "10px",
                   borderWidth: 2,
                   borderStyle: "solid",
-                  background: "transparent",
                   fontFamily: blogFonts.headline,
                   fontSize: 12,
                   fontWeight: 700,

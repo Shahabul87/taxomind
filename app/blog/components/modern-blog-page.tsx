@@ -707,7 +707,7 @@ export function ModernBlogPage({
                 <div style={{ textAlign: "center", marginTop: 40 }}>
                   <button
                     onClick={() => setDisplayCount(prev => prev + 9)}
-                    className="border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
+                    className="bg-transparent border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
                     style={{
                       padding: "14px 36px",
                       fontFamily: fonts.mono,
@@ -715,7 +715,6 @@ export function ModernBlogPage({
                       fontWeight: 600,
                       textTransform: "uppercase",
                       letterSpacing: "0.12em",
-                      background: "transparent",
                       borderWidth: 1,
                       borderStyle: "solid",
                       cursor: "pointer",
