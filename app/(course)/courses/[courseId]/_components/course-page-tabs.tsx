@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 import { Chapter, Section, Course, Category } from '@prisma/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +14,9 @@ import {
   FolderOpen,
   Award,
   Bell,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { EventTracker } from '@/lib/analytics/event-tracker';
@@ -487,6 +489,31 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     scrollRef.current.scrollBy({ left: dirAdjusted, behavior: 'smooth' });
   };
 
+  // Track whether the tab strip can scroll left/right
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const tolerance = 2;
+    setCanScrollLeft(el.scrollLeft > tolerance);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - tolerance);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      ro.disconnect();
+    };
+  }, [updateScrollState]);
+
   // Derive dynamic accent from category
   const palette = getCategoryPalette(course?.category?.name);
 
@@ -504,7 +531,29 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
         // Respect safe-area on notched devices and allow global sticky offset overrides
         style={{ top: 'calc(var(--sticky-offset, 12px) + env(safe-area-inset-top, 0px))' }}
       >
-        <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md md:shadow-2xl md:shadow-blue-900/20 dark:md:shadow-black/60 mx-auto backdrop-blur-md md:bg-white/98 dark:md:bg-slate-900/98 ring-1 ring-white/20 dark:ring-slate-700/30" style={{ maxWidth: '1280px' }}>
+        <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md md:shadow-2xl md:shadow-blue-900/20 dark:md:shadow-black/60 mx-auto backdrop-blur-md md:bg-white/98 dark:md:bg-slate-900/98 ring-1 ring-white/20 dark:ring-slate-700/30 relative" style={{ maxWidth: '1280px' }}>
+          {/* Left scroll arrow + gradient fade */}
+          {canScrollLeft && (
+            <button
+              type="button"
+              aria-label="Scroll tabs left"
+              onClick={() => scrollByAmount(-200)}
+              className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-0.5 pr-2 rounded-l-lg sm:rounded-l-xl bg-gradient-to-r from-white via-white/90 to-transparent dark:from-slate-900 dark:via-slate-900/90 dark:to-transparent transition-opacity duration-200"
+            >
+              <ChevronLeft className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            </button>
+          )}
+          {/* Right scroll arrow + gradient fade */}
+          {canScrollRight && (
+            <button
+              type="button"
+              aria-label="Scroll tabs right"
+              onClick={() => scrollByAmount(200)}
+              className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-0.5 pl-2 rounded-r-lg sm:rounded-r-xl bg-gradient-to-l from-white via-white/90 to-transparent dark:from-slate-900 dark:via-slate-900/90 dark:to-transparent transition-opacity duration-200"
+            >
+              <ChevronRight className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            </button>
+          )}
           <nav
             ref={scrollRef}
             className="flex gap-0.5 sm:gap-1 overflow-x-auto scroll-smooth no-scrollbar p-1 sm:p-1.5 -webkit-overflow-scrolling-touch snap-x snap-mandatory"
