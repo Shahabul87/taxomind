@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import PostCardModelTwo from "./post-card-model-two";
 import { PostCardFlipBook } from "./post-card-flip-book";
 import { BookModeReading } from "./book-mode-reading";
-import { AnimatedReadingMode } from "./animated-reading-mode";
 import { CardModeReading } from "./card-mode-reading";
 
 // Type definitions for Post data structure
@@ -88,7 +87,6 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
     { id: 3, name: "Normal", icon: Layout, desktopOnly: false },
     { id: 4, name: "CardMode", icon: LayoutGrid, desktopOnly: false },
     { id: 5, name: "FlipBook", icon: BookOpen, desktopOnly: true },
-    { id: 6, name: "Animated", icon: BookOpen, desktopOnly: false },
   ];
 
   return (
@@ -315,18 +313,6 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   className="w-full"
                 >
                   <PostCardFlipBook data={chapters} fontSize={fontSize} />
-                </motion.div>
-              )}
-              {activeMode === 6 && (
-                <motion.div
-                  key="animated"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full"
-                >
-                  <AnimatedReadingMode postchapter={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
             </AnimatePresence>
