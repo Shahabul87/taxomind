@@ -358,7 +358,7 @@ export function EnterpriseSectionLearning({
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-[hsl(var(--learning-surface))]">
       {/* Section Header */}
       <SectionHeader
         course={course}
@@ -403,7 +403,7 @@ export function EnterpriseSectionLearning({
             variant="outline"
             size="sm"
             onClick={() => setMobileSidebarOpen(true)}
-            className="flex items-center gap-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="flex items-center gap-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
           >
             <PanelRightOpen className="h-4 w-4" />
             <span className="text-sm">Course Navigation</span>
@@ -420,182 +420,177 @@ export function EnterpriseSectionLearning({
             layout
             transition={{ duration: 0.2 }}
           >
-            {/* Section Overview Card */}
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight">
-                      {currentSection.title}
-                    </CardTitle>
-                    {descriptionHtml && (
+            {/* Section Hero — no card boxing, generous breathing room */}
+            <section className="pt-2 pb-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1
+                    className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight text-slate-900 dark:text-white"
+                    style={{ fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)' }}
+                  >
+                    {currentSection.title}
+                  </h1>
+                  {descriptionHtml && (
+                    <div style={{ fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)' }}>
                       <MathAwareHtmlRenderer
                         html={descriptionHtml}
-                        className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none overflow-hidden break-words"
+                        className="mt-4 text-slate-600 dark:text-slate-400 prose prose-base dark:prose-invert max-w-none overflow-hidden break-words leading-relaxed"
                       />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2 flex-shrink-0">
-                    {displayMinutes > 0 && (
-                      <Badge variant="secondary" className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0">
-                        <Clock className="h-3 w-3" />
-                        {displayMinutes} min{durationMinutes === 0 ? " read" : ""}
-                      </Badge>
-                    )}
-                    {sectionCompleted && (
-                      <Badge className="flex items-center gap-1.5 text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Completed
-                      </Badge>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
+                <div className="flex flex-col gap-2 flex-shrink-0 pt-1">
+                  {displayMinutes > 0 && (
+                    <Badge variant="secondary" className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0">
+                      <Clock className="h-3 w-3" />
+                      {displayMinutes} min{durationMinutes === 0 ? " read" : ""}
+                    </Badge>
+                  )}
+                  {sectionCompleted && (
+                    <Badge className="flex items-center gap-1.5 text-xs bg-[hsl(var(--learning-accent-light))] text-[hsl(var(--learning-accent))] border border-[hsl(var(--learning-accent)/0.3)]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Completed
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
-                {/* Learning Objectives */}
-                {currentSection.learningObjectives && (
-                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
-                    <h3 className="flex items-center gap-2 text-sm font-medium mb-3 text-slate-900 dark:text-white">
-                      <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
-                      Learning Objectives
-                    </h3>
-                    <MathAwareHtmlRenderer
-                      html={
-                        // Convert newline-separated plain text into a bullet list
-                        currentSection.learningObjectives.includes("<li>")
-                          ? currentSection.learningObjectives
-                          : `<ul>${currentSection.learningObjectives
-                              .split("\n")
-                              .map((line) => line.trim())
-                              .filter(Boolean)
-                              .map((line) => `<li>${line}</li>`)
-                              .join("")}</ul>`
-                      }
-                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm [&>ul>li]:leading-relaxed"
-                    />
-                  </div>
-                )}
-              </CardHeader>
-
-              {/* Content Stats - Only show if there is content */}
+              {/* Content Stats — inline pills below title */}
               {totalContent > 0 && (
-                <CardContent className="pt-0 pb-6">
-                  <div className="flex flex-wrap gap-3">
-                    {contentCounts.videos > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
-                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.videos}</span>
-                        <span className="text-slate-500 dark:text-slate-400">Video{contentCounts.videos !== 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    {contentCounts.articles > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
-                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.articles}</span>
-                        <span className="text-slate-500 dark:text-slate-400">Article{contentCounts.articles !== 1 ? 's' : ''}</span>
-                      </div>
-                    )}
-                    {contentCounts.math > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
-                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.math}</span>
-                        <span className="text-slate-500 dark:text-slate-400">Math</span>
-                      </div>
-                    )}
-                    {contentCounts.code > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
-                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.code}</span>
-                        <span className="text-slate-500 dark:text-slate-400">Code</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
+                <div className="flex flex-wrap gap-2 mt-5">
+                  {contentCounts.videos > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800/60 text-xs border border-slate-200/60 dark:border-slate-700/40">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{contentCounts.videos}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Video{contentCounts.videos !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {contentCounts.articles > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800/60 text-xs border border-slate-200/60 dark:border-slate-700/40">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{contentCounts.articles}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Article{contentCounts.articles !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  {contentCounts.math > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800/60 text-xs border border-slate-200/60 dark:border-slate-700/40">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{contentCounts.math}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Math</span>
+                    </div>
+                  )}
+                  {contentCounts.code > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white dark:bg-slate-800/60 text-xs border border-slate-200/60 dark:border-slate-700/40">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{contentCounts.code}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Code</span>
+                    </div>
+                  )}
+                </div>
               )}
-            </Card>
 
-            {/* Main Video Player (if videoUrl exists) */}
+              {/* Learning Objectives — accent-bordered checklist style */}
+              {currentSection.learningObjectives && (
+                <div className="mt-6 pl-4 border-l-[3px] border-[hsl(var(--learning-accent))]">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold mb-3 text-slate-900 dark:text-white">
+                    <Target className="h-4 w-4 text-[hsl(var(--learning-accent))]" />
+                    Learning Objectives
+                  </h3>
+                  <MathAwareHtmlRenderer
+                    html={
+                      currentSection.learningObjectives.includes("<li>")
+                        ? currentSection.learningObjectives
+                        : `<ul>${currentSection.learningObjectives
+                            .split("\n")
+                            .map((line) => line.trim())
+                            .filter(Boolean)
+                            .map((line) => `<li>${line}</li>`)
+                            .join("")}</ul>`
+                    }
+                    className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 [&>ul]:list-none [&>ul]:ml-0 [&>ul]:pl-0 [&>ul>li]:mb-2 [&>ul>li]:text-sm [&>ul>li]:leading-relaxed [&>ul>li]:flex [&>ul>li]:items-start [&>ul>li]:gap-2 [&>ul>li::before]:content-[''] [&>ul>li]:pl-6 [&>ul>li]:relative [&>ul>li]:before:absolute [&>ul>li]:before:left-0 [&>ul>li]:before:top-[0.45em] [&>ul>li]:before:h-2 [&>ul>li]:before:w-2 [&>ul>li]:before:rounded-full [&>ul>li]:before:bg-[hsl(var(--learning-accent)/0.5)]"
+                  />
+                </div>
+              )}
+            </section>
+
+            {/* Main Video Player — no card wrapper, full-bleed feel */}
             {currentSection.videoUrl && (
-              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-medium text-slate-900 dark:text-white">Main Lecture</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="video-container rounded-lg overflow-hidden">
-                    <SectionYouTubePlayer
-                      videoUrl={currentSection.videoUrl}
-                      sectionId={sectionId}
-                      sectionTitle={currentSection.title}
-                      onComplete={handleSectionComplete}
-                      ref={videoPlayerRef}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <section>
+                <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                  Main Lecture
+                </h2>
+                <div className="video-container rounded-xl overflow-hidden shadow-md">
+                  <SectionYouTubePlayer
+                    videoUrl={currentSection.videoUrl}
+                    sectionId={sectionId}
+                    sectionTitle={currentSection.title}
+                    onComplete={handleSectionComplete}
+                    ref={videoPlayerRef}
+                  />
+                </div>
+              </section>
             )}
 
-            {/* Navigation Controls */}
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={!prevSection}
-                    className="flex items-center gap-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-900 hover:text-white hover:border-slate-900 dark:hover:bg-white dark:hover:text-slate-900 dark:hover:border-white text-slate-700 dark:text-slate-300 transition-colors disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white disabled:hover:text-slate-400 dark:disabled:border-slate-700 dark:disabled:text-slate-600"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">Previous</span>
-                  </Button>
+            {/* Navigation Controls — lightweight divider, no card */}
+            <nav className="py-4 border-y border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={!prevSection}
+                  className="flex items-center gap-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-900 hover:text-white hover:border-slate-900 dark:hover:bg-white dark:hover:text-slate-900 dark:hover:border-white text-slate-700 dark:text-slate-300 transition-all duration-200 hover:scale-[1.02] disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white disabled:hover:text-slate-400 disabled:hover:scale-100 dark:disabled:border-slate-700 dark:disabled:text-slate-600"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Previous</span>
+                </Button>
 
-                  <div className="flex items-center gap-3">
-                    {/* Study Guide Generator Button */}
-                    {canTrackProgress && (
-                      <StudyGuideGenerator
-                        courseId={courseId}
-                        courseTitle={course.title}
-                        sectionId={sectionId}
-                        userId={user?.id}
-                        variant="compact"
-                      />
-                    )}
+                <div className="flex items-center gap-3">
+                  {canTrackProgress && (
+                    <StudyGuideGenerator
+                      courseId={courseId}
+                      courseTitle={course.title}
+                      sectionId={sectionId}
+                      userId={user?.id}
+                      variant="compact"
+                    />
+                  )}
 
-                    {canTrackProgress && !sectionCompleted && (
-                      <Button
-                        variant="outline"
-                        onClick={handleSectionComplete}
-                        className="flex items-center gap-2 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span className="hidden sm:inline">Mark Complete</span>
-                      </Button>
-                    )}
-                  </div>
-
-                  <Button
-                    onClick={handleNext}
-                    disabled={!nextSection && !nextChapterSection}
-                    className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900"
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  {canTrackProgress && !sectionCompleted && (
+                    <Button
+                      variant="outline"
+                      onClick={handleSectionComplete}
+                      className="flex items-center gap-2 border-[hsl(var(--learning-accent)/0.3)] text-[hsl(var(--learning-accent))] hover:bg-[hsl(var(--learning-accent-light))] hover:text-[hsl(var(--learning-accent))] transition-all duration-200 hover:scale-[1.02]"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Mark Complete</span>
+                    </Button>
+                  )}
                 </div>
 
-                {/* Next Section Preview */}
-                {(nextSection || nextChapterSection) && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                      <Info className="h-3.5 w-3.5" />
-                      Up Next
-                    </div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
-                      {nextSection?.title || nextChapterSection?.section.title}
-                    </p>
-                    {!nextSection && nextChapterSection && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Chapter: {nextChapterSection.chapter.title}
-                      </p>
-                    )}
+                <Button
+                  onClick={handleNext}
+                  disabled={!nextSection && !nextChapterSection}
+                  className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 transition-all duration-200 hover:scale-[1.02]"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Next Section Preview */}
+              {(nextSection || nextChapterSection) && (
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                  <div className="flex items-center gap-2 text-xs text-[hsl(var(--learning-accent-muted))] mb-1">
+                    <Info className="h-3.5 w-3.5" />
+                    Up Next
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    {nextSection?.title || nextChapterSection?.section.title}
+                  </p>
+                  {!nextSection && nextChapterSection && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Chapter: {nextChapterSection.chapter.title}
+                    </p>
+                  )}
+                </div>
+              )}
+            </nav>
 
             {/* Content Tabs - Learning Materials */}
             <SectionContentTabs
@@ -642,37 +637,100 @@ export function EnterpriseSectionLearning({
         </div>
       </div>
 
-      {/* Completion Modal */}
+      {/* Completion Celebration Modal */}
       <AnimatePresence>
         {showCompletionModal && (
           <motion.div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowCompletionModal(false)}
           >
+            {/* Confetti particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full"
+                  style={{
+                    left: `${10 + Math.random() * 80}%`,
+                    top: `${10 + Math.random() * 30}%`,
+                    backgroundColor: ['hsl(var(--learning-accent))', '#f59e0b', '#8b5cf6', '#ec4899', '#3b82f6'][i % 5],
+                    animation: `confetti-fall ${1.5 + Math.random() * 2}s ease-out ${Math.random() * 0.5}s forwards`,
+                    opacity: 0.9,
+                  }}
+                />
+              ))}
+            </div>
+
             <motion.div
-              className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-xl"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-2xl relative"
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 rounded-full flex items-center justify-center mb-4">
-                  <Award className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                {/* Celebration ring animation */}
+                <div className="relative mx-auto w-20 h-20 mb-5">
+                  <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                    <circle
+                      cx="40" cy="40" r="36"
+                      fill="none"
+                      stroke="hsl(var(--learning-accent) / 0.15)"
+                      strokeWidth="4"
+                    />
+                    <circle
+                      cx="40" cy="40" r="36"
+                      fill="none"
+                      stroke="hsl(var(--learning-accent))"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray="226"
+                      style={{ animation: 'celebration-ring 1s ease-out forwards' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ delay: 0.3, type: "spring", damping: 12 }}
+                    >
+                      <Award className="h-8 w-8 text-[hsl(var(--learning-accent))]" />
+                    </motion.div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Section Complete</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+
+                <motion.h3
+                  className="text-xl font-bold mb-2 text-slate-900 dark:text-white"
+                  style={{ fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)' }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Section Complete!
+                </motion.h3>
+                <motion.p
+                  className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                >
                   You&apos;ve completed this section. Keep up the great work!
-                </p>
-                <div className="flex gap-3 justify-center">
+                </motion.p>
+                <motion.div
+                  className="flex gap-3 justify-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45 }}
+                >
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowCompletionModal(false)}
-                    className="border-slate-200 dark:border-slate-700"
+                    className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white hover:scale-[1.02] transition-all"
                   >
                     Review
                   </Button>
@@ -680,12 +738,12 @@ export function EnterpriseSectionLearning({
                     <Button
                       size="sm"
                       onClick={handleNext}
-                      className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900"
+                      className="bg-[hsl(var(--learning-accent))] hover:bg-[hsl(var(--learning-accent)/0.9)] text-white hover:scale-[1.02] transition-transform"
                     >
                       Continue
                     </Button>
                   )}
-                </div>
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>
@@ -726,7 +784,7 @@ export function EnterpriseSectionLearning({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-xs h-7"
+                          className="text-xs h-7 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                           onClick={() => {
                             if (emotionState.suggestedAction?.type === "take_break") {
                               toast.info("Taking a 5-minute break. We will remind you to come back!");
@@ -741,7 +799,7 @@ export function EnterpriseSectionLearning({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs h-7"
+                          className="text-xs h-7 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                           onClick={dismissEmotionNotification}
                         >
                           Dismiss
@@ -752,7 +810,7 @@ export function EnterpriseSectionLearning({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600"
+                    className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                     onClick={dismissEmotionNotification}
                   >
                     <X className="h-4 w-4" />
@@ -802,7 +860,7 @@ export function EnterpriseSectionLearning({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="w-full text-xs h-7"
+                      className="w-full text-xs h-7 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                       onClick={() => setShowLearningStyleTip(false)}
                     >
                       Got it

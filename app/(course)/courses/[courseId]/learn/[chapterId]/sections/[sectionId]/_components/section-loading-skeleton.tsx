@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export const SectionLoadingSkeleton = () => {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-[hsl(var(--learning-surface))]">
       {/* Header Skeleton */}
       <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-4 sm:px-6 py-2 sm:py-3">
@@ -33,25 +33,32 @@ export const SectionLoadingSkeleton = () => {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Main Content Column */}
           <div className="xl:col-span-8 space-y-6">
-            {/* Video Player Skeleton */}
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-              <CardContent className="p-0">
-                <div className="aspect-video w-full bg-slate-900 rounded-t-lg overflow-hidden">
-                  <Skeleton className="w-full h-full rounded-none" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Section Hero Skeleton */}
+            <div className="pt-2 pb-6 space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <div className="flex gap-2 mt-4">
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            </div>
 
-            {/* Navigation + Completion Row */}
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-9 w-28 rounded-md" />
-                  <Skeleton className="h-9 w-36 rounded-md" />
-                  <Skeleton className="h-9 w-28 rounded-md" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Video Player Skeleton */}
+            <div className="rounded-xl overflow-hidden shadow-md">
+              <div className="aspect-video w-full bg-slate-900">
+                <Skeleton className="w-full h-full rounded-none" />
+              </div>
+            </div>
+
+            {/* Navigation Row */}
+            <div className="py-4 border-y border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-9 w-28 rounded-md" />
+                <Skeleton className="h-9 w-36 rounded-md" />
+                <Skeleton className="h-9 w-28 rounded-md" />
+              </div>
+            </div>
 
             {/* Content Tabs Skeleton */}
             <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">

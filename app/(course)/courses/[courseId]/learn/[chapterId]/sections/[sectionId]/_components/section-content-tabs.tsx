@@ -217,10 +217,19 @@ export function SectionContentTabs({
     };
   }, [section.codeExplanations]);
 
+  // DRY: shared tab trigger styling — Issue #6 fix
+  const tabTriggerClass = "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200";
+  const tabBadgeClass = "ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700";
+
   return (
     <Card className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-medium text-slate-900 dark:text-white">Learning Materials</CardTitle>
+        <CardTitle
+          className="text-lg font-semibold text-slate-900 dark:text-white"
+          style={{ fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)' }}
+        >
+          Learning Materials
+        </CardTitle>
         <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
           Additional videos, articles, code examples, and resources
         </CardDescription>
@@ -228,97 +237,95 @@ export function SectionContentTabs({
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex flex-nowrap gap-1 mb-6 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg sticky top-[57px] z-30 border border-slate-100 dark:border-slate-700 overflow-x-auto scrollbar-hide">
-            <TabsTrigger value="overview" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+            <TabsTrigger value="overview" className={tabTriggerClass}>
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
 
             {contentCounts.videos > 0 && (
-              <TabsTrigger value="videos" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="videos" className={tabTriggerClass}>
                 <Video className="h-4 w-4" />
                 <span className="hidden sm:inline">Videos</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.videos}
                 </Badge>
               </TabsTrigger>
             )}
 
             {contentCounts.blogs > 0 && (
-              <TabsTrigger value="blogs" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="blogs" className={tabTriggerClass}>
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Articles</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.blogs}
                 </Badge>
               </TabsTrigger>
             )}
 
             {contentCounts.math > 0 && (
-              <TabsTrigger value="math" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="math" className={tabTriggerClass}>
                 <Calculator className="h-4 w-4" />
                 <span className="hidden sm:inline">Math</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.math}
                 </Badge>
               </TabsTrigger>
             )}
 
             {contentCounts.code > 0 && (
-              <TabsTrigger value="code" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="code" className={tabTriggerClass}>
                 <Code2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Code</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.code}
                 </Badge>
               </TabsTrigger>
             )}
 
             {contentCounts.exams > 0 && (
-              <TabsTrigger value="exams" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="exams" className={tabTriggerClass}>
                 <FileQuestion className="h-4 w-4" />
                 <span className="hidden sm:inline">Exams</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.exams}
                 </Badge>
               </TabsTrigger>
             )}
 
             {contentCounts.resources > 0 && (
-              <TabsTrigger value="resources" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="resources" className={tabTriggerClass}>
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Resources</span>
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
+                <Badge variant="secondary" className={tabBadgeClass}>
                   {contentCounts.resources}
                 </Badge>
               </TabsTrigger>
             )}
 
             {mode === "learning" && sectionCompletionPercent >= 100 && (
-              <TabsTrigger value="certificate" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="certificate" className={tabTriggerClass}>
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Certificate</span>
               </TabsTrigger>
             )}
 
-            {/* SAM AI Practice Tab */}
             {(isEnrolled || isTeacher) && (
-              <TabsTrigger value="practice" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="practice" className={tabTriggerClass}>
                 <Brain className="h-4 w-4" />
                 <span className="hidden sm:inline">Practice</span>
               </TabsTrigger>
             )}
 
-            {/* SAM AI Tutor Tab */}
             {(isEnrolled || isTeacher) && (
-              <TabsTrigger value="tutor" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="tutor" className={tabTriggerClass}>
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">AI Tutor</span>
               </TabsTrigger>
             )}
           </TabsList>
 
-          {/* Tab Content Container */}
-          <div className="min-h-[200px] relative">
+          {/* Tab Content Container — fade transition on content switch */}
+          <div className="min-h-[200px] relative animate-[fade-in-up_0.3s_ease-out]" key={activeTab}>
           {/* Overview Tab */}
           <TabsContent
             value="overview"
@@ -937,7 +944,7 @@ export function SectionContentTabs({
                             variant="outline"
                             size="sm"
                             onClick={() => markItemComplete(blog.id, "blog")}
-                            className="border-2 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                            className="border-2 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </Button>

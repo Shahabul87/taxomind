@@ -113,9 +113,9 @@ export function SectionHeader({
           <div className="hidden md:flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800">
               {isCompleted ? (
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <CheckCircle className="h-4 w-4 text-[hsl(var(--learning-accent))]" />
               ) : (
-                <div className="h-4 w-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+                <div className="h-4 w-4 rounded-full border-2 border-[hsl(var(--learning-accent)/0.3)]" />
               )}
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {Math.round(progress)}%
@@ -195,15 +195,10 @@ export function SectionHeader({
         </div>
       </div>
 
-      {/* Progress Bar - Minimal and elegant */}
+      {/* Progress Bar - Learning accent */}
       <div className="h-0.5 bg-slate-100 dark:bg-slate-800">
         <div
-          className={cn(
-            "h-full transition-all duration-500 ease-out",
-            isCompleted
-              ? "bg-emerald-500"
-              : "bg-slate-900 dark:bg-white"
-          )}
+          className="h-full transition-all duration-500 ease-out bg-[hsl(var(--learning-progress))]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>

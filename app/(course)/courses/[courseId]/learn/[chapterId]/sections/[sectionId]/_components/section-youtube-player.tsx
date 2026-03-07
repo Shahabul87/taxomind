@@ -424,7 +424,7 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
               <span>{formatTime(currentTime)}</span>
               <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-500 transition-all duration-300"
+                  className="h-full bg-[hsl(var(--learning-accent))] transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -542,27 +542,40 @@ export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionY
         </div>
       </div>
 
-      {/* Progress Tracking Info */}
+      {/* Progress Tracking Info — milestone-aware */}
       {canTrackProgress && (
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+        <div className="mt-4 p-3 bg-[hsl(var(--learning-accent-light))] dark:bg-[hsl(var(--learning-accent-light))] rounded-lg border border-[hsl(var(--learning-accent)/0.15)]">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Video Progress</span>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(progress)}% Complete
+            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Video Progress</span>
+            <span className="text-sm font-semibold text-[hsl(var(--learning-accent))]">
+              {Math.round(progress)}%
             </span>
           </div>
-          <div className="mt-2 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div className="mt-2 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+              className="h-full bg-[hsl(var(--learning-accent))] transition-all duration-300 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-            <span>Start</span>
-            <span>25%</span>
-            <span>50%</span>
-            <span>75%</span>
-            <span>Complete</span>
+          <div className="mt-2 flex justify-between text-xs">
+            {[
+              { label: 'Start', pct: 0 },
+              { label: '25%', pct: 25 },
+              { label: '50%', pct: 50 },
+              { label: '75%', pct: 75 },
+              { label: 'Done', pct: 100 },
+            ].map(({ label, pct }) => (
+              <span
+                key={pct}
+                className={
+                  progress >= pct
+                    ? 'font-semibold text-[hsl(var(--learning-accent))]'
+                    : 'text-slate-400 dark:text-slate-500'
+                }
+              >
+                {label}
+              </span>
+            ))}
           </div>
         </div>
       )}

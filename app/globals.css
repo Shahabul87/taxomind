@@ -161,6 +161,13 @@ body,
     --hero-secondary-dark: 24 85% 88%; /* darker peach */
     --hero-text: 222 47% 11%; /* dark text on light bg */
     --hero-text-muted: 215 16% 47%; /* muted text */
+
+    /* Learning Mode Accent Tokens */
+    --learning-accent: 160 84% 39%; /* teal #0d9488 — signature learning color */
+    --learning-accent-light: 160 84% 95%; /* teal-50 tint */
+    --learning-accent-muted: 160 30% 50%; /* desaturated teal */
+    --learning-progress: 160 84% 39%;
+    --learning-surface: 160 20% 97%; /* barely-there teal tint */
   }
 
   .dark {
@@ -222,6 +229,13 @@ body,
     --hero-secondary-dark: 24 50% 20%; /* even darker peach */
     --hero-text: 220 20% 96%; /* light text on dark bg */
     --hero-text-muted: 220 12% 70%; /* muted light text */
+
+    /* Learning Mode Accent Tokens - Dark Mode */
+    --learning-accent: 166 72% 50%; /* brighter teal for dark */
+    --learning-accent-light: 166 50% 12%; /* deep teal tint */
+    --learning-accent-muted: 166 30% 55%;
+    --learning-progress: 166 72% 50%;
+    --learning-surface: 166 20% 8%;
   }
 }
 
@@ -233,6 +247,25 @@ body,
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================================
+   Learning Mode Utilities
+   ============================================================================ */
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(120px) rotate(720deg); opacity: 0; }
+}
+
+@keyframes celebration-ring {
+  0% { transform: scale(0.8); opacity: 0; stroke-dashoffset: 251; }
+  50% { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; stroke-dashoffset: 0; }
+}
+
+.learning-accent-bg { background-color: hsl(var(--learning-accent)); }
+.learning-accent-text { color: hsl(var(--learning-accent)); }
+.learning-accent-border { border-color: hsl(var(--learning-accent)); }
+.learning-surface { background-color: hsl(var(--learning-surface)); }
 
 /* ============================================================================
    Blog Newspaper Font & Color Utilities

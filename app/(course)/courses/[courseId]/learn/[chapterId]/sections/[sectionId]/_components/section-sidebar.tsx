@@ -66,7 +66,7 @@ export function SectionSidebar({
               variant="outline"
               size="sm"
               onClick={onToggle}
-              className="h-7 px-2.5 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-7 px-2.5 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
               title="Collapse sidebar (Ctrl+B)"
             >
               <PanelRightClose className="h-3.5 w-3.5 mr-1.5" />
@@ -121,12 +121,12 @@ export function SectionSidebar({
             </p>
           )}
           {completedSections > 0 && completedSections < totalSections && (
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+            <p className="text-xs text-[hsl(var(--learning-accent))] text-center font-medium">
               {completedSections === 1 ? "Great start!" : `${Math.round(courseProgress)}% done — keep going!`}
             </p>
           )}
           {completedSections === totalSections && totalSections > 0 && (
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 text-center font-medium">
+            <p className="text-xs text-[hsl(var(--learning-accent))] text-center font-medium">
               Course complete — congratulations!
             </p>
           )}
@@ -165,7 +165,7 @@ export function SectionSidebar({
                   >
                     <div className="flex-shrink-0">
                       {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        <CheckCircle2 className="h-4 w-4 text-[hsl(var(--learning-accent))]" />
                       ) : isLocked ? (
                         <Lock className="h-4 w-4 text-slate-400" />
                       ) : isCurrentSection ? (
@@ -206,7 +206,7 @@ export function SectionSidebar({
             <Button
               variant="outline"
               size="sm"
-              className="w-full justify-start text-sm border-slate-200 dark:border-slate-700"
+              className="w-full justify-start text-sm border-slate-200 dark:border-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
               asChild
             >
               <Link href={currentSection.resourceUrls} target="_blank">
@@ -224,7 +224,7 @@ export function SectionSidebar({
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            className="w-full justify-start text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
             asChild
           >
             <Link href={`/courses/${courseId}`}>
