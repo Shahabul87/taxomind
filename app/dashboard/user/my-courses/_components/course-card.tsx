@@ -1,15 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  Clock,
   BookOpen,
   Users,
   Star,
-  BarChart,
   Play,
   CheckCircle2,
   TrendingUp,
-  Award,
   Calendar,
   Share2,
 } from 'lucide-react';
@@ -17,29 +14,24 @@ import { TimeAgo } from '@/app/components/ui/time-ago';
 import { cn } from '@/lib/utils';
 import { ensureHttpsUrl, getFallbackImageUrl } from '@/lib/cloudinary-utils';
 import { CourseShareDialog } from '@/components/course/course-share-dialog';
+import type { CourseCardData } from './types';
 
 interface CourseCardProps {
-  course: any;
+  course: CourseCardData;
   type: 'enrolled' | 'created';
 }
 
 export const CourseCard = ({ course, type }: CourseCardProps) => {
   const isEnrolled = type === 'enrolled';
 
-  // Ensure image URL uses HTTPS and has proper fallback
   const imageUrl = ensureHttpsUrl(course.imageUrl) || getFallbackImageUrl('course');
 
-  // Format date text
   const datePrefix = isEnrolled ? 'Enrolled ' : 'Created ';
 
-  // Determine the link based on course type and publication status
   const courseLink = isEnrolled
     ? `/courses/${course.id}/learn`
-    : course.isPublished
-      ? `/teacher/courses/${course.id}`
-      : `/teacher/courses/${course.id}`;
+    : `/teacher/courses/${course.id}`;
 
-  // Status badge colors following analytics theme
   const getStatusBadge = () => {
     if (isEnrolled) {
       if (course.completionPercentage === 100) {
@@ -170,12 +162,7 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
               </span>
             </div>
 
-            {isEnrolled ? (
-              <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-                <BarChart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white flex-shrink-0" />
-                <span className="text-white text-[10px] sm:text-xs font-bold">{course.completionPercentage}%</span>
-              </div>
-            ) : (
+            {!isEnrolled && (
               <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
                 <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white flex-shrink-0" />
                 <span className="text-white text-[10px] sm:text-xs font-bold">{course.totalEnrolled}</span>
@@ -189,7 +176,7 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
           </div>
         </div>
 
-        {/* Play/Continue Button Overlay - Enhanced */}
+        {/* Play/Continue Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/20">
           <div className="relative">
             <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
@@ -242,9 +229,9 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
           </span>
         </div>
 
-        {/* Progress Bar (for enrolled courses) - Compact */}
+        {/* Progress Bar (for enrolled courses) */}
         {isEnrolled && (
-          <div className="mb-2 sm:mb-3">
+          <div className="mt-auto">
             <div className="flex items-center justify-between mb-0.5 sm:mb-1">
               <span className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-slate-400">
                 Progress
@@ -264,56 +251,25 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
           </div>
         )}
 
-        {/* Compact Stats Row */}
-        <div className="mt-auto pt-1.5 sm:pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-0.5 sm:gap-1">
-          {isEnrolled ? (
-            <>
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <BarChart className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-500 dark:text-blue-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {course.completionPercentage}%
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-indigo-500 dark:text-indigo-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {course.totalChapters}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {(course.averageRating ?? 0).toFixed(1)}
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blue-500 dark:text-blue-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {course.totalEnrolled}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <BookOpen className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-indigo-500 dark:text-indigo-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {course.totalChapters}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
-                <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">
-                  {(course.averageRating ?? 0).toFixed(1)}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
+        {/* Created courses: student count + chapters summary */}
+        {!isEnrolled && (
+          <div className="mt-auto pt-1.5 sm:pt-2 flex items-center gap-3 text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1">
+              <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-500 dark:text-blue-400" />
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {course.totalEnrolled ?? 0}
+              </span>
+              <span>students</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <BookOpen className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-500 dark:text-indigo-400" />
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {course.totalChapters}
+              </span>
+              <span>chapters</span>
+            </div>
+          </div>
+        )}
       </div>
     </Link>
   );

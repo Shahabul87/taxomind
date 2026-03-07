@@ -52,7 +52,7 @@ async function MyCoursesContent() {
         learningStats={learningStats}
       />
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[MY_COURSES_PAGE_ERROR]', error);
     return <MyCoursesError error="Failed to load courses. Please try again later." />;
   }

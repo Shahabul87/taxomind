@@ -1,15 +1,13 @@
 import { motion } from 'framer-motion';
 import { X, CheckCircle } from 'lucide-react';
+import type { CourseFilters } from './types';
 
 interface CoursesFilterMenuProps {
-  filters: {
-    category: string;
-    progress: string;
-    sortBy: string;
-  };
-  setFilters: (filters: any) => void;
+  filters: CourseFilters;
+  setFilters: (filters: CourseFilters) => void;
   onClose: () => void;
   activeTab: 'enrolled' | 'created';
+  categories: string[];
 }
 
 export const CoursesFilterMenu = ({
@@ -17,17 +15,13 @@ export const CoursesFilterMenu = ({
   setFilters,
   onClose,
   activeTab,
+  categories,
 }: CoursesFilterMenuProps) => {
-  // Sample category options (you may want to fetch these from your API)
-  const categories = [
+  const categoryOptions = [
     { value: 'all', label: 'All Categories' },
-    { value: 'development', label: 'Development' },
-    { value: 'business', label: 'Business' },
-    { value: 'design', label: 'Design' },
-    { value: 'marketing', label: 'Marketing' },
+    ...categories.map((c) => ({ value: c, label: c })),
   ];
 
-  // Progress filter options (only applicable for enrolled courses)
   const progressOptions = [
     { value: 'all', label: 'All Progress' },
     { value: 'not-started', label: 'Not Started' },
@@ -35,7 +29,12 @@ export const CoursesFilterMenu = ({
     { value: 'completed', label: 'Completed' },
   ];
 
-  // Sort options
+  const statusOptions = [
+    { value: 'all', label: 'All Status' },
+    { value: 'published', label: 'Published' },
+    { value: 'draft', label: 'Draft' },
+  ];
+
   const sortOptions =
     activeTab === 'enrolled'
       ? [
@@ -72,6 +71,13 @@ export const CoursesFilterMenu = ({
     </button>
   );
 
+  const activeFilterCount = [
+    filters.category !== 'all',
+    filters.progress !== 'all',
+    filters.sortBy !== 'recent',
+    filters.status !== 'all',
+  ].filter(Boolean).length;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -81,7 +87,19 @@ export const CoursesFilterMenu = ({
       className="p-3 sm:p-4 md:p-5 bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-sm border-t border-slate-200/50 dark:border-slate-700/50"
     >
       <div className="flex justify-between items-center mb-3 sm:mb-4">
-        <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">Filter Courses</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">Filter Courses</h3>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() =>
+                setFilters({ category: 'all', progress: 'all', sortBy: 'recent', status: 'all' })
+              }
+              className="text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+            >
+              Clear all ({activeFilterCount})
+            </button>
+          )}
+        </div>
         <button
           onClick={onClose}
           className="p-1.5 sm:p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center"
@@ -91,12 +109,12 @@ export const CoursesFilterMenu = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
         {/* Categories Filter */}
         <div>
           <h4 className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 sm:mb-3">Category</h4>
           <div className="space-y-1">
-            {categories.map((category) => (
+            {categoryOptions.map((category) => (
               <div key={category.value}>
                 {renderFilterOption('category', category.value, category.label, filters.category)}
               </div>
@@ -112,6 +130,20 @@ export const CoursesFilterMenu = ({
               {progressOptions.map((option) => (
                 <div key={option.value}>
                   {renderFilterOption('progress', option.value, option.label, filters.progress)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Status Filter - Only for created courses */}
+        {activeTab === 'created' && (
+          <div>
+            <h4 className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 sm:mb-3">Status</h4>
+            <div className="space-y-1">
+              {statusOptions.map((option) => (
+                <div key={option.value}>
+                  {renderFilterOption('status', option.value, option.label, filters.status)}
                 </div>
               ))}
             </div>
