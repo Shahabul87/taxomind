@@ -139,6 +139,7 @@ export function BlogHeroBroadsheet({
                 Vol. MMXXVI &bull; No. {totalArticles}
               </span>
               <span
+                suppressHydrationWarning
                 style={{
                   fontFamily: blogFonts.body,
                   fontSize: 10,

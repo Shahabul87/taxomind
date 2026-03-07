@@ -305,7 +305,7 @@ export function PrintHeader({ title, author, date, url }: PrintHeaderProps) {
 export function PrintFooter({ title }: { title: string }) {
   return (
     <div className="print-footer hidden">
-      <p>{title} • Printed {new Date().toLocaleDateString()}</p>
+      <p suppressHydrationWarning>{title} • Printed {new Date().toLocaleDateString()}</p>
     </div>
   );
 }
