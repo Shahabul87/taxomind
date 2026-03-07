@@ -69,7 +69,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
 
       {/* Floating math symbols (math variant only) */}
       {theme.floatingSymbols && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
           {theme.floatingSymbols.map((sym, i) => (
             <div key={i} className={`absolute font-serif ${sym.className}`}>
               {sym.symbol}
@@ -84,21 +84,21 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
           <div className="space-y-6">
             {/* Breadcrumb */}
             <motion.div
-              className={`flex items-center gap-2 text-sm text-${colors.breadcrumbText}`}
+              className={`flex items-center gap-2 text-sm ${colors.breadcrumbText}`}
               {...fadeInUp}
               {...stagger(0)}
             >
-              <Link href="/" className={`flex items-center gap-1 hover:text-${colors.breadcrumbHover} transition-colors`}>
+              <Link href="/" className={`flex items-center gap-1 ${colors.breadcrumbHover} transition-colors`}>
                 <Home className="h-4 w-4" />
               </Link>
               <ChevronRight className="h-3 w-3" />
-              <Link href="/courses" className={`hover:text-${colors.breadcrumbHover} transition-colors`}>
+              <Link href="/courses" className={`${colors.breadcrumbHover} transition-colors`}>
                 <span>Courses</span>
               </Link>
               {course.category && (
                 <>
                   <ChevronRight className="h-3 w-3" />
-                  <span className={`text-${colors.breadcrumbActive}`}>{course.category.name}</span>
+                  <span className={colors.breadcrumbActive}>{course.category.name}</span>
                 </>
               )}
             </motion.div>
@@ -113,7 +113,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
               </motion.h1>
               {course.subtitle && (
                 <motion.p
-                  className={`text-xl text-${colors.subtitle}`}
+                  className={`text-xl ${colors.subtitle}`}
                   {...fadeInUp}
                   {...stagger(2)}
                 >
@@ -134,7 +134,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
             {/* Badge Section (Tech Stack / Models / Tools / Topics) */}
             {badges.length > 0 && theme.badge && (
               <motion.div className="space-y-3" {...fadeInUp} {...stagger(4)}>
-                <div className={`flex items-center gap-2 text-${colors.instructorText}`}>
+                <div className={`flex items-center gap-2 ${colors.instructorText}`}>
                   <theme.badge.icon className="h-4 w-4" />
                   <span className="text-sm font-semibold uppercase tracking-wide">
                     {theme.badge.label}
@@ -145,7 +145,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
                     <Badge
                       key={index}
                       variant="secondary"
-                      className={`bg-${colors.badgeBg} text-${colors.badgeText} border border-${colors.badgeBorder}`}
+                      className={`${colors.badgeBg} ${colors.badgeText} border ${colors.badgeBorder}`}
                     >
                       {badge}
                     </Badge>
@@ -197,12 +197,12 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
         {/* Instructor Row with Enroll Button */}
         {course.user && (
           <motion.div
-            className={`grid lg:grid-cols-2 gap-4 lg:gap-12 items-center mt-6 pt-4 pb-20 md:pb-0 mb-12 border-t border-${colors.borderColor}`}
+            className={`grid lg:grid-cols-2 gap-4 lg:gap-12 items-center mt-6 pt-4 pb-20 md:pb-0 mb-12 border-t ${colors.borderColor}`}
             {...fadeInUp}
             {...stagger(6)}
           >
             {/* Left: Instructor Info with Stats */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-y-3">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   {course.user.image ? (
@@ -211,28 +211,28 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
                       alt={course.user.name || 'Instructor'}
                       width={48}
                       height={48}
-                      className={`rounded-full ring-2 ring-${colors.instructorRing}`}
+                      className={`rounded-full ring-2 ${colors.instructorRing}`}
                     />
                   ) : (
-                    <div className={`w-12 h-12 rounded-full bg-${colors.instructorBg} border border-${colors.instructorRing} flex items-center justify-center`}>
-                      <User className={`h-6 w-6 text-${colors.instructorText}`} />
+                    <div className={`w-12 h-12 rounded-full ${colors.instructorBg} border ${colors.imageBorder} flex items-center justify-center`}>
+                      <User className={`h-6 w-6 ${colors.instructorText}`} />
                     </div>
                   )}
                 </div>
                 <div>
-                  <p className={`text-sm text-${colors.instructorLabel}`}>Instructor</p>
-                  <p className="font-semibold text-white">{course.user.name || 'Anonymous'}</p>
+                  <p className={`text-sm ${colors.instructorLabel}`}>Instructor</p>
+                  <p className="font-semibold text-white truncate max-w-[160px] sm:max-w-none">{course.user.name || 'Anonymous'}</p>
                 </div>
               </div>
 
               {/* Students and Reviews Stats */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5">
-                  <Users className={`h-4 w-4 text-${colors.studentIcon}`} />
+                  <Users className={`h-4 w-4 ${colors.studentIcon}`} />
                   <span className="text-sm font-medium text-white">
                     {(course._count?.Enrollment ?? 0).toLocaleString()}
                   </span>
-                  <span className={`text-sm text-${colors.instructorLabel}`}>Students</span>
+                  <span className={`text-sm ${colors.instructorLabel}`}>Students</span>
                 </div>
 
                 {course.reviews && course.reviews.length > 0 && (
@@ -241,7 +241,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
                     <span className="text-sm font-medium text-white">
                       {(course.reviews.reduce((acc, r) => acc + r.rating, 0) / course.reviews.length).toFixed(1)}
                     </span>
-                    <span className={`text-sm text-${colors.instructorLabel}`}>
+                    <span className={`text-sm ${colors.instructorLabel}`}>
                       ({course.reviews.length} Reviews)
                     </span>
                   </div>
@@ -256,7 +256,7 @@ export function BaseHero({ course, theme, badges = [], isEnrolled = false, onEnr
                   onClick={onEnroll}
                   disabled={isEnrolled}
                   size="lg"
-                  className={`w-full sm:w-auto bg-gradient-to-r from-${colors.buttonFrom} to-${colors.buttonTo} hover:from-${colors.buttonHoverFrom} hover:to-${colors.buttonHoverTo} text-white font-semibold px-8 py-6 text-lg shadow-lg shadow-${colors.buttonShadow} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`w-full sm:w-auto bg-gradient-to-r ${colors.buttonFrom} ${colors.buttonTo} ${colors.buttonHoverFrom} ${colors.buttonHoverTo} text-white font-semibold px-8 py-6 text-lg shadow-lg ${colors.buttonShadow} disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900`}
                 >
                   {isEnrolled ? 'Already Enrolled' : 'Enroll Now'}
                 </Button>

@@ -43,11 +43,11 @@ export function BrowserMockupImage({ imageUrl, title, theme, shouldAnimate }: Im
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
           </div>
         ) : (
           <div className={`relative aspect-video bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex flex-col items-center justify-center gap-4`}>
-            <FallbackIcon className={`h-20 w-20 text-${colors.instructorText}/50`} />
+            <FallbackIcon className={`h-20 w-20 ${colors.instructorTextHalf}`} />
             {/* Code-line placeholders */}
             <div className="space-y-2 w-3/5">
               <div className="flex gap-2 items-center">
@@ -70,12 +70,12 @@ export function BrowserMockupImage({ imageUrl, title, theme, shouldAnimate }: Im
       {/* Floating version badge */}
       {theme.contextBadge && (
         <motion.div
-          className={`absolute -bottom-3 -right-3 bg-slate-800/90 backdrop-blur-sm border border-${colors.badgeBorder} rounded-lg px-3 py-1.5 shadow-lg z-10`}
+          className={`absolute -bottom-3 -right-3 bg-slate-800/90 backdrop-blur-sm border ${colors.badgeBorder} rounded-lg px-3 py-1.5 shadow-lg z-10`}
           initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : undefined}
           animate={shouldAnimate ? { opacity: 1, scale: 1 } : undefined}
           transition={shouldAnimate ? { duration: 0.4, delay: 0.3 } : undefined}
         >
-          <span className={`text-${colors.instructorText} ${theme.contextBadge.className ?? ''} text-xs font-mono`}>
+          <span className={`${colors.instructorText} ${theme.contextBadge.className ?? ''} text-xs font-mono`}>
             {theme.contextBadge.text}
           </span>
         </motion.div>
@@ -83,14 +83,16 @@ export function BrowserMockupImage({ imageUrl, title, theme, shouldAnimate }: Im
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

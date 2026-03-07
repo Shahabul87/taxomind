@@ -1,6 +1,6 @@
 export function AIMLPattern() {
   return (
-    <div className="absolute inset-0 opacity-10 pointer-events-none">
+    <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
       <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="neural-net" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">

@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 
 import { Chapter, Section, Course, Category } from '@prisma/client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
   Grid3X3,
@@ -47,6 +47,7 @@ const ModerationTab = dynamic(() => import('./tabs/moderation-tab').then(m => m.
 import type { CourseReview } from './course-reviews';
 import { ShieldCheck } from 'lucide-react';
 import { getCategoryPalette } from '@/lib/utils/color-utils';
+import { Z_LAYERS } from '../_config/z-layers';
 const ShieldCheckIcon = () => <ShieldCheck className="w-4 h-4"/>;
 
 interface CoursePageTabsProps {
@@ -137,6 +138,26 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
   const sectionParam = searchParams?.get('section');
   const isInstructor = Boolean(userId && course.user?.id === userId);
 
+  // Refs for roving focus and scroll controls
+  const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Scroll the active tab button into view within the nav strip
+  const scrollActiveTabIntoView = useCallback((tabId: string) => {
+    requestAnimationFrame(() => {
+      tabRefs.current[tabId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest',
+      });
+    });
+  }, []);
+
+  // On mount, scroll the initial tab into view (handles ?tab=announcements etc.)
+  React.useEffect(() => {
+    scrollActiveTabIntoView(initialTab);
+  }, [initialTab, scrollActiveTabIntoView]);
+
   // Support hash deep-links like #reviews, #qa, #instructor
   React.useEffect(() => {
     const handleHash = () => {
@@ -152,6 +173,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       if (next) {
         setActiveTab(next);
         updateQuery(next);
+        scrollActiveTabIntoView(next);
         requestAnimationFrame(() => {
           const panel = document.getElementById(`panel-${next}`) as HTMLElement | null;
           if (panel) {
@@ -165,7 +187,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     handleHash();
     window.addEventListener('hashchange', handleHash, { passive: true } as any);
     return () => window.removeEventListener('hashchange', handleHash as any);
-  }, [updateQuery]);
+  }, [updateQuery, scrollActiveTabIntoView]);
 
   const tabs: Tab[] = [
     {
@@ -237,6 +259,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'overview':
         return (
           <motion.div
+            key="overview"
             role="tabpanel"
             id="panel-overview"
             aria-labelledby="tab-overview"
@@ -244,6 +267,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <OverviewTab course={course} />
@@ -253,6 +277,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'breakdown':
         return (
           <motion.div
+            key="breakdown"
             role="tabpanel"
             id="panel-breakdown"
             aria-labelledby="tab-breakdown"
@@ -260,6 +285,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
             <CourseCardsCarousel chapters={chapters} courseId={courseId} />
@@ -269,6 +295,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'content':
         return (
           <motion.div
+            key="content"
             role="tabpanel"
             id="panel-content"
             aria-labelledby="tab-content"
@@ -276,6 +303,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-2 sm:p-3 md:dark:p-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
             <div className="px-1 sm:px-2 md:px-4 lg:px-8">
@@ -292,6 +320,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'instructor':
         return (
           <motion.div
+            key="instructor"
             role="tabpanel"
             id="panel-instructor"
             aria-labelledby="tab-instructor"
@@ -299,6 +328,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <InstructorProfileTab course={course} />
@@ -308,6 +338,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'resources':
         return (
           <motion.div
+            key="resources"
             role="tabpanel"
             id="panel-resources"
             aria-labelledby="tab-resources"
@@ -315,6 +346,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <ResourcesTab courseId={courseId} />
@@ -324,6 +356,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'certificate':
         return (
           <motion.div
+            key="certificate"
             role="tabpanel"
             id="panel-certificate"
             aria-labelledby="tab-certificate"
@@ -331,6 +364,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <CertificateTab courseId={courseId} isEnrolled={isEnrolled} />
@@ -340,6 +374,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'announcements':
         return (
           <motion.div
+            key="announcements"
             role="tabpanel"
             id="panel-announcements"
             aria-labelledby="tab-announcements"
@@ -347,6 +382,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/50 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <AnnouncementsTab courseId={courseId} />
@@ -363,6 +399,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
         );
         return (
           <motion.div
+            key="qa"
             role="tabpanel"
             id="panel-qa"
             aria-labelledby="tab-qa"
@@ -370,6 +407,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <QATab courseId={courseId} sections={allSections} userId={userId} isInstructor={isInstructor} />
@@ -380,6 +418,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
         if (!isInstructor) return null;
         return (
           <motion.div
+            key="moderation"
             role="tabpanel"
             id="panel-moderation"
             aria-labelledby="tab-moderation"
@@ -387,6 +426,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
           >
             <ModerationTab courseId={courseId} />
@@ -396,6 +436,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       case 'reviews':
         return (
           <motion.div
+            key="reviews"
             role="tabpanel"
             id="panel-reviews"
             aria-labelledby="tab-reviews"
@@ -403,6 +444,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
             className="scroll-mt-sticky cv-auto min-w-0 overflow-x-auto scrolling-touch overscroll-x-contain dark:bg-slate-900/40 dark:border dark:border-slate-800 rounded-lg sm:dark:rounded-2xl p-3 sm:p-4 md:dark:p-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
             <CourseReviews courseId={courseId} initialReviews={initialReviews} isEnrolled={isEnrolled} userId={userId} />
@@ -414,10 +456,6 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     }
   };
 
-  // Refs for roving focus and scroll controls
-  const tabRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
-  const scrollRef = React.useRef<HTMLDivElement | null>(null);
-
   const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
     const order = tabs.map(t => t.id);
     if (e.key === 'ArrowRight') {
@@ -425,17 +463,21 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
       const next = order[(idx + 1) % order.length];
       setActiveTab(next); updateQuery(next);
       tabRefs.current[next]?.focus();
+      scrollActiveTabIntoView(next);
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       const prev = order[(idx - 1 + order.length) % order.length];
       setActiveTab(prev); updateQuery(prev);
       tabRefs.current[prev]?.focus();
+      scrollActiveTabIntoView(prev);
     } else if (e.key === 'Home') {
       e.preventDefault();
       const first = order[0]; setActiveTab(first); updateQuery(first); tabRefs.current[first]?.focus();
+      scrollActiveTabIntoView(first);
     } else if (e.key === 'End') {
       e.preventDefault();
       const last = order[order.length - 1]; setActiveTab(last); updateQuery(last); tabRefs.current[last]?.focus();
+      scrollActiveTabIntoView(last);
     }
   };
 
@@ -458,7 +500,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
     >
       {/* Sticky Tab Navigation - Elevated Design for Hero Overlap */}
       <div
-        className="mb-6 sm:mb-8 sticky z-[40] course-tabs-sticky"
+        className={`mb-6 sm:mb-8 sticky ${Z_LAYERS.tabsSticky} course-tabs-sticky`}
         // Respect safe-area on notched devices and allow global sticky offset overrides
         style={{ top: 'calc(var(--sticky-offset, 12px) + env(safe-area-inset-top, 0px))' }}
       >
@@ -488,6 +530,7 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                   onClick={() => {
                     setActiveTab(tab.id);
                     updateQuery(tab.id);
+                    scrollActiveTabIntoView(tab.id);
                     try {
                       EventTracker.getInstance().trackInteraction('course_tab_selected', {
                         tab: tab.id,
@@ -516,6 +559,13 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
                       {tab.count}
                     </span>
                   )}
+                  {isActive && (
+                    <motion.div
+                      layoutId="courseTabIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -525,7 +575,9 @@ export const CoursePageTabs: React.FC<CoursePageTabsProps> = ({
 
       {/* Tab Content - Responsive Container */}
       <div className="min-h-[400px] sm:min-h-[500px] mx-auto" style={{ maxWidth: '1280px' }}>
-        {renderTabContent()}
+        <AnimatePresence mode="wait">
+          {renderTabContent()}
+        </AnimatePresence>
       </div>
     </div>
   );

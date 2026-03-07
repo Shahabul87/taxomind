@@ -46,12 +46,12 @@ export function DashboardFrameImage({ imageUrl, title, theme, shouldAnimate }: I
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-cover"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+                <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
               </div>
             ) : (
               <div className={`relative aspect-video bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex items-center justify-center`}>
                 <div className="flex flex-col items-center gap-3">
-                  <FallbackIcon className={`h-16 w-16 text-${colors.instructorText}/50`} />
+                  <FallbackIcon className={`h-16 w-16 ${colors.instructorTextHalf}`} />
                   {/* Animated gradient bars */}
                   <div className="flex items-end gap-1.5 h-8">
                     {[40, 65, 50, 80, 55, 70, 45].map((height, i) => (
@@ -84,14 +84,16 @@ export function DashboardFrameImage({ imageUrl, title, theme, shouldAnimate }: I
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

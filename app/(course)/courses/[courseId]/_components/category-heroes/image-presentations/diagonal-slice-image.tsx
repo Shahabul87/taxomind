@@ -14,14 +14,14 @@ export function DiagonalSliceImage({ imageUrl, title, theme, shouldAnimate }: Im
     <div className="relative">
       {/* Accent gradient strip behind image */}
       <div
-        className={`absolute inset-0 translate-x-2 -translate-y-2 rounded-2xl bg-gradient-to-br from-${theme.glowColors[0]}/30 to-${theme.glowColors[1]}/20`}
+        className={`absolute inset-0 translate-x-2 -translate-y-2 rounded-2xl bg-gradient-to-br ${theme.glowColors.accentGradient ?? `${theme.glowColors.topRight.replace('bg-', 'from-')} to-transparent`}`}
         style={{ clipPath }}
       />
 
       {/* Main image with diagonal clip */}
       {imageUrl ? (
         <div
-          className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder}`}
+          className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder}`}
           style={{ clipPath }}
         >
           <Image
@@ -32,14 +32,14 @@ export function DiagonalSliceImage({ imageUrl, title, theme, shouldAnimate }: Im
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"
           />
-          <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+          <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
         </div>
       ) : (
         <div
-          className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex flex-col items-center justify-center`}
+          className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex flex-col items-center justify-center`}
           style={{ clipPath }}
         >
-          <FallbackIcon className={`h-24 w-24 text-${colors.instructorText}/50`} />
+          <FallbackIcon className={`h-24 w-24 ${colors.instructorTextHalf}`} />
           {/* Color swatches along bottom */}
           <div className="absolute bottom-4 left-1/4 right-1/4 flex gap-2 justify-center">
             <div className="w-6 h-6 rounded-full bg-pink-500/40 border border-pink-400/30" />
@@ -52,23 +52,25 @@ export function DiagonalSliceImage({ imageUrl, title, theme, shouldAnimate }: Im
 
       {/* Floating icon circle at top-right */}
       <motion.div
-        className={`absolute -top-3 -right-3 w-12 h-12 rounded-full bg-${theme.glowColors[0]}/20 backdrop-blur-sm border border-${colors.imageBorder} flex items-center justify-center z-10`}
+        className={`absolute -top-3 -right-3 w-12 h-12 rounded-full ${theme.glowColors.iconCircleBg ?? `${theme.glowColors.topRight} ${colors.imageBorder}`} backdrop-blur-sm flex items-center justify-center z-10`}
         animate={shouldAnimate ? { y: [0, -6, 0] } : undefined}
         transition={shouldAnimate ? { duration: 4, repeat: Infinity, ease: 'easeInOut' } : undefined}
       >
-        <Pen className={`h-5 w-5 text-${colors.instructorText}`} />
+        <Pen className={`h-5 w-5 ${colors.instructorText}`} />
       </motion.div>
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

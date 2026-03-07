@@ -1,6 +1,6 @@
 export function DefaultPattern() {
   return (
-    <div className="absolute inset-0 opacity-5 pointer-events-none">
+    <div className="absolute inset-0 opacity-5 pointer-events-none" aria-hidden="true">
       <div
         className="absolute inset-0"
         style={{

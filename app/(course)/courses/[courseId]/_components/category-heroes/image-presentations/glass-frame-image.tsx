@@ -32,7 +32,7 @@ export function GlassFrameImage({ imageUrl, title, theme, shouldAnimate }: Image
         />
 
         {imageUrl ? (
-          <div className={`relative aspect-video rounded-xl overflow-hidden border border-${colors.imageBorder}`}>
+          <div className={`relative aspect-video rounded-xl overflow-hidden border ${colors.imageBorder}`}>
             <Image
               src={imageUrl}
               alt={title}
@@ -41,12 +41,12 @@ export function GlassFrameImage({ imageUrl, title, theme, shouldAnimate }: Image
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
           </div>
         ) : (
-          <div className={`relative aspect-video rounded-xl overflow-hidden border border-${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-900 to-indigo-900/40'} flex flex-col items-center justify-center gap-4`}>
-            <FallbackIcon className={`h-24 w-24 text-${colors.instructorText}/50`} />
-            <div className={`text-2xl font-serif text-${colors.instructorText}/30`}>
+          <div className={`relative aspect-video rounded-xl overflow-hidden border ${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-900 to-indigo-900/40'} flex flex-col items-center justify-center gap-4`}>
+            <FallbackIcon className={`h-24 w-24 ${colors.instructorTextHalf}`} />
+            <div className={`text-2xl font-serif ${colors.instructorTextHalf}`}>
               f(x) = &#x222B; dx
             </div>
           </div>
@@ -56,12 +56,12 @@ export function GlassFrameImage({ imageUrl, title, theme, shouldAnimate }: Image
       {/* Context Badge (math formula) */}
       {theme.contextBadge && (
         <motion.div
-          className={`absolute -bottom-4 -right-4 bg-slate-800/90 backdrop-blur-sm border border-${colors.badgeBorder} rounded-xl px-4 py-2 shadow-lg z-10`}
+          className={`absolute -bottom-4 -right-4 bg-slate-800/90 backdrop-blur-sm border ${colors.badgeBorder} rounded-xl px-4 py-2 shadow-lg z-10`}
           initial={shouldAnimate ? { opacity: 0, y: 10 } : undefined}
           animate={shouldAnimate ? { opacity: 1, y: 0 } : undefined}
           transition={shouldAnimate ? { duration: 0.5, delay: 0.4 } : undefined}
         >
-          <span className={`text-${colors.instructorText} ${theme.contextBadge.className ?? ''} text-sm`}>
+          <span className={`${colors.instructorText} ${theme.contextBadge.className ?? ''} text-sm`}>
             {theme.contextBadge.text}
           </span>
         </motion.div>
@@ -69,14 +69,16 @@ export function GlassFrameImage({ imageUrl, title, theme, shouldAnimate }: Image
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

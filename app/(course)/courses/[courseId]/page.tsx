@@ -6,6 +6,7 @@ import { currentUser } from '@/lib/auth';
 import { getCourseData, getEnrollmentStatus } from './_lib/data-fetchers';
 import { generateCourseMetadata, generateCourseJsonLd, generateBreadcrumbJsonLd, generateFAQJsonLd } from './_lib/metadata-generator';
 import { getCategoryLayout } from './_config/category-layouts';
+import { Z_LAYERS } from './_config/z-layers';
 
 // Component imports
 import { CourseFooterEnterprise } from './_components/course-footer-enterprise';
@@ -53,22 +54,8 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
   const breadcrumbLd = generateBreadcrumbJsonLd(course);
   const faqLd = generateFAQJsonLd(course);
 
-  // Get category-specific props for hero
-  const getCategorySpecificProps = () => {
-    switch (categoryLayout.variant) {
-      case 'programming':
-        return { techStack: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'] };
-      case 'ai-ml':
-      case 'data-science':
-        return { models: ['CNN', 'RNN', 'Transformers', 'BERT'] };
-      case 'design':
-        return { tools: ['Figma', 'Adobe XD', 'Sketch', 'Framer'] };
-      case 'math':
-        return { topics: ['Calculus', 'Linear Algebra', 'Statistics', 'Proofs'] };
-      default:
-        return {};
-    }
-  };
+  // Get category-specific badges from config
+  const badges = categoryLayout.defaultBadges ?? [];
 
   const samCourseContext = {
     id: course.id,
@@ -95,7 +82,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 overflow-x-hidden">
+    <div className="relative min-h-screen pb-20 md:pb-0 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 overflow-x-hidden">
       <CourseSamContext course={samCourseContext} />
       {/* JSON-LD Structured Data for SEO */}
       <script
@@ -117,6 +104,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
       <StickyMiniHeader
         course={course as any}
         isEnrolled={!!enrollment}
+        userId={user?.id}
       />
 
       {/* Category-Specific Hero - Using Client Wrapper for Enrollment */}
@@ -125,17 +113,18 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
         course={course}
         isEnrolled={!!enrollment}
         userId={user?.id}
-        categorySpecificProps={getCategorySpecificProps()}
+        badges={badges}
       />
 
       {/* Mobile Enroll Bar */}
       <MobileEnrollBar
         course={course as any}
         isEnrolled={!!enrollment}
+        userId={user?.id}
       />
 
       {/* Tabs Section with Streaming */}
-      <div className="relative z-30 -mt-16 sm:-mt-20 md:-mt-24">
+      <div className={`relative ${Z_LAYERS.tabsContent} -mt-16 sm:-mt-20 md:-mt-24`}>
         <Suspense fallback={<div className="h-96 animate-pulse bg-white/50 dark:bg-slate-800/50 rounded-2xl" />}>
           <CoursePageTabs
             course={course as any}

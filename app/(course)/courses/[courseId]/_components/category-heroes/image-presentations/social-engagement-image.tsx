@@ -47,7 +47,7 @@ export function SocialEngagementImage({ imageUrl, title, theme, shouldAnimate }:
       {/* Main image with slight tilt */}
       <div className="relative" style={{ transform: 'rotate(1deg)' }}>
         {imageUrl ? (
-          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder}`}>
+          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder}`}>
             <Image
               src={imageUrl}
               alt={title}
@@ -56,11 +56,11 @@ export function SocialEngagementImage({ imageUrl, title, theme, shouldAnimate }:
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
           </div>
         ) : (
-          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex items-center justify-center`}>
-            <Megaphone className={`h-24 w-24 text-${colors.instructorText}/50`} />
+          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex items-center justify-center`}>
+            <Megaphone className={`h-24 w-24 ${colors.instructorTextHalf}`} />
           </div>
         )}
       </div>
@@ -87,14 +87,16 @@ export function SocialEngagementImage({ imageUrl, title, theme, shouldAnimate }:
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

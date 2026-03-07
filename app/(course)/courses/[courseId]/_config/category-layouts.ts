@@ -25,6 +25,7 @@ export type CategoryLayoutConfig = {
   tabOrder?: string[];
   accentColor: string;
   iconStyle: 'technical' | 'creative' | 'professional';
+  defaultBadges?: string[];
 };
 
 /**
@@ -107,6 +108,7 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-blue-600 to-cyan-600',
     iconStyle: 'technical',
     customSections: ['tech-stack', 'code-examples', 'prerequisites'],
+    defaultBadges: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'],
   },
 
   'ai-ml': {
@@ -118,6 +120,7 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-purple-600 to-pink-600',
     iconStyle: 'technical',
     customSections: ['algorithms', 'datasets', 'model-architecture'],
+    defaultBadges: ['CNN', 'RNN', 'Transformers', 'BERT'],
   },
 
   'data-science': {
@@ -128,6 +131,7 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-green-600 to-teal-600',
     iconStyle: 'technical',
     customSections: ['tools', 'datasets', 'analytics-projects'],
+    defaultBadges: ['CNN', 'RNN', 'Transformers', 'BERT'],
   },
 
   design: {
@@ -138,6 +142,7 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-pink-600 to-rose-600',
     iconStyle: 'creative',
     customSections: ['design-tools', 'portfolio-examples', 'design-principles'],
+    defaultBadges: ['Figma', 'Adobe XD', 'Sketch', 'Framer'],
   },
 
   business: {
@@ -168,6 +173,7 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-amber-600 to-orange-600',
     iconStyle: 'technical',
     customSections: ['formulas', 'problem-sets', 'theorems', 'proofs'],
+    defaultBadges: ['Calculus', 'Linear Algebra', 'Statistics', 'Proofs'],
   },
 
   default: {

@@ -1,6 +1,6 @@
 export function ProgrammingPattern() {
   return (
-    <div className="absolute inset-0 opacity-10 pointer-events-none">
+    <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
       <div
         className="absolute inset-0"
         style={{

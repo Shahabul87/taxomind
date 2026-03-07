@@ -131,9 +131,9 @@ export const SimilarCoursesSection: React.FC<SimilarCoursesSectionProps> = ({
               >
                 <Link
                   href={`/courses/${course.id}`}
-                  className="group block h-full"
+                  className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
                 >
-                  <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:scale-[1.02] hover:-translate-y-1">
+                  <div className="h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden transition-[transform,box-shadow] duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:scale-[1.02] hover:-translate-y-1">
                     {/* Course Image */}
                     <div className="relative h-40 sm:h-44 md:h-48 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 overflow-hidden">
                       {course.imageUrl ? (
@@ -141,6 +141,7 @@ export const SimilarCoursesSection: React.FC<SimilarCoursesSectionProps> = ({
                           src={course.imageUrl}
                           alt={course.title}
                           fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-110"
                         />
                       ) : (
@@ -240,7 +241,7 @@ export const SimilarCoursesSection: React.FC<SimilarCoursesSectionProps> = ({
                               </span>
                             </div>
                           ) : (
-                            <span className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
+                            <span className="text-lg sm:text-xl font-bold text-green-700 dark:text-green-400">
                               Free
                             </span>
                           )}
@@ -264,7 +265,7 @@ export const SimilarCoursesSection: React.FC<SimilarCoursesSectionProps> = ({
           <div className="mt-8 sm:mt-10 md:mt-12 text-center">
             <Link
               href="/courses"
-              className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm sm:text-base font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm sm:text-base font-semibold hover:from-blue-700 hover:to-purple-700 transition-[background,transform,box-shadow] duration-300 shadow-lg hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Explore All Courses</span>

@@ -210,6 +210,7 @@ export async function GET(request: NextRequest) {
             include: {
               user: { select: { name: true } },
               chapters: { where: { isPublished: true }, select: { id: true } },
+              category: { select: { name: true } },
             },
           },
         },
@@ -445,7 +446,7 @@ export async function GET(request: NextRequest) {
     const categoryMap = new Map<string, { totalProgress: number; count: number }>();
 
     for (const enrollment of enrolledCourses) {
-      const category = enrollment.Course.categoryId || 'General';
+      const category = enrollment.Course.category?.name || 'General';
       const courseId = enrollment.Course.id;
       const progress = courseProgressMap.get(courseId) || 0;
 

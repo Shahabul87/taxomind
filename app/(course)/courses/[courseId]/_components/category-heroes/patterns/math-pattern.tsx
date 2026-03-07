@@ -1,6 +1,6 @@
 export function MathPattern() {
   return (
-    <div className="absolute inset-0 opacity-10 pointer-events-none">
+    <div className="absolute inset-0 opacity-10 pointer-events-none" aria-hidden="true">
       <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="math-grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">

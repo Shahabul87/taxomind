@@ -12,13 +12,13 @@ export function StackedLayersImage({ imageUrl, title, theme, shouldAnimate }: Im
     <div className="relative">
       {/* Offset background cards */}
       <motion.div
-        className={`absolute inset-0 rounded-2xl bg-gradient-to-br from-${theme.glowColors[0]}/20 to-${theme.glowColors[1]}/10 border border-${colors.imageBorder}`}
+        className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${theme.glowColors.layerGradient1 ?? `${theme.glowColors.topRight.replace('bg-', 'from-')} to-transparent`} border ${colors.imageBorder}`}
         style={{ transform: 'rotate(3deg) translate(8px, -8px)' }}
         animate={shouldAnimate ? { rotate: [3, 2.5, 3] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
       />
       <motion.div
-        className={`absolute inset-0 rounded-2xl bg-gradient-to-br from-${theme.glowColors[1]}/15 to-${theme.glowColors[0]}/5 border border-${colors.imageBorder}`}
+        className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${theme.glowColors.layerGradient2 ?? `${theme.glowColors.bottomLeft.replace('bg-', 'from-')} to-transparent`} border ${colors.imageBorder}`}
         style={{ transform: 'rotate(-2deg) translate(-6px, -4px)' }}
         animate={shouldAnimate ? { rotate: [-2, -1.5, -2] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
@@ -27,7 +27,7 @@ export function StackedLayersImage({ imageUrl, title, theme, shouldAnimate }: Im
       {/* Main image */}
       <div className="relative z-10">
         {imageUrl ? (
-          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder}`}>
+          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder}`}>
             <Image
               src={imageUrl}
               alt={title}
@@ -36,7 +36,7 @@ export function StackedLayersImage({ imageUrl, title, theme, shouldAnimate }: Im
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+            <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
 
             {/* Stats overlay bar */}
             <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md border-t border-white/10 px-4 py-2.5 flex items-center gap-3">
@@ -47,8 +47,8 @@ export function StackedLayersImage({ imageUrl, title, theme, shouldAnimate }: Im
             </div>
           </div>
         ) : (
-          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border border-${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex items-center justify-center`}>
-            <FallbackIcon className={`h-24 w-24 text-${colors.instructorText}/50`} />
+          <div className={`relative aspect-video rounded-2xl overflow-hidden shadow-2xl border ${colors.imageBorder} bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-800 to-slate-700'} flex items-center justify-center`}>
+            <FallbackIcon className={`h-24 w-24 ${colors.instructorTextHalf}`} />
             {/* Stats overlay bar on fallback too */}
             <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md border-t border-white/10 px-4 py-2.5 flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -62,14 +62,16 @@ export function StackedLayersImage({ imageUrl, title, theme, shouldAnimate }: Im
 
       {/* Floating Glow Elements */}
       <motion.div
-        className={`absolute -right-4 -top-4 w-24 h-24 bg-${theme.glowColors[0]}/20 rounded-full blur-2xl z-0`}
+        className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl z-0`}
         animate={shouldAnimate ? { y: [0, -15, 0] } : undefined}
         transition={shouldAnimate ? { duration: 6, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
       <motion.div
-        className={`absolute -left-4 -bottom-4 w-32 h-32 bg-${theme.glowColors[1]}/20 rounded-full blur-2xl z-0`}
+        className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl z-0`}
         animate={shouldAnimate ? { y: [0, 10, 0] } : undefined}
         transition={shouldAnimate ? { duration: 8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+        aria-hidden="true"
       />
     </div>
   );

@@ -29,11 +29,11 @@ export function ExecutiveCardImage({ imageUrl, title, theme, shouldAnimate }: Im
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
               />
-              <div className={`absolute inset-0 bg-gradient-to-t from-${colors.imageOverlay} via-transparent to-transparent`} />
+              <div className={`absolute inset-0 bg-gradient-to-t ${colors.imageOverlay} via-transparent to-transparent`} />
             </div>
           ) : (
             <div className={`relative aspect-video bg-gradient-to-br ${theme.fallbackGradient ?? 'from-slate-900 to-slate-800'} flex flex-col items-center justify-center gap-3`}>
-              <FallbackIcon className={`h-24 w-24 text-${colors.instructorText}/50`} />
+              <FallbackIcon className={`h-24 w-24 ${colors.instructorTextHalf}`} />
               {/* Gold accent line */}
               <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
             </div>
@@ -61,8 +61,8 @@ export function ExecutiveCardImage({ imageUrl, title, theme, shouldAnimate }: Im
       {/* NO float animation for business - stability = trust */}
 
       {/* Warm glow (subtle, not animated) */}
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl" />
-      <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-amber-600/10 rounded-full blur-2xl" />
+      <div className={`absolute -right-4 -top-4 w-24 h-24 ${theme.glowColors.topRight} rounded-full blur-2xl`} aria-hidden="true" />
+      <div className={`absolute -left-4 -bottom-4 w-32 h-32 ${theme.glowColors.bottomLeft} rounded-full blur-2xl`} aria-hidden="true" />
     </div>
   );
 }
