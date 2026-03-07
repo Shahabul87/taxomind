@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
@@ -86,6 +86,16 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
     },
   });
 
+  // Warn before switching tabs with unsaved changes
+  const handleTabChange = useCallback((tab: SettingsTab) => {
+    if (form.formState.isDirty) {
+      const confirmed = window.confirm("You have unsaved changes. Switch tab anyway?");
+      if (!confirmed) return;
+      form.reset();
+    }
+    setActiveTab(tab);
+  }, [form]);
+
   const onSubmit = (values: z.infer<typeof SettingsSchema>) => {
     setError(undefined);
     setSuccess(undefined);
@@ -117,7 +127,7 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
         className="h-full min-h-screen"
       >
         {/* Enterprise Header Section */}
-        <div className="px-4 py-8 sm:px-6 lg:px-8 mb-6">
+        <div className="px-4 pt-6 pb-2 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -127,28 +137,24 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
               "backdrop-blur-sm",
               "border border-slate-200/50 dark:border-slate-700/50",
               "shadow-lg",
-              "rounded-3xl",
-              "p-6 sm:p-8"
+              "rounded-2xl",
+              "p-5 sm:p-6"
             )}
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <div className={cn(
-                "h-14 w-14 rounded-2xl",
+                "h-12 w-12 rounded-xl",
                 "bg-gradient-to-br from-blue-500 to-indigo-500",
                 "flex items-center justify-center",
-                "shadow-lg shadow-blue-500/20"
+                "shadow-md shadow-blue-500/20"
               )}>
-                <Settings className="h-7 w-7 text-white" />
+                <Settings className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1">
-                <h1 className={cn(
-                  "text-2xl sm:text-3xl font-bold tracking-tight",
-                  "bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent",
-                  "dark:from-blue-400 dark:to-indigo-400"
-                )}>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Account Settings
                 </h1>
-                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-1">
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-0.5">
                   Manage your account, security, privacy, and preferences
                 </p>
               </div>
@@ -157,10 +163,10 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="px-4 sm:px-6 lg:px-8 pt-4">
           <SettingsTabs
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             isTeacher={user.isTeacher}
             isAffiliate={user.isAffiliate}
           />
@@ -168,16 +174,16 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
 
         {/* Error and Success Messages */}
         {(error || success) && (
-          <div className="px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="px-4 sm:px-6 lg:px-8 pt-3">
             <FormError message={error} />
             <FormSuccess message={success} />
           </div>
         )}
 
         {/* Form Section */}
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="px-4 pt-4 pb-24 sm:px-6 sm:pb-24 lg:px-8">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <AnimatePresence mode="wait">
                 {activeTab === "account" && (
                   <AccountTab
@@ -233,36 +239,59 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
                 )}
               </AnimatePresence>
 
-              {/* Submit Button - Hide for Financial, Billing, Calendar, and AI Providers tabs */}
+              {/* Sticky Save Bar - Hide for tabs with their own save */}
               {activeTab !== "financial" && activeTab !== "billing" && activeTab !== "calendar" && activeTab !== "ai-providers" && (
-                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => form.reset()}
-                    disabled={isPending}
-                  >
-                    Reset Changes
-                  </Button>
-                  <Button
-                    disabled={isPending}
-                    type="submit"
-                    className={cn(
-                      "w-full sm:w-auto px-6 sm:px-8 py-3",
-                      "bg-gradient-to-r from-blue-600 to-indigo-600",
-                      "hover:from-blue-700 hover:to-indigo-700",
-                      "dark:from-blue-500 dark:to-indigo-500",
-                      "dark:hover:from-blue-600 dark:hover:to-indigo-600",
-                      "text-white font-medium text-sm sm:text-base",
-                      "backdrop-blur-sm shadow-lg",
-                      "border border-blue-200/20 dark:border-blue-700/30",
-                      "hover:shadow-xl hover:scale-105",
-                      "transition-all duration-300",
-                      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    )}
-                  >
-                    {isPending ? "Saving Changes..." : "Save Changes"}
-                  </Button>
+                <div className={cn(
+                  "fixed bottom-0 left-0 right-0 z-40",
+                  "bg-white/95 dark:bg-slate-900/95",
+                  "backdrop-blur-md",
+                  "border-t border-slate-200 dark:border-slate-700",
+                  "px-4 py-3 sm:px-6 lg:px-8",
+                  "shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]"
+                )}>
+                  <div className="max-w-4xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {form.formState.isDirty && (
+                        <motion.div
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400"
+                        >
+                          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Unsaved changes
+                        </motion.div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => form.reset()}
+                        disabled={isPending || !form.formState.isDirty}
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        disabled={isPending}
+                        type="submit"
+                        size="sm"
+                        className={cn(
+                          "px-6",
+                          "bg-gradient-to-r from-blue-600 to-indigo-600",
+                          "hover:from-blue-700 hover:to-indigo-700",
+                          "dark:from-blue-500 dark:to-indigo-500",
+                          "dark:hover:from-blue-600 dark:hover:to-indigo-600",
+                          "text-white font-medium",
+                          "shadow-md hover:shadow-lg",
+                          "transition-all duration-200",
+                          "disabled:opacity-50 disabled:cursor-not-allowed"
+                        )}
+                      >
+                        {isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </form>

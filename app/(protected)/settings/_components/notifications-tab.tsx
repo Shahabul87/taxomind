@@ -14,7 +14,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Bell, Mail, Smartphone, MessageSquare, TrendingUp, Brain } from "lucide-react";
+import { Mail, Smartphone, Brain } from "lucide-react";
 import { NotificationPreferences, PushNotificationOptIn } from "@/components/sam/notifications";
 
 interface NotificationsTabProps {
@@ -29,19 +29,23 @@ export const NotificationsTab = ({ form, isPending }: NotificationsTabProps) => 
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Email Notifications */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-            <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Mail className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -178,15 +182,19 @@ export const NotificationsTab = ({ form, isPending }: NotificationsTabProps) => 
 
       {/* Push Notifications */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-            <Smartphone className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Smartphone className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -308,47 +316,21 @@ export const NotificationsTab = ({ form, isPending }: NotificationsTabProps) => 
         </div>
       </div>
 
-      {/* Notification Summary */}
-      <div className={cn(
-        "p-6 rounded-3xl",
-        "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20",
-        "backdrop-blur-sm",
-        "border border-blue-200/50 dark:border-blue-700/50",
-        "shadow-lg"
-      )}>
-        <div className="flex items-center space-x-3 mb-4">
-          <Bell className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Notification Best Practices
-          </h3>
-        </div>
-        <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-          <li className="flex items-start space-x-2">
-            <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
-            <span>Enable course updates to stay informed about new content</span>
-          </li>
-          <li className="flex items-start space-x-2">
-            <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
-            <span>Weekly digests help you track your learning progress</span>
-          </li>
-          <li className="flex items-start space-x-2">
-            <Mail className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
-            <span>You can always adjust these settings to fit your preferences</span>
-          </li>
-        </ul>
-      </div>
-
       {/* SAM AI Notification Preferences */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Brain className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">

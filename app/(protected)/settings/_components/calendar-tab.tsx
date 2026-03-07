@@ -219,10 +219,10 @@ export function CalendarTab() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        className="space-y-5"
       >
         <div className="text-center py-12">
-          <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4">
+          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mb-4 shadow-sm">
             <Calendar className="h-8 w-8 text-white" />
           </div>
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
@@ -295,19 +295,20 @@ export function CalendarTab() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Connection Status Card */}
       <div
         className={cn(
-          "p-6 rounded-xl",
+          "p-5 rounded-2xl",
           "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20",
-          "border border-green-200/50 dark:border-green-700/50"
+          "border border-green-200/50 dark:border-green-700/50",
+          "shadow-sm"
         )}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-sm">
               <Check className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -377,10 +378,11 @@ export function CalendarTab() {
       {settings && data.calendars.length > 0 && (
         <div
           className={cn(
-            "p-6 rounded-xl",
+            "p-5 rounded-2xl",
             "bg-white/80 dark:bg-slate-800/80",
             "backdrop-blur-sm",
-            "border border-slate-200/50 dark:border-slate-700/50"
+            "border border-slate-200/50 dark:border-slate-700/50",
+            "shadow-sm"
           )}
         >
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -414,10 +416,11 @@ export function CalendarTab() {
       {settings && (
         <div
           className={cn(
-            "p-6 rounded-xl",
+            "p-5 rounded-2xl",
             "bg-white/80 dark:bg-slate-800/80",
             "backdrop-blur-sm",
-            "border border-slate-200/50 dark:border-slate-700/50"
+            "border border-slate-200/50 dark:border-slate-700/50",
+            "shadow-sm"
           )}
         >
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -630,10 +633,11 @@ export function CalendarTab() {
       {data.recentSyncs && data.recentSyncs.length > 0 && (
         <div
           className={cn(
-            "p-6 rounded-xl",
+            "p-5 rounded-2xl",
             "bg-white/80 dark:bg-slate-800/80",
             "backdrop-blur-sm",
-            "border border-slate-200/50 dark:border-slate-700/50"
+            "border border-slate-200/50 dark:border-slate-700/50",
+            "shadow-sm"
           )}
         >
           <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Recent Syncs</h3>

@@ -84,19 +84,23 @@ export const ProfileTab = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Profile Picture Section */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-            <Camera className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Camera className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -116,15 +120,19 @@ export const ProfileTab = ({
 
       {/* About You Section */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-            <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <User className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -174,15 +182,19 @@ export const ProfileTab = ({
 
       {/* Location & Website Section */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-            <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <MapPin className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -293,15 +305,19 @@ export const ProfileTab = ({
       {/* Social Links Section */}
       {profileLinks && profileLinks.length > 0 && (
         <div className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}>
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-              <LinkIcon className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+          <div className="flex items-center space-x-3 mb-5">
+            <div className={cn(
+              "h-9 w-9 rounded-lg",
+              "bg-gradient-to-br from-blue-500 to-indigo-500",
+              "flex items-center justify-center shadow-sm"
+            )}>
+              <LinkIcon className="h-4 w-4 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -345,15 +361,19 @@ export const ProfileTab = ({
 
       {/* Learning Preferences Section */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-            <Book className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Book className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">

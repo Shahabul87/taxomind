@@ -118,20 +118,24 @@ export const SecurityTab = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Two-Factor Authentication */}
       {!isOAuth && (
         <div className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}>
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
+          <div className="flex items-center space-x-3 mb-5">
+            <div className={cn(
+              "h-9 w-9 rounded-lg",
+              "bg-gradient-to-br from-blue-500 to-indigo-500",
+              "flex items-center justify-center shadow-sm"
+            )}>
+              <Shield className="h-4 w-4 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -204,16 +208,20 @@ export const SecurityTab = ({
 
       {/* Active Sessions */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-              <Monitor className="h-5 w-5 text-white" />
+            <div className={cn(
+              "h-9 w-9 rounded-lg",
+              "bg-gradient-to-br from-blue-500 to-indigo-500",
+              "flex items-center justify-center shadow-sm"
+            )}>
+              <Monitor className="h-4 w-4 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -288,15 +296,19 @@ export const SecurityTab = ({
 
       {/* Login History */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-            <Key className="h-5 w-5 text-white" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Key className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">

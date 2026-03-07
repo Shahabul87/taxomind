@@ -195,7 +195,7 @@ export const BillingTab = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-red-50 dark:bg-red-900/20",
           "border border-red-200 dark:border-red-800"
         )}
@@ -228,23 +228,23 @@ export const BillingTab = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Current Plan Header */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         `bg-gradient-to-br ${tierConfig.bgGradient}`,
         "backdrop-blur-sm",
         `border ${tierConfig.borderColor}`,
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center space-x-4">
             <div className={cn(
-              "h-14 w-14 rounded-2xl flex items-center justify-center",
-              "bg-white/80 dark:bg-slate-800/80 shadow-md"
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              "bg-white/80 dark:bg-slate-800/80 shadow-sm"
             )}>
-              <TierIcon className={cn("h-7 w-7", tierConfig.color)} />
+              <TierIcon className={cn("h-6 w-6", tierConfig.color)} />
             </div>
             <div>
               <p className="text-sm text-slate-600 dark:text-slate-300">Current Plan</p>
@@ -286,15 +286,19 @@ export const BillingTab = () => {
 
       {/* Usage Stats */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <TrendingUp className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -371,15 +375,19 @@ export const BillingTab = () => {
 
       {/* Features Included */}
       <div className={cn(
-        "p-6 rounded-3xl",
+        "p-5 rounded-2xl",
         "bg-white/80 dark:bg-slate-800/80",
         "backdrop-blur-sm",
         "border border-slate-200/50 dark:border-slate-700/50",
-        "shadow-lg"
+        "shadow-sm"
       )}>
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-            <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <div className="flex items-center space-x-3 mb-5">
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Check className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -423,15 +431,19 @@ export const BillingTab = () => {
       {/* Recent Usage Chart */}
       {stats.recentUsage.length > 0 && (
         <div className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}>
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <div className="flex items-center space-x-3 mb-5">
+            <div className={cn(
+              "h-9 w-9 rounded-lg",
+              "bg-gradient-to-br from-blue-500 to-indigo-500",
+              "flex items-center justify-center shadow-sm"
+            )}>
+              <TrendingUp className="h-4 w-4 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -473,11 +485,11 @@ export const BillingTab = () => {
       {/* Upgrade CTA for non-enterprise */}
       {nextTier && nextTierConfig && (
         <div className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           `bg-gradient-to-br ${nextTierConfig.bgGradient}`,
           "backdrop-blur-sm",
           `border ${nextTierConfig.borderColor}`,
-          "shadow-lg"
+          "shadow-sm"
         )}>
           <div className="flex items-start gap-4">
             <div className={cn(

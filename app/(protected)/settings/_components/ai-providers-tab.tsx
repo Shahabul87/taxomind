@@ -250,21 +250,25 @@ export function AIProvidersTab() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       {/* Header */}
       <div
         className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}
       >
         <div className="flex items-center space-x-3 mb-4">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center">
-            <Bot className="h-5 w-5 text-white" />
+          <div className={cn(
+            "h-9 w-9 rounded-lg",
+            "bg-gradient-to-br from-blue-500 to-indigo-500",
+            "flex items-center justify-center shadow-sm"
+          )}>
+            <Bot className="h-4 w-4 text-white" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -294,11 +298,11 @@ export function AIProvidersTab() {
       {/* Available Providers Status */}
       <div
         className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}
       >
         <h4 className="text-md font-semibold text-slate-900 dark:text-white mb-4">
@@ -430,17 +434,21 @@ export function AIProvidersTab() {
       {/* Global Provider Toggle */}
       <div
         className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg"
+          "shadow-sm"
         )}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
-              <Globe className="h-5 w-5 text-white" />
+            <div className={cn(
+              "h-9 w-9 rounded-lg",
+              "bg-gradient-to-br from-blue-500 to-indigo-500",
+              "flex items-center justify-center shadow-sm flex-shrink-0"
+            )}>
+              <Globe className="h-4 w-4 text-white" />
             </div>
             <div>
               <Label htmlFor="global-provider-toggle" className="text-md font-semibold text-slate-900 dark:text-white cursor-pointer">
@@ -512,11 +520,11 @@ export function AIProvidersTab() {
       {/* Provider Selection by Capability */}
       <div
         className={cn(
-          "p-6 rounded-3xl",
+          "p-5 rounded-2xl",
           "bg-white/80 dark:bg-slate-800/80",
           "backdrop-blur-sm",
           "border border-slate-200/50 dark:border-slate-700/50",
-          "shadow-lg",
+          "shadow-sm",
           preferences.preferredGlobalProvider !== null && "opacity-50 pointer-events-none"
         )}
       >
