@@ -166,6 +166,82 @@ function normalizeMathChars(text: string): string {
 }
 
 /**
+ * Protect currency dollar signs from being interpreted as LaTeX math delimiters.
+ *
+ * Financial content uses $5, $100, $3.50, $1,000 as currency amounts.
+ * Without protection, the $...$ inline math regex matches text between
+ * consecutive dollar signs (e.g. "$8. Sam thought: Why $" becomes garbled
+ * italic math with spaces stripped).
+ *
+ * Converts $N to &#36;N ONLY when followed by non-alphanumeric characters
+ * (space, punctuation, HTML tags, etc.), preserving math expressions like
+ * $5x$ or $5\frac{1}{2}$ where $ is followed by digit+letter/command.
+ */
+function protectCurrencyDollars(html: string): string {
+  // Match $ followed by digits (with optional comma separators and decimal),
+  // but ONLY when followed by non-alphanumeric (currency context).
+  // Lookahead ensures $5x (math) is NOT matched, but $5, $5. $5<p> ARE matched.
+  return html.replace(
+    /\$(\d[\d,]*(?:\.\d{1,2})?)(?=[\s.,;:!?'")\]}>]|<|&[a-z#]|$)/g,
+    '&#36;$1'
+  );
+}
+
+/**
+ * Check if content found between $...$ delimiters is likely mathematical
+ * notation rather than natural language that happens to contain dollar signs.
+ *
+ * This prevents financial text like "8. Sam thought: Why " (matched between
+ * two currency $) from being rendered as KaTeX math, which would strip all
+ * spaces and italicize the text.
+ */
+function isLikelyInlineMath(content: string): boolean {
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+
+  // Contains LaTeX backslash commands → definitely math
+  if (hasLatexCommands(trimmed)) return true;
+  if (/\\[a-zA-Z]{2,}/.test(trimmed)) return true;
+
+  // Contains braces, subscript, or superscript notation → likely math
+  if (/[{}^_]/.test(trimmed)) return true;
+
+  // Contains Unicode math symbols → likely math
+  if (MATH_INDICATOR_RE.test(trimmed)) return true;
+
+  // Too many words → natural language, not math
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length > 5) return false;
+
+  // Contains common English words → not math
+  if (/\b(the|is|are|was|were|for|and|but|not|with|this|that|from|how|what|why|when|can|will|would|could|should|have|has|been|just|than|then|also|each|same|other|about|after|before|into|over|much|very|you|your|its|our|his|her|they|them|their|said|thought|asked|wanted|because)\b/i.test(trimmed)) {
+    return false;
+  }
+
+  // Sentence-like structure (period/! followed by capital) → not math
+  if (/[.!?]\s+[A-Z]/.test(trimmed)) return false;
+
+  // Quoted text in multi-word content → not math
+  if (/"[^"]*"/.test(trimmed) && words.length > 2) return false;
+
+  // Bare numbers with a trailing operator (e.g. "180 -", "18.50 -") are NOT math —
+  // they're fragments from currency amounts split by $...$ regex
+  if (/^\d[\d.,]*\s*[+\-*/]?\s*$/.test(trimmed)) return false;
+
+  // Contains math operators (=, +, -, etc.) in short expressions → math
+  if (/[+\-*/=]/.test(trimmed) && words.length <= 3) return true;
+  // Multiple math-like characters (parentheses, operators) in longer expressions
+  const mathCharCount = (trimmed.match(/[+\-*/=()[\]]/g) || []).length;
+  if (mathCharCount >= 2 && words.length <= 5) return true;
+
+  // Short without spaces → might be a variable or expression
+  if (trimmed.length <= 15 && !/\s/.test(trimmed)) return true;
+
+  // Default: not math (safer to leave as-is than garble text)
+  return false;
+}
+
+/**
  * Render math to HTML using KaTeX. Returns null on failure or if katex is not yet loaded.
  */
 function renderMath(
@@ -602,6 +678,11 @@ function processRawLatexViaDom(html: string): string {
 function processMathInHtml(html: string): string {
   let result = html;
 
+  // Step 0: Protect currency dollar signs BEFORE any $...$ math matching.
+  // Converts "$5" → "&#36;5" only when followed by non-alphanumeric context
+  // (space, punctuation, HTML tags), preserving math like "$5x$".
+  result = protectCurrencyDollars(result);
+
   // Step 1: Protect <pre><code>...</code></pre> with placeholders
   const preBlocks: string[] = [];
   result = result.replace(
@@ -620,14 +701,17 @@ function processMathInHtml(html: string): string {
       : `<code>${content}</code>`;
   });
 
-  // Step 3: Process $...$ (inline math)
+  // Step 3: Process $...$ (inline math) with content validation.
+  // The isLikelyInlineMath check prevents natural language between dollar
+  // signs from being rendered as math (which strips spaces and italicizes).
   result = result.replace(
     /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g,
-    (_, content) => {
+    (match, content) => {
+      if (!isLikelyInlineMath(content)) return match;
       const rendered = renderMath(content, false);
       return rendered
         ? `<span class="math-inline">${rendered}</span>`
-        : `<code>${content}</code>`;
+        : match;
     }
   );
 
@@ -845,6 +929,9 @@ export function MathText({ text, className }: MathTextProps) {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
 
+    // Protect currency dollar signs before math processing
+    html = protectCurrencyDollars(html);
+
     // Process $$...$$ (display math)
     html = html.replace(/\$\$([^$]+)\$\$/g, (_, content) => {
       const decoded = decodeHtmlEntities(content);
@@ -854,16 +941,16 @@ export function MathText({ text, className }: MathTextProps) {
         : `<code>${content}</code>`;
     });
 
-    // Process $...$ (inline math) — skip if content has too many words
+    // Process $...$ (inline math) with content validation
     html = html.replace(
       /(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g,
-      (_, content) => {
-        if (content.trim().split(/\s+/).length > 8) return `$${content}$`;
+      (match, content) => {
+        if (!isLikelyInlineMath(content)) return match;
         const decoded = decodeHtmlEntities(content);
         const rendered = renderMath(decoded, false);
         return rendered
           ? `<span class="math-inline">${rendered}</span>`
-          : `<code>${content}</code>`;
+          : match;
       }
     );
 
