@@ -93,18 +93,6 @@ const CommentItem = ({
   const isOwnComment = session?.user?.id === comment.userId;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
-  // Validate comment has required fields on mount
-  useEffect(() => {
-    if (!comment.id) {
-      console.error('[CommentItem] Mounted without id:', {
-        comment,
-        hasContent: !!comment.content,
-        hasUserId: !!comment.userId,
-        depth
-      });
-    }
-  }, [comment, depth]);
-
   // Fix hydration mismatch by updating time on client only
   useEffect(() => {
     setIsMounted(true);
@@ -133,15 +121,7 @@ const CommentItem = ({
   };
 
   const handleReplySubmit = () => {
-    if (!replyContent.trim()) return;
-
-    if (!comment.id) {
-      console.error('Cannot reply: comment.id is missing', { comment });
-      toast.error("Unable to reply: comment data is invalid");
-      return;
-    }
-
-    console.log('Submitting reply:', { commentId: comment.id, replyContent });
+    if (!replyContent.trim() || !comment.id) return;
     onReply(comment.id, replyContent);
     setReplyContent("");
     setShowReplyBox(false);
@@ -455,6 +435,126 @@ export const CommentSection = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "popular">("newest");
 
+  // --- Tree Utilities ---
+
+  /** Extract actual data from API response wrapper ({ success, data, meta }) */
+  const extractApiData = (response: { data: Record<string, unknown> }): Record<string, unknown> => {
+    const body = response.data;
+    if ('success' in body && 'data' in body && typeof body.data === 'object' && body.data !== null) {
+      return body.data as Record<string, unknown>;
+    }
+    return body;
+  };
+
+  /** Find whether an item is a top-level comment or nested reply */
+  const findItemInTree = (
+    itemId: string
+  ): { type: 'comment' | 'reply'; rootCommentId: string; depth: number } | null => {
+    for (const comment of comments) {
+      if (comment.id === itemId) {
+        return { type: 'comment', rootCommentId: comment.id, depth: 0 };
+      }
+      if (comment.replies) {
+        const found = findInReplies(comment.replies, itemId);
+        if (found) {
+          return { type: 'reply', rootCommentId: comment.id, depth: found.depth };
+        }
+      }
+    }
+    return null;
+  };
+
+  const findInReplies = (
+    replies: Comment[],
+    targetId: string
+  ): { depth: number } | null => {
+    for (const reply of replies) {
+      if (reply.id === targetId) return { depth: reply.depth || 0 };
+      if (reply.replies) {
+        const found = findInReplies(reply.replies, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  /** Recursively update an item anywhere in the comment tree */
+  const updateItemInTree = (
+    items: Comment[],
+    targetId: string,
+    updater: (item: Comment) => Comment
+  ): Comment[] => {
+    return items.map((item) => {
+      if (item.id === targetId) return updater(item);
+      if (item.replies) {
+        return { ...item, replies: updateItemInTree(item.replies, targetId, updater) };
+      }
+      return item;
+    });
+  };
+
+  /** Recursively remove an item from the comment tree */
+  const removeItemFromTree = (items: Comment[], targetId: string): Comment[] => {
+    return items
+      .filter((item) => item.id !== targetId)
+      .map((item) => {
+        if (item.replies) {
+          return { ...item, replies: removeItemFromTree(item.replies, targetId) };
+        }
+        return item;
+      });
+  };
+
+  /** Add a reply to a specific parent anywhere in the tree */
+  const addReplyToTree = (
+    items: Comment[],
+    parentId: string,
+    newReply: Comment
+  ): Comment[] => {
+    return items.map((item) => {
+      if (item.id === parentId) {
+        return { ...item, replies: [...(item.replies || []), newReply] };
+      }
+      if (item.replies) {
+        return { ...item, replies: addReplyToTree(item.replies, parentId, newReply) };
+      }
+      return item;
+    });
+  };
+
+  /** Build a Comment object from API response data with session fallbacks */
+  const buildCommentFromResponse = (
+    apiData: Record<string, unknown>,
+    overrides: Partial<Comment>
+  ): Comment => {
+    return {
+      id: (apiData.id as string) || '',
+      content: (apiData.content as string) || '',
+      createdAt: (apiData.createdAt as string) || new Date().toISOString(),
+      updatedAt: (apiData.updatedAt as string) || new Date().toISOString(),
+      userId: (apiData.userId as string) || session?.user?.id || '',
+      postId,
+      parentId: null,
+      depth: 0,
+      User: (apiData.User as Comment['User']) || {
+        id: session?.user?.id || '',
+        name: session?.user?.name || null,
+        image: session?.user?.image || null,
+      },
+      user: (apiData.user as Comment['user']) || (apiData.User as Comment['user']) || {
+        id: session?.user?.id || '',
+        name: session?.user?.name || null,
+        image: session?.user?.image || null,
+      },
+      replies: [],
+      isLiked: false,
+      likeCount: 0,
+      ...overrides,
+    };
+  };
+
+  // --- Handlers ---
+
   const handleAddComment = async () => {
     if (!newComment.trim() || !session) return;
 
@@ -464,30 +564,16 @@ export const CommentSection = ({
         content: newComment,
       });
 
-      // Ensure user data is included in the new comment
-      // IMPORTANT: Initialize replies array to match the structure expected by the component
-      const newCommentData: Comment = {
-        ...response.data,
-        User: response.data.User || {
-          id: session.user.id,
-          name: session.user.name,
-          image: session.user.image,
-        },
-        user: response.data.user || {
-          id: session.user.id,
-          name: session.user.name,
-          image: session.user.image,
-        },
-        replies: [], // Initialize empty replies array for new comments
+      const apiData = extractApiData(response);
+      const newCommentData = buildCommentFromResponse(apiData, {
+        parentId: null,
         depth: 0,
-        isLiked: false,
-        likeCount: 0,
-      };
+      });
 
-      setComments([newCommentData, ...comments]);
+      setComments((prev) => [newCommentData, ...prev]);
       setNewComment("");
       toast.success("Comment posted!");
-    } catch (error) {
+    } catch {
       toast.error("Failed to post comment");
     } finally {
       setIsSubmitting(false);
@@ -500,255 +586,134 @@ export const CommentSection = ({
       return;
     }
 
-    console.log('handleReply called:', { parentId, content, session: session.user?.id });
-
     try {
-      // Find the parent to determine if it's a comment or reply
-      let parentComment: Comment | null = null;
-      let parentReply: Comment | null = null;
-      let commentId: string | null = null;
-
-      // Check if parentId is a top-level comment
-      for (const comment of comments) {
-        if (comment.id === parentId) {
-          parentComment = comment;
-          commentId = comment.id;
-          break;
-        }
-        // Check if it's a reply within this comment's replies
-        if (comment.replies) {
-          const findReply = (replies: Comment[]): Comment | null => {
-            for (const reply of replies) {
-              if (reply.id === parentId) {
-                return reply;
-              }
-              if (reply.replies) {
-                const found = findReply(reply.replies);
-                if (found) return found;
-              }
-            }
-            return null;
-          };
-          parentReply = findReply(comment.replies);
-          if (parentReply) {
-            commentId = comment.id;
-            break;
-          }
-        }
-      }
-
-      if (!commentId) {
-        console.error('Parent comment not found for parentId:', parentId);
+      const location = findItemInTree(parentId);
+      if (!location) {
         toast.error("Parent comment not found");
         return;
       }
 
-      console.log('Found parent:', { commentId, parentComment: !!parentComment, parentReply: !!parentReply });
+      const { rootCommentId, type, depth: parentDepth } = location;
 
-      let response;
-      if (parentComment) {
-        // Replying to a top-level comment
-        console.log('Posting reply to comment:', { postId, commentId, content });
-        response = await axios.post(
-          `/api/posts/${postId}/comments/${commentId}/replies`,
-          { content }
-        );
-      } else {
-        // Replying to a reply
-        console.log('Posting nested reply:', { postId, commentId, parentId, content });
-        response = await axios.post(
-          `/api/posts/${postId}/comments/${commentId}/replies`,
-          { content, parentReplyId: parentId }
-        );
-      }
-      console.log('Reply response:', response.data);
+      const response = await axios.post(
+        `/api/posts/${postId}/comments/${rootCommentId}/replies`,
+        {
+          content,
+          ...(type === 'reply' ? { parentReplyId: parentId } : {}),
+        }
+      );
 
-      // Ensure user data is included in the new reply
-      // IMPORTANT: Initialize replies array and other fields to match the structure expected by the component
-      const newReplyData: Comment = {
-        ...response.data,
-        User: response.data.User || {
-          id: session.user.id,
-          name: session.user.name,
-          image: session.user.image,
-        },
-        user: response.data.user || {
-          id: session.user.id,
-          name: session.user.name,
-          image: session.user.image,
-        },
-        replies: [], // Initialize empty replies array for consistency
-        depth: parentComment ? 1 : (parentReply ? 2 : 0), // Set appropriate depth
-        isLiked: false,
-        likeCount: 0,
-      };
-
-      // Update comments with new reply
-      setComments((prev) => {
-        const updateReplies = (comments: Comment[]): Comment[] => {
-          return comments.map((comment) => {
-            if (comment.id === commentId) {
-              if (comment.id === parentId) {
-                // Adding reply to this comment
-                return {
-                  ...comment,
-                  replies: [...(comment.replies || []), newReplyData],
-                };
-              } else {
-                // Adding nested reply somewhere in this comment's reply tree
-                const addNestedReply = (replies: Comment[]): Comment[] => {
-                  return replies.map((reply) => {
-                    if (reply.id === parentId) {
-                      return {
-                        ...reply,
-                        replies: [...(reply.replies || []), newReplyData],
-                      };
-                    }
-                    if (reply.replies) {
-                      return {
-                        ...reply,
-                        replies: addNestedReply(reply.replies),
-                      };
-                    }
-                    return reply;
-                  });
-                };
-                return {
-                  ...comment,
-                  replies: comment.replies ? addNestedReply(comment.replies) : [],
-                };
-              }
-            }
-            return comment;
-          });
-        };
-        return updateReplies(prev);
+      const apiData = extractApiData(response);
+      const newReplyData = buildCommentFromResponse(apiData, {
+        parentId,
+        depth: parentDepth + 1,
       });
 
+      setComments((prev) => addReplyToTree(prev, parentId, newReplyData));
       toast.success("Reply posted!");
     } catch (error) {
-      const axiosError = error as { message?: string; response?: { data?: { error?: string }; status?: number } };
-      console.error("Reply error details:", {
-        message: axiosError.message,
-        response: axiosError.response?.data,
-        status: axiosError.response?.status
-      });
+      const axiosError = error as { response?: { data?: { error?: string } } };
       toast.error(axiosError.response?.data?.error || "Failed to post reply");
     }
   };
 
-  const handleEdit = async (commentId: string, content: string) => {
+  const handleEdit = async (itemId: string, content: string) => {
     try {
-      await axios.patch(`/api/posts/${postId}/comments/${commentId}`, {
-        content,
-      });
-      // Update local state
-      toast.success("Comment updated!");
-    } catch (error) {
-      toast.error("Failed to update comment");
+      const location = findItemInTree(itemId);
+      if (!location) {
+        toast.error("Item not found");
+        return;
+      }
+
+      if (location.type === 'comment') {
+        await axios.patch(`/api/posts/${postId}/comments/${itemId}`, { content });
+      } else {
+        await axios.patch(
+          `/api/posts/${postId}/comments/${location.rootCommentId}/replies/${itemId}`,
+          { content }
+        );
+      }
+
+      setComments((prev) =>
+        updateItemInTree(prev, itemId, (item) => ({
+          ...item,
+          content,
+          updatedAt: new Date().toISOString(),
+        }))
+      );
+      toast.success("Updated successfully!");
+    } catch {
+      toast.error("Failed to update");
     }
   };
 
-  const handleDelete = async (commentId: string) => {
+  const handleDelete = async (itemId: string) => {
     try {
-      await axios.delete(`/api/posts/${postId}/comments/${commentId}`);
-      setComments((prev) =>
-        prev.filter((comment) => comment.id !== commentId)
-      );
-      toast.success("Comment deleted!");
-    } catch (error) {
-      toast.error("Failed to delete comment");
+      const location = findItemInTree(itemId);
+      if (!location) {
+        toast.error("Item not found");
+        return;
+      }
+
+      if (location.type === 'comment') {
+        await axios.delete(`/api/posts/${postId}/comments/${itemId}`);
+      } else {
+        await axios.delete(
+          `/api/posts/${postId}/comments/${location.rootCommentId}/replies/${itemId}`
+        );
+      }
+
+      setComments((prev) => removeItemFromTree(prev, itemId));
+      toast.success("Deleted successfully!");
+    } catch {
+      toast.error("Failed to delete");
     }
   };
 
   const handleLike = async (itemId: string) => {
+    // Optimistic update for instant UI feedback
+    setComments((prev) =>
+      updateItemInTree(prev, itemId, (item) => ({
+        ...item,
+        isLiked: !item.isLiked,
+        likeCount: item.isLiked
+          ? (item.likeCount || 1) - 1
+          : (item.likeCount || 0) + 1,
+      }))
+    );
+
     try {
-      // Find if this is a comment or a reply
-      let isComment = false;
-      let parentCommentId: string | null = null;
+      const location = findItemInTree(itemId);
+      if (!location) return;
 
-      // Check if itemId is a top-level comment
-      for (const comment of comments) {
-        if (comment.id === itemId) {
-          isComment = true;
-          break;
-        }
-
-        // Check if it's a reply within this comment's replies
-        if (comment.replies) {
-          const findReply = (replies: Comment[], commentId: string): boolean => {
-            for (const reply of replies) {
-              if (reply.id === itemId) {
-                parentCommentId = commentId;
-                return true;
-              }
-              if (reply.replies) {
-                const found = findReply(reply.replies, commentId);
-                if (found) return true;
-              }
-            }
-            return false;
-          };
-          if (findReply(comment.replies, comment.id)) {
-            break;
-          }
-        }
-      }
-
-      if (isComment) {
-        // Like a comment
+      if (location.type === 'comment') {
         await axios.post(
           `/api/posts/${postId}/comments/${itemId}/reactions`,
           { type: "LIKE" }
         );
-      } else if (parentCommentId) {
-        // Like a reply
+      } else {
         await axios.post(
-          `/api/posts/${postId}/comments/${parentCommentId}/replies/${itemId}/reactions`,
+          `/api/posts/${postId}/comments/${location.rootCommentId}/replies/${itemId}/reactions`,
           { type: "LIKE" }
         );
       }
-
-      // Update local state to show the like immediately
-      setComments((prev) => {
-        const updateLikes = (items: Comment[]): Comment[] => {
-          return items.map((item) => {
-            if (item.id === itemId) {
-              return {
-                ...item,
-                isLiked: !item.isLiked,
-                likeCount: item.isLiked
-                  ? (item.likeCount || 1) - 1
-                  : (item.likeCount || 0) + 1,
-              };
-            }
-            if (item.replies) {
-              return {
-                ...item,
-                replies: updateLikes(item.replies),
-              };
-            }
-            return item;
-          });
-        };
-        return updateLikes(prev);
-      });
-
-    } catch (error) {
-      console.error("Failed to toggle like:", error);
+    } catch {
+      // Revert optimistic update on failure
+      setComments((prev) =>
+        updateItemInTree(prev, itemId, (item) => ({
+          ...item,
+          isLiked: !item.isLiked,
+          likeCount: item.isLiked
+            ? (item.likeCount || 1) - 1
+            : (item.likeCount || 0) + 1,
+        }))
+      );
       toast.error("Failed to like");
     }
   };
 
   const sortedComments = [...comments]
-    .filter(comment => {
-      // Filter out invalid comments without IDs
-      if (!comment.id) {
-        console.warn('Filtering out comment without id:', comment);
-        return false;
-      }
-      return true;
-    })
+    .filter((comment) => !!comment.id)
     .sort((a, b) => {
       if (sortBy === "newest") {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
