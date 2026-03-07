@@ -75,12 +75,12 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
               duration: 0.6,
               ease: [0.22, 1, 0.36, 1]
             }}
-            className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden border border-blog-border shadow-lg shadow-blog-primary/5"
+            className="group relative w-full rounded-xl sm:rounded-2xl overflow-hidden border border-blog-border shadow-lg shadow-blog-primary/5"
           >
             {/* Image Container */}
             <div className="relative w-full aspect-[16/9] bg-blog-surface">
-              {/* Gradient Overlay for Depth */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10 pointer-events-none" />
+              {/* Subtle Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent z-10 pointer-events-none" />
 
               {/* Loading Skeleton */}
               {!isLoaded && (
@@ -120,11 +120,11 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
               )}
             </div>
 
-            {/* Decorative Corner Accents */}
-            <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-white/30 rounded-tl-lg pointer-events-none" />
-            <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-white/30 rounded-tr-lg pointer-events-none" />
-            <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-white/30 rounded-bl-lg pointer-events-none" />
-            <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-white/30 rounded-br-lg pointer-events-none" />
+            {/* Subtle Corner Accents - only visible on hover */}
+            <div className="absolute top-3 left-3 w-5 h-5 border-t border-l border-white/0 group-hover:border-white/20 rounded-tl-md pointer-events-none transition-all duration-500" />
+            <div className="absolute top-3 right-3 w-5 h-5 border-t border-r border-white/0 group-hover:border-white/20 rounded-tr-md pointer-events-none transition-all duration-500" />
+            <div className="absolute bottom-3 left-3 w-5 h-5 border-b border-l border-white/0 group-hover:border-white/20 rounded-bl-md pointer-events-none transition-all duration-500" />
+            <div className="absolute bottom-3 right-3 w-5 h-5 border-b border-r border-white/0 group-hover:border-white/20 rounded-br-md pointer-events-none transition-all duration-500" />
           </motion.div>
         )}
       </AnimatePresence>

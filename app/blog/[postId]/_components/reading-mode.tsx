@@ -104,7 +104,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
           {/* Mode Selection */}
           <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
             <div className="flex items-center gap-2 w-full sm:w-auto px-2 sm:px-1 py-1.5 sm:py-0">
-              <Book className="w-4 h-4 sm:w-5 sm:h-5 text-[#C65D3B] dark:text-[#C65D3B] flex-shrink-0" />
+              <Book className="w-4 h-4 sm:w-5 sm:h-5 text-blog-primary dark:text-blog-primary flex-shrink-0" />
               <span className="text-xs sm:text-sm md:text-base font-semibold text-slate-800 dark:text-white font-blog-display">
                 Reading Mode
               </span>
@@ -125,8 +125,8 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                       "relative px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-200 font-blog-ui",
                       mode.desktopOnly ? "hidden lg:flex" : "flex",
                       activeMode === mode.id
-                        ? "bg-[#C65D3B] text-white shadow-md"
-                        : "text-slate-600 dark:text-slate-300 hover:text-[#C65D3B] dark:hover:text-white hover:bg-[#C65D3B]/10 dark:hover:bg-slate-700/50"
+                        ? "bg-blog-primary text-white shadow-md"
+                        : "text-slate-600 dark:text-slate-300 hover:text-blog-primary dark:hover:text-white hover:bg-blog-primary/10 dark:hover:bg-slate-700/50"
                     )}
                   >
                     <mode.icon className="w-3.5 h-3.5" />
@@ -134,7 +134,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                     {activeMode === mode.id && (
                       <motion.div
                         layoutId="activeTabIndicator"
-                        className="absolute inset-0 rounded-md border-2 border-[#D97F5F]/50 dark:border-[#C65D3B]/50 pointer-events-none"
+                        className="absolute inset-0 rounded-md border-2 border-blog-primary/50 dark:border-blog-primary/50 pointer-events-none"
                         initial={false}
                         transition={{ type: "spring", duration: 0.5 }}
                       />
@@ -183,7 +183,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                       className={cn(
                         "relative px-3 py-2 rounded-md flex items-center gap-1.5 transition-all duration-200 flex-shrink-0 min-w-[100px] justify-center touch-manipulation font-blog-ui",
                         activeMode === mode.id
-                          ? "bg-[#C65D3B] text-white shadow-md"
+                          ? "bg-blog-primary text-white shadow-md"
                           : "text-slate-600 dark:text-slate-300 bg-white/90 dark:bg-slate-700/70 border border-slate-200 dark:border-slate-600/60"
                       )}
                     >
@@ -203,8 +203,8 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-300 touch-manipulation",
                       activeMode === mode.id
-                        ? "w-6 bg-[#C65D3B] shadow-sm"
-                        : "w-1.5 bg-slate-300 dark:bg-slate-600 hover:bg-[#C65D3B]/50 dark:hover:bg-slate-500"
+                        ? "w-6 bg-blog-primary shadow-sm"
+                        : "w-1.5 bg-slate-300 dark:bg-slate-600 hover:bg-blog-primary/50 dark:hover:bg-slate-500"
                     )}
                     aria-label={`Switch to ${mode.name} mode`}
                   />
@@ -224,7 +224,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                 "p-1 sm:p-1.5 rounded-md transition-colors duration-200",
                 fontSize <= 12
                   ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#C65D3B]"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blog-primary"
               )}
             >
               <Minus className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                 "p-1 sm:p-1.5 rounded-md transition-colors duration-200",
                 fontSize >= 24
                   ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#C65D3B]"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-blog-primary"
               )}
             >
               <Plus className="w-3.5 h-3.5" />

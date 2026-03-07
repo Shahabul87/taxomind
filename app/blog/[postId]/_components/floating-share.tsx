@@ -124,7 +124,7 @@ export const FloatingShare = ({ title, description, url }: FloatingShareProps) =
                 "w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-all duration-300",
                 isOpen
                   ? "bg-blog-primary text-white"
-                  : "bg-blog-surface dark:bg-slate-800 text-blog-text dark:text-white border border-blog-border dark:border-slate-700"
+                  : "bg-blog-surface dark:bg-blog-surface text-blog-text dark:text-white border border-blog-border dark:border-blog-border"
               )}
               aria-label={isOpen ? "Close share menu" : "Open share menu"}
             >
@@ -155,7 +155,7 @@ export const FloatingShare = ({ title, description, url }: FloatingShareProps) =
                       transition={{ delay: index * 0.05 }}
                       onClick={option.action}
                       className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center bg-blog-surface dark:bg-slate-800 border border-blog-border dark:border-slate-700 shadow-md transition-all duration-200",
+                        "w-10 h-10 rounded-full flex items-center justify-center bg-blog-surface dark:bg-blog-surface border border-blog-border dark:border-blog-border shadow-md transition-all duration-200",
                         option.hoverColor
                       )}
                       title={`Share on ${option.name}`}
@@ -173,7 +173,7 @@ export const FloatingShare = ({ title, description, url }: FloatingShareProps) =
                     transition={{ delay: shareOptions.length * 0.05 }}
                     onClick={handleCopy}
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center bg-blog-surface dark:bg-slate-800 border border-blog-border dark:border-slate-700 shadow-md transition-all duration-200",
+                      "w-10 h-10 rounded-full flex items-center justify-center bg-blog-surface dark:bg-blog-surface border border-blog-border dark:border-blog-border shadow-md transition-all duration-200",
                       copied ? "bg-blog-accent/20 border-blog-accent" : "hover:bg-blog-accent/10"
                     )}
                     title="Copy link"
@@ -182,7 +182,7 @@ export const FloatingShare = ({ title, description, url }: FloatingShareProps) =
                     {copied ? (
                       <Check className="w-4 h-4 text-blog-accent" />
                     ) : (
-                      <Link2 className="w-4 h-4 text-blog-text-muted dark:text-gray-400" />
+                      <Link2 className="w-4 h-4 text-blog-text-muted dark:text-blog-text-muted" />
                     )}
                   </motion.button>
                 </motion.div>

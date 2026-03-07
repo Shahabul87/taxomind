@@ -68,7 +68,7 @@ export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
   }
 
   return (
-    <div className="w-full mx-auto space-y-4 sm:space-y-6 md:space-y-10 lg:space-y-16 px-2 sm:px-3 md:px-4 lg:px-6 max-w-[85rem] bg-blog-bg dark:bg-slate-900/50">
+    <div className="w-full mx-auto space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-10 px-2 sm:px-3 md:px-4 lg:px-6 bg-blog-bg dark:bg-slate-900/50">
       {data.map((chapter, index) => (
         <motion.article
           key={chapter.id}
@@ -86,15 +86,15 @@ export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
           )}
         >
           {/* Background - Warm Earth Tones */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blog-surface/95 to-blog-bg/80 dark:from-slate-800/90 dark:to-slate-900/80 backdrop-blur-xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blog-surface/95 to-blog-bg/80 dark:from-blog-surface/90 dark:to-blog-bg/80 backdrop-blur-xl" />
 
           <div className="relative p-3 sm:p-5 md:p-6 lg:p-8 xl:p-12">
             {/* Chapter Badge - Terracotta */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-3 sm:mb-4 md:mb-6 lg:mb-8">
               <div className={cn(
                 "px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full",
-                "bg-[#C65D3B]",
-                "shadow-lg shadow-[#C65D3B]/20",
+                "bg-blog-primary",
+                "shadow-lg shadow-blog-primary/20",
                 "transform-gpu transition-transform duration-300",
                 "group-hover:scale-105"
               )}>
@@ -102,7 +102,7 @@ export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
                   Chapter {index + 1}
                 </span>
               </div>
-              <div className="h-[1px] flex-1 bg-gradient-to-r from-[#C65D3B]/30 via-[#87A878]/20 to-transparent" />
+              <div className="h-[1px] flex-1 bg-gradient-to-r from-blog-primary/30 via-blog-accent/20 to-transparent" />
             </div>
 
             {/* Title - Playfair Display */}
@@ -119,7 +119,7 @@ export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
 
             {/* Image Container */}
             {chapter.imageUrl && (
-              <div className="relative w-full h-[200px] xs:h-[220px] sm:h-[280px] md:h-[350px] lg:h-[450px] xl:h-[500px] mb-3 sm:mb-4 md:mb-6 lg:mb-8 xl:mb-10 rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl overflow-hidden border border-blog-border dark:border-slate-700">
+              <div className="relative w-full h-[200px] xs:h-[220px] sm:h-[280px] md:h-[350px] lg:h-[450px] xl:h-[500px] mb-3 sm:mb-4 md:mb-6 lg:mb-8 xl:mb-10 rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl overflow-hidden border border-blog-border dark:border-blog-border">
                 <Image
                   src={chapter.imageUrl}
                   alt={chapter.title}
@@ -173,7 +173,7 @@ export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
           </div>
 
           {/* Border - Warm Earth */}
-          <div className="absolute inset-0 border border-blog-border dark:border-slate-700/50 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl pointer-events-none" />
+          <div className="absolute inset-0 border border-blog-border dark:border-blog-border/50 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl pointer-events-none" />
         </motion.article>
       ))}
     </div>

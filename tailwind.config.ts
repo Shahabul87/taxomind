@@ -13,7 +13,7 @@ const config = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx,mdx}',
-    './packages/**/*.{ts,tsx}',
+    './packages/*/src/**/*.{ts,tsx}',
 	],
   prefix: "",
   theme: {
@@ -80,21 +80,21 @@ const config = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
-  			// Blog Editorial - Warm Earth Palette
+  			// Blog Editorial - Warm Earth Palette (alpha-compatible)
   			blog: {
-  				bg: 'hsl(var(--blog-bg))',
-  				primary: 'hsl(var(--blog-primary))',
-  				'primary-light': 'hsl(var(--blog-primary-light))',
-  				'primary-dark': 'hsl(var(--blog-primary-dark))',
-  				accent: 'hsl(var(--blog-accent))',
-  				'accent-light': 'hsl(var(--blog-accent-light))',
-  				gold: 'hsl(var(--blog-gold))',
-  				text: 'hsl(var(--blog-text))',
-  				'text-muted': 'hsl(var(--blog-text-muted))',
-  				surface: 'hsl(var(--blog-surface))',
-  				'surface-elevated': 'hsl(var(--blog-surface-elevated))',
-  				border: 'hsl(var(--blog-border))',
-  				'border-strong': 'hsl(var(--blog-border-strong))',
+  				bg: 'hsl(var(--blog-bg) / <alpha-value>)',
+  				primary: 'hsl(var(--blog-primary) / <alpha-value>)',
+  				'primary-light': 'hsl(var(--blog-primary-light) / <alpha-value>)',
+  				'primary-dark': 'hsl(var(--blog-primary-dark) / <alpha-value>)',
+  				accent: 'hsl(var(--blog-accent) / <alpha-value>)',
+  				'accent-light': 'hsl(var(--blog-accent-light) / <alpha-value>)',
+  				gold: 'hsl(var(--blog-gold) / <alpha-value>)',
+  				text: 'hsl(var(--blog-text) / <alpha-value>)',
+  				'text-muted': 'hsl(var(--blog-text-muted) / <alpha-value>)',
+  				surface: 'hsl(var(--blog-surface) / <alpha-value>)',
+  				'surface-elevated': 'hsl(var(--blog-surface-elevated) / <alpha-value>)',
+  				border: 'hsl(var(--blog-border) / <alpha-value>)',
+  				'border-strong': 'hsl(var(--blog-border-strong) / <alpha-value>)',
   			}
   		},
       backgroundSize: {

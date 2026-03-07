@@ -151,8 +151,8 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
 
       {/* Main Content - Editorial Style */}
       <div className="min-h-screen bg-blog-bg dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 mx-auto">
+        <div className="w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto">
+          <div className="w-full px-3 sm:px-5 md:px-6 lg:px-8 mx-auto">
             <div className="mx-auto w-full py-3 sm:py-4 md:py-6 lg:py-10">
               {/* Enterprise Header - Editorial */}
               <EnterprisePostHeader
@@ -197,11 +197,11 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
               <YouMayLikeSection
                 postId={params.postId}
                 category={post.category}
-                useDummyData={true}
+                useDummyData={false}
               />
 
               {/* Comments Section - Editorial */}
-              <div className="mt-4 sm:mt-6 md:mt-8 bg-blog-surface/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 border border-blog-border dark:border-slate-700/50 shadow-lg blog-content-reveal blog-delay-7">
+              <div className="mt-4 sm:mt-6 md:mt-8 bg-blog-surface/90 dark:bg-blog-surface/90 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 border border-blog-border dark:border-blog-border shadow-lg blog-content-reveal blog-delay-7">
                 <CommentSection
                   postId={params.postId}
                   initialComments={(post.comments || []).map(comment => ({

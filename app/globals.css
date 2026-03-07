@@ -1337,22 +1337,22 @@ body.dragging *::selection {
   box-shadow: 0 12px 40px -8px hsla(var(--blog-shadow-color), 0.12);
 }
 
-/* Blog Surface Classes */
-.bg-blog-bg { background-color: hsl(var(--blog-bg)); }
-.bg-blog-surface { background-color: hsl(var(--blog-surface)); }
-.bg-blog-surface-elevated { background-color: hsl(var(--blog-surface-elevated)); }
-.border-blog-border { border-color: hsl(var(--blog-border)); }
-.border-blog-border-subtle { border-color: hsl(var(--blog-border-subtle)); }
-.text-blog-text { color: hsl(var(--blog-text)); }
-.text-blog-text-muted { color: hsl(var(--blog-text-muted)); }
-.text-blog-text-subtle { color: hsl(var(--blog-text-subtle)); }
-.text-blog-primary { color: hsl(var(--blog-primary)); }
-.bg-blog-primary { background-color: hsl(var(--blog-primary)); }
-.bg-blog-primary-muted { background-color: hsl(var(--blog-primary-muted)); }
-.text-blog-gold { color: hsl(var(--blog-gold)); }
-.bg-blog-gold { background-color: hsl(var(--blog-gold)); }
-.text-blog-accent { color: hsl(var(--blog-accent)); }
-.bg-blog-accent { background-color: hsl(var(--blog-accent)); }
+/* Blog Surface Classes (fallback - Tailwind alpha-compatible classes preferred) */
+.bg-blog-bg { background-color: hsl(var(--blog-bg) / 1); }
+.bg-blog-surface { background-color: hsl(var(--blog-surface) / 1); }
+.bg-blog-surface-elevated { background-color: hsl(var(--blog-surface-elevated) / 1); }
+.border-blog-border { border-color: hsl(var(--blog-border) / 1); }
+.border-blog-border-subtle { border-color: hsl(var(--blog-border-subtle) / 1); }
+.text-blog-text { color: hsl(var(--blog-text) / 1); }
+.text-blog-text-muted { color: hsl(var(--blog-text-muted) / 1); }
+.text-blog-text-subtle { color: hsl(var(--blog-text-subtle) / 1); }
+.text-blog-primary { color: hsl(var(--blog-primary) / 1); }
+.bg-blog-primary { background-color: hsl(var(--blog-primary) / 1); }
+.bg-blog-primary-muted { background-color: hsl(var(--blog-primary-muted) / 1); }
+.text-blog-gold { color: hsl(var(--blog-gold) / 1); }
+.bg-blog-gold { background-color: hsl(var(--blog-gold) / 1); }
+.text-blog-accent { color: hsl(var(--blog-accent) / 1); }
+.bg-blog-accent { background-color: hsl(var(--blog-accent) / 1); }
 
 /* Font Family Classes for Blog */
 .font-blog-display {

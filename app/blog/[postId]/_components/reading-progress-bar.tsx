@@ -41,7 +41,7 @@ export const ReadingProgressBar = ({ containerRef }: ReadingProgressBarProps) =>
         initial={{ opacity: 0 }}
         animate={{ opacity: isVisible ? 1 : 0 }}
         transition={{ duration: 0.3 }}
-        className="fixed top-0 left-0 right-0 z-[100] h-1 bg-blog-surface/50 dark:bg-slate-900/50"
+        className="fixed top-0 left-0 right-0 z-[100] h-1 bg-blog-surface/50 dark:bg-blog-bg/50"
       >
         {/* Gradient Progress */}
         <motion.div
@@ -67,7 +67,7 @@ export const ReadingProgressBar = ({ containerRef }: ReadingProgressBarProps) =>
         className="fixed bottom-6 right-6 z-50"
       >
         <motion.div
-          className="w-12 h-12 rounded-full bg-blog-surface dark:bg-slate-800 border border-blog-border dark:border-slate-700 shadow-lg flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-blog-surface dark:bg-blog-surface border border-blog-border dark:border-blog-border shadow-lg flex items-center justify-center"
         >
           {/* Circular Progress */}
           <svg className="w-10 h-10 -rotate-90">
