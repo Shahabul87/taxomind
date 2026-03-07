@@ -181,8 +181,9 @@ function protectCurrencyDollars(html: string): string {
   // Match $ followed by digits (with optional comma separators and decimal),
   // but ONLY when followed by non-alphanumeric (currency context).
   // Lookahead ensures $5x (math) is NOT matched, but $5, $5. $5<p> ARE matched.
+  // Includes Unicode dashes (—, –) which appear in AI-generated content.
   return html.replace(
-    /\$(\d[\d,]*(?:\.\d{1,2})?)(?=[\s.,;:!?'")\]}>]|<|&[a-z#]|$)/g,
+    /\$(\d[\d,]*(?:\.\d{1,2})?)(?=[\s.,;:!?'")\]}>–—\-]|<|&[a-z#]|$)/g,
     '&#36;$1'
   );
 }
