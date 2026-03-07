@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   X,
   ArrowRight,
@@ -10,40 +11,19 @@ import {
 
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { useDebounce } from "@/hooks/use-debounce";
+import { ReactErrorBoundary } from "@/components/react-error-boundary";
 
 // Enhanced components
 import { BlogHeroBroadsheet } from "./blog-hero-broadsheet";
 import { BlogSidebarEnhanced } from "./blog-sidebar-enhanced";
 import { BlogCardEnhanced } from "./blog-card-enhanced";
 import { BlogEmptyState } from "./blog-empty-state";
-import { BlogCardSkeleton } from "./blog-skeleton";
 import { HomeFooter } from "@/app/(homepage)/HomeFooter";
 
-// Shared types
+// Shared types and theme
 import type { BlogPost, ModernBlogPageProps, BlogStatistics } from "./types";
-
-// ============================================================================
-// Shared editorial styles
-// ============================================================================
-
-const fonts = {
-  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
-  body: "'Libre Baskerville', 'Georgia', serif",
-  mono: "'JetBrains Mono', 'Courier New', monospace",
-};
-
-const colors = {
-  cream: "#f5f0e8",
-  ink: "#1a1a1a",
-  accent: "#8b1a1a",
-  muted: "#5c5c5c",
-  rule: "#c4b9a8",
-  lightRule: "#d8d0c4",
-  warmBg: "#eee7db",
-};
-
-// Paper texture SVG data URI
-const paperTexture = `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`;
+import { blogFonts as fonts, blogColors as colors, paperTexture } from "./types";
 
 // ============================================================================
 // Main Modern Blog Page Component
@@ -56,21 +36,44 @@ export function ModernBlogPage({
   trendingPosts,
   userId,
 }: ModernBlogPageProps) {
-  const [posts, setPosts] = useState(initialPosts);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [posts] = useState(initialPosts);
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<"latest" | "popular" | "trending">(
-    "latest"
+    (searchParams.get("sort") as "latest" | "popular" | "trending") || "latest"
   );
   const [statistics, setStatistics] = useState<BlogStatistics | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [displayCount, setDisplayCount] = useState(9);
 
   // Advanced filter states
   const [minViews, setMinViews] = useState<number>(0);
   const [dateRange, setDateRange] = useState<
     "all" | "today" | "week" | "month" | "year"
   >("all");
+
+  // Debounced search for URL sync
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Sync filter state to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedCategory !== "all") params.set("category", selectedCategory);
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (sortBy !== "latest") params.set("sort", sortBy);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "/blog", { scroll: false });
+  }, [selectedCategory, debouncedSearch, sortBy, router]);
+
+  // Reset displayCount when filters change
+  useEffect(() => {
+    setDisplayCount(9);
+  }, [selectedCategory, searchQuery, sortBy]);
 
   // Fetch blog statistics on mount
   useEffect(() => {
@@ -94,7 +97,7 @@ export function ModernBlogPage({
           setStatistics(result.data);
         }
       } catch (error) {
-        logger.error("Failed to fetch blog statistics:", error);
+        logger.warn("Failed to fetch blog statistics, using fallback:", error);
 
         if (mounted) {
           setStatistics({
@@ -142,6 +145,13 @@ export function ModernBlogPage({
       }
     };
   }, [initialPosts]);
+
+  // Scroll detection for sticky bar shadow
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 100);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Filter posts
   const filteredPosts = useMemo(() => {
@@ -235,13 +245,14 @@ export function ModernBlogPage({
     dateRange !== "all" ||
     sortBy !== "latest";
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("all");
     setMinViews(0);
     setDateRange("all");
     setSortBy("latest");
-  };
+    setDisplayCount(9);
+  }, []);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -268,26 +279,29 @@ export function ModernBlogPage({
     selectedCategory === "all" && featuredPosts.length >= 2;
 
   return (
-    <div style={{ minHeight: "100vh", background: colors.cream, backgroundImage: paperTexture }}>
+    <div className="min-h-screen bg-newspaper" style={{ backgroundImage: paperTexture }}>
       {/* Hero Section */}
-      <BlogHeroBroadsheet
-        featuredPosts={featuredPosts}
-        statistics={statistics}
-        isLoading={statsLoading}
-        userId={userId}
-      />
+      <ReactErrorBoundary name="BlogHero">
+        <BlogHeroBroadsheet
+          featuredPosts={featuredPosts}
+          statistics={statistics}
+          isLoading={statsLoading}
+          userId={userId}
+          onSearch={setSearchQuery}
+        />
+      </ReactErrorBoundary>
 
       {/* Main Content */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 16px 48px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 16px 48px" }}>
         {/* ============================================================ */}
         {/* Search & Filter Bar — Editorial Style */}
         {/* ============================================================ */}
         <div
+          className={cn(
+            "sticky top-0 z-40 bg-newspaper transition-shadow duration-300",
+            isScrolled && "shadow-md"
+          )}
           style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 40,
-            background: colors.cream,
             paddingBottom: 20,
             marginBottom: 24,
             borderBottom: `2px solid ${colors.ink}`,
@@ -318,7 +332,6 @@ export function ModernBlogPage({
                     border: `1px solid ${colors.rule}`,
                     appearance: "none",
                     cursor: "pointer",
-                    outline: "none",
                   }}
                 >
                   <option value="latest">Latest</option>
@@ -405,10 +418,11 @@ export function ModernBlogPage({
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
                     whiteSpace: "nowrap",
-                    color: selectedCategory === category.id ? colors.cream : colors.ink,
-                    background: selectedCategory === category.id ? colors.ink : "transparent",
+                    color: selectedCategory === category.id ? colors.accent : colors.ink,
+                    background: "transparent",
                     border: "none",
                     borderBottom: selectedCategory === category.id ? `2px solid ${colors.accent}` : "2px solid transparent",
+                    fontWeight: selectedCategory === category.id ? 700 : 600,
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
@@ -517,7 +531,7 @@ export function ModernBlogPage({
         {/* ============================================================ */}
         <div
           id="articles-section"
-          className="grid lg:grid-cols-4"
+          className="grid lg:grid-cols-4 items-start"
           style={{ gap: 32 }}
         >
           {/* Main Content Area */}
@@ -644,67 +658,56 @@ export function ModernBlogPage({
                 <div style={{ height: 1, background: colors.ink, marginTop: 2 }} />
               </div>
 
-              <Suspense
-                fallback={
-                  <div
-                    className={cn(
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-                        : "flex flex-col gap-6"
-                    )}
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <BlogCardSkeleton key={i} />
-                    ))}
-                  </div>
-                }
-              >
-                {filteredPosts.length > 0 ? (
-                  <div
-                    className={cn(
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
-                        : "flex flex-col gap-6"
-                    )}
-                  >
-                    {filteredPosts.map((post, index) => (
-                      <BlogCardEnhanced
-                        key={post.id}
-                        post={{
-                          id: post.id,
-                          title: post.title,
-                          description: post.description,
-                          imageUrl: post.imageUrl || null,
-                          published: true,
-                          category: post.category || null,
-                          createdAt: post.createdAt.toISOString(),
-                          views: post.views,
-                          comments: post.comments,
-                          user: post.user,
-                          readingTime: post.readingTime,
-                        }}
-                        variant={viewMode}
-                        priority={index < 3}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <BlogEmptyState
-                    variant={getEmptyStateVariant()}
-                    searchQuery={searchQuery}
-                    categoryName={
-                      categories.find((c) => c.id === selectedCategory)?.name
-                    }
-                    userId={userId}
-                    onClearFilters={clearAllFilters}
-                  />
-                )}
-              </Suspense>
+              {filteredPosts.length > 0 ? (
+                <div
+                  className={cn(
+                    viewMode === "list"
+                      ? "flex flex-col gap-6"
+                      : filteredPosts.slice(0, displayCount).length <= 2
+                        ? "grid grid-cols-1 sm:grid-cols-2 gap-6"
+                        : "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                  )}
+                >
+                  {filteredPosts.slice(0, displayCount).map((post, index) => (
+                    <BlogCardEnhanced
+                      key={post.id}
+                      post={{
+                        id: post.id,
+                        title: post.title,
+                        description: post.description,
+                        imageUrl: post.imageUrl || null,
+                        published: true,
+                        category: post.category || null,
+                        createdAt: post.createdAt.toISOString(),
+                        views: post.views,
+                        comments: post.comments,
+                        user: post.user,
+                        readingTime: post.readingTime,
+                      }}
+                      variant={viewMode}
+                      priority={index < 3}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <BlogEmptyState
+                  variant={getEmptyStateVariant()}
+                  searchQuery={searchQuery}
+                  categoryName={
+                    categories.find((c) => c.id === selectedCategory)?.name
+                  }
+                  userId={userId}
+                  onClearFilters={clearAllFilters}
+                />
+              )}
 
               {/* Load More */}
-              {filteredPosts.length > 9 && (
+              {filteredPosts.length > displayCount && (
                 <div style={{ textAlign: "center", marginTop: 40 }}>
                   <button
+                    onClick={() => setDisplayCount(prev => prev + 9)}
+                    className="border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
                     style={{
                       padding: "14px 36px",
                       fontFamily: fonts.mono,
@@ -712,19 +715,10 @@ export function ModernBlogPage({
                       fontWeight: 600,
                       textTransform: "uppercase",
                       letterSpacing: "0.12em",
-                      color: colors.ink,
                       background: "transparent",
-                      border: `1px solid ${colors.ink}`,
+                      borderWidth: 1,
+                      borderStyle: "solid",
                       cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = colors.ink;
-                      e.currentTarget.style.color = colors.cream;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = colors.ink;
                     }}
                   >
                     Load More Articles
@@ -736,13 +730,15 @@ export function ModernBlogPage({
 
           {/* Sidebar — Desktop */}
           <aside className="hidden lg:block">
-            <BlogSidebarEnhanced
-              trendingPosts={trendingPosts}
-              statistics={statistics}
-              categories={categories}
-              onCategorySelect={handleCategorySelect}
-              variant="desktop"
-            />
+            <ReactErrorBoundary name="BlogSidebar">
+              <BlogSidebarEnhanced
+                trendingPosts={trendingPosts}
+                statistics={statistics}
+                categories={categories}
+                onCategorySelect={handleCategorySelect}
+                variant="desktop"
+              />
+            </ReactErrorBoundary>
           </aside>
         </div>
 
@@ -759,13 +755,15 @@ export function ModernBlogPage({
             background: colors.ink,
             marginBottom: 24,
           }} />
-          <BlogSidebarEnhanced
-            trendingPosts={trendingPosts}
-            statistics={statistics}
-            categories={categories}
-            onCategorySelect={handleCategorySelect}
-            variant="mobile"
-          />
+          <ReactErrorBoundary name="BlogSidebarMobile">
+            <BlogSidebarEnhanced
+              trendingPosts={trendingPosts}
+              statistics={statistics}
+              categories={categories}
+              onCategorySelect={handleCategorySelect}
+              variant="mobile"
+            />
+          </ReactErrorBoundary>
         </div>
       </div>
 

@@ -5,10 +5,12 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { blogColors } from "./types";
+
 const colors = {
-  cream: "#f5f0e8",
-  rule: "#c4b9a8",
-  warmBg: "#eee7db",
+  cream: blogColors.cream,
+  rule: blogColors.rule,
+  warmBg: blogColors.warmBg,
 };
 
 export function BlogCardSkeleton() {

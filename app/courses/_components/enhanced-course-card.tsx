@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import {
   BookOpen,
   Clock,
@@ -12,14 +11,9 @@ import {
   Play,
   Heart,
   Eye,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  BarChart3,
   User
 } from "lucide-react";
 
-import { IconBadge } from "@/components/icon-badge";
 import { formatPrice } from "@/lib/format";
 import { CourseProgress } from "@/components/course-progress";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +68,6 @@ export const EnhancedCourseCard = ({
   title,
   description,
   imageUrl,
-  previewVideo,
   chaptersLength,
   lessonsCount = 0,
   price,
@@ -88,23 +81,15 @@ export const EnhancedCourseCard = ({
   enrolledCount = 0,
   rating = 0,
   reviewsCount = 0,
-  completionRate = 0,
   instructor,
   hasCertificate,
-  hasSubtitles,
-  hasExercises,
   isEnrolled,
   isWishlisted,
-  lastUpdated,
   badges = [],
   viewMode = "grid",
   onQuickPreview,
   onAddToWishlist,
-  onEnroll,
 }: EnhancedCourseCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-
   // Ensure image URLs use HTTPS for Next.js Image component
   const secureImageUrl = ensureHttpsUrl(imageUrl) || getFallbackImageUrl('course');
   const secureInstructorAvatar = ensureHttpsUrl(instructor?.avatar);
@@ -121,19 +106,19 @@ export const EnhancedCourseCard = ({
   const getDifficultyColor = (level: string) => {
     switch (level) {
       case "Beginner":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300";
       case "Intermediate":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300";
       case "Advanced":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300";
       case "Expert":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300";
     }
   };
 
-  const renderRatingStars = (rating: number) => {
+  const renderRatingStars = (ratingValue: number) => {
     return (
       <div className="flex items-center gap-1">
         {[...Array(5)].map((_, i) => (
@@ -141,13 +126,13 @@ export const EnhancedCourseCard = ({
             key={i}
             className={cn(
               "h-4 w-4",
-              i < Math.floor(rating)
+              i < Math.floor(ratingValue)
                 ? "fill-yellow-400 text-yellow-400"
                 : "fill-gray-200 text-gray-200 dark:fill-gray-700 dark:text-gray-700"
             )}
           />
         ))}
-        <span className="ml-1 text-sm font-medium">{rating.toFixed(1)}</span>
+        <span className="ml-1 text-sm font-medium">{ratingValue.toFixed(1)}</span>
         {reviewsCount > 0 && (
           <span className="text-sm text-muted-foreground">({reviewsCount})</span>
         )}
@@ -226,7 +211,7 @@ export const EnhancedCourseCard = ({
               <span className="text-muted-foreground">{category}</span>
               {subCategory && (
                 <>
-                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">&bull;</span>
                   <span className="text-muted-foreground">{subCategory}</span>
                 </>
               )}
@@ -315,26 +300,14 @@ export const EnhancedCourseCard = ({
     );
   }
 
-  // Grid View (Default) - Redesigned to match /my-courses card
+  // Grid View (Default) - Clean, focused design
   const getBadgeStyle = () => {
     if (badges.includes("New")) {
-      return {
-        text: "New",
-        bg: "bg-gradient-to-r from-emerald-500 to-emerald-600",
-        borderColor: "border-emerald-400/50",
-      };
+      return { text: "New", className: "bg-emerald-500 text-white" };
     } else if (badges.includes("Bestseller")) {
-      return {
-        text: "Bestseller",
-        bg: "bg-gradient-to-r from-amber-500 to-orange-500",
-        borderColor: "border-amber-400/50",
-      };
+      return { text: "Bestseller", className: "bg-amber-500 text-white" };
     } else if (badges.includes("Hot")) {
-      return {
-        text: "Hot",
-        bg: "bg-gradient-to-r from-red-500 to-pink-500",
-        borderColor: "border-red-400/50",
-      };
+      return { text: "Hot", className: "bg-red-500 text-white" };
     }
     return null;
   };
@@ -344,187 +317,134 @@ export const EnhancedCourseCard = ({
   return (
     <Link
       href={`/courses/${id}`}
-      className="group relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 hover:border-blue-400/50 dark:hover:border-blue-500/50 cursor-pointer"
+      className="group relative bg-white dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-full flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-violet-300 dark:hover:border-violet-600"
     >
-      {/* Hover Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-blue-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10"></div>
-
-      {/* Course Image with Enhanced Overlay */}
-      <div className="relative h-36 xs:h-40 sm:h-44 w-full overflow-hidden">
+      {/* Course Image */}
+      <div className="relative h-40 sm:h-44 w-full overflow-hidden">
         <Image
           src={secureImageUrl}
           alt={title}
           fill
-          className="object-cover transition-transform duration-700 group-hover:scale-110"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 475px) 100vw, (max-width: 768px) 50vw, (max-width: 1200px) 50vw, 33vw"
           priority={false}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-        {/* Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-        {/* Top Badges Row */}
-        <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 right-1.5 xs:right-2 flex items-start justify-between gap-1.5 xs:gap-2 z-20">
-          {/* Status Badge */}
-          {badgeStyle && (
-            <div
-              className={cn(
-                "px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-bold text-white backdrop-blur-md shadow-md border flex items-center gap-0.5 xs:gap-1",
-                badgeStyle.bg,
-                badgeStyle.borderColor
-              )}
-            >
-              <span className="drop-shadow-sm">{badgeStyle.text}</span>
-            </div>
+        {/* Top row: badge + price */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between z-10">
+          {badgeStyle ? (
+            <Badge className={cn("text-[10px] font-bold shadow-md border-0", badgeStyle.className)}>
+              {badgeStyle.text}
+            </Badge>
+          ) : (
+            <div />
           )}
-
-          {/* Price Badge */}
-          <div className="px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-semibold bg-blue-600/95 text-white backdrop-blur-md border border-blue-400/50 shadow-md">
+          <Badge className="bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white border-0 backdrop-blur-sm font-semibold text-xs shadow-md">
             {formatPrice(price)}
-          </div>
+          </Badge>
         </div>
 
-        {/* Category Badge (Bottom Left of Image) */}
+        {/* Category badge */}
         {category && (
-          <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md xs:rounded-lg text-[9px] xs:text-[10px] font-semibold bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md z-20">
-            {category}
+          <div className="absolute top-2.5 right-2.5 mt-7 z-10">
+            <Badge className="bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-200 backdrop-blur-sm border-0 text-[10px] shadow-sm">
+              {category}
+            </Badge>
           </div>
         )}
 
-        {/* Bottom Info on Image */}
-        <div className="absolute bottom-1.5 xs:bottom-2 left-1.5 xs:left-2 right-1.5 xs:right-2 z-20">
-          {/* Title on Image */}
-          <h3 className="text-white font-bold text-sm xs:text-base sm:text-lg leading-tight line-clamp-2 drop-shadow-lg mb-1.5 xs:mb-2 break-words">
+        {/* Title overlay at bottom of image */}
+        <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10">
+          <h3 className="text-white font-bold text-sm sm:text-base leading-tight line-clamp-2 drop-shadow-lg">
             {title}
           </h3>
-
-          {/* Quick Stats on Image */}
-          <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Star className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-yellow-300 fill-yellow-300 flex-shrink-0" />
-              <span className="text-white text-[10px] xs:text-xs font-bold">
-                {rating > 0 ? rating.toFixed(1) : "0.0"}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Users className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-white flex-shrink-0" />
-              <span className="text-white text-[10px] xs:text-xs font-bold">{enrolledCount}</span>
-            </div>
-
-            <div className="flex items-center gap-0.5 xs:gap-1 px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <BookOpen className="w-2.5 h-2.5 xs:w-3 xs:h-3 text-white flex-shrink-0" />
-              <span className="text-white text-[10px] xs:text-xs font-bold">{chaptersLength}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Play/Continue Button Overlay - Enhanced */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/20">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-50 animate-pulse"></div>
-            <div className="relative p-2.5 xs:p-3 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
-              <Play className="h-4 w-4 xs:h-5 xs:w-5 fill-current" />
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Course Content - Compact */}
-      <div className="flex flex-col flex-1 p-2.5 xs:p-3 relative z-20">
-        {/* Instructor Info - Compact */}
+      {/* Card Body */}
+      <div className="flex flex-col flex-1 p-3 sm:p-4">
+        {/* Instructor */}
         {instructor && (
-          <div className="flex items-center gap-1.5 xs:gap-2 mb-1.5 xs:mb-2 pb-1.5 xs:pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
-            <div className="relative h-6 w-6 xs:h-7 xs:w-7 rounded-full overflow-hidden ring-2 ring-blue-500/50 dark:ring-blue-400/50 shadow-sm flex-shrink-0">
+          <div className="flex items-center gap-2 mb-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-700">
+            <div className="relative h-6 w-6 rounded-full overflow-hidden ring-1.5 ring-violet-200 dark:ring-violet-800 flex-shrink-0">
               {secureInstructorAvatar ? (
                 <Image
                   src={secureInstructorAvatar}
                   alt={instructor.name}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 475px) 24px, 28px"
+                  sizes="24px"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-[10px] xs:text-xs font-bold">
+                <div className="w-full h-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold">
                   {instructor.name ? instructor.name[0] : "?"}
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] xs:text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                Instructor
-              </p>
-              <p className="text-[10px] xs:text-xs font-semibold text-slate-900 dark:text-white truncate">
-                {instructor.name}
-              </p>
-            </div>
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
+              {instructor.name}
+            </span>
           </div>
         )}
 
         {/* Description */}
-        <p className="text-[10px] xs:text-xs text-slate-600 dark:text-slate-400 line-clamp-2 mb-2 xs:mb-3 break-words">
+        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2.5">
           {description}
         </p>
 
         {/* Difficulty Badge */}
         {difficulty && (
-          <div className="mb-2 xs:mb-3">
-            <Badge className={cn("text-[9px] xs:text-[10px] sm:text-xs", getDifficultyColor(difficulty))} variant="outline">
+          <div className="mb-2.5">
+            <Badge className={cn("text-[10px] sm:text-xs", getDifficultyColor(difficulty))} variant="outline">
               {difficulty}
             </Badge>
           </div>
         )}
 
-        {/* Progress Bar (for enrolled courses) - Compact */}
+        {/* Progress Bar (for enrolled courses) */}
         {isEnrolled && progress !== null && progress !== undefined && (
-          <div className="mb-2 xs:mb-3">
-            <div className="flex items-center justify-between mb-0.5 xs:mb-1">
-              <span className="text-[9px] xs:text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+          <div className="mb-2.5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                 Progress
               </span>
-              <span className="text-[9px] xs:text-[10px] font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400">
                 {progress}%
               </span>
             </div>
-            <div className="relative h-1.5 xs:h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+            <div className="relative h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-500 shadow-sm"
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"></div>
-              </div>
+              />
             </div>
           </div>
         )}
 
-        {/* Compact Stats Row */}
-        <div className="mt-auto pt-1.5 xs:pt-2 flex items-center justify-between border-t border-slate-200/50 dark:border-slate-700/50 gap-0.5 xs:gap-1">
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Users className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
-            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
-              {enrolledCount}
-            </span>
+        {/* Stats Row - Clean inline layout */}
+        <div className="mt-auto pt-2.5 flex items-center gap-3 border-t border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1">
+            <BookOpen className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+            <span className="font-medium">{chaptersLength}</span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <BookOpen className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
-            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
-              {chaptersLength}
-            </span>
-          </div>
+          {enrolledCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+              <span className="font-medium">{enrolledCount}</span>
+            </div>
+          )}
 
-          <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-            <Star className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400 flex-shrink-0" />
-            <span className="text-[10px] xs:text-xs font-bold text-slate-900 dark:text-white">
-              {rating > 0 ? rating.toFixed(1) : "0.0"}
-            </span>
+          <div className="flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span className="font-medium">{rating > 0 ? rating.toFixed(1) : "New"}</span>
           </div>
 
           {hasCertificate && (
-            <div className="flex flex-col items-center gap-0.5 flex-1 p-1 xs:p-1.5 rounded-md xs:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
-              <Award className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
-              <span className="text-[9px] xs:text-[10px] font-bold text-slate-900 dark:text-white">Cert</span>
+            <div className="flex items-center gap-1">
+              <Award className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="font-medium">Cert</span>
             </div>
           )}
         </div>

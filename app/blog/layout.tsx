@@ -20,7 +20,7 @@ export default async function BlogLayout({
   return (
    <SessionProvider session={session}>
       <div className="relative min-h-screen">
-        <div className="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <div className="antialiased bg-newspaper text-newspaper-ink transition-colors duration-200">
           <ConfettiProvider />
          
           {/* Use a div wrapper here to avoid multiple main landmarks on the page. */}

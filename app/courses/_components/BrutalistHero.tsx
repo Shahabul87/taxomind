@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTheme } from "@/components/providers/theme-provider";
 import {
   ArrowRight,
-  Zap,
-  Box,
-  Cpu,
+  BookOpen,
+  Users,
+  Star,
   ChevronDown,
+  Sparkles,
+  GraduationCap,
+  Brain,
+  Code2,
+  BarChart3,
+  Palette,
+  Cloud,
 } from "lucide-react";
-
-/* ================================================================
-   TYPES
-   ================================================================ */
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface EnhancedHeroProps {
   statistics: {
@@ -24,396 +26,106 @@ interface EnhancedHeroProps {
     averageRating: number;
   };
   userId?: string;
+  categories?: Array<{ id: string; name: string; count: number }>;
 }
 
-/* ================================================================
-   CONSTANTS
-   ================================================================ */
+const ROTATING_WORDS = ["your potential", "new skills", "your career", "with AI"];
 
-const GLITCH_WORDS = ["LEARN.", "BUILD.", "THINK.", "GROW."];
-const CATEGORY_TAGS = ["PYTHON", "AI/ML", "WEB", "DATA", "CLOUD", "DESIGN"];
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  "Python": Code2,
+  "AI/ML": Brain,
+  "Web Development": Code2,
+  "Machine Learning": Brain,
+  "Data": BarChart3,
+  "Design": Palette,
+  "Cloud": Cloud,
+  "business": BarChart3,
+};
 
-/* ================================================================
-   COLOR SYSTEM
-   Light: Concrete gray + electric yellow + pure black
-   Dark:  Deep charcoal + electric yellow + off-white
-   ================================================================ */
-
-function useColors(isDark: boolean) {
-  return isDark
-    ? {
-        bg: "#121212",
-        textPrimary: "#e8e4de",
-        textMuted: "rgba(232,228,222,0.4)",
-        accent: "#eab308",
-        border: "#e8e4de",
-        borderMuted: "rgba(232,228,222,0.15)",
-        gridLine: "rgba(232,228,222,0.04)",
-        scanLine: "rgba(232,228,222,0.04)",
-        bgNumber: "rgba(232,228,222,0.025)",
-        searchBg: "transparent",
-        searchText: "#e8e4de",
-        statBg: "transparent",
-        tagHoverBg: "#e8e4de",
-        tagHoverText: "#121212",
-        ctaBg: "#eab308",
-        ctaText: "#121212",
-        ctaHoverBg: "#e8e4de",
-        ctaHoverText: "#121212",
-        statusDot: "#22c55e",
-        greenAccent: "#22c55e",
-        redAccent: "#ef4444",
-        inputBg: "transparent",
-        submitBg: "#e8e4de",
-        submitText: "#eab308",
-      }
-    : {
-        bg: "#e8e4de",
-        textPrimary: "#1a1a1a",
-        textMuted: "rgba(26,26,26,0.4)",
-        accent: "#eab308",
-        border: "#1a1a1a",
-        borderMuted: "rgba(26,26,26,0.15)",
-        gridLine: "rgba(0,0,0,0.02)",
-        scanLine: "rgba(0,0,0,0.04)",
-        bgNumber: "rgba(0,0,0,0.025)",
-        searchBg: "transparent",
-        searchText: "#1a1a1a",
-        statBg: "transparent",
-        tagHoverBg: "#1a1a1a",
-        tagHoverText: "#eab308",
-        ctaBg: "#eab308",
-        ctaText: "#1a1a1a",
-        ctaHoverBg: "#1a1a1a",
-        ctaHoverText: "#eab308",
-        statusDot: "#22c55e",
-        greenAccent: "#22c55e",
-        redAccent: "#ef4444",
-        inputBg: "transparent",
-        submitBg: "#1a1a1a",
-        submitText: "#eab308",
-      };
-}
-
-/* ================================================================
-   MAIN COMPONENT
-   ================================================================ */
-
-export function EnhancedHero({ statistics, userId }: EnhancedHeroProps) {
+export function EnhancedHero({ statistics, userId, categories = [] }: EnhancedHeroProps) {
   const [wordIndex, setWordIndex] = useState(0);
-  const [searchVal, setSearchVal] = useState("");
-  const [time, setTime] = useState("");
-  const router = useRouter();
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const { isDark } = useTheme();
-  const c = useColors(isDark);
 
-  /* Rotate word every 2s */
   useEffect(() => {
     const id = setInterval(
-      () => setWordIndex((p) => (p + 1) % GLITCH_WORDS.length),
-      2000,
+      () => setWordIndex((p) => (p + 1) % ROTATING_WORDS.length),
+      3000,
     );
     return () => clearInterval(id);
   }, []);
 
-  /* Live clock */
-  useEffect(() => {
-    const tick = () =>
-      setTime(new Date().toLocaleTimeString("en-US", { hour12: false }));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
+  const showStats = statistics.totalCourses > 0;
+  const hasLearners = statistics.totalEnrollments > 5;
+  const hasRating = statistics.averageRating > 0;
 
-  /* Cmd+K search shortcut */
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
-
-  const handleSearch = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!searchVal.trim()) return;
-      document
-        .querySelector("[data-results-section]")
-        ?.scrollIntoView({ behavior: "smooth" });
-      const params = new URLSearchParams(window.location.search);
-      params.set("q", searchVal.trim());
-      router.push(`/courses?${params.toString()}`);
-    },
-    [searchVal, router],
-  );
+  // Use real categories if available, otherwise show nothing
+  const displayCategories = categories
+    .filter((c) => c.count > 0)
+    .slice(0, 6);
 
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{ background: c.bg, minHeight: 700 }}
-    >
-      {/* Font imports */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
-        @keyframes brutalist-scan {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100vh); }
-        }
-      `}</style>
-
-      {/* Concrete texture grid */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden
-        style={{
-          backgroundImage: `
-            repeating-linear-gradient(0deg, transparent, transparent 40px, ${c.gridLine} 40px, ${c.gridLine} 41px),
-            repeating-linear-gradient(90deg, transparent, transparent 40px, ${c.gridLine} 40px, ${c.gridLine} 41px)
-          `,
-        }}
-      />
-
-      {/* Scan line */}
-      <div
-        className="absolute left-0 right-0 h-px pointer-events-none"
-        aria-hidden
-        style={{
-          background: c.scanLine,
-          animation: "brutalist-scan 8s linear infinite",
-        }}
-      />
-
-      {/* Giant background number */}
-      <div
-        className="absolute pointer-events-none select-none"
-        aria-hidden
-        style={{
-          fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: "clamp(20rem, 40vw, 40rem)",
-          color: c.bgNumber,
-          lineHeight: 0.8,
-          top: "5%",
-          right: "-5%",
-        }}
-      >
-        {statistics.totalCourses}
+    <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-violet-950 to-indigo-950">
+      {/* Background decoration */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        {/* Gradient orbs */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
       </div>
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="pt-20 sm:pt-24 lg:pt-16 pb-10 sm:pb-16"
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.06 } },
-          }}
-        >
-          {/* Top status bar */}
-          <motion.div
-            variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}
-            className="flex items-center justify-between mb-12"
-            style={{
-              borderBottom: `3px solid ${c.border}`,
-              paddingBottom: 8,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "'Space Mono', monospace",
-                fontSize: 10,
-                color: c.textPrimary,
-                textTransform: "uppercase",
-              }}
-            >
-              SYS.TIME: {time}
-            </span>
-            <span
-              className="hidden sm:inline"
-              style={{
-                fontFamily: "'Space Mono', monospace",
-                fontSize: 10,
-                color: c.textPrimary,
-              }}
-            >
-              TAXOMIND_V2.0 // COURSE_MODULE
-            </span>
-            <div className="flex items-center gap-2">
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  background: c.statusDot,
-                  borderRadius: 2,
-                }}
-              />
-              <span
-                style={{
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: 10,
-                  color: c.textPrimary,
-                }}
-              >
-                ONLINE
-              </span>
-            </div>
-          </motion.div>
+        <div className="pt-24 sm:pt-28 lg:pt-20 pb-12 sm:pb-16 lg:pb-20">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
 
-          {/* Two-column brutal layout */}
-          <div className="grid lg:grid-cols-2 gap-0">
-            {/* Left: Giant type + search */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, x: -30 },
-                show: {
-                  opacity: 1,
-                  x: 0,
-                  transition: { duration: 0.6 },
-                },
-              }}
-              className="pr-0 lg:pr-10"
-            >
-              {/* Rotating word */}
-              <div style={{ minHeight: 120, marginBottom: 8 }}>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={wordIndex}
-                    initial={{ opacity: 0, x: -40, skewX: -5 }}
-                    animate={{ opacity: 1, x: 0, skewX: 0 }}
-                    exit={{ opacity: 0, x: 40, skewX: 5 }}
-                    transition={{ duration: 0.3 }}
-                    style={{
-                      fontFamily: "'Bebas Neue', sans-serif",
-                      fontSize: "clamp(5rem, 12vw, 9rem)",
-                      color: c.textPrimary,
-                      lineHeight: 0.9,
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    {GLITCH_WORDS[wordIndex]}
-                  </motion.div>
-                </AnimatePresence>
+            {/* Left: Headline + CTA */}
+            <div className="max-w-xl">
+              {/* Pill badge */}
+              <div>
+                <Badge
+                  className="mb-6 px-4 py-1.5 bg-violet-500/15 text-violet-300 border-violet-500/25 backdrop-blur-sm text-xs font-medium"
+                  variant="outline"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  AI-Powered Adaptive Learning
+                </Badge>
               </div>
 
-              {/* Yellow accent bar */}
-              <div
-                style={{
-                  width: 120,
-                  height: 8,
-                  background: c.accent,
-                  marginBottom: 24,
-                }}
-              />
+              {/* Headline */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-[1.1] tracking-tight">
+                Discover courses{" "}
+                <br className="hidden sm:block" />
+                that unlock{" "}
+                <span className="relative inline-flex items-baseline">
+                  {/* Invisible sizer to prevent layout shift — uses longest word */}
+                  <span className="invisible" aria-hidden="true">your potential</span>
+                  <span
+                    key={wordIndex}
+                    className="absolute left-0 bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent whitespace-nowrap transition-opacity duration-300"
+                  >
+                    {ROTATING_WORDS[wordIndex]}
+                  </span>
+                </span>
+              </h1>
 
-              <h2
-                style={{
-                  fontFamily: "'Bebas Neue', sans-serif",
-                  fontSize: "clamp(2rem, 4vw, 3.5rem)",
-                  color: c.textPrimary,
-                  lineHeight: 1,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                NO DECORATION.
-                <br />
-                <span style={{ color: c.accent }}>PURE KNOWLEDGE.</span>
-              </h2>
-
-              <p
-                style={{
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: 12,
-                  color: c.textMuted,
-                  lineHeight: 1.8,
-                  marginTop: 20,
-                  maxWidth: 420,
-                }}
-              >
-                [{statistics.totalCourses}] courses. [
-                {(statistics.totalEnrollments / 1000).toFixed(1)}K] learners. No
-                fluff. No filler. Raw education stripped to its core. Enter the
-                system.
+              {/* Subtitle */}
+              <p className="mt-5 sm:mt-6 text-base sm:text-lg text-slate-300/90 leading-relaxed max-w-md">
+                Learn at your own pace with personalized recommendations, expert instructors, and AI that adapts to how you learn.
               </p>
 
-              {/* Search */}
-              <form onSubmit={handleSearch} className="mt-8">
-                <div
-                  className="flex"
-                  style={{ border: `3px solid ${c.border}` }}
-                >
-                  <input
-                    ref={searchInputRef}
-                    value={searchVal}
-                    onChange={(e) => setSearchVal(e.target.value)}
-                    placeholder="QUERY_"
-                    style={{
-                      flex: 1,
-                      background: c.inputBg,
-                      border: "none",
-                      outline: "none",
-                      padding: "14px 16px",
-                      color: c.searchText,
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: 13,
-                      textTransform: "uppercase",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    style={{
-                      background: c.submitBg,
-                      border: "none",
-                      color: c.submitText,
-                      padding: "14px 24px",
-                      cursor: "pointer",
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    EXEC <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
-
-              {/* CTA row */}
-              <div className="flex items-center gap-4 mt-8">
+              {/* CTA buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-8">
                 <Link
                   href={userId ? "/dashboard/user" : "/auth/register"}
-                  style={{
-                    padding: "12px 28px",
-                    background: c.accent,
-                    border: `3px solid ${c.border}`,
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: 18,
-                    color: c.ctaText,
-                    letterSpacing: "0.1em",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    transition: "all 0.15s",
-                    textDecoration: "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = c.ctaHoverBg;
-                    e.currentTarget.style.color = c.ctaHoverText;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = c.ctaBg;
-                    e.currentTarget.style.color = c.ctaText;
-                  }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold text-sm sm:text-base shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 hover:from-violet-500 hover:to-indigo-500 transition-all duration-200"
                 >
-                  {userId ? "DASHBOARD" : "START FREE"}{" "}
+                  {userId ? "Go to Dashboard" : "Get Started Free"}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
 
@@ -424,200 +136,127 @@ export function EnhancedHero({ statistics, userId }: EnhancedHeroProps) {
                       .getElementById("main-content")
                       ?.scrollIntoView({ behavior: "smooth" })
                   }
-                  style={{
-                    padding: "12px 16px",
-                    background: "transparent",
-                    border: `3px solid ${c.border}`,
-                    fontFamily: "'Space Mono', monospace",
-                    fontSize: 10,
-                    color: c.textMuted,
-                    cursor: "pointer",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = c.textPrimary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = c.textMuted;
-                  }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-slate-500/30 text-slate-300 font-medium text-sm sm:text-base hover:bg-white/5 hover:border-slate-400/40 transition-all duration-200"
                 >
-                  <ChevronDown className="w-3.5 h-3.5" /> BROWSE
+                  <ChevronDown className="w-4 h-4" />
+                  Browse Courses
                 </button>
               </div>
-            </motion.div>
 
-            {/* Right: Data blocks */}
-            <motion.div
-              variants={{
-                hidden: { opacity: 0, x: 30 },
-                show: {
-                  opacity: 1,
-                  x: 0,
-                  transition: { duration: 0.6 },
-                },
-              }}
-              className="mt-12 lg:mt-0"
-              style={{
-                borderLeft: `3px solid ${c.border}`,
-                paddingLeft: 40,
-              }}
-            >
-              {/* Stat blocks */}
-              {[
-                {
-                  label: "COURSES_TOTAL",
-                  value: statistics.totalCourses.toString(),
-                  icon: Box,
-                  accent: c.accent,
-                },
-                {
-                  label: "ACTIVE_USERS",
-                  value: statistics.totalEnrollments.toLocaleString(),
-                  icon: Cpu,
-                  accent: c.greenAccent,
-                },
-                {
-                  label: "SATISFACTION_%",
-                  value: `${(statistics.averageRating * 20).toFixed(0)}%`,
-                  icon: Zap,
-                  accent: c.redAccent,
-                },
-              ].map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.15 }}
-                  style={{
-                    borderBottom: `2px solid ${c.border}`,
-                    padding: "20px 0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <stat.icon
-                        className="w-3.5 h-3.5"
-                        style={{ color: stat.accent }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: "'Space Mono', monospace",
-                          fontSize: 10,
-                          color: c.textMuted,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                        }}
-                      >
-                        {stat.label}
-                      </span>
+              {/* Compact stats row - only show meaningful numbers */}
+              {showStats && (
+                <div className="flex items-center gap-6 mt-8 pt-6 border-t border-slate-700/50">
+
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-violet-500/15">
+                      <BookOpen className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-white">{statistics.totalCourses}</p>
+                      <p className="text-xs text-slate-400">Courses</p>
                     </div>
                   </div>
-                  <span
-                    style={{
-                      fontFamily: "'Bebas Neue', sans-serif",
-                      fontSize: 48,
-                      color: c.textPrimary,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {stat.value}
-                  </span>
-                </motion.div>
-              ))}
 
-              {/* Quick access category grid */}
-              <div className="grid grid-cols-3 gap-0 mt-6">
-                {CATEGORY_TAGS.map((tag, i) => (
-                  <button
-                    key={tag}
-                    onClick={() => {
-                      setSearchVal(tag);
-                      searchInputRef.current?.focus();
-                    }}
-                    style={{
-                      padding: "16px 8px",
-                      border: `1.5px solid ${c.border}`,
-                      background: "transparent",
-                      fontFamily: "'Space Mono', monospace",
-                      fontSize: 10,
-                      color: c.textPrimary,
-                      cursor: "pointer",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      transition: "all 0.15s",
-                      margin: "-0.75px",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = c.tagHoverBg;
-                      e.currentTarget.style.color = c.tagHoverText;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = c.textPrimary;
-                    }}
-                  >
-                    [{String(i + 1).padStart(2, "0")}]
-                    <br />
-                    {tag}
-                  </button>
-                ))}
-              </div>
+                  {hasLearners && (
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-indigo-500/15">
+                        <Users className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-white">
+                          {statistics.totalEnrollments.toLocaleString()}+
+                        </p>
+                        <p className="text-xs text-slate-400">Learners</p>
+                      </div>
+                    </div>
+                  )}
 
-              {/* CTA button */}
-              <button
-                onClick={() =>
-                  document
-                    .getElementById("main-content")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-                style={{
-                  width: "100%",
-                  marginTop: 20,
-                  padding: "16px",
-                  background: c.ctaBg,
-                  border: `3px solid ${c.border}`,
-                  fontFamily: "'Bebas Neue', sans-serif",
-                  fontSize: 20,
-                  color: c.ctaText,
-                  cursor: "pointer",
-                  letterSpacing: "0.1em",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = c.ctaHoverBg;
-                  e.currentTarget.style.color = c.ctaHoverText;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = c.ctaBg;
-                  e.currentTarget.style.color = c.ctaText;
-                }}
-              >
-                ENTER THE SYSTEM <ArrowRight className="w-5 h-5" />
-              </button>
-            </motion.div>
+                  {hasRating && (
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-amber-500/15">
+                        <Star className="w-4 h-4 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-white">
+                          {statistics.averageRating.toFixed(1)}
+                        </p>
+                        <p className="text-xs text-slate-400">Avg. Rating</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Category quick-access cards */}
+            <div className="hidden lg:block">
+              {displayCategories.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {displayCategories.map((category) => {
+                    const IconComponent = CATEGORY_ICONS[category.name] || GraduationCap;
+                    return (
+                      <div key={category.id}>
+                        <div
+                          className="group relative p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm hover:bg-white/[0.08] hover:border-violet-500/30 transition-all duration-300 cursor-pointer"
+                          onClick={() =>
+                            document
+                              .getElementById("main-content")
+                              ?.scrollIntoView({ behavior: "smooth" })
+                          }
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 group-hover:from-violet-500/30 group-hover:to-indigo-500/30 transition-colors">
+                              <IconComponent className="w-5 h-5 text-violet-300" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm text-white truncate group-hover:text-violet-200 transition-colors capitalize">
+                                {category.name}
+                              </h3>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {category.count} {category.count === 1 ? "course" : "courses"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Explore all card */}
+                  <div className={cn(displayCategories.length % 2 === 0 && "col-span-2")}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById("main-content")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }
+                      className="w-full p-5 rounded-2xl border border-dashed border-violet-500/25 text-violet-300 hover:bg-violet-500/10 hover:border-violet-500/40 transition-all duration-300 flex items-center justify-center gap-2 text-sm font-medium"
+                    >
+                      Explore All Courses
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Illustration fallback when no categories */
+                <div className="flex items-center justify-center">
+                  <div className="relative w-full max-w-sm aspect-square">
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-indigo-500/20 rounded-3xl blur-2xl" />
+                    <div className="relative p-8 rounded-3xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm flex flex-col items-center justify-center gap-4 h-full">
+                      <GraduationCap className="w-16 h-16 text-violet-400/60" />
+                      <p className="text-slate-400 text-center text-sm leading-relaxed">
+                        Expert-crafted courses with adaptive AI tutoring to guide your learning journey
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Bottom edge line */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${c.borderMuted}, transparent)`,
-        }}
-      />
     </section>
   );
 }

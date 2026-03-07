@@ -392,11 +392,18 @@ export function AIRecommendations({
     return (
       <div className={cn("space-y-6", className)}>
         <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <div className="text-center max-w-md">
+            <Sparkles className="h-12 w-12 text-purple-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-2">
+              Your Recommendations Are Building
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Start exploring courses to get personalized recommendations
+              As you browse and interact with courses, our AI will learn your preferences and suggest the best matches for your learning goals.
             </p>
+            <Button onClick={() => fetchRecommendations()} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Check Again
+            </Button>
           </div>
         </div>
       </div>
@@ -524,7 +531,7 @@ export function AIRecommendations({
           {sections.filter((s) => s.type === "personalized" || s.type === "similar").length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>Enroll in some courses to get personalized recommendations</p>
+              <p>Browse and enroll in courses to unlock personalized recommendations tailored to your learning goals</p>
             </div>
           )}
         </TabsContent>
@@ -558,7 +565,7 @@ export function AIRecommendations({
           {sections.filter((s) => s.type === "next-step").length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>Complete some courses to get next-step recommendations</p>
+              <p>Complete courses to unlock next-step recommendations that build on what you&apos;ve learned</p>
             </div>
           )}
         </TabsContent>

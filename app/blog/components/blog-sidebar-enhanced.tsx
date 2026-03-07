@@ -16,21 +16,7 @@ import type { BlogPost, BlogStatistics } from "./types";
 // Shared editorial styles
 // ============================================================================
 
-const fonts = {
-  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
-  body: "'Libre Baskerville', 'Georgia', serif",
-  mono: "'JetBrains Mono', 'Courier New', monospace",
-};
-
-const colors = {
-  cream: "#f5f0e8",
-  ink: "#1a1a1a",
-  accent: "#8b1a1a",
-  muted: "#5c5c5c",
-  rule: "#c4b9a8",
-  lightRule: "#d8d0c4",
-  warmBg: "#eee7db",
-};
+import { blogFonts as fonts, blogColors as colors } from "./types";
 
 // ============================================================================
 // Types
@@ -142,7 +128,7 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
                     marginBottom: 4,
                     transition: "color 0.2s",
                   }}
-                  className="group-hover:!text-[#8b1a1a]"
+                  className="group-hover:text-newspaper-accent"
                 >
                   {post.title}
                 </h4>
@@ -178,7 +164,7 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
                   marginTop: 2,
                   transition: "color 0.2s, transform 0.2s",
                 }}
-                className="group-hover:!text-[#8b1a1a] group-hover:translate-x-0.5"
+                className="group-hover:text-newspaper-accent group-hover:translate-x-0.5"
               />
             </Link>
           </li>
@@ -220,6 +206,7 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
       background: colors.warmBg,
       border: `1px solid ${colors.rule}`,
       padding: 20,
+      overflow: "hidden",
     }}>
       <SidebarSectionHeader title="The Dispatch" />
 
@@ -259,45 +246,47 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
             <label htmlFor="newsletter-email-editorial" className="sr-only">
               Email address
             </label>
-            <div style={{ display: "flex", gap: 0 }}>
+            <div style={{ display: "flex", gap: 0, maxWidth: "100%" }}>
               <input
                 id="newsletter-email-editorial"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email address"
+                placeholder="Your email"
                 autoComplete="email"
                 aria-label="Email address"
                 required
                 style={{
                   flex: 1,
-                  padding: "10px 14px",
+                  minWidth: 0,
+                  padding: "10px 12px",
                   fontFamily: fonts.body,
                   fontSize: 13,
                   color: colors.ink,
                   background: colors.cream,
                   border: `1px solid ${colors.rule}`,
                   borderRight: "none",
-                  outline: "none",
                 }}
               />
               <button
                 type="submit"
                 disabled={isSubmitting}
                 style={{
-                  padding: "10px 16px",
+                  padding: "10px 12px",
                   fontFamily: fonts.mono,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: 600,
                   textTransform: "uppercase",
-                  letterSpacing: "0.1em",
+                  letterSpacing: "0.08em",
                   color: colors.cream,
                   background: colors.ink,
                   border: `1px solid ${colors.ink}`,
                   cursor: isSubmitting ? "wait" : "pointer",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  gap: 4,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
                   transition: "background 0.2s",
                 }}
               >
@@ -378,30 +367,19 @@ function PopularTopicsWidget({
           <button
             key={topic.id}
             onClick={() => onCategorySelect?.(topic.id)}
-            className="group"
+            className="text-newspaper-ink border-newspaper-rule hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] hover:border-[hsl(var(--blog-newspaper-ink))] transition-colors"
             style={{
               padding: "6px 12px",
               fontFamily: fonts.mono,
               fontSize: 11,
               fontWeight: 500,
-              color: colors.ink,
               background: "transparent",
-              border: `1px solid ${colors.rule}`,
+              borderWidth: 1,
+              borderStyle: "solid",
               cursor: "pointer",
-              transition: "all 0.2s",
               display: "flex",
               alignItems: "center",
               gap: 6,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.ink;
-              e.currentTarget.style.color = colors.cream;
-              e.currentTarget.style.borderColor = colors.ink;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = colors.ink;
-              e.currentTarget.style.borderColor = colors.rule;
             }}
           >
             {topic.name}

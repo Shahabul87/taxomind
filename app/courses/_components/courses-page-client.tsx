@@ -1,62 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ProfessionalCoursesPage } from "./professional-courses-page";
-import {
-  Search,
-  Filter,
-  Grid3X3,
-  List,
-  LayoutGrid,
-  Table2,
-  ChevronDown,
-  X,
-  SlidersHorizontal,
-  TrendingUp,
-  BookOpen,
-  Users,
-  Star,
-  Clock,
-  DollarSign,
-  Loader2,
-  BarChart3,
-  Sparkles,
-  Route
-} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-
-import { EnhancedCourseCard } from "./enhanced-course-card";
-import { FilterSidebar } from "./filter-sidebar";
-import { QuickStatsBar } from "./quick-stats-bar";
-import { Pagination } from "./pagination";
-import { EmptyState } from "./empty-state";
-import { CourseComparisonTool } from "./course-comparison-tool";
-import Link from "next/link";
-
-import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
 interface CourseData {
@@ -118,7 +66,6 @@ interface CoursesPageClientProps {
   user?: UserData;
 }
 
-type ViewMode = "grid" | "list" | "compact" | "card";
 type SortOption =
   | "relevance"
   | "popular"
@@ -136,21 +83,16 @@ export function CoursesPageClient({
   userId,
   user
 }: CoursesPageClientProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // State Management
   const [courses, setCourses] = useState<CourseData[]>(initialCourses);
-  const [totalCount, setTotalCount] = useState(totalCourses); // Track dynamic count
+  const [totalCount, setTotalCount] = useState(totalCourses);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortBy, setSortBy] = useState<SortOption>("relevance");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
-  const [comparisonCourses, setComparisonCourses] = useState<CourseData[]>([]);
 
   // Filters State
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -179,10 +121,6 @@ export function CoursesPageClient({
     // Initialize search
     const search = params.get("search");
     if (search) updates.push(() => setSearchQuery(search));
-
-    // Initialize view mode
-    const view = params.get("view") as ViewMode;
-    if (view) updates.push(() => setViewMode(view));
 
     // Initialize sort
     const sort = params.get("sort") as SortOption;
@@ -239,7 +177,6 @@ export function CoursesPageClient({
     const params = new URLSearchParams();
 
     if (searchQuery) params.set("search", searchQuery);
-    if (viewMode !== "grid") params.set("view", viewMode);
     if (sortBy !== "relevance") params.set("sort", sortBy);
     if (currentPage > 1) params.set("page", currentPage.toString());
     if (itemsPerPage !== 12) params.set("limit", itemsPerPage.toString());
@@ -277,7 +214,6 @@ export function CoursesPageClient({
     window.history.replaceState(null, "", newUrl);
   }, [
     searchQuery,
-    viewMode,
     sortBy,
     currentPage,
     itemsPerPage,
@@ -389,17 +325,6 @@ export function CoursesPageClient({
     setSearchQuery("");
     setSortBy("relevance");
     setCurrentPage(1);
-  };
-
-  // Compare courses functionality
-  const addToComparison = (course: CourseData) => {
-    if (comparisonCourses.length < 3 && !comparisonCourses.find(c => c.id === course.id)) {
-      setComparisonCourses([...comparisonCourses, course]);
-    }
-  };
-
-  const removeFromComparison = (courseId: string) => {
-    setComparisonCourses(comparisonCourses.filter(c => c.id !== courseId));
   };
 
   // Count active filters

@@ -13,20 +13,7 @@ import { cn } from "@/lib/utils";
 // Shared editorial styles
 // ============================================================================
 
-const fonts = {
-  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
-  body: "'Libre Baskerville', 'Georgia', serif",
-  mono: "'JetBrains Mono', 'Courier New', monospace",
-};
-
-const colors = {
-  cream: "#f5f0e8",
-  ink: "#1a1a1a",
-  accent: "#8b1a1a",
-  muted: "#5c5c5c",
-  rule: "#c4b9a8",
-  warmBg: "#eee7db",
-};
+import { blogFonts as fonts, blogColors as colors } from "./types";
 
 // ============================================================================
 // Types

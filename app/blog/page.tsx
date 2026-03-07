@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { ModernBlogPage } from './components/modern-blog-page';
+import { BlogPageSkeleton } from './components/blog-skeleton';
 import { getSimplePostsForBlog } from '@/actions/get-simple-posts';
 import { currentUser } from '@/lib/auth';
 import { PageWithMobileLayout } from '@/components/layouts/PageWithMobileLayout';
@@ -83,13 +85,15 @@ export default async function BlogPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
-      <ModernBlogPage
-        featuredPosts={featuredPosts}
-        initialPosts={posts}
-        categories={categories}
-        trendingPosts={trendingPosts.length > 0 ? trendingPosts : posts.slice(0, 5)}
-        userId={user?.id}
-      />
+      <Suspense fallback={<BlogPageSkeleton />}>
+        <ModernBlogPage
+          featuredPosts={featuredPosts}
+          initialPosts={posts}
+          categories={categories}
+          trendingPosts={trendingPosts.length > 0 ? trendingPosts : posts.slice(0, 5)}
+          userId={user?.id}
+        />
+      </Suspense>
     </PageWithMobileLayout>
   );
 }

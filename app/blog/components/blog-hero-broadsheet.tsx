@@ -12,7 +12,7 @@ import {
   PenSquare,
 } from "lucide-react";
 import type { BlogPost, BlogStatistics } from "./types";
-import { blogFonts, blogColors } from "./types";
+import { blogFonts, blogColors, paperTexture } from "./types";
 
 /*
   BLOG HERO: THE BROADSHEET
@@ -28,6 +28,7 @@ interface BlogHeroBroadsheetProps {
   statistics?: BlogStatistics | null;
   isLoading?: boolean;
   userId?: string;
+  onSearch?: (query: string) => void;
 }
 
 const EDITION_DATE = new Date().toLocaleDateString("en-US", {
@@ -51,6 +52,7 @@ export function BlogHeroBroadsheet({
   statistics,
   isLoading,
   userId,
+  onSearch,
 }: BlogHeroBroadsheetProps) {
   const [headlineIdx, setHeadlineIdx] = useState(0);
   const [searchVal, setSearchVal] = useState("");
@@ -68,12 +70,13 @@ export function BlogHeroBroadsheet({
     (e: React.FormEvent) => {
       e.preventDefault();
       if (!searchVal.trim()) return;
+      onSearch?.(searchVal.trim());
       const articlesSection = document.getElementById("articles-section");
       if (articlesSection) {
         articlesSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     },
-    [searchVal],
+    [searchVal, onSearch],
   );
 
   const formatStat = (num: number | undefined) => {
@@ -90,13 +93,14 @@ export function BlogHeroBroadsheet({
   const totalArticles = statistics?.publishedArticles ?? featuredPosts.length;
   const totalReaders = statistics?.totalReaders ?? 0;
   const totalAuthors = statistics?.totalAuthors ?? 0;
+  const hasSubstantialContent = totalArticles >= 5 && totalReaders >= 50;
 
   return (
     <section
       className="relative overflow-hidden min-h-[500px] lg:min-h-[700px]"
       style={{
         background: blogColors.cream,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+        backgroundImage: paperTexture,
       }}
     >
 
@@ -108,7 +112,7 @@ export function BlogHeroBroadsheet({
             hidden: {},
             show: { transition: { staggerChildren: 0.08 } },
           }}
-          className="pt-12 pb-8"
+          className="pt-8 sm:pt-12 pb-8"
         >
           {/* Masthead */}
           <motion.div variants={fadeUp} className="text-center">
@@ -117,7 +121,7 @@ export function BlogHeroBroadsheet({
               style={{ borderTop: `3px double ${blogColors.ink}`, marginBottom: 12 }}
             />
             <div
-              className="flex items-center justify-between"
+              className="flex flex-col items-center gap-1 sm:flex-row sm:justify-between"
               style={{
                 borderBottom: `1px solid ${blogColors.ink}`,
                 paddingBottom: 8,
@@ -144,6 +148,7 @@ export function BlogHeroBroadsheet({
                 {EDITION_DATE}
               </span>
               <span
+                className="hidden sm:inline"
                 style={{
                   fontFamily: blogFonts.body,
                   fontSize: 10,
@@ -174,7 +179,7 @@ export function BlogHeroBroadsheet({
               className="flex items-center justify-center gap-3"
               style={{ marginBottom: 8 }}
             >
-              <div style={{ flex: 1, height: 1, background: blogColors.ink }} />
+              <div className="hidden sm:block" style={{ flex: 1, height: 1, background: blogColors.ink }} />
               <span
                 style={{
                   fontFamily: blogFonts.headline,
@@ -186,7 +191,7 @@ export function BlogHeroBroadsheet({
               >
                 &ldquo;Where Minds Are Forged Through Intelligence&rdquo;
               </span>
-              <div style={{ flex: 1, height: 1, background: blogColors.ink }} />
+              <div className="hidden sm:block" style={{ flex: 1, height: 1, background: blogColors.ink }} />
             </div>
 
             {/* Sub rule */}
@@ -197,12 +202,12 @@ export function BlogHeroBroadsheet({
           <div
             className="mt-8 hidden lg:grid"
             style={{
-              gridTemplateColumns: "1fr 2px 2.2fr 2px 1fr",
+              gridTemplateColumns: hasSubstantialContent ? "1fr 2px 2.2fr 2px 1fr" : "2.2fr 2px 1fr",
               gap: 0,
             }}
           >
-            {/* Left column - stats */}
-            <motion.div variants={fadeUp} style={{ padding: "0 20px 0 0" }}>
+            {/* Left column - stats (hidden when sparse content) */}
+            {hasSubstantialContent && <motion.div variants={fadeUp} style={{ padding: "0 20px 0 0" }}>
               <div
                 style={{
                   borderBottom: `2px solid ${blogColors.ink}`,
@@ -316,10 +321,10 @@ export function BlogHeroBroadsheet({
                   &mdash; Benjamin Franklin
                 </span>
               </div>
-            </motion.div>
+            </motion.div>}
 
-            {/* Divider */}
-            <div style={{ background: "#1a1a1a" }} />
+            {/* Divider (hidden when sparse content) */}
+            {hasSubstantialContent && <div style={{ background: blogColors.ink }} />}
 
             {/* Center column - main headline */}
             <motion.div variants={fadeUp} style={{ padding: "0 28px" }}>
@@ -327,15 +332,15 @@ export function BlogHeroBroadsheet({
               <div
                 className="text-center mb-4"
                 style={{
-                  background: "#8b1a1a",
-                  color: "#f5f0e8",
+                  background: blogColors.accent,
+                  color: blogColors.cream,
                   padding: "4px 12px",
                   display: "inline-block",
                 }}
               >
                 <span
                   style={{
-                    fontFamily: "'Crimson Text', serif",
+                    fontFamily: blogFonts.headline,
                     fontSize: 10,
                     fontWeight: 700,
                     textTransform: "uppercase",
@@ -356,10 +361,10 @@ export function BlogHeroBroadsheet({
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                     style={{
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: "clamp(1.8rem, 3.5vw, 2.8rem)",
                       fontWeight: 700,
-                      color: "#1a1a1a",
+                      color: blogColors.ink,
                       lineHeight: 1.15,
                       textAlign: "center",
                     }}
@@ -373,10 +378,10 @@ export function BlogHeroBroadsheet({
               <p
                 className="text-center"
                 style={{
-                  fontFamily: "'Libre Baskerville', serif",
+                  fontFamily: blogFonts.body,
                   fontSize: 13,
                   fontStyle: "italic",
-                  color: "#666",
+                  color: blogColors.muted,
                   lineHeight: 1.8,
                   maxWidth: 460,
                   margin: "0 auto 24px",
@@ -384,7 +389,7 @@ export function BlogHeroBroadsheet({
               >
                 Our contributors have published {totalArticles} articles
                 spanning every frontier of modern knowledge. From artificial
-                intelligence to creative design, discover the ideas that&apos;s
+                intelligence to creative design, discover the ideas that are
                 defining a generation.
               </p>
 
@@ -392,18 +397,18 @@ export function BlogHeroBroadsheet({
               <form onSubmit={handleSearch}>
                 <div
                   style={{
-                    border: "2px solid #1a1a1a",
+                    border: `2px solid ${blogColors.ink}`,
                     display: "flex",
                     alignItems: "center",
-                    background: "rgba(255,255,255,0.5)",
+                    background: "rgba(255,255,255,0.3)",
                   }}
                 >
                   <div
                     style={{
-                      background: "#1a1a1a",
-                      color: "#f5f0e8",
+                      background: blogColors.ink,
+                      color: blogColors.cream,
                       padding: "12px 16px",
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: 10,
                       fontWeight: 700,
                       textTransform: "uppercase",
@@ -420,26 +425,25 @@ export function BlogHeroBroadsheet({
                     style={{
                       flex: 1,
                       border: "none",
-                      outline: "none",
                       background: "transparent",
                       padding: "12px 16px",
-                      fontFamily: "'Libre Baskerville', serif",
+                      fontFamily: blogFonts.body,
                       fontSize: 13,
-                      color: "#1a1a1a",
+                      color: blogColors.ink,
                     }}
                   />
                   <button
                     type="submit"
                     style={{
-                      background: "#8b1a1a",
+                      background: blogColors.accent,
                       border: "none",
-                      color: "#f5f0e8",
+                      color: blogColors.cream,
                       padding: "12px 20px",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: 12,
                       fontWeight: 700,
                       textTransform: "uppercase",
@@ -455,7 +459,7 @@ export function BlogHeroBroadsheet({
               <div
                 className="flex justify-center gap-0 mt-5"
                 style={{
-                  borderTop: "1px solid rgba(26,26,26,0.15)",
+                  borderTop: `1px solid ${blogColors.rule}`,
                   paddingTop: 10,
                 }}
               >
@@ -463,26 +467,19 @@ export function BlogHeroBroadsheet({
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setSearchVal(t)}
+                    onClick={() => { setSearchVal(t); onSearch?.(t); }}
+                    className="text-newspaper-muted hover:text-newspaper-accent transition-colors"
                     style={{
                       padding: "4px 14px",
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: 12,
-                      color: "#444",
                       cursor: "pointer",
                       background: "transparent",
                       border: "none",
                       borderRight:
                         i < SECTIONS.length - 1
-                          ? "1px solid rgba(26,26,26,0.15)"
+                          ? `1px solid ${blogColors.rule}`
                           : "none",
-                      transition: "color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#8b1a1a";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "#444";
                     }}
                   >
                     {t}
@@ -492,25 +489,25 @@ export function BlogHeroBroadsheet({
             </motion.div>
 
             {/* Divider */}
-            <div style={{ background: "#1a1a1a" }} />
+            <div style={{ background: blogColors.ink }} />
 
             {/* Right column - featured posts */}
             <motion.div variants={fadeUp} style={{ padding: "0 0 0 20px" }}>
               <div
                 style={{
-                  borderBottom: "2px solid #1a1a1a",
+                  borderBottom: `2px solid ${blogColors.ink}`,
                   paddingBottom: 6,
                   marginBottom: 12,
                 }}
               >
                 <span
                   style={{
-                    fontFamily: "'Crimson Text', serif",
+                    fontFamily: blogFonts.headline,
                     fontSize: 11,
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
-                    color: "#1a1a1a",
+                    color: blogColors.ink,
                   }}
                 >
                   Featured
@@ -522,40 +519,34 @@ export function BlogHeroBroadsheet({
                     <Link
                       key={post.id}
                       href={`/blog/${post.id}`}
+                      className="group"
                       style={{ textDecoration: "none" }}
                     >
                       <div
                         style={{
                           marginBottom: 16,
                           paddingBottom: 16,
-                          borderBottom: "1px dotted rgba(26,26,26,0.2)",
+                          borderBottom: `1px dotted ${blogColors.rule}`,
                           cursor: "pointer",
                         }}
                       >
                         <h4
+                          className="text-newspaper-ink hover:text-newspaper-accent transition-colors"
                           style={{
-                            fontFamily: "'Crimson Text', serif",
+                            fontFamily: blogFonts.headline,
                             fontSize: 15,
                             fontWeight: 700,
-                            color: "#1a1a1a",
                             lineHeight: 1.3,
                             marginBottom: 4,
-                            transition: "color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "#8b1a1a";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#1a1a1a";
                           }}
                         >
                           {post.title}
                         </h4>
                         <p
                           style={{
-                            fontFamily: "'Libre Baskerville', serif",
+                            fontFamily: blogFonts.body,
                             fontSize: 11,
-                            color: "#666",
+                            color: blogColors.muted,
                             lineHeight: 1.6,
                           }}
                         >
@@ -584,15 +575,15 @@ export function BlogHeroBroadsheet({
                       style={{
                         marginBottom: 16,
                         paddingBottom: 16,
-                        borderBottom: "1px dotted rgba(26,26,26,0.2)",
+                        borderBottom: `1px dotted ${blogColors.rule}`,
                       }}
                     >
                       <h4
                         style={{
-                          fontFamily: "'Crimson Text', serif",
+                          fontFamily: blogFonts.headline,
                           fontSize: 15,
                           fontWeight: 700,
-                          color: "#1a1a1a",
+                          color: blogColors.ink,
                           lineHeight: 1.3,
                           marginBottom: 4,
                         }}
@@ -601,9 +592,9 @@ export function BlogHeroBroadsheet({
                       </h4>
                       <p
                         style={{
-                          fontFamily: "'Libre Baskerville', serif",
+                          fontFamily: blogFonts.body,
                           fontSize: 11,
-                          color: "#666",
+                          color: blogColors.muted,
                           lineHeight: 1.6,
                         }}
                       >
@@ -620,31 +611,23 @@ export function BlogHeroBroadsheet({
                     userId ? "/teacher/posts/create" : "/auth/register",
                   )
                 }
+                className="border-newspaper-ink text-newspaper-ink hover:bg-[hsl(var(--blog-newspaper-ink))] hover:text-[hsl(var(--blog-newspaper-bg))] transition-colors"
                 style={{
                   width: "100%",
                   padding: "10px",
-                  border: "2px solid #1a1a1a",
+                  borderWidth: 2,
+                  borderStyle: "solid",
                   background: "transparent",
-                  fontFamily: "'Crimson Text', serif",
+                  fontFamily: blogFonts.headline,
                   fontSize: 12,
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.15em",
-                  color: "#1a1a1a",
                   cursor: "pointer",
-                  transition: "all 0.2s",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 6,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#1a1a1a";
-                  e.currentTarget.style.color = "#f5f0e8";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "#1a1a1a";
                 }}
               >
                 <PenSquare className="w-3 h-3" />
@@ -660,15 +643,15 @@ export function BlogHeroBroadsheet({
               <div
                 className="text-center mb-4"
                 style={{
-                  background: "#8b1a1a",
-                  color: "#f5f0e8",
+                  background: blogColors.accent,
+                  color: blogColors.cream,
                   padding: "4px 12px",
                   display: "inline-block",
                 }}
               >
                 <span
                   style={{
-                    fontFamily: "'Crimson Text', serif",
+                    fontFamily: blogFonts.headline,
                     fontSize: 10,
                     fontWeight: 700,
                     textTransform: "uppercase",
@@ -688,10 +671,10 @@ export function BlogHeroBroadsheet({
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                     style={{
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: "clamp(1.5rem, 6vw, 2.2rem)",
                       fontWeight: 700,
-                      color: "#1a1a1a",
+                      color: blogColors.ink,
                       lineHeight: 1.15,
                       textAlign: "center",
                     }}
@@ -704,10 +687,10 @@ export function BlogHeroBroadsheet({
               <p
                 className="text-center"
                 style={{
-                  fontFamily: "'Libre Baskerville', serif",
+                  fontFamily: blogFonts.body,
                   fontSize: 13,
                   fontStyle: "italic",
-                  color: "#666",
+                  color: blogColors.muted,
                   lineHeight: 1.8,
                   margin: "0 auto 20px",
                 }}
@@ -722,10 +705,10 @@ export function BlogHeroBroadsheet({
               <form onSubmit={handleSearch}>
                 <div
                   style={{
-                    border: "2px solid #1a1a1a",
+                    border: `2px solid ${blogColors.ink}`,
                     display: "flex",
                     alignItems: "center",
-                    background: "rgba(255,255,255,0.5)",
+                    background: "rgba(255,255,255,0.3)",
                   }}
                 >
                   <input
@@ -735,26 +718,25 @@ export function BlogHeroBroadsheet({
                     style={{
                       flex: 1,
                       border: "none",
-                      outline: "none",
                       background: "transparent",
                       padding: "12px 16px",
-                      fontFamily: "'Libre Baskerville', serif",
+                      fontFamily: blogFonts.body,
                       fontSize: 13,
-                      color: "#1a1a1a",
+                      color: blogColors.ink,
                     }}
                   />
                   <button
                     type="submit"
                     style={{
-                      background: "#8b1a1a",
+                      background: blogColors.accent,
                       border: "none",
-                      color: "#f5f0e8",
+                      color: blogColors.cream,
                       padding: "12px 20px",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      fontFamily: "'Crimson Text', serif",
+                      fontFamily: blogFonts.headline,
                       fontSize: 12,
                       fontWeight: 700,
                       textTransform: "uppercase",
@@ -767,54 +749,56 @@ export function BlogHeroBroadsheet({
               </form>
             </motion.div>
 
-            {/* Mobile stats row */}
-            <motion.div
-              variants={fadeUp}
-              className="flex justify-around"
-              style={{
-                borderTop: "2px solid #1a1a1a",
-                borderBottom: "2px solid #1a1a1a",
-                padding: "12px 0",
-              }}
-            >
-              {[
-                { label: "Articles", value: isLoading ? "..." : `${totalArticles}` },
-                { label: "Readers", value: isLoading ? "..." : formatStat(totalReaders) },
-                { label: "Authors", value: isLoading ? "..." : `${totalAuthors}` },
-              ].map((s, i) => (
-                <div key={s.label} className="text-center" style={{ borderRight: i < 2 ? "1px solid rgba(26,26,26,0.2)" : "none", flex: 1 }}>
-                  <span
-                    style={{
-                      fontFamily: "'Crimson Text', serif",
-                      fontSize: 28,
-                      fontWeight: 700,
-                      color: "#1a1a1a",
-                      display: "block",
-                    }}
-                  >
-                    {s.value}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'Libre Baskerville', serif",
-                      fontSize: 9,
-                      color: "#666",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </motion.div>
+            {/* Mobile stats row (hidden when sparse content) */}
+            {hasSubstantialContent && (
+              <motion.div
+                variants={fadeUp}
+                className="flex justify-around"
+                style={{
+                  borderTop: `2px solid ${blogColors.ink}`,
+                  borderBottom: `2px solid ${blogColors.ink}`,
+                  padding: "12px 0",
+                }}
+              >
+                {[
+                  { label: "Articles", value: isLoading ? "..." : `${totalArticles}` },
+                  { label: "Readers", value: isLoading ? "..." : formatStat(totalReaders) },
+                  { label: "Authors", value: isLoading ? "..." : `${totalAuthors}` },
+                ].map((s, i) => (
+                  <div key={s.label} className="text-center" style={{ borderRight: i < 2 ? `1px solid ${blogColors.rule}` : "none", flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: blogFonts.headline,
+                        fontSize: "clamp(20px, 5vw, 28px)",
+                        fontWeight: 700,
+                        color: blogColors.ink,
+                        display: "block",
+                      }}
+                    >
+                      {s.value}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: blogFonts.body,
+                        fontSize: 9,
+                        color: blogColors.muted,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+            )}
           </div>
 
           {/* Bottom rule */}
           <motion.div variants={fadeUp}>
             <div
               style={{
-                borderTop: "3px double #1a1a1a",
+                borderTop: `3px double ${blogColors.ink}`,
                 marginTop: 24,
                 paddingTop: 8,
               }}
@@ -822,9 +806,9 @@ export function BlogHeroBroadsheet({
               <div className="flex justify-between items-center">
                 <span
                   style={{
-                    fontFamily: "'Libre Baskerville', serif",
+                    fontFamily: blogFonts.body,
                     fontSize: 9,
-                    color: "#999",
+                    color: blogColors.muted,
                     textTransform: "uppercase",
                     letterSpacing: "0.1em",
                   }}
@@ -833,9 +817,9 @@ export function BlogHeroBroadsheet({
                 </span>
                 <span
                   style={{
-                    fontFamily: "'Libre Baskerville', serif",
+                    fontFamily: blogFonts.body,
                     fontSize: 9,
-                    color: "#999",
+                    color: blogColors.muted,
                   }}
                 >
                   &copy; 2026 Taxomind Publishing

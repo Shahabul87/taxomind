@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { logger } from '@/lib/logger';
 import { BlogStatisticsSchema } from '@/lib/validations/blog';
-import { safeErrorResponse } from '@/lib/api/safe-error';
+
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -60,10 +60,15 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
   try {
     const cacheKey = 'blog:statistics';
 
-    // Try to get from cache first
-    const cached = await redisCache.get<BlogStatisticsResponse['data']>(cacheKey, {
-      prefix: CACHE_PREFIXES.COURSE, // Reuse course prefix for blog
-    });
+    // Try to get from cache first (isolated from main try-catch)
+    let cached = { hit: false, value: null as BlogStatisticsResponse['data'] | null };
+    try {
+      cached = await redisCache.get<BlogStatisticsResponse['data']>(cacheKey, {
+        prefix: CACHE_PREFIXES.COURSE, // Reuse course prefix for blog
+      });
+    } catch {
+      logger.warn('[BLOG_STATISTICS] Redis unavailable, proceeding without cache');
+    }
 
     if (cached.hit && cached.value) {
       logger.info('[BLOG_STATISTICS] Cache hit for blog statistics');
@@ -77,7 +82,7 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
       });
     }
 
-    // Execute all queries in parallel for optimal performance
+    // Execute core queries in parallel for optimal performance
     const [
       totalArticlesCount,
       publishedArticlesCount,
@@ -85,41 +90,19 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
       totalCommentsCount,
       uniqueAuthorsData,
       uniqueCommentersData,
-      categoryData,
     ] = await Promise.all([
-      // Total articles (all statuses)
       db.post.count(),
-
-      // Published articles only
-      db.post.count({
-        where: { published: true },
-      }),
-
-      // Total views across all posts
-      db.post.aggregate({
-        _sum: { views: true },
-        _avg: { views: true },
-      }),
-
-      // Total comments count
+      db.post.count({ where: { published: true } }),
+      db.post.aggregate({ _sum: { views: true }, _avg: { views: true } }),
       db.comment.count(),
+      db.post.findMany({ select: { userId: true }, distinct: ['userId'], take: 500 }),
+      db.comment.findMany({ select: { userId: true }, distinct: ['userId'], take: 500 }),
+    ]);
 
-      // Unique authors (users who created posts)
-      db.post.findMany({
-        select: { userId: true },
-        distinct: ['userId'],
-        take: 500,
-      }),
-
-      // Unique commenters (approximation of active readers)
-      db.comment.findMany({
-        select: { userId: true },
-        distinct: ['userId'],
-        take: 500,
-      }),
-
-      // Popular categories with counts
-      db.post.groupBy({
+    // Category groupBy in its own try-catch to prevent it from killing the entire API
+    let categoryData: Array<{ category: string | null; _count: number | Record<string, number> }> = [];
+    try {
+      categoryData = await db.post.groupBy({
         by: ['category'],
         where: {
           published: true,
@@ -131,9 +114,11 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
             category: 'desc',
           },
         },
-        take: 10, // Top 10 categories
-      }),
-    ]);
+        take: 10,
+      });
+    } catch (groupByError) {
+      logger.warn('[BLOG_STATISTICS] Category groupBy failed, using fallback', groupByError);
+    }
 
     // Calculate statistics
     const totalViews = totalViewsData._sum.views || 0;
@@ -141,13 +126,12 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
     const totalAuthors = uniqueAuthorsData.length;
 
     // Estimate total readers: unique commenters + (views / 10)
-    // Assuming roughly 1 in 10 readers leaves a comment
     const estimatedReaders = uniqueCommentersData.length + Math.floor(totalViews / 10);
 
-    // Format popular categories
+    // Format popular categories — handle both number and object _count formats
     const popularCategories = categoryData.map((cat) => ({
       category: cat.category || 'Uncategorized',
-      count: cat._count,
+      count: typeof cat._count === 'number' ? cat._count : (cat._count as Record<string, number>).category ?? 0,
     }));
 
     // Build statistics response
@@ -165,12 +149,16 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
     // Validate statistics before returning/caching
     const validatedStatistics = BlogStatisticsSchema.parse(statistics);
 
-    // Cache the results for 10 minutes
-    await redisCache.set(cacheKey, validatedStatistics, {
-      prefix: CACHE_PREFIXES.COURSE,
-      ttl: CACHE_TTL.MEDIUM, // 10 minutes
-      tags: ['statistics', 'blog', 'posts'],
-    });
+    // Cache the results for 10 minutes (isolated so write failure doesn't kill response)
+    try {
+      await redisCache.set(cacheKey, validatedStatistics, {
+        prefix: CACHE_PREFIXES.COURSE,
+        ttl: CACHE_TTL.MEDIUM, // 10 minutes
+        tags: ['statistics', 'blog', 'posts'],
+      });
+    } catch {
+      logger.warn('[BLOG_STATISTICS] Redis cache write failed, continuing without cache');
+    }
 
     logger.info('[BLOG_STATISTICS] Successfully calculated and cached blog statistics', {
       stats: validatedStatistics,
@@ -187,6 +175,25 @@ export async function GET(req: Request): Promise<NextResponse<BlogStatisticsResp
     });
   } catch (error) {
     logger.error('[BLOG_STATISTICS] Error fetching blog statistics:', error);
-    return safeErrorResponse(error, 500, 'BLOG_STATISTICS');
+
+    // Graceful degradation — return zeroed data instead of error
+    // so the frontend never sees a failure
+    return NextResponse.json({
+      success: true,
+      data: {
+        totalArticles: 0,
+        publishedArticles: 0,
+        totalReaders: 0,
+        totalAuthors: 0,
+        totalViews: 0,
+        totalComments: 0,
+        averageViews: 0,
+        popularCategories: [],
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        cached: false,
+      },
+    });
   }
 }

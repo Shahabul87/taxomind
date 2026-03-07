@@ -295,7 +295,7 @@ export const HomeFooter = () => {
               Start Your Learning Journey Today
             </h2>
             <p className="text-slate-600 dark:text-gray-300 text-sm sm:text-base md:text-lg mb-6 sm:mb-8 leading-relaxed px-2 sm:px-0">
-              Join thousands of learners who have already transformed their careers through our platform.
+              Transform your career with AI-powered courses, personalized learning paths, and expert instruction.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 items-stretch sm:items-center relative z-20 mt-6 sm:mt-8">
               <Link href={ctaLink} className="relative z-20 w-full sm:w-auto">

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -33,26 +34,14 @@ interface BlogCardProps {
   variant?: "grid" | "list" | "featured" | "compact";
   className?: string;
   priority?: boolean;
+  index?: number;
 }
 
 // ============================================================================
 // Shared editorial styles
 // ============================================================================
 
-const fonts = {
-  headline: "'Crimson Text', 'Georgia', 'Times New Roman', serif",
-  body: "'Libre Baskerville', 'Georgia', serif",
-  mono: "'JetBrains Mono', 'Courier New', monospace",
-};
-
-const colors = {
-  cream: "#f5f0e8",
-  ink: "#1a1a1a",
-  accent: "#8b1a1a",
-  muted: "#5c5c5c",
-  rule: "#c4b9a8",
-  lightRule: "#d8d0c4",
-};
+import { blogFonts as fonts, blogColors as colors } from "./types";
 
 // ============================================================================
 // Utility Functions
@@ -155,7 +144,7 @@ function GridCard({ post, priority = false }: BlogCardProps) {
               style={{
                 width: "100%",
                 height: "100%",
-                background: "linear-gradient(135deg, #e8e0d4 0%, #d8d0c4 100%)",
+                background: `linear-gradient(135deg, ${colors.warmBg} 0%, ${colors.lightRule} 100%)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -215,7 +204,7 @@ function GridCard({ post, priority = false }: BlogCardProps) {
               overflow: "hidden",
               transition: "color 0.2s",
             }}
-            className="group-hover:!text-[#8b1a1a]"
+            className="group-hover:text-newspaper-accent"
           >
             {post.title}
           </h3>
@@ -347,7 +336,7 @@ function ListCard({ post, priority = false }: BlogCardProps) {
               width: "100%",
               height: "100%",
               minHeight: 180,
-              background: "linear-gradient(135deg, #e8e0d4 0%, #d8d0c4 100%)",
+              background: `linear-gradient(135deg, ${colors.warmBg} 0%, ${colors.lightRule} 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -404,7 +393,7 @@ function ListCard({ post, priority = false }: BlogCardProps) {
               overflow: "hidden",
               transition: "color 0.2s",
             }}
-            className="group-hover:!text-[#8b1a1a]"
+            className="group-hover:text-newspaper-accent"
           >
             {post.title}
           </h3>
@@ -514,7 +503,7 @@ function FeaturedCard({ post, priority = true }: BlogCardProps) {
             <div style={{
               width: "100%",
               height: "100%",
-              background: "linear-gradient(135deg, #d8d0c4 0%, #c4b9a8 100%)",
+              background: `linear-gradient(135deg, ${colors.lightRule} 0%, ${colors.rule} 100%)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -562,7 +551,7 @@ function FeaturedCard({ post, priority = true }: BlogCardProps) {
               fontSize: 26,
               fontWeight: 700,
               lineHeight: 1.2,
-              color: "#f5f0e8",
+              color: colors.cream,
               marginBottom: 8,
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -657,7 +646,7 @@ function CompactCard({ post }: BlogCardProps) {
           <div style={{
             width: "100%",
             height: "100%",
-            background: `linear-gradient(135deg, ${colors.cream} 0%, #d8d0c4 100%)`,
+            background: `linear-gradient(135deg, ${colors.cream} 0%, ${colors.lightRule} 100%)`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -683,7 +672,7 @@ function CompactCard({ post }: BlogCardProps) {
             marginBottom: 4,
             transition: "color 0.2s",
           }}
-          className="group-hover:!text-[#8b1a1a]"
+          className="group-hover:text-newspaper-accent"
         >
           {post.title}
         </h4>
@@ -716,7 +705,9 @@ export function BlogCardEnhanced({
   variant = "grid",
   className,
   priority = false,
+  index = 0,
 }: BlogCardProps) {
+  const shouldReduceMotion = useReducedMotion();
   const components = {
     grid: GridCard,
     list: ListCard,
@@ -727,9 +718,19 @@ export function BlogCardEnhanced({
   const Component = components[variant];
 
   return (
-    <div className={className}>
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{
+        duration: shouldReduceMotion ? 0 : 0.4,
+        delay: shouldReduceMotion ? 0 : Math.min(index * 0.06, 0.36),
+        ease: [0.22, 1, 0.36, 1],
+      }}
+    >
       <Component post={post} priority={priority} />
-    </div>
+    </motion.div>
   );
 }
 
